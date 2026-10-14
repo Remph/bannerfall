@@ -1,0 +1,307 @@
+.page {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.notice {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+}
+
+.noticeLink {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* one card per tab on its own, two side by side on wide screens */
+.oneColumn,
+.twoColumns {
+  display: grid;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.oneColumn > *,
+.twoColumns > * {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .oneColumn {
+    max-width: 40rem;
+  }
+
+  .twoColumns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.target {
+  max-width: 22rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.body .empty {
+  padding: 0;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- amounts of the three resources ---------- */
+.amounts {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amountRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.amountRow:first-child {
+  border-top: 0;
+}
+
+.amountName {
+  flex: 1 1 6rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.amountInput {
+  margin-left: auto;
+}
+
+/* ---------- facts: merchants, time, arrival ---------- */
+.facts {
+  display: grid;
+  margin: 0;
+}
+
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.short,
+.short dt,
+.short dd {
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.actions > button {
+  min-width: 10rem;
+}
+
+@media (max-width: 639px) {
+  .actions > button {
+    width: 100%;
+  }
+}
+
+.sent {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-title);
+}
+
+.sent:empty {
+  display: none;
+}
+
+/* ---------- create offer ---------- */
+.field {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.fieldLabel {
+  font-weight: 700;
+  color: var(--color-title);
+}
+
+/* ---------- offers ---------- */
+.offerList,
+.moveList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.offer:first-child {
+  border-top: 0;
+}
+
+.offerMain {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.offerText {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.offerPart {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.offerCount {
+  font-weight: 600;
+}
+
+.offerMeta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- accept sheet ---------- */
+.confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirm p {
+  margin: 0;
+}
+
+.confirmTitle {
+  display: grid;
+  gap: 2px;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* ---------- merchants on their way ---------- */
+.move {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.move:first-child {
+  border-top: 0;
+}
+
+.moveIcon {
+  flex: none;
+  font-size: 1.4rem;
+  color: var(--color-title);
+}
+
+.moveText {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.moveTitle {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.player {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.moveTime {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  font-weight: 700;
+  color: var(--color-text);
+}

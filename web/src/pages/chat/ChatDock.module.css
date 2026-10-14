@@ -1,0 +1,94 @@
+/* Only rendered on desktop (AppLayout), so no phone styles. */
+.launcher,
+.dock {
+  position: fixed;
+  right: var(--space-3);
+  bottom: calc(var(--space-3) + 1.5rem); /* above the footer with the server time */
+  z-index: 20;
+}
+
+.launcher {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: 0 1.1rem;
+  border: 2px solid var(--color-bar-edge);
+  border-radius: var(--radius-pill);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  box-shadow: var(--shadow-float);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.launcher:hover {
+  color: var(--color-highlight);
+}
+
+.launcher:focus-visible,
+.minimize:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+.badge {
+  min-width: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dock {
+  width: 22rem;
+  height: min(32rem, 100dvh - 12rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+}
+
+/* the green banner bar of the design direction */
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1) 0 var(--space-3);
+  background: var(--color-bar);
+  color: var(--color-highlight);
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  color: var(--color-on-bar);
+  font-size: 1.05rem;
+}
+
+.minimize {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-bar);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.minimize:hover {
+  background: var(--color-bar-hover);
+}

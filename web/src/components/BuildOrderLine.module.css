@@ -1,0 +1,86 @@
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  min-height: var(--touch-target);
+  display: flex;
+  /* on narrow phones the buttons move below the text, right-aligned */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.line:first-child {
+  border-top: 0;
+}
+
+.icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+.text {
+  flex: 1 1 9rem;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.level {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.time {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* progress of the running order */
+.bar {
+  display: block;
+  height: 4px;
+  margin-top: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+}
+
+.actions {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-1);
+}

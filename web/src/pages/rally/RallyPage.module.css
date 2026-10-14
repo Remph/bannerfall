@@ -1,0 +1,611 @@
+.page {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* link to the attack simulator under the village name */
+.simulatorLink {
+  width: fit-content;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.simulatorLink:hover {
+  text-decoration: underline;
+}
+
+/* ---------- layout: phone = send, movements, troops, dev cheats; desktop = send + troops | movements ---------- */
+.layout {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.send,
+.moves,
+.troops,
+.dev {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* the last row takes what is left, so the left column stacks without gaps */
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'send moves'
+      'troops moves'
+      'dev moves';
+    align-items: start;
+  }
+
+  .send {
+    grid-area: send;
+  }
+
+  .moves {
+    grid-area: moves;
+  }
+
+  .troops {
+    grid-area: troops;
+  }
+
+  .dev {
+    grid-area: dev;
+  }
+}
+
+/* ---------- send card ---------- */
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.target {
+  max-width: 22rem;
+}
+
+.units {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* unit rows: name, then − / count / + / "all" (below the name on narrow phones) */
+.pickList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.pickRow:first-child {
+  border-top: 0;
+}
+
+.pickName {
+  flex: 1 1 8rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pickInput {
+  margin-left: auto;
+}
+
+.unitIcon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+/* Below the unit list; on phones and tablets it sticks above the tab bar (3.5rem + its 2px border)
+   while the list is scrolled, so Attack / Support stay within thumb reach (05-frontend §8). */
+.sendFooter {
+  position: sticky;
+  bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px) + var(--space-2));
+  z-index: 1;
+  margin: 0 calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow:
+    0 -1px 0 var(--color-divider),
+    0 4px 14px rgba(30, 15, 5, 0.12);
+}
+
+@media (min-width: 1024px) {
+  .sendFooter {
+    position: static;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}
+
+/* Attack / Support: full width on phones (thumb reach), at the right on wider screens */
+.sendActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.sendActions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .sendActions {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.buttonIcon {
+  flex: none;
+  font-size: 1.15rem;
+}
+
+.sent {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-title);
+}
+
+.sent:not(:empty) {
+  margin-top: var(--space-2);
+}
+
+/* ---------- attack train (M37) ---------- */
+/* the attacks lined up above the unit list, numbered in the order they land */
+.train {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+}
+
+.train p {
+  margin: 0;
+}
+
+.trainHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+
+.trainTitle {
+  font-weight: 700;
+  color: var(--color-title);
+}
+
+.trainList,
+.trainConfirmList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* number | units (they wrap inside their column) | remove, one line even on a phone */
+.trainRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.trainRow:first-child {
+  border-top: 0;
+}
+
+.trainNumber {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.addToTrain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* in the confirmation sheet: one block per attack, with its catapult target and errors */
+.trainConfirmAttack {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.trainConfirmAttack:first-child {
+  border-top: 0;
+}
+
+/* ---------- confirmation sheets (preview, withdraw / send back) ---------- */
+.confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirm p {
+  margin: 0;
+}
+
+.confirmTarget {
+  font-size: 1.1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  margin: 0;
+}
+
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.select {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.select label {
+  font-weight: 600;
+}
+
+.select select {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font-size: max(1rem, 16px);
+}
+
+.select select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.notice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: 0.9rem;
+}
+
+/* the rules a command breaks (preview), right above Confirm */
+.errors {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-2) 1.75rem;
+  border-radius: var(--radius);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.confirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* ---------- movement and stack lines ---------- */
+.moveList,
+.stackList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.move,
+.stack {
+  min-height: var(--touch-target);
+  display: flex;
+  /* on narrow phones the button moves below the text, right-aligned */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.move:first-child,
+.stack:first-child {
+  border-top: 0;
+}
+
+.stack {
+  padding-inline: 0;
+}
+
+.moveIcon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+/* incoming attacks */
+.hostile {
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.hostile .moveIcon {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.hostile .moveTitle {
+  color: var(--color-danger);
+}
+
+.moveText,
+.stackText {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.moveTitle {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.player {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.moveTime {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.moveUnits {
+  font-size: 0.9rem;
+}
+
+.moveActions {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-1);
+}
+
+.moveActions button {
+  font-variant-numeric: tabular-nums;
+}
+
+.coordsLink {
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.coords {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- troops card ---------- */
+.groups {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.groupTitle {
+  font-size: 0.95rem;
+  color: var(--color-title);
+}
+
+/* ---------- troop overview (M33): unit types down, counts across, like the reports' UnitTable ---------- */
+/* the page never scrolls sideways; a too narrow screen scrolls this box instead */
+.overviewScroll {
+  overflow-x: auto;
+  container: troop-overview / inline-size;
+}
+
+.overview {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview th,
+.overview td {
+  padding: var(--space-1) 0 var(--space-1) var(--space-2);
+  border-top: 1px solid var(--color-divider);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.overview thead th {
+  border-top: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  vertical-align: bottom;
+}
+
+/* the unit names may wrap ("Leichte Kavallerie"), so the number columns fit on a phone */
+.overview th:first-child {
+  width: 100%;
+  padding-left: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+.overview tbody th {
+  font-weight: 600;
+}
+
+.overviewUnit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.overviewIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+  font-size: 0.9rem;
+}
+
+.overviewTotal {
+  font-weight: 700;
+  color: var(--color-title);
+}
+
+/* support of other villages is not part of the total: a line sets it apart */
+.overview .overviewSupport {
+  border-left: 1px solid var(--color-divider);
+}
+
+.overviewNone {
+  color: var(--color-text-muted);
+}
+
+/* phones: the headers break (German ones at their soft hyphen, "Unter-stützung"), so the columns
+   stay as narrow as their numbers */
+@container troop-overview (max-width: 29.99rem) {
+  .overview thead th {
+    white-space: normal;
+    hyphens: manual;
+  }
+}
+
+/* narrow phones (360 px): the unit icons go, the names stay */
+@container troop-overview (max-width: 19.99rem) {
+  .overviewIcon {
+    display: none;
+  }
+}
+
+.overviewHint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- small things ---------- */
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.cardError {
+  padding: 0 var(--space-3) var(--space-3);
+}

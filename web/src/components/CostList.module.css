@@ -1,0 +1,30 @@
+.costs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-weight: 700;
+  color: var(--color-title);
+}
+
+.cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.icon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.short {
+  color: var(--color-danger);
+  font-weight: 700;
+}

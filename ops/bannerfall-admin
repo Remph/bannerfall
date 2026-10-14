@@ -1,0 +1,19 @@
+#!/bin/sh
+# bannerfall-admin – the Bannerfall host console (docs/plan/08-host-console.md §5).
+#
+# Runs de.bannerfall.cli.AdminCli from the app jar, without starting the server: it talks to the
+# running server over HTTP (BANNERFALL_URL, default http://localhost:8080) with the host token from
+# BANNERFALL_ADMIN_TOKEN, which the app container already has. The Dockerfile (M14b) copies this
+# script to /usr/local/bin. On the host:
+#
+#   docker compose exec app bannerfall-admin            # interactive menu
+#   docker compose exec app bannerfall-admin status
+#   docker compose exec app bannerfall-admin --help
+#
+# BANNERFALL_JAR: where the app jar is (default /app/app.jar).
+JAR="${BANNERFALL_JAR:-/app/app.jar}"
+# A small, quick JVM: the server's JAVA_TOOL_OPTIONS (heap share) don't apply to the console.
+unset JAVA_TOOL_OPTIONS
+exec java -XX:TieredStopAtLevel=1 -Xss512k -Xmx64m \
+  -Dloader.main=de.bannerfall.cli.AdminCli \
+  -cp "$JAR" org.springframework.boot.loader.launch.PropertiesLauncher "$@"

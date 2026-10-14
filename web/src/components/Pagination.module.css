@@ -1,0 +1,35 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.pageLink {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.pageLink:hover {
+  background: var(--color-well);
+}
+
+.pageLink[aria-disabled='true'] {
+  opacity: 0.45;
+}
+
+.pageInfo {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}

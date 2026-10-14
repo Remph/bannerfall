@@ -1,0 +1,36 @@
+.units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+/* a small round well like the building and unit icons elsewhere: readable in dark mode too */
+.icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+  font-size: 0.85rem;
+}
+
+/* the research level of a unit (M30), small after its count */
+.level {
+  color: var(--color-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

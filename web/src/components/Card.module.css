@@ -1,0 +1,16 @@
+.card {
+  min-width: 0;
+  /* clip, not hidden: hidden would make the card a scroll container, and position: sticky inside it
+     (the rally point's send buttons) would stick to the card instead of the screen */
+  overflow: clip;
+  background: var(--color-surface);
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.title {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: 1.05rem;
+  color: var(--color-text);
+}

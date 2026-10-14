@@ -1,0 +1,221 @@
+/* Fills its container (the full-screen sheet, the desktop panel): the list scrolls, the field stays. */
+.panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.channels {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.listWrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2) var(--space-3);
+}
+
+.older,
+.start,
+.empty {
+  margin: 0 0 var(--space-2);
+  text-align: center;
+}
+
+.older {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.start,
+.empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.messages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  padding: 1px 0;
+}
+
+.groupStart {
+  margin-top: var(--space-2);
+}
+
+.messages > .message:first-child {
+  margin-top: 0;
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  color: var(--color-title);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* own messages: the name in the accent colour and a line at the left */
+.mine .name {
+  color: var(--color-accent);
+}
+
+.mine .text {
+  border-left-color: var(--color-accent);
+}
+
+/* a broadcast by the host (M14d): the banner green, so it doesn't read as one more player */
+.broadcast .name {
+  color: var(--color-title);
+  font-weight: 700;
+}
+
+.broadcast .text {
+  border-left-color: var(--color-bar);
+  font-weight: 600;
+}
+
+.text {
+  margin: 0;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--color-divider);
+  /* line breaks as written; long words and links wrap instead of widening the panel */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.newMessages {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  box-shadow: var(--shadow-float);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* touch screens keep the full touch target height (05-frontend §8) */
+@media (pointer: coarse) {
+  .newMessages {
+    min-height: var(--touch-target);
+  }
+}
+
+.composer {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch-target);
+  max-height: 8rem;
+  /* grows with the text where the browser can (Chromium), else it scrolls */
+  field-sizing: content;
+  padding: 0.6rem var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font-size: max(1rem, 16px);
+  line-height: 1.35;
+  resize: none;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.hint,
+.error {
+  margin: var(--space-1) 0 0;
+  font-size: 0.875rem;
+}
+
+.hint {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+/* admin only: hides the message above it from the history */
+.hide {
+  margin: 0 0 0 var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hide:hover,
+.hideArmed {
+  color: var(--color-danger);
+}

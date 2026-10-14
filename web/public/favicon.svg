@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .tile{fill:#2f4a3c}.bar{stroke:#e9c46a}.cloth{fill:#a8372a}.trim{fill:#e9c46a}.line{stroke:#e9c46a;opacity:.55}
+    @media (prefers-color-scheme: dark){.tile{fill:#263d31}.cloth{fill:#c9533f}}
+  </style>
+  <rect class="tile" width="32" height="32" rx="7"/>
+  <line class="line" x1="7" y1="4" x2="7" y2="11" stroke-width="2" stroke-linecap="round"/>
+  <line class="line" x1="25" y1="4" x2="25" y2="9" stroke-width="2" stroke-linecap="round"/>
+  <g transform="rotate(-14 16 16)">
+    <line class="bar" x1="8" y1="8" x2="24" y2="8" stroke-width="2.4" stroke-linecap="round"/>
+    <path class="cloth" d="M10 9h12v19l-6-4.5-6 4.5z"/>
+    <path class="trim" d="M14.6 13.5h2.8v6h-2.8z"/>
+  </g>
+</svg>

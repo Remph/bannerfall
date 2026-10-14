@@ -1,0 +1,148 @@
+# Building numbers: docs/plan/02-game-rules.md §4.1 (the rulebook wins if they ever disagree).
+# base-cost = cost per resource for level 1, base-seconds = build time for level 1 (speed 1, Town Hall 0).
+gamedata:
+  buildings:
+    HEADQUARTERS:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 90, clay: 80, iron: 70 }
+      cost-factor: 1.26
+      pop-base: 5
+      base-seconds: 900
+      points-base: 10
+      requires: {}
+    BARRACKS:
+      max-level: 25
+      start-level: 0
+      base-cost: { wood: 200, clay: 170, iron: 90 }
+      cost-factor: 1.26
+      pop-base: 7
+      base-seconds: 1800
+      points-base: 16
+      requires: { HEADQUARTERS: 3 }
+    STABLE:
+      max-level: 20
+      start-level: 0
+      base-cost: { wood: 270, clay: 240, iron: 260 }
+      cost-factor: 1.26
+      pop-base: 8
+      base-seconds: 6000
+      points-base: 20
+      requires: { HEADQUARTERS: 10, BARRACKS: 5, SMITHY: 5 }
+    WORKSHOP:
+      max-level: 15
+      start-level: 0
+      base-cost: { wood: 300, clay: 240, iron: 260 }
+      cost-factor: 1.26
+      pop-base: 8
+      base-seconds: 6000
+      points-base: 24
+      requires: { HEADQUARTERS: 10, SMITHY: 10 }
+    ACADEMY:
+      max-level: 1
+      start-level: 0
+      base-cost: { wood: 15000, clay: 25000, iron: 10000 }
+      cost-factor: 1.0
+      pop-base: 80
+      base-seconds: 64800
+      points-base: 512
+      requires: { HEADQUARTERS: 20, SMITHY: 20, MARKET: 10 }
+    SMITHY:
+      max-level: 20
+      start-level: 0
+      base-cost: { wood: 220, clay: 180, iron: 240 }
+      cost-factor: 1.26
+      pop-base: 20
+      base-seconds: 6000
+      points-base: 19
+      requires: { HEADQUARTERS: 5, BARRACKS: 1 }
+    RALLY_POINT:
+      max-level: 1
+      start-level: 1
+      base-cost: { wood: 10, clay: 40, iron: 30 }
+      cost-factor: 1.0
+      pop-base: 0
+      base-seconds: 600
+      points-base: 0
+      requires: {}
+    MARKET:
+      max-level: 25
+      start-level: 0
+      base-cost: { wood: 100, clay: 100, iron: 100 }
+      cost-factor: 1.26
+      pop-base: 20
+      base-seconds: 2700
+      points-base: 10
+      requires: { HEADQUARTERS: 3, WAREHOUSE: 2 }
+    WOODCUTTER:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 50, clay: 60, iron: 40 }
+      cost-factor: 1.25
+      pop-base: 5
+      base-seconds: 900
+      points-base: 6
+      requires: {}
+    CLAY_PIT:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 65, clay: 50, iron: 40 }
+      cost-factor: 1.27
+      pop-base: 10
+      base-seconds: 900
+      points-base: 6
+      requires: {}
+    IRON_MINE:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 75, clay: 65, iron: 70 }
+      cost-factor: 1.252
+      pop-base: 10
+      base-seconds: 1080
+      points-base: 6
+      requires: {}
+    FARM:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 45, clay: 40, iron: 30 }
+      cost-factor: 1.30
+      pop-base: 0
+      base-seconds: 1200
+      points-base: 5
+      requires: {}
+    WAREHOUSE:
+      max-level: 30
+      start-level: 1
+      base-cost: { wood: 60, clay: 50, iron: 40 }
+      cost-factor: 1.265
+      pop-base: 0
+      base-seconds: 1020
+      points-base: 6
+      requires: {}
+    HIDING_PLACE:
+      max-level: 10
+      start-level: 0
+      base-cost: { wood: 50, clay: 60, iron: 50 }
+      cost-factor: 1.25
+      pop-base: 2
+      base-seconds: 1800
+      points-base: 5
+      requires: {}
+    WALL:
+      max-level: 20
+      start-level: 0
+      base-cost: { wood: 50, clay: 100, iron: 20 }
+      cost-factor: 1.26
+      pop-base: 5
+      base-seconds: 3600
+      points-base: 8
+      requires: { BARRACKS: 1 }
+    BANNER_HALL:
+      max-level: 3
+      start-level: 0
+      base-cost: { wood: 300, clay: 350, iron: 250 }
+      cost-factor: 1.5
+      pop-base: 8
+      base-seconds: 7200
+      points-base: 20
+      requires: { HEADQUARTERS: 8, BARRACKS: 5 }

@@ -1,0 +1,41 @@
+/* The link is a full touch target; the red pill inside is smaller. */
+.badge {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border: 2px solid var(--color-on-bar);
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  animation: attention 1.6s ease-in-out 3;
+}
+
+.badge:hover .pill {
+  filter: brightness(1.1);
+}
+
+.badge:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 0;
+}
+
+/* draws the eye when it appears (three pulses, not forever) */
+@keyframes attention {
+  50% {
+    box-shadow: 0 0 0 5px rgba(180, 35, 24, 0.35);
+  }
+}

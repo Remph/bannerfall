@@ -1,0 +1,168 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.hero {
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.5rem;
+  color: var(--color-title);
+}
+
+.opens {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.countdown {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+.countdownLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.text {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+}
+
+/* label left, value right, a thin line between the rows */
+.facts {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.fact:last-child {
+  border-bottom: 0;
+}
+
+.fact dt {
+  color: var(--color-text-muted);
+}
+
+.fact dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the notice under the login and register forms */
+.notice {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-well);
+}
+
+.notice p {
+  margin: 0;
+}
+
+.notice p + p {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+/* the slim frame of the pre-game */
+.frame {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  padding-top: calc(var(--space-1) + env(safe-area-inset-top, 0px));
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-bottom: 2px solid var(--color-bar-edge);
+}
+
+.brand {
+  /* a link now: only the name is clickable, the bar buttons are pushed to the right */
+  margin-right: auto;
+  font-family: var(--font-brand);
+  font-size: 1.4rem;
+  color: var(--color-highlight);
+  text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--color-on-bar);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.barButton {
+  min-width: var(--touch-target);
+  height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-bar);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.barButton:hover {
+  background: var(--color-bar-hover);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-3) 5rem;
+}
+
+.adminHint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+}

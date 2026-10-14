@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: bannerfall
+  config:
+    # Game numbers (buildings, units, NPC lords) live in their own files; see docs/plan/01-architecture.md §4.2.
+    import: classpath:gamedata/buildings.yml,classpath:gamedata/units.yml,classpath:gamedata/achievements.yml,classpath:gamedata/banners.yml,classpath:gamedata/npc/offensive.yml,classpath:gamedata/npc/balanced.yml,classpath:gamedata/npc/defensive.yml,classpath:gamedata/npc/balance.yml
+  jackson:
+    deserialization:
+      # 1.5 as a unit count is refused instead of cut to 1 (M14e, 01 §4.12).
+      accept-float-as-int: false
+  datasource:
+    # Local default = the database from compose.yaml (DB_PORT as there). Production overrides this (application-prod.yml).
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/bannerfall
+    username: bannerfall
+    password: bannerfall
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      # Lazy villages/players in lists (troops, movements) load in batches instead of one by one.
+      hibernate.default_batch_fetch_size: 50
+  flyway:
+    enabled: true
+
+server:
+  servlet:
+    session:
+      # Friends play over days: stay logged in for 30 days (sessions are in memory, a restart logs everyone out).
+      timeout: 30d
+      cookie:
+        max-age: 30d
+        same-site: lax
+
+springdoc:
+  # Set explicitly (production switches both off in application-prod.yml): left at their default,
+  # springdoc warns at every start, and that WARN would land in server.err.
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    # Swagger UI sends the XSRF-TOKEN cookie back as X-XSRF-TOKEN header, so POST/PATCH work there
+    # (call GET /api/auth/csrf once first). Swagger is switched off in production (application-prod.yml).
+    csrf:
+      enabled: true
+
+bannerfall:
+  admin:
+    # The host token for the CLI bannerfall-admin (docs/plan/08-host-console.md §4): env
+    # BANNERFALL_ADMIN_TOKEN, at least 32 characters (`openssl rand -base64 32`). Empty = no token door.
+    token: ${BANNERFALL_ADMIN_TOKEN:}
+  abuse:
+    # Abuse protection (docs/plan/01-architecture.md §4.12). Every number is a default; the host may change it here.
+    write-limit:
+      # Writes (POST/PUT/PATCH/DELETE on /api/**) per account: this many per second on average ...
+      per-second: 10
+      # ... with bursts up to this many; beyond it the answer is 429 TOO_MANY_REQUESTS.
+      burst: 30
+    auto-lock:
+      # Locks an account for a while when it piles up suspicion events (audited as AUTO_LOCK). Admins are exempt.
+      enabled: true
+      events: 20
+      window: 10m
+      duration: 1h
+  status:
+    # Sites that may read GET /api/world/status from another origin (M19): the landing page shows the player counts
+    # of every world. Comma-separated; env BANNERFALL_STATUS_ORIGINS. Empty = same origin only.
+    allowed-origins: ${BANNERFALL_STATUS_ORIGINS:https://bannerfall.de,https://www.bannerfall.de}
+  cheats:
+    # The host cheats /api/admin/cheats/** (08 §3): env BANNERFALL_CHEATS_ENABLED. application-dev.yml
+    # switches them on; the dev cheats /api/dev/** depend on the profile dev instead.
+    enabled: ${BANNERFALL_CHEATS_ENABLED:false}
+  events:
+    # The event worker (tick every 200 ms) and the nightly cleanup. Tests switch it off and call
+    # EventProcessor.processDue by hand (docs/plan/01-architecture.md §4.6).
+    scheduler-enabled: true
+  logging:
+    # Where server.log and server.err go (logback-spring.xml). Relative to the working directory:
+    # server/logs with bootRun. Production: /app/logs (application-prod.yml).
+    dir: logs
+
+logging:
+  level:
+    # Spring logs a 405 (wrong HTTP method) at WARN under this name. It is a normal client error
+    # answer (400/404/409 aren't logged either), so it stays out of server.err.
+    org.springframework.web.servlet.PageNotFound: error
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

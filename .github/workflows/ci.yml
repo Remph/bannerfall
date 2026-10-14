@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    # Integration branches too: release-cycle work is merged into them without a PR, so without
+    # this nothing on them would ever be checked.
+    branches: [main, 'integration/**']
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew check # runs the tests (Testcontainers works on GitHub runners) and spotlessCheck
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm format:check
+      - run: pnpm lint
+
+  # The production image (M14b): builds the web app and the server jar inside Docker, so a broken
+  # Dockerfile shows up before a release. Nothing is pushed.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build --build-arg VERSION=ci -t bannerfall:ci .
+      - name: The image starts its own CLI
+        run: docker run --rm --entrypoint bannerfall-admin bannerfall:ci --help

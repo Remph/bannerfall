@@ -1,0 +1,22 @@
+# NPC balance: general numbers and the difficulties EASY, NORMAL, HARD (docs/plan/09-npc-lords.md §8, §9).
+# CUSTOM lives in world_settings.npc_custom.
+npc:
+  balance:
+    think-jitter: 0.25
+    ledger-decay: 0.99
+    intel-max-age-hours: 6        # ÷ speed
+    farm-margin: 3.0
+    farm-max-loss: 0.25
+    attack-max-loss: 0.5
+    farm-cooldown-minutes: 720    # ÷ speed
+    farms-per-round: 3
+    noble-troop-share: 0.2
+    support-horizon-hours: 3      # ÷ speed
+    grudge-hours: 48              # ÷ speed
+    quiet-from: "23:00"
+    quiet-to: "07:00"
+    quiet-zone: Europe/Berlin
+    difficulties:                 # CUSTOM is not here: it lives in world_settings.npc_custom (§8)
+      EASY:   { production-factor: 0.7, boost-below: 0.0, boost-factor: 1.0,  lead-margin: 1.0,  attacks-per-player-per-day: 2, attacks-per-human-per-day: 3,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "22:00", build-quiet-to: "08:00" }
+      NORMAL: { production-factor: 0.9, boost-below: 0.5, boost-factor: 1.25, lead-margin: 1.25, attacks-per-player-per-day: 4, attacks-per-human-per-day: 8,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "23:00", build-quiet-to: "07:00" }
+      HARD:   { production-factor: 1.1, boost-below: 0.6, boost-factor: 1.5,  lead-margin: 1.6,  attacks-per-player-per-day: 8, attacks-per-human-per-day: 16, quiet-hours: false, spare-last-village: false, build-quiet-from: "00:00", build-quiet-to: "06:00" }

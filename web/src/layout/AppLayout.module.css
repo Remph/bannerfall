@@ -1,0 +1,179 @@
+/* Phone first. The bottom tab bar is fixed (navigation.module.css), so <main> keeps room for it. */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  border-bottom: 2px solid var(--color-bar-edge);
+}
+
+.topBar {
+  display: grid;
+  grid-template-areas:
+    'switcher attacks details'
+    'resources resources resources';
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.brand,
+.settingsButton,
+.footer {
+  display: none;
+}
+
+.switcher {
+  grid-area: switcher;
+  min-width: 0;
+}
+
+/* the red counter of incoming attacks (only while there are any) */
+.attacks {
+  grid-area: attacks;
+}
+
+.resources {
+  grid-area: resources;
+  /* reserve the height while the village loads, so the page doesn't jump */
+  min-height: 3.2rem;
+}
+
+/* phones: only the amounts, in one row (the details button opens the rest) */
+.resourcesSlim {
+  min-height: 1.4rem;
+}
+
+.detailsButton {
+  grid-area: details;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-bar-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.detailsButton:hover {
+  background: var(--color-bar-hover);
+  color: var(--color-on-bar);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-3) calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Full-screen screens (the map): exactly as high as the screen, the content fills the space between
+   the bars. The phone tab bar is in the column then (TabBar inFlow), so <main> needs no room for it. */
+.appFull {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.main.mainFull {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+}
+
+@media (min-width: 1024px) {
+  .topBar {
+    grid-template-areas: 'brand switcher attacks resources settings';
+    grid-template-columns: auto minmax(8rem, max-content) auto 1fr auto;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .brand {
+    display: block;
+    grid-area: brand;
+    font-family: var(--font-brand);
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--color-highlight);
+    text-decoration: none;
+  }
+
+  .brand:hover {
+    color: var(--color-on-bar);
+  }
+
+  .brand:focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  /* the details are always shown on desktop */
+  .detailsButton {
+    display: none;
+  }
+
+  .resources,
+  .resourcesSlim {
+    justify-self: end;
+    min-height: 0;
+  }
+
+  .settingsButton {
+    grid-area: settings;
+    width: var(--touch-target);
+    height: var(--touch-target);
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-on-bar);
+    font-size: 1.3rem;
+    cursor: pointer;
+  }
+
+  .settingsButton:hover {
+    background: var(--color-bar-hover);
+  }
+
+  /* at the bottom: room for the chat button, so it never covers the end of a page */
+  .main {
+    padding: var(--space-4) var(--space-3) 5rem;
+  }
+
+  /* the map on the desktop (M11b): the whole width and height between the bars and the footer */
+  .main.mainWide {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    padding: 0.35rem var(--space-3);
+    background: var(--color-bar-edge);
+    color: var(--color-on-bar-muted);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,281 @@
+package de.bannerfall.npc;
+
+import de.bannerfall.gamedata.BuildingType;
+import de.bannerfall.gamedata.GameData;
+import de.bannerfall.gamedata.ResourceAmounts;
+import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.npc.NpcMemory.Grudge;
+import de.bannerfall.npc.NpcMemory.Intel;
+import de.bannerfall.npc.NpcWorld.MapVillage;
+import de.bannerfall.report.BattleOutcome;
+import de.bannerfall.report.BattleReport;
+import de.bannerfall.report.Report;
+import de.bannerfall.report.ReportKind;
+import de.bannerfall.report.ReportRepository;
+import de.bannerfall.rules.Loot;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import org.springframework.stereotype.Component;
+
+/**
+ * Reports into memory (09-npc-lords §4): what the lord's attacks and scouts saw becomes intel about
+ * the target village, an attack on the lord becomes a grudge. Old memory is pruned here too. The
+ * pure parts ({@link #learn}, {@link #prune}) are unit-tested.
+ */
+@Component
+class NpcIntel {
+
+    /** A target is left alone this long (game time, ÷ speed) after two failed scoutings. */
+    static final Duration LEAVE_ALONE = Duration.ofDays(1);
+
+    /** The farm cooldown memory is kept this long (game time, ÷ speed). */
+    static final Duration FARMED_KEEP = Duration.ofDays(1);
+
+    private final ReportRepository reports;
+    private final GameData gameData;
+
+    NpcIntel(ReportRepository reports, GameData gameData) {
+        this.reports = reports;
+        this.gameData = gameData;
+    }
+
+    /**
+     * Reads the lord's new reports in id order into {@code memory} and marks them read: nobody else
+     * reads them (§4).
+     */
+    void read(
+            long playerId,
+            NpcMemory.Draft memory,
+            double speed,
+            NpcBalanceSettings.Balance general) {
+        long newest = reports.maxIdOfPlayer(playerId);
+        if (newest <= memory.lastReportId) {
+            return;
+        }
+        for (Report report :
+                reports.findByPlayerIdAndIdGreaterThanOrderByIdAsc(playerId, memory.lastReportId)) {
+            learn(
+                    memory,
+                    playerId,
+                    report.getKind(),
+                    report.getHappenedAt(),
+                    report.getPayload() instanceof BattleReport b ? b : null,
+                    gameData,
+                    speed,
+                    general.grudgeHours());
+            memory.lastReportId = Math.max(memory.lastReportId, report.getId());
+        }
+        memory.lastReportId = Math.max(memory.lastReportId, newest);
+        reports.markAllRead(playerId);
+    }
+
+    /**
+     * One report into memory. ATTACK and SCOUT: intel about the attacked village; DEFENSE about an
+     * attack on one of the lord's own villages: a grudge against the attacker (scouts included).
+     * Other reports teach nothing.
+     *
+     * @param battle the payload of a battle report, else null
+     */
+    static void learn(
+            NpcMemory.Draft memory,
+            long lordId,
+            ReportKind kind,
+            Instant at,
+            BattleReport battle,
+            GameData data,
+            double speed,
+            double grudgeHours) {
+        if (battle == null) {
+            return;
+        }
+        switch (kind) {
+            case ATTACK, SCOUT -> {
+                long villageId = battle.defender().id();
+                Intel old = memory.intel.get(villageId);
+                if (old != null && !Objects.equals(old.ownerId(), battle.defender().playerId())) {
+                    old = null; // someone else's village now: what was seen is worthless
+                }
+                memory.intel.put(villageId, intelFrom(old, battle, at, data, speed));
+            }
+            case DEFENSE -> {
+                Long attacker = battle.attacker().playerId();
+                if (attacker == null
+                        || attacker == lordId
+                        || !Objects.equals(battle.defender().playerId(), lordId)) {
+                    return; // a support of the lord's fought elsewhere: no attack on the lord
+                }
+                Instant until =
+                        at.plus(
+                                NpcTargeting.scaled(
+                                        Duration.ofSeconds(Math.round(grudgeHours * 3600)), speed));
+                Grudge old = memory.grudges.get(attacker);
+                if (old != null && old.until().isAfter(until)) {
+                    until = old.until();
+                }
+                // a new attack renews the grudge, and with it the wish to retaliate
+                memory.grudges.put(attacker, new Grudge(until, battle.attacker().id(), false));
+            }
+            default -> {}
+        }
+    }
+
+    /** The intel after one of the lord's attacks or scoutings. */
+    static Intel intelFrom(Intel old, BattleReport b, Instant at, GameData data, double speed) {
+        boolean scoutsOnly = b.outcome() == BattleOutcome.SCOUTS_ONLY;
+        Long owner = b.defender().playerId();
+        BattleReport.DefenderSide side = b.defenderSide();
+        int failures = old == null ? 0 : old.scoutFailures();
+        Instant leftAlone = old == null ? null : old.leftAloneUntil();
+        if (side == null) {
+            // Nobody came back: the lord learns only that it went wrong.
+            if (scoutsOnly) {
+                failures++;
+                if (failures >= NpcTargeting.SCOUT_FAILURES_TO_GIVE_UP) {
+                    leftAlone = at.plus(NpcTargeting.scaled(LEAVE_ALONE, speed));
+                }
+                if (old == null) {
+                    return new Intel(
+                            at,
+                            owner,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            false,
+                            b.outcome(),
+                            failures,
+                            leftAlone,
+                            null);
+                }
+                return new Intel(
+                        old.at(),
+                        owner,
+                        old.units(),
+                        old.wall(),
+                        old.buildings(),
+                        old.resources(),
+                        old.loot(),
+                        old.lootFull(),
+                        old.outcome(),
+                        failures,
+                        leftAlone,
+                        old.banner());
+            }
+            return new Intel(
+                    at,
+                    owner,
+                    null,
+                    old == null ? null : old.wall(),
+                    old == null ? null : old.buildings(),
+                    null,
+                    ResourceAmounts.ZERO,
+                    false,
+                    BattleOutcome.DEFENDER_WON,
+                    failures,
+                    leftAlone,
+                    old == null ? null : old.banner());
+        }
+        Map<UnitType, Integer> units = NpcTargeting.minus(side.units(), side.losses());
+        Map<BuildingType, Integer> buildings = old == null ? null : old.buildings();
+        BattleReport.ScoutedBanner banner = old == null ? null : old.banner();
+        ResourceAmounts resources = null;
+        BattleReport.ScoutingReport scouting = b.scouting();
+        if (scouting != null && scouting.succeeded() && scouting.buildings() != null) {
+            buildings = scouting.buildings();
+            banner = scouting.banner(); // null: none flies there now
+            ResourceAmounts stock =
+                    scouting.resources() == null ? ResourceAmounts.ZERO : scouting.resources();
+            resources =
+                    new ResourceAmounts(
+                            Math.max(0, stock.wood() - b.loot().wood()),
+                            Math.max(0, stock.clay() - b.loot().clay()),
+                            Math.max(0, stock.iron() - b.loot().iron()));
+            failures = 0;
+            leftAlone = null;
+        }
+        if (buildings != null) {
+            Map<BuildingType, Integer> copy = new EnumMap<>(BuildingType.class);
+            copy.putAll(buildings);
+            copy.put(BuildingType.WALL, side.wallAfter());
+            buildings = copy;
+        }
+        ResourceAmounts loot = b.loot();
+        boolean lootFull = false;
+        if (scoutsOnly && old != null) {
+            loot = old.loot();
+            lootFull = old.lootFull();
+        } else if (loot.total() > 0) {
+            Map<UnitType, Integer> survivors =
+                    NpcTargeting.minus(b.attackerUnits(), b.attackerLosses());
+            lootFull = loot.total() >= Loot.capacity(data, survivors);
+        }
+        return new Intel(
+                at,
+                owner,
+                units,
+                side.wallAfter(),
+                buildings,
+                resources,
+                loot,
+                lootFull,
+                b.outcome(),
+                failures,
+                leftAlone,
+                banner);
+    }
+
+    /**
+     * Forgets what is too old or no longer true (§4): intel older than 7 days ÷ speed or about a
+     * village that changed owner, expired grudges, commands older than the cap window, farm
+     * arrivals older than a day ÷ speed, answered attacks that have arrived, and conquest targets
+     * that expired, fell to the lord or whose academy village is lost.
+     *
+     * @param villages the map now
+     * @param existingMovements which of the movements in {@code memory.supported} still exist
+     */
+    static void prune(
+            NpcMemory.Draft memory,
+            long lordId,
+            Instant now,
+            double speed,
+            Map<Long, MapVillage> villages,
+            Set<Long> existingMovements) {
+        Instant intelFrom = now.minus(NpcTargeting.scaled(NpcTargeting.INTEL_KEEP, speed));
+        memory.intel
+                .entrySet()
+                .removeIf(
+                        e -> {
+                            MapVillage v = villages.get(e.getKey());
+                            Intel intel = e.getValue();
+                            boolean leftAlone =
+                                    intel.leftAloneUntil() != null
+                                            && intel.leftAloneUntil().isAfter(now);
+                            return v == null
+                                    || !Objects.equals(v.playerId(), intel.ownerId())
+                                    || (intel.at().isBefore(intelFrom) && !leftAlone);
+                        });
+        memory.grudges.values().removeIf(g -> !g.until().isAfter(now));
+        Instant capFrom = now.minus(NpcBalance.CAP_WINDOW);
+        memory.attacksSent.removeIf(a -> !a.at().isAfter(capFrom));
+        Instant farmedFrom = now.minus(NpcTargeting.scaled(FARMED_KEEP, speed));
+        memory.farmed.values().removeIf(at -> at.isBefore(farmedFrom));
+        memory.supported.removeIf(s -> !existingMovements.contains(s.attackId()));
+        memory.conquest
+                .entrySet()
+                .removeIf(
+                        e -> {
+                            MapVillage academy = villages.get(e.getKey());
+                            MapVillage target = villages.get(e.getValue().villageId());
+                            return !e.getValue().until().isAfter(now)
+                                    || academy == null
+                                    || !Objects.equals(academy.playerId(), lordId)
+                                    || target == null
+                                    || Objects.equals(target.playerId(), lordId);
+                        });
+    }
+}

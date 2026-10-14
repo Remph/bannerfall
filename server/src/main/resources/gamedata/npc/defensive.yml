@@ -1,0 +1,71 @@
+# NPC lord template DEFENSIVE (docs/plan/09-npc-lords.md §9): spearmen and swordsmen, early wall and hiding place.
+npc:
+  templates:
+    DEFENSIVE:
+      stages:
+        - { name: EARLY, below-points: 1000, troop-share: 0.25 }
+        - { name: MID, below-points: 7000, troop-share: 0.35 }
+        - { name: LATE, troop-share: 0.45 }
+      mix:
+        EARLY: { SPEARMAN: 65, SWORDSMAN: 35 }
+        MID: { SPEARMAN: 45, SWORDSMAN: 35, SCOUT: 5, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 10 }
+        LATE: { SPEARMAN: 35, SWORDSMAN: 25, SCOUT: 3, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 25, RAM: 4, CATAPULT: 3 }
+      farm-units: [LIGHT_CAVALRY, SPEARMAN]
+      attack-units: [SPEARMAN, SWORDSMAN, LIGHT_CAVALRY, HEAVY_CAVALRY, RAM]
+      support-units: [SPEARMAN, SWORDSMAN, HEAVY_CAVALRY]
+      home-guard: 0.6
+      support-share: 0.5
+      margin: 2.0
+      village-ratio: 0.5
+      grudge-opens: false
+      grudge-troop-bonus: 0.1
+      conquers-players: false     # conquers barbarian villages only
+      farm-radius: 12
+      conquest-radius: 15
+      nobles: 4
+      build:
+        - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+        - { HEADQUARTERS: 2 }
+        - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+        - { FARM: 2, WAREHOUSE: 2 }
+        - { HEADQUARTERS: 3 }
+        - { BARRACKS: 1 }
+        - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }   # wood leads: buildings and spearmen need the most wood
+        - { HIDING_PLACE: 2 }
+        - { FARM: 4, WAREHOUSE: 4 }
+        - { HEADQUARTERS: 5 }
+        - { SMITHY: 1 }
+        - { WALL: 3 }
+        - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+        - { FARM: 6, WAREHOUSE: 6 }
+        - { HIDING_PLACE: 5 }
+        - { BARRACKS: 5, SMITHY: 5 }
+        - { WALL: 6 }
+        - { HEADQUARTERS: 10 }
+        - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+        - { FARM: 10, WAREHOUSE: 10 }
+        - { STABLE: 3 }
+        - { WALL: 10 }
+        - { BARRACKS: 10, SMITHY: 10 }
+        - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+        - { HEADQUARTERS: 15 }
+        - { FARM: 15, WAREHOUSE: 15 }
+        - { SMITHY: 15, STABLE: 10 }                    # heavy cavalry
+        - { WALL: 15, MARKET: 5 }
+        - { HEADQUARTERS: 20 }
+        - { SMITHY: 20 }
+        - { MARKET: 10 }
+        - { WAREHOUSE: 20 }
+        - { ACADEMY: 1 }
+        - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+        - { FARM: 20, WAREHOUSE: 20 }
+        - { WALL: 20, BARRACKS: 15, STABLE: 12, WORKSHOP: 3 }
+        - { HEADQUARTERS: 25 }
+        - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+        - { FARM: 25, WAREHOUSE: 25 }
+        - { MARKET: 15, HIDING_PLACE: 10 }
+        - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+        - { HEADQUARTERS: 30 }
+        - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+        - { FARM: 30, WAREHOUSE: 30 }
+        - { BARRACKS: 25, MARKET: 25 }

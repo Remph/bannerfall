@@ -1,0 +1,80 @@
+# Bannerfall production (docs/plan/01-architecture.md §8, README "Deploying").
+#   docker compose -f compose.prod.yaml pull && docker compose -f compose.prod.yaml up -d
+# All settings come from .env (copy .env.example). With COMPOSE_PROFILES=caddy in .env the Caddy
+# service runs too (vServer: automatic HTTPS); without it only app and db run and another reverse
+# proxy (TrueNAS: nginx proxy manager) points to the app's port.
+name: bannerfall
+
+services:
+  app:
+    image: ${BANNERFALL_IMAGE:-bannerfall:latest}
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/bannerfall
+      DB_USER: bannerfall
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # The host token for bannerfall-admin (at least 32 characters, or the server won't start).
+      BANNERFALL_ADMIN_TOKEN: ${BANNERFALL_ADMIN_TOKEN:?set BANNERFALL_ADMIN_TOKEN in .env}
+      # Sites that may read the player counts (GET /api/world/status) from another origin: the landing page.
+      BANNERFALL_STATUS_ORIGINS: ${BANNERFALL_STATUS_ORIGINS:-https://bannerfall.de,https://www.bannerfall.de}
+      # BANNERFALL_CHEATS_ENABLED is deliberately not passed on: no host cheats in production.
+      TZ: ${TZ:-Europe/Berlin}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # server.log / server.err (docs/plan/01-architecture.md §7); the image creates /app/logs for the app's user
+      - logs:/app/logs
+    ports:
+      # Only on the host itself by default; a proxy on another machine or container needs
+      # APP_BIND=0.0.0.0 in .env (then keep the port closed to the internet in the firewall).
+      # APP_PORT: the port on the host; 8461 by default because 8080 is taken on many servers.
+      # Inside the container the app always listens on 8080 (Caddy, healthcheck, bannerfall-admin).
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8461}:8080"
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: bannerfall
+      POSTGRES_USER: bannerfall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # No ports: the database is only reachable inside the compose network.
+    volumes:
+      # Postgres 18 images keep the data in a versioned subfolder of this path.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bannerfall -d bannerfall"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  caddy:
+    image: caddy:2
+    profiles: ["caddy"]
+    restart: unless-stopped
+    mem_limit: 128m
+    depends_on:
+      - app
+    environment:
+      BANNERFALL_DOMAIN: ${BANNERFALL_DOMAIN:?set BANNERFALL_DOMAIN in .env}
+    # HTTP_PORT / HTTPS_PORT: the ports on the host. Let's Encrypt only reaches Caddy on 80 and 443
+    # from the internet, so change them only if a router or firewall forwards 80/443 to them.
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # the certificates: losing them means asking Let's Encrypt again
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  logs:
+  caddy_data:
+  caddy_config:

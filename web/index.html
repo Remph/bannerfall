@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Installable on a phone's home screen (M14a): manifest + icons; iOS reads the apple-touch-icon -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- viewport-fit=cover lets the bottom tab bar reach behind the iPhone home indicator (safe-area insets) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#2f4a3c" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#18261f" media="(prefers-color-scheme: dark)" />
+    <title>Bannerfall</title>
+    <!-- Applies the stored light/dark choice before the first paint (src/theme/theme.ts, same key). A file, not an
+         inline script: the Content-Security-Policy (Caddyfile) allows scripts from the site only. -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

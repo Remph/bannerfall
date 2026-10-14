@@ -1,0 +1,95 @@
+.trigger {
+  min-height: var(--touch-target);
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-bar);
+  font: inherit;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  border-color: var(--color-on-bar-muted);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.coords {
+  color: var(--color-on-bar-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  flex: none;
+  font-size: 1rem;
+  color: var(--color-on-bar-muted);
+}
+
+@media (min-width: 1024px) {
+  .trigger {
+    padding: 0 var(--space-3);
+    border-color: var(--color-on-bar-muted);
+  }
+
+  .trigger:hover {
+    border-color: var(--color-highlight);
+  }
+}
+
+/* the list inside the sheet */
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.village {
+  min-height: 3.5rem;
+  display: grid;
+  align-content: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.village:hover {
+  background: var(--color-well);
+}
+
+.village[aria-current='page'] {
+  border-color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.villageName {
+  font-weight: 700;
+}
+
+.villageMeta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* attacks on the way to it (from /api/me, M9b) */
+.villageAttacks {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-danger);
+}

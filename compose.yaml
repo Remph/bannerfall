@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: bannerfall
+      POSTGRES_USER: bannerfall
+      POSTGRES_PASSWORD: bannerfall
+    # DB_PORT: the port on your PC (default 5432); set it in a .env next to this file or in the shell
+    # if another PostgreSQL already uses 5432. The server reads the same variable (application.yml).
+    # Only on this PC (127.0.0.1): the password is no secret, and Docker's port publishing passes
+    # host firewalls, so on a café or office Wi-Fi the whole network could reach it otherwise.
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 images keep the data in a versioned subfolder of this path.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bannerfall -d bannerfall"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

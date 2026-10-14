@@ -1,0 +1,25 @@
+spring:
+  docker:
+    compose:
+      # Spring Boot starts the database from compose.yaml (repo root) when the app starts.
+      file: ../compose.yaml
+      lifecycle-management: start-only
+  mvc:
+    # Devtools switches this on: every answered 4xx/409 (wrong password, not enough resources ...)
+    # would be logged at WARN and fill server.err. Unexpected errors are logged anyway (ERROR).
+    log-resolved-exception: false
+  # Uncomment to see the SQL Hibernate sends:
+  # jpa:
+  #   show-sql: true
+
+# logging:
+#   level:
+#     org.hibernate.SQL: debug
+
+bannerfall:
+  status:
+    # The Astro dev server of the landing page (bannerfall-hub: pnpm dev) may read the player counts.
+    allowed-origins: http://localhost:4321,http://127.0.0.1:4321
+  cheats:
+    # The host cheats too (/api/admin/cheats/**, 08-host-console §3), for the admin page in dev.
+    enabled: true

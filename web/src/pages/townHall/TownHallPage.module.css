@@ -1,0 +1,275 @@
+.page {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- layout: phone = queue, buildings, dev cheats; desktop = buildings | queue + cheats ---------- */
+.layout {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.queue,
+.buildings,
+.dev {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-rows: auto 1fr;
+    align-items: start;
+  }
+
+  .buildings {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .queue {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .dev {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+/* ---------- building rows ---------- */
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+/* the building the village overview linked to */
+.target {
+  background: var(--color-well);
+}
+
+/* The info button is pinned to the right end (the head keeps room for it) instead of being the last
+   item of the wrapping row: with a long name, the "Stufe 1 → Stufe 2" preview and German words it
+   used to drop into a second line by itself. */
+.rowHead {
+  position: relative;
+  padding-right: 2rem;
+  min-width: 0;
+  min-height: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.info {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+.name {
+  min-width: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.badge,
+.badgeEmpty {
+  flex: none;
+  padding: 1px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.badge {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.badgeEmpty {
+  border: 1px dashed var(--color-text-muted);
+  color: var(--color-text-muted);
+}
+
+.queued {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-title);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* the cost list itself is components/CostList; this class only places it in the row */
+.costs {
+  min-width: 0;
+}
+
+.action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.hint {
+  flex: 1 1 10rem;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.maxed,
+.needs {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.locked .name,
+.locked .icon {
+  color: var(--color-text-muted);
+}
+
+/* Wider screens: name | costs | button in one line per building. */
+@media (min-width: 640px) {
+  .row {
+    grid-template-columns: minmax(10rem, 16rem) minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-3);
+    padding-bottom: var(--space-2);
+  }
+
+  .row > :not(.rowHead, .costs, .action) {
+    grid-column: 2 / -1;
+  }
+
+  .action {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+  }
+
+  .hint {
+    flex: none;
+    max-width: 13rem;
+    text-align: right;
+  }
+}
+
+/* room enough for the German "Stufe 6 → Stufe 7" preview next to the name on one line */
+@media (min-width: 1200px) {
+  .row {
+    grid-template-columns: minmax(10rem, 18rem) minmax(0, 1fr) auto;
+  }
+}
+
+/* ---------- small things in cards ---------- */
+.notice {
+  margin: 0 var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: 0.9rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.cardError {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirm p {
+  margin: 0;
+}
+
+.confirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* M13c: the surcharge of a paid build slot on the build button ("+25%") */
+.surcharge {
+  margin-left: var(--space-2);
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* an order in a paid slot of the queue: no move buttons, this label instead */
+.paidSlot {
+  align-self: center;
+  padding: 1px 8px;
+  border: 1px dashed var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.queueNote {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}

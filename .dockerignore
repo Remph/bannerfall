@@ -1,0 +1,14 @@
+# Keep the build context small and the layer cache stable (only the sources count).
+**/node_modules
+**/dist
+**/build
+**/.gradle
+.git
+.idea
+.vscode
+.run
+docs
+backups
+.env
+*.log
+server/logs

@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+server:
+  # Behind Caddy (or another reverse proxy): take the client's address and scheme from the
+  # X-Forwarded-* headers, so the host token limiter counts per real client, the cookies know
+  # they are on HTTPS and the WebSocket origin check sees https. The app's port is only
+  # reachable from the proxy (compose.prod.yaml), so the headers can't be forged from outside.
+  forward-headers-strategy: native
+  servlet:
+    session:
+      cookie:
+        secure: true # production runs behind HTTPS
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+bannerfall:
+  logging:
+    # A named volume in compose.prod.yaml, so the log files survive updates (01-architecture §8).
+    dir: /app/logs
+  world:
+    # A fresh production world starts in the pre-game (M14g): players register and chat, the host
+    # sets the opening time (`bannerfall-admin world open --at ...`). Ignored once the world is open.
+    start-in-pregame: true

@@ -1,0 +1,218 @@
+# Unit numbers: docs/plan/02-game-rules.md §5.1 (the rulebook wins if they ever disagree).
+# minutes-per-field = walking speed, base-seconds = recruit time per unit at level 1 of its building (speed 1).
+# levels (M30, 02-game-rules §5.4) = the research steps above level 1, only used when the world turns unit levels on:
+# the first entry is level 2, the second level 3. The stats are whole numbers (about +10 % and +20 % of the base
+# stats, never the same twice in a row); cost = 20x and 50x the unit's recruit cost; base-seconds = research time at
+# Smithy level 1 and world speed 1 (12 h and 30 h; the smithy level and the speed shorten it); requires = what the
+# village that researches needs besides the unit's own requirements (Smithy 10 for level 2, Smithy 15 for level 3).
+# A unit without a levels list has no levels (ram, catapult, noble, paladin); the scout has level 2 only.
+gamedata:
+  units:
+    SPEARMAN:
+      building: BARRACKS
+      requires: { BARRACKS: 1 }
+      cost: { wood: 50, clay: 30, iron: 10 }
+      pop: 1
+      attack: 10
+      defense-infantry: 15
+      defense-cavalry: 40
+      attack-type: INFANTRY
+      minutes-per-field: 18
+      carry: 25
+      base-seconds: 1000
+      levels:
+        - attack: 11
+          defense-infantry: 17
+          defense-cavalry: 44
+          cost: { wood: 1000, clay: 600, iron: 200 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 12
+          defense-infantry: 18
+          defense-cavalry: 48
+          cost: { wood: 2500, clay: 1500, iron: 500 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    SWORDSMAN:
+      building: BARRACKS
+      requires: { BARRACKS: 1, SMITHY: 1 }
+      cost: { wood: 30, clay: 30, iron: 70 }
+      pop: 1
+      attack: 20
+      defense-infantry: 50
+      defense-cavalry: 20
+      attack-type: INFANTRY
+      minutes-per-field: 22
+      carry: 15
+      base-seconds: 1450
+      levels:
+        - attack: 22
+          defense-infantry: 55
+          defense-cavalry: 22
+          cost: { wood: 600, clay: 600, iron: 1400 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 24
+          defense-infantry: 60
+          defense-cavalry: 24
+          cost: { wood: 1500, clay: 1500, iron: 3500 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    AXEMAN:
+      building: BARRACKS
+      requires: { BARRACKS: 2, SMITHY: 2 }
+      cost: { wood: 60, clay: 30, iron: 40 }
+      pop: 1
+      attack: 40
+      defense-infantry: 10
+      defense-cavalry: 5
+      attack-type: INFANTRY
+      minutes-per-field: 18
+      carry: 10
+      base-seconds: 1300
+      levels:
+        - attack: 44
+          defense-infantry: 11
+          defense-cavalry: 6
+          cost: { wood: 1200, clay: 600, iron: 800 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 48
+          defense-infantry: 12
+          defense-cavalry: 7
+          cost: { wood: 3000, clay: 1500, iron: 2000 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    SCOUT:
+      building: STABLE
+      requires: { STABLE: 1 }
+      cost: { wood: 50, clay: 50, iron: 20 }
+      pop: 2
+      attack: 0
+      defense-infantry: 2
+      defense-cavalry: 1
+      attack-type: INFANTRY
+      minutes-per-field: 9
+      carry: 0
+      base-seconds: 900
+      # one level only: a level 2 scout is an upgraded scout, whose report also shows the defenders' unit
+      # levels (02-game-rules §5.4); the stats barely move, it is about the information
+      levels:
+        - attack: 0
+          defense-infantry: 3
+          defense-cavalry: 2
+          cost: { wood: 1000, clay: 1000, iron: 400 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+    LIGHT_CAVALRY:
+      building: STABLE
+      requires: { STABLE: 3 }
+      cost: { wood: 125, clay: 100, iron: 250 }
+      pop: 4
+      attack: 120
+      defense-infantry: 30
+      defense-cavalry: 40
+      attack-type: CAVALRY
+      minutes-per-field: 10
+      carry: 80
+      base-seconds: 1800
+      levels:
+        - attack: 132
+          defense-infantry: 33
+          defense-cavalry: 44
+          cost: { wood: 2500, clay: 2000, iron: 5000 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 144
+          defense-infantry: 36
+          defense-cavalry: 48
+          cost: { wood: 6250, clay: 5000, iron: 12500 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    HEAVY_CAVALRY:
+      building: STABLE
+      requires: { STABLE: 10, SMITHY: 15 }
+      cost: { wood: 200, clay: 150, iron: 600 }
+      pop: 6
+      attack: 150
+      defense-infantry: 200
+      defense-cavalry: 80
+      attack-type: CAVALRY
+      minutes-per-field: 11
+      carry: 50
+      base-seconds: 3600
+      levels:
+        - attack: 165
+          defense-infantry: 220
+          defense-cavalry: 88
+          cost: { wood: 4000, clay: 3000, iron: 12000 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 180
+          defense-infantry: 240
+          defense-cavalry: 96
+          cost: { wood: 10000, clay: 7500, iron: 30000 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    RAM:
+      building: WORKSHOP
+      requires: { WORKSHOP: 1 }
+      cost: { wood: 300, clay: 200, iron: 200 }
+      pop: 5
+      attack: 2
+      defense-infantry: 20
+      defense-cavalry: 50
+      attack-type: INFANTRY
+      minutes-per-field: 30
+      carry: 0
+      base-seconds: 4800
+    CATAPULT:
+      building: WORKSHOP
+      requires: { WORKSHOP: 2, SMITHY: 12 }
+      cost: { wood: 320, clay: 400, iron: 100 }
+      pop: 8
+      attack: 100
+      defense-infantry: 100
+      defense-cavalry: 50
+      attack-type: INFANTRY
+      minutes-per-field: 30
+      carry: 0
+      base-seconds: 7200
+    NOBLE:
+      building: ACADEMY
+      requires: { ACADEMY: 1 }
+      cost: { wood: 40000, clay: 50000, iron: 50000 }
+      pop: 100
+      attack: 30
+      defense-infantry: 100
+      defense-cavalry: 50
+      attack-type: INFANTRY
+      minutes-per-field: 35
+      carry: 0
+      base-seconds: 10800
+    PALADIN:
+      building: BARRACKS
+      requires: { BARRACKS: 5 }
+      cost: { wood: 1000, clay: 1000, iron: 1000 }
+      pop: 10
+      attack: 120
+      defense-infantry: 150
+      defense-cavalry: 150
+      attack-type: INFANTRY
+      minutes-per-field: 14
+      carry: 0
+      base-seconds: 21600
+    # M32b (02-game-rules §21.5): steals the banner of a village after a won battle; no levels, adds nothing
+    # to a fight (attack 0) and dies in it like a scout. Recruited in the Banner Hall.
+    BANNER_THIEF:
+      building: BANNER_HALL
+      requires: { BANNER_HALL: 1 }
+      cost: { wood: 100, clay: 120, iron: 150 }
+      pop: 2
+      attack: 0
+      defense-infantry: 3
+      defense-cavalry: 3
+      attack-type: INFANTRY
+      minutes-per-field: 18
+      carry: 0
+      base-seconds: 1500

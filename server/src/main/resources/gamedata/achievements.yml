@@ -1,0 +1,16 @@
+# Levels of the achievements that have them: docs/plan/02-game-rules.md §19 (the rulebook wins if
+# they ever disagree). Bronze, silver, gold = the value that earns level 1, 2, 3. Draft numbers, to
+# be tuned with the playtest; changing them needs a new image but no migration (levels already
+# earned stay earned).
+achievements:
+  levels:
+    GROWTH: [1000, 5000, 20000]            # player points
+    LANDLORD: [3, 8, 15]                   # villages owned at the same time
+    STANDING_ARMY: [200, 2000, 10000]      # units finished in recruit orders (no scouts, no nobles)
+    VICTOR: [10, 50, 250]                  # counted attack wins
+    BULWARK: [5, 25, 100]                  # counted successful defences
+    PLUNDERER: [20000, 200000, 2000000]    # resources looted in counted wins
+    MERCHANT_PRINCE: [10000, 100000, 1000000]  # resources given through accepted market offers
+    VETERAN: [7, 30, 100]                  # days since registering
+    BANNER_COLLECTOR: [3, 10, 25]          # banners owned at the same time (02 §21.8)
+    BANNER_THIEF: [1, 5, 20]               # distinct banners taken from other players' villages

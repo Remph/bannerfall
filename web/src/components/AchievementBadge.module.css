@@ -1,0 +1,53 @@
+/* The achievement badge (05-frontend §8): a rim in the colour of the level, a face, one glyph. */
+.badge {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.rim {
+  fill: var(--rim, var(--color-well));
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.face {
+  fill: var(--color-surface);
+  stroke: var(--rim, var(--color-border));
+  stroke-width: 1.5;
+}
+
+.glyph {
+  color: var(--rim, var(--color-text-muted));
+}
+
+.bronze {
+  --rim: var(--badge-bronze);
+}
+
+.silver {
+  --rim: var(--badge-silver);
+}
+
+.gold {
+  --rim: var(--badge-gold);
+}
+
+.once {
+  --rim: var(--badge-once);
+}
+
+/* not earned yet: only an outline, so a list of badges reads at a glance */
+.locked .rim {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-dasharray: 3 3;
+}
+
+.locked .face {
+  fill: none;
+  stroke: var(--color-border);
+}
+
+.locked .glyph {
+  color: var(--color-border);
+}

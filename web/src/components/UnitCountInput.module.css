@@ -1,0 +1,61 @@
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.input {
+  width: 4.75rem;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font-size: max(1rem, 16px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.input:disabled {
+  opacity: 0.6;
+}
+
+/* "max 42": a pill, full touch height; a minimum width keeps the fields of a list in one column */
+.chip {
+  min-width: 5.5rem;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

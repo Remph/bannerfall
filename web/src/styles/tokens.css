@@ -1,0 +1,199 @@
+/*
+ * Design tokens – "green banner parchment" (05-frontend §8). Light values on :root; the dark values
+ * appear twice: once for "follow the device" (media query) and once for the manual choice
+ * (data-theme="dark", set by the theme switch). Keep both dark blocks identical.
+ */
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --color-bg: #f4eee2; /* linen ground */
+  --color-surface: #fdfaf3; /* panels */
+  --color-well: #eee5d3; /* icon wells, hovered rows */
+  --color-border: #d6c9b0; /* panel double border, inputs */
+  --color-divider: #ece3d2; /* lines between rows */
+  --color-glow: rgba(255, 255, 255, 0.55);
+  --color-stain: rgba(110, 90, 60, 0.07);
+
+  /* text */
+  --color-text: #29241e;
+  --color-text-muted: #6f665a;
+  --color-title: #2b4537;
+
+  /* accents */
+  --color-accent: #a8372a;
+  --color-on-accent: #fffaf2;
+  --color-danger: #b42318;
+  --color-danger-bg: #fbeae6;
+  --color-success: #2f6b46; /* won battles (reports) */
+  --color-success-bg: #e6f0e3;
+
+  /* the green banner bars */
+  --color-bar: #2f4a3c;
+  --color-bar-edge: #253c30;
+  --color-on-bar: #f3ecdc;
+  --color-on-bar-muted: #b0c2b5;
+  --color-on-bar-warn: #ffb27a; /* full warehouse */
+  --color-highlight: #e9c46a; /* active item and fills on the bars */
+  --color-bar-hover: rgba(255, 255, 255, 0.12);
+  --color-track: rgba(0, 0, 0, 0.3);
+
+  --shadow-panel: 0 1px 3px rgba(60, 40, 20, 0.08), inset 0 0 14px var(--color-stain);
+  --shadow-float: 0 10px 30px rgba(30, 15, 5, 0.3);
+
+  /* type */
+  --font-brand: 'Uncial Antiqua', 'Alegreya SC', Georgia, serif;
+  --font-head: 'Alegreya SC', Georgia, serif;
+  --font-body: 'Alegreya Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* spacing and shapes */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --radius: 0.75rem; /* panels, inputs */
+  --radius-pill: 999px; /* buttons, badges, chips */
+  --touch-target: 44px;
+  --content-width: 72rem;
+
+  /* the map canvas (05-frontend §6), read by pages/map/mapDraw.ts */
+  --map-grass: #c8d3a4;
+  --map-grass-alt: #bfcb9a; /* every other 5 × 5 block */
+  --map-grid: rgba(43, 69, 55, 0.13);
+  --map-grid-strong: rgba(43, 69, 55, 0.3);
+  --map-outside: #e2d9c4; /* beyond the map edge */
+  --map-edge: #2f4a3c;
+  --map-own: var(--color-accent);
+  --map-player: #2f5f8f;
+  --map-npc: #7b4a93;
+  --map-barbarian: #8b8579;
+  --map-outline: #2a231b;
+  --map-marker: #e9c46a; /* selection ring, NPC pennant */
+  --map-label: #29241e;
+  --map-label-halo: rgba(253, 250, 243, 0.85);
+  --map-axis: rgba(37, 60, 48, 0.9);
+  --map-axis-text: #f3ecdc;
+  /* movement markers (M26): attacks, own attacks with nobles, supports, own returns (M36); the ink is the swords and arrow */
+  --map-attack: #c22f24;
+  --map-noble: #e9b830;
+  --map-support: #2f8a4e;
+  --map-return: #2b78b8;
+  --map-badge-ink: #fffaf0;
+  --map-badge-ink-noble: #2a231b;
+
+  /* achievement badges (M16): the rim of a levelled badge, and of a one-time one */
+  --badge-bronze: #a8683a;
+  --badge-silver: #8f9aa5;
+  --badge-gold: #c9951c;
+  --badge-once: #2f6b46;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-bg: #1a1713;
+    --color-surface: #24201b;
+    --color-well: #302a23;
+    --color-border: #4a4135;
+    --color-divider: #302a23;
+    --color-glow: rgba(255, 255, 255, 0.03);
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #eee6d6;
+    --color-text-muted: #aaa08f;
+    --color-title: #e9c46a;
+    --color-accent: #e39a63;
+    --color-on-accent: #1a1713;
+    --color-danger: #f97066;
+    --color-danger-bg: #2a1a19;
+    --color-success: #7fc79b;
+    --color-success-bg: #1a2a20;
+    --color-bar: #18261f;
+    --color-bar-edge: #111b16;
+    --color-on-bar: #e6dfcd;
+    --color-on-bar-muted: #8ea596;
+    --color-on-bar-warn: #ffa366;
+    --color-highlight: #e9c46a;
+    --color-bar-hover: rgba(255, 255, 255, 0.08);
+    --color-track: rgba(255, 255, 255, 0.15);
+    --shadow-panel: inset 0 0 14px var(--color-stain);
+    --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --map-grass: #36432f;
+    --map-grass-alt: #313d2a;
+    --map-grid: rgba(255, 255, 255, 0.06);
+    --map-grid-strong: rgba(255, 255, 255, 0.14);
+    --map-outside: #1d1a15;
+    --map-edge: #8ea596;
+    --map-player: #79a9dc;
+    --map-npc: #c497dc;
+    --map-barbarian: #9a9386;
+    --map-outline: #120f0c;
+    --map-label: #eee6d6;
+    --map-label-halo: rgba(20, 17, 14, 0.8);
+    --map-axis: rgba(17, 27, 22, 0.9);
+    --map-axis-text: #e6dfcd;
+    --map-attack: #e5484d;
+    --map-noble: #f0c64a;
+    --map-support: #3fa564;
+    --map-return: #4a97d8;
+
+    /* achievement badges (M16) */
+    --badge-bronze: #cf8a55;
+    --badge-silver: #b9c3cc;
+    --badge-gold: #e9c46a;
+    --badge-once: #7fc79b;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #1a1713;
+  --color-surface: #24201b;
+  --color-well: #302a23;
+  --color-border: #4a4135;
+  --color-divider: #302a23;
+  --color-glow: rgba(255, 255, 255, 0.03);
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #eee6d6;
+  --color-text-muted: #aaa08f;
+  --color-title: #e9c46a;
+  --color-accent: #e39a63;
+  --color-on-accent: #1a1713;
+  --color-danger: #f97066;
+  --color-danger-bg: #2a1a19;
+  --color-success: #7fc79b;
+  --color-success-bg: #1a2a20;
+  --color-bar: #18261f;
+  --color-bar-edge: #111b16;
+  --color-on-bar: #e6dfcd;
+  --color-on-bar-muted: #8ea596;
+  --color-on-bar-warn: #ffa366;
+  --color-highlight: #e9c46a;
+  --color-bar-hover: rgba(255, 255, 255, 0.08);
+  --color-track: rgba(255, 255, 255, 0.15);
+  --shadow-panel: inset 0 0 14px var(--color-stain);
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --map-grass: #36432f;
+  --map-grass-alt: #313d2a;
+  --map-grid: rgba(255, 255, 255, 0.06);
+  --map-grid-strong: rgba(255, 255, 255, 0.14);
+  --map-outside: #1d1a15;
+  --map-edge: #8ea596;
+  --map-player: #79a9dc;
+  --map-npc: #c497dc;
+  --map-barbarian: #9a9386;
+  --map-outline: #120f0c;
+  --map-label: #eee6d6;
+  --map-label-halo: rgba(20, 17, 14, 0.8);
+  --map-axis: rgba(17, 27, 22, 0.9);
+  --map-axis-text: #e6dfcd;
+  --map-attack: #e5484d;
+  --map-noble: #f0c64a;
+  --map-support: #3fa564;
+  --map-return: #4a97d8;
+
+  /* achievement badges (M16) */
+  --badge-bronze: #cf8a55;
+  --badge-silver: #b9c3cc;
+  --badge-gold: #e9c46a;
+  --badge-once: #7fc79b;
+}

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# bannerfall-backup – dumps the production database into backups/bannerfall-<date>-<time>.sql.gz
+# and deletes dumps older than 14 days (docs/plan/01-architecture.md §8, README "Backups").
+#
+# Run it from anywhere on the server; it works in the folder that holds compose.prod.yaml. Daily
+# via cron (see the README):
+#   17 3 * * * /opt/bannerfall/ops/bannerfall-backup >> /opt/bannerfall/backups/backup.log 2>&1
+#
+# BACKUP_DIR: where the dumps go (default: backups/ next to compose.prod.yaml)
+# KEEP_DAYS:  how long to keep them (default 14)
+set -euo pipefail
+# A dump holds every account (password hashes included): readable for its owner only.
+umask 077
+
+cd "$(dirname "$0")/.."
+BACKUP_DIR="${BACKUP_DIR:-backups}"
+KEEP_DAYS="${KEEP_DAYS:-14}"
+mkdir -p "$BACKUP_DIR"
+
+target="$BACKUP_DIR/bannerfall-$(date +%F-%H%M).sql.gz"
+partial="$target.part"
+trap 'rm -f "$partial"' EXIT
+
+# --clean --if-exists: the dump can be loaded over an existing database too.
+docker compose -f compose.prod.yaml exec -T db \
+  pg_dump -U bannerfall --clean --if-exists --no-owner bannerfall | gzip > "$partial"
+
+# A dump that is not a readable gzip file, or that has no game data in it, is not a backup.
+# grep -c (not -q) on purpose: -q quits at the first match, gzip then dies from SIGPIPE while it
+# still has data to write, and with pipefail that makes the check fail on any real-sized dump.
+gzip -t "$partial"
+if ! gzip -dc "$partial" | grep -c 'CREATE TABLE public.account ' > /dev/null; then
+  echo "$(date -Is) backup failed: no account table in the dump" >&2
+  exit 1
+fi
+mv "$partial" "$target"
+trap - EXIT
+
+find "$BACKUP_DIR" -maxdepth 1 -name 'bannerfall-*.sql.gz' -mtime "+$KEEP_DAYS" -delete
+echo "$(date -Is) backup ok: $target ($(du -h "$target" | cut -f1))"

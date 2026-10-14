@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tests log to the console only: no log files from ./gradlew test (M4d). Logback and Spring Boot
+  both pick logback-test.xml before logback-spring.xml, so src/main/resources/logback-spring.xml
+  (the file appenders) is not used in tests. Same console format and MDC ids as there.
+-->
+<configuration>
+    <property name="LOG_CORRELATION_PATTERN"
+              value="%replace(req=%X{requestId} ){'^req= ', ''}%replace(event=%X{event} ){'^event= ', ''}"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

@@ -1,0 +1,159 @@
+/* The farm list (05-frontend §3). Phone first: one column of cards. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 44rem;
+  align-content: start;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.hint,
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.body p {
+  margin: 0;
+}
+
+/* ---------- unit rows of a template ---------- */
+.pickList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.pickRow:first-child {
+  border-top: 0;
+}
+
+.pickName {
+  flex: 1 1 8rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pickInput {
+  margin-left: auto;
+}
+
+.unitIcon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+/* ---------- the list ---------- */
+/* "Send all" (M39) above the targets, parted from them like a row */
+.sendAll {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.target {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.list > li:first-child .target {
+  border-top: 0;
+}
+
+.targetHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+}
+
+.targetName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.coords {
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.owner {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.warn {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sent {
+  margin: 0;
+  color: var(--color-title);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* "Attacking ends your own beginner protection" (D9): the same quiet box as at the rally point */
+.notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: 0.9rem;
+}

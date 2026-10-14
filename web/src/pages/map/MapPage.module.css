@@ -1,0 +1,624 @@
+/* Phones and tablets: the map fills the space between the bars (AppLayout's full-screen mode for this route). */
+.map {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Desktop (≥ 1024 px, M11b): the detailed map fills the window between the bars (AppLayout's wide
+   mode), a side column with the overview, "go to", legend and the village panel on the right; the
+   column scrolls by itself when the window is too low for it.
+   From 1280 px (1.1.2) the village panel gets a column of its own (see the end of this block), so its
+   buttons never end up below the fold on wide or low windows. */
+.page {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.page > .viewport {
+  flex: none;
+  min-height: 0;
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.side {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Three columns (≥ 1280 px): map | overview, "go to" and legend | the selected village. The map
+   gives up width, which it has to spare on such windows, while height is what is scarce. */
+@media (min-width: 1280px) {
+  .page {
+    --side-width: 17rem;
+
+    grid-template-columns: minmax(0, 1fr) var(--side-width) var(--side-width);
+  }
+
+  /* the overview shrinks with a low window (it stays square, the canvas draws a square world) */
+  .side .overviewBox {
+    width: min(100%, max(11rem, 36dvh));
+    margin-inline: auto;
+  }
+
+  /* the village column: room at the bottom, so the floating chat button never covers an action */
+  .sidePanel {
+    padding-bottom: 4rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .page {
+    --side-width: 20rem;
+  }
+}
+
+.sideCard {
+  overflow: clip;
+  background: var(--color-surface);
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.sideHint {
+  margin: 0;
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.message {
+  margin: 0;
+  padding: var(--space-3);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- toolbar: go to, centre, legend ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* in the desktop side column: a card, the legend as a list below the go-to row */
+.toolbarSide {
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.toolbarSide .goTo {
+  max-width: none;
+}
+
+.goTo {
+  flex: 1;
+  min-width: 0;
+  max-width: 20rem;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.goToInput {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.goToInput[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.goToError {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.legend {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    margin: 0 0 0 auto;
+    padding: 0;
+    list-style: none;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .toolbarSide .legend {
+    flex-basis: 100%;
+    margin: 0;
+  }
+}
+
+/* the owner colours of the canvas, for the legend and the panel */
+.swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: none;
+  border: 1px solid var(--map-outline);
+  border-radius: 3px;
+  background: var(--map-barbarian);
+}
+
+.swatch[data-kind='own'] {
+  background: var(--map-own);
+}
+
+.swatch[data-kind='player'] {
+  background: var(--map-player);
+}
+
+.swatch[data-kind='npc'] {
+  background: var(--map-npc);
+}
+
+/* ---------- the canvas and what floats over it ---------- */
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--map-outside);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* the map handles every touch itself: no page scrolling, no browser zoom, no long-press menu */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+.canvas[data-over-village] {
+  cursor: pointer;
+}
+
+.canvas[data-dragging] {
+  cursor: grabbing;
+}
+
+.canvas:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: -3px;
+}
+
+.zoom {
+  position: absolute;
+  right: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.zoom > button {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* centred in the gap between the axis band and the zoom buttons */
+.status {
+  position: absolute;
+  left: calc(28px + var(--space-2));
+  right: calc(var(--touch-target) + var(--space-3));
+  width: fit-content;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.3rem 0.9rem;
+  border-radius: var(--radius);
+  line-height: 1.3;
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.9rem;
+}
+
+.statusLoading {
+  animation: status-appear 0.15s ease-out 0.3s both;
+}
+
+@keyframes status-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.retry {
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 4px));
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---------- village panel: across the bottom on phones, a card at the bottom left on wider screens ---------- */
+.panel {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: var(--space-2);
+  max-height: calc(100% - 2.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1) var(--space-1) var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-float);
+}
+
+@media (min-width: 640px) {
+  .panel {
+    right: auto;
+    left: calc(28px + var(--space-3)); /* clear of the axis band */
+    bottom: var(--space-3);
+    width: 22rem;
+  }
+}
+
+/* desktop: a card in the side column, not over the map */
+.panel.panelDocked {
+  position: static;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  box-shadow: var(--shadow-panel);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panelTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.coords {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem var(--space-3);
+  margin: 0 var(--space-2) var(--space-3) 0;
+}
+
+.facts > div {
+  display: contents;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: 0 var(--space-2) var(--space-3) 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.tag {
+  margin-left: 0.4rem;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.action {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* links lead somewhere now: the primary look */
+a.action {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+a.action:hover {
+  filter: brightness(1.08);
+}
+
+/* touch screens keep the full touch target height (05-frontend §8) */
+@media (pointer: coarse) {
+  .action {
+    min-height: var(--touch-target);
+  }
+}
+
+.later {
+  margin: var(--space-2) var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* dev cheat for an empty field that was jumped to (pnpm dev only) */
+.devSpawn {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: calc(100% - 2 * var(--space-2));
+}
+
+@media (min-width: 640px) {
+  .devSpawn {
+    left: calc(28px + var(--space-3));
+    bottom: var(--space-3);
+  }
+}
+
+/* ---------- overview map (M11b): a square in the desktop side column, the whole map area on phones ---------- */
+.overview {
+  display: flex;
+  flex-direction: column;
+}
+
+.overviewFill {
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* over the detailed map, which stays mounted underneath */
+  background: var(--color-surface);
+}
+
+.overviewBox {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--map-outside);
+}
+
+.overviewFill .overviewBox {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.overviewCanvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: crosshair;
+}
+
+.overviewCanvas:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: -3px;
+}
+
+.overviewLayer {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.guildLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.guildChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.guildDot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  border: 1px solid var(--map-outline);
+}
+
+.guildCount,
+.guildNone {
+  color: var(--color-text-muted);
+}
+
+.overviewControls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.overviewStatus {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: 0.3rem 0.9rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+}
+
+/* ---------- movement markers (M26): the badges of the canvas, for the legend and the panel ---------- */
+.marker {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.marker circle {
+  fill: var(--map-attack);
+  stroke: var(--map-outline);
+  stroke-width: 2;
+}
+
+.marker path {
+  fill: none;
+  stroke: var(--map-badge-ink);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+.marker[data-kind='noble'] circle {
+  fill: var(--map-noble);
+}
+
+.marker[data-kind='noble'] path {
+  stroke: var(--map-badge-ink-noble);
+}
+
+.marker[data-kind='support'] circle {
+  fill: var(--map-support);
+}
+
+.marker[data-kind='return'] circle {
+  fill: var(--map-return);
+}
+
+.marker[data-kind='return'] path {
+  stroke-linejoin: round;
+}
+
+/* the toolbar switch for the markers: highlighted while they are shown */
+.movementsToggle[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-well);
+}
+
+.movementList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.movementList > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}

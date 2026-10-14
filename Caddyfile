@@ -1,0 +1,25 @@
+# Bannerfall reverse proxy (docs/plan/01-architecture.md §8). Caddy gets and renews the
+# certificate for BANNERFALL_DOMAIN by itself; the DNS A/AAAA records must point to this server and
+# ports 80 and 443 must be open. WebSockets (/ws) pass through without extra settings.
+{$BANNERFALL_DOMAIN} {
+	encode zstd gzip
+
+	# The health endpoint is for the Docker healthcheck only.
+	@actuator path /actuator /actuator/*
+	respond @actuator 404
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy same-origin
+		# Only the site's own scripts, styles, fonts and images (code review 1.2): an injected script
+		# could neither run inline nor load from elsewhere. The WebSocket (/ws) is this domain's too;
+		# styles allow 'unsafe-inline' for React's style attributes. index.html has no inline script
+		# (web/public/theme-init.js).
+		Content-Security-Policy "default-src 'self'; script-src 'self'; connect-src 'self' wss://{$BANNERFALL_DOMAIN}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	reverse_proxy app:8080
+}

@@ -1,0 +1,23 @@
+# This repository only receives releases, so a pull request here would be overwritten by the
+# next release. Close it with a friendly note instead.
+# pull_request_target runs in this repository's context, but nothing from the pull request is
+# checked out or run: it only comments and closes.
+name: Close pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr close "$NUMBER" --repo "$GITHUB_REPOSITORY" --comment "Thank you! This repository only receives the releases of Bannerfall, so a pull request here would be overwritten by the next one. Please open an issue instead and describe the change; fixes come out with the next release."

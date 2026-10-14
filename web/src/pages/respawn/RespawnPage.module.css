@@ -1,0 +1,22 @@
+.page {
+  max-width: 34rem;
+  margin: var(--space-4) auto 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.body p {
+  margin: 0;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.muted a {
+  color: var(--color-accent);
+}

@@ -1,0 +1,49 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Python (the public release export's tests)
+__pycache__/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.log
+
+# Server log files (bootRun, see logback-spring.xml)
+/server/logs/
+
+# IDE files (the shared run configurations in .run/ are kept)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.vscode/*
+!.vscode/extensions.json
+.project
+.classpath
+.settings/
+.factorypath
+
+# Secrets and local config
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helper folder for files the AI could not delete
+_to_delete/
+
+# Personal start cheat sheet
+START.md
+
+# The web build the Dockerfile copies into the server jar (never committed)
+/server/src/main/resources/static/
+
+# Database dumps written by ops/bannerfall-backup
+/backups/

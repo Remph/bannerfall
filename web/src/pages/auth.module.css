@@ -1,0 +1,24 @@
+/* Shared by the login and register forms. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.switch {
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.switch a {
+  color: var(--color-accent);
+  /* comfortable tap target for an inline link */
+  display: inline-block;
+  padding: var(--space-2) var(--space-1);
+}

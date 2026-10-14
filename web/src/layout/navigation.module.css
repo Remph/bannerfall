@@ -1,0 +1,208 @@
+/* ---------- phone: bottom tab bar ---------- */
+.tabBar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 10;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--color-bar);
+  border-top: 2px solid var(--color-bar-edge);
+}
+
+/* Full-screen screens: the bar is the last row of the page's column, so the content above ends
+   exactly where the bar starts, however tall it is (large text, two-line labels). */
+.tabBarInFlow {
+  position: static;
+  flex: none;
+}
+
+.tab {
+  flex: 1;
+  min-width: 0;
+  min-height: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-on-bar-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tabIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 2px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 1.4rem;
+}
+
+/* unread reports: a small count at the icon's top right */
+.tabBadge {
+  position: absolute;
+  top: -3px;
+  left: calc(50% + 0.35rem);
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: 0 0 0 2px var(--color-bar);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.tab[aria-current='page'] {
+  color: var(--color-highlight);
+  font-weight: 700;
+}
+
+.tab[aria-current='page'] .tabIcon {
+  background: var(--color-bar-hover);
+}
+
+.tab[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- desktop: tab row under the top bar ---------- */
+.desktopNav {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .tabBar {
+    display: none;
+  }
+
+  .desktopNav {
+    display: flex;
+    gap: var(--space-1);
+    padding: 0 var(--space-3);
+    overflow-x: auto;
+    background: var(--color-bar-edge);
+  }
+}
+
+.navItem {
+  padding: 0.6rem 1rem 0.45rem;
+  border-bottom: 3px solid transparent;
+  color: var(--color-on-bar-muted);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.navItem:hover {
+  color: var(--color-on-bar);
+}
+
+.navItem[aria-current='page'] {
+  color: var(--color-highlight);
+  border-bottom-color: var(--color-highlight);
+}
+
+/* unread reports, after the label */
+.badge {
+  display: inline-block;
+  min-width: 1.35rem;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.navItem[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- More sheet (phone) ---------- */
+.moreList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.moreItem {
+  min-height: 3.5rem;
+  /* icon on the left; label and (for coming sections) the "coming soon" pill stacked next to it */
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  align-content: center;
+  column-gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* the chat entry is a button (it opens a sheet) that looks like the links */
+button.moreItem {
+  width: 100%;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreItem[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.moreIcon {
+  grid-row: span 2;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+.moreLabel {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.soon {
+  justify-self: start;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 1024px) {
+  /* everything is in the tab row already */
+  .moreList {
+    display: none;
+  }
+}

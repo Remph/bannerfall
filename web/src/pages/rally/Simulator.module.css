@@ -1,0 +1,291 @@
+/* The attack simulator (M23): phone = one column, desktop = attacker | defender, results in three columns. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  width: fit-content;
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.intro,
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: grid;
+  /* minmax: a select with long option texts must not widen the card beyond the screen */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.sides {
+  display: grid;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .sides {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* unit rows: icon + name, then the count field */
+.unitList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unitRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.unitRow:first-child {
+  border-top: 0;
+}
+
+.unitName {
+  flex: 1 1 8rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.unitIcon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-accent);
+}
+
+.unitControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.level {
+  width: 5.25rem;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(1rem, 16px);
+}
+
+.level:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.count {
+  width: 4.75rem;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font-size: max(1rem, 16px);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.count:focus-visible,
+.select select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.select {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.select label {
+  font-weight: 600;
+}
+
+.select select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(1rem, 16px);
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: 0.9rem;
+}
+
+/* Simulate: sticks above the tab bar on phones like the rally point's send buttons */
+.footer {
+  position: sticky;
+  bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px) + var(--space-2));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow:
+    0 -1px 0 var(--color-divider),
+    0 4px 14px rgba(30, 15, 5, 0.12);
+}
+
+@media (min-width: 1024px) {
+  .footer {
+    position: static;
+    padding: 0;
+    box-shadow: none;
+    background: none;
+  }
+}
+
+.footer p {
+  margin: 0;
+  margin-right: auto;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* ---------- result ---------- */
+.results {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.results h2 {
+  margin: 0;
+}
+
+.scenarios {
+  display: grid;
+  /* one column on phones, up to three side by side where there is room */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.verdict {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-weight: 700;
+}
+
+.verdict.won {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.verdict.lost {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.facts {
+  display: grid;
+  margin: 0;
+}
+
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  min-width: 0;
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.damaged {
+  color: var(--color-danger);
+}
+
+.tableTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}

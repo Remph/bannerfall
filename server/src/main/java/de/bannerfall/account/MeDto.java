@@ -1,0 +1,38 @@
+package de.bannerfall.account;
+
+import de.bannerfall.player.Player;
+import de.bannerfall.village.VillageSummaryDto;
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * GET /api/me (also the answer to register and login): the account plus its player.
+ *
+ * @param needsRespawn the player lost all his villages (conquered, 02-game-rules §10) and may start
+ *     again with {@code POST /api/me/respawn}; {@code villages} is empty then. Never in the
+ *     pre-game (M14g): the player has no village yet because the world has not opened
+ * @param villages the player's villages, oldest first
+ */
+public record MeDto(
+        long accountId,
+        String username,
+        Role role,
+        long playerId,
+        int points,
+        Instant protectedUntil,
+        boolean needsRespawn,
+        List<VillageSummaryDto> villages) {
+
+    static MeDto of(
+            Account account, Player player, List<VillageSummaryDto> villages, boolean pregame) {
+        return new MeDto(
+                account.getId(),
+                account.getUsername(),
+                account.getRole(),
+                player.getId(),
+                player.getPoints(),
+                player.getProtectedUntil(),
+                !pregame && !player.isNpc() && villages.isEmpty(),
+                villages);
+    }
+}

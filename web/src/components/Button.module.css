@@ -1,0 +1,67 @@
+.button {
+  min-height: var(--touch-target);
+  padding: 0 1.25rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.danger {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible,
+.danger:active:not(:disabled) {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danger {
+    transition: none;
+  }
+}
+
+.small {
+  min-height: 2.25rem;
+  padding: 0 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* touch screens keep the full touch target height (05-frontend §8) */
+@media (pointer: coarse) {
+  .small {
+    min-height: var(--touch-target);
+  }
+}

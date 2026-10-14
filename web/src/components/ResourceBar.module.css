@@ -1,0 +1,176 @@
+/* Phone first: four equal columns, icon above the numbers. Sits on the green bar. */
+.bar {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-on-bar);
+  font-variant-numeric: tabular-nums;
+}
+
+.item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+/* Wood, clay and iron link to the warehouse page (M35). The link takes the item's whole box and layout,
+   so the tap target is the full column on phones; the population item has no link. */
+.link {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  flex-direction: inherit;
+  align-items: inherit;
+  justify-content: inherit;
+  gap: inherit;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--color-bar-hover);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 1px;
+}
+
+.icon {
+  font-size: 1.15rem;
+}
+
+.text {
+  display: grid;
+  justify-items: center;
+  line-height: 1.2;
+}
+
+/* "812/1,000": the maximum wraps below the value when the column is too narrow */
+.amountLine {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.max {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-on-bar);
+  opacity: 0.85;
+}
+
+.detail {
+  font-size: 0.72rem;
+  color: var(--color-on-bar-muted);
+  white-space: nowrap;
+}
+
+.fill {
+  display: none;
+}
+
+.full .amount,
+.full .max {
+  color: var(--color-on-bar-warn);
+}
+
+/* Phones, slim row: icon and amount side by side, no maximum or production. */
+@media (max-width: 1023.98px) {
+  .compact .item {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.3rem;
+  }
+
+  .compact .icon {
+    font-size: 0.95rem;
+  }
+
+  /* The slim row is only about 16 px tall: the link's tap area reaches down into the bar's bottom
+     padding (24 px in all) without moving anything. Not upwards, where the village switcher sits. */
+  .compact .link {
+    position: relative;
+  }
+
+  .compact .link::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 calc(-1 * var(--space-2));
+  }
+
+  .compact .amount {
+    font-size: 0.85rem;
+  }
+
+  .compact .max,
+  .compact .detail {
+    display: none;
+  }
+}
+
+/* Desktop: icon left of the numbers, with capacity and fill bar. */
+@media (min-width: 1024px) {
+  .bar {
+    gap: 1.25rem;
+  }
+
+  .item {
+    flex: none;
+    flex-direction: row;
+    gap: var(--space-2);
+  }
+
+  /* The population has no link but the same side padding, so the gaps between the items stay even.
+     Desktop only: on phones the padding would make its column wider than the other three. */
+  .plain {
+    padding: 0 var(--space-1);
+  }
+
+  .text {
+    justify-items: start;
+  }
+
+  .amountLine {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .max {
+    font-size: 0.85rem;
+  }
+
+  .fill {
+    display: block;
+    width: 100%;
+    min-width: 4rem;
+    height: 3px;
+    margin-top: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--color-track);
+  }
+
+  .fill > span {
+    display: block;
+    height: 100%;
+    background: var(--color-highlight);
+  }
+
+  .full .fill > span {
+    background: var(--color-on-bar-warn);
+  }
+}

@@ -1,0 +1,101 @@
+/* Phone first: at the bottom above the tab bar, within thumb reach, newest last (it doesn't hide
+   the top strip with the red attack counter). */
+.toasts {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.25rem);
+  left: var(--space-2);
+  right: var(--space-2);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* the empty list must not catch taps */
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-left: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left-width: 6px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-float);
+  animation: toast-in 0.18s ease-out;
+}
+
+.info {
+  border-left-color: var(--color-title);
+}
+
+.success {
+  border-left-color: var(--color-success);
+}
+
+.danger {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.text:hover {
+  text-decoration: underline;
+}
+
+.close {
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-well);
+}
+
+/* Tablets: a narrower column at the right. */
+@media (min-width: 640px) {
+  .toasts {
+    left: auto;
+    width: 24rem;
+  }
+}
+
+/* Desktop: at the top right under the tab row (the chat sits at the bottom right). */
+@media (min-width: 1024px) {
+  .toasts {
+    top: 6.75rem;
+    bottom: auto;
+    right: var(--space-3);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}

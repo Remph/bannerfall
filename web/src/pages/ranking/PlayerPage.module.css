@@ -1,0 +1,161 @@
+/* A player's profile (05-frontend §3). Phone first: one column. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+
+.back {
+  justify-self: start;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.head h1 {
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* writing and inviting side by side; the notes about an invitation take a line of their own */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.actions > :not(button) {
+  flex-basis: 100%;
+}
+
+.guildLink {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.hint,
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.empty {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.tag {
+  margin-left: var(--space-2);
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.villages {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.village {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.village:first-child {
+  border-top: 0;
+}
+
+.villageName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.villageMeta {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirm p {
+  margin: 0;
+}
+
+.confirmButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.villageMeta a {
+  color: var(--color-accent);
+}
+
+/* the earned achievements: a wrapping row of badges, the name under each */
+.badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--space-3) var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  list-style: none;
+}
+
+.badgeItem {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.badgeName {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.badgeLevel {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+.more {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.more a {
+  color: var(--color-accent);
+  font-weight: 600;
+}

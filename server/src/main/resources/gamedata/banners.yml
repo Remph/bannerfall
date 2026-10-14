@@ -1,0 +1,30 @@
+# Banner numbers: docs/plan/02-game-rules.md §21 (the rulebook wins if they ever disagree). First
+# drafts, tuned with playtest data; changing them needs a new image but no migration.
+banners:
+  # Effect per tier I / II / III as a fraction (0.05 = 5 %). What the effect is: 02 §21.2.
+  effects:
+    HARVEST: [0.05, 0.10, 0.15]    # production of wood, clay and iron +
+    BUILDERS: [0.05, 0.10, 0.15]   # build time of new build orders -
+    DRILL: [0.05, 0.10, 0.15]      # recruit time of new recruit orders -
+    WAR: [0.03, 0.06, 0.10]        # attack strength of attacks sent from the village +
+    BULWARK: [0.03, 0.06, 0.10]    # defence of the village +
+    HASTE: [0.05, 0.10, 0.15]      # travel time of attacks and supports sent from the village -
+    TREASURY: [0.10, 0.20, 0.30]   # warehouse and hiding place capacity +
+    PLUNDER: [0.10, 0.20, 0.30]    # carry capacity of units sent from the village +
+    OATH: [0.04, 0.08, 0.12]       # loyalty each enemy noble takes off the village -
+  # Drops after a won battle (§21.7, M32b).
+  drops:
+    player-chance: 0.10            # against a player or an NPC lord, attacking or defending
+    barbarian-chance: 0.015        # attacking a barbarian village
+    tier-odds: [70, 25, 5]         # percent for tier I / II / III
+    min-loser-pop: 30              # the losing side fought with at least this much population
+    pair-hours: 24                 # one roll per winner and loser pair in this many real hours
+    max-per-day: 8                 # drops per player in 24 real hours
+  # Theft with banner thieves (§21.6.2, M32b).
+  theft:
+    chance-per-thief: 0.03
+    max-chance: 0.85
+    hall-reduction-per-level: 0.10
+  # Fusing (§21.4.2, M32c): this many banners of one tier make one of the next tier.
+  fusing:
+    banners-needed: 3

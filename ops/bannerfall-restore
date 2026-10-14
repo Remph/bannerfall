@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# bannerfall-restore <dump.sql.gz> [--yes] – replaces the production database with a backup
+# (docs/plan/01-architecture.md §8, README "Restoring a backup").
+#
+# Stops the app, dumps the current database to backups/pre-restore/ (a way back if the wrong file
+# was picked), drops and recreates the database `bannerfall`, loads the dump, starts the app.
+# EVERYTHING that happened after the backup is lost. Asks you to type "restore" first (--yes skips
+# the question). Run it from anywhere on the server.
+set -euo pipefail
+
+file="${1:-}"
+if [ -z "$file" ] || [ ! -f "$file" ]; then
+  echo "usage: $0 <backups/bannerfall-....sql.gz> [--yes]" >&2
+  exit 2
+fi
+file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+cd "$(dirname "$0")/.."
+compose=(docker compose -f compose.prod.yaml)
+
+gzip -t "$file"
+echo "This replaces the whole Bannerfall database with $file."
+echo "Everything that happened after that backup is gone."
+if [ "${2:-}" != "--yes" ]; then
+  read -r -p 'Type "restore" to go on: ' answer
+  [ "$answer" = "restore" ] || { echo "Cancelled."; exit 1; }
+fi
+
+"${compose[@]}" up -d db
+"${compose[@]}" stop app
+# Wait until the database accepts connections (right after a fresh start it may need a moment).
+for _ in $(seq 1 30); do
+  "${compose[@]}" exec -T db pg_isready -U bannerfall -d postgres -q && break
+  sleep 1
+done
+# A copy of what is there now, in its own folder (a dump of the same minute in backups/ would
+# otherwise be overwritten, maybe the very file being restored). A database too broken to dump
+# doesn't stop the restore: that may be why it runs.
+if BACKUP_DIR=backups/pre-restore ops/bannerfall-backup; then
+  echo "The database as it was is in backups/pre-restore/."
+else
+  echo "Could not dump the current database first; restoring anyway." >&2
+fi
+trap 'echo "RESTORE FAILED: the app is stopped and the database may be incomplete. Fix the cause and run the restore again (the copy of the old database is in backups/pre-restore/ if the dump above worked)." >&2' ERR
+"${compose[@]}" exec -T db psql -U bannerfall -d postgres -v ON_ERROR_STOP=1 \
+  -c 'drop database if exists bannerfall with (force)' -c 'create database bannerfall'
+gzip -dc "$file" | "${compose[@]}" exec -T db psql -U bannerfall -d bannerfall -v ON_ERROR_STOP=1 -q -o /dev/null
+trap - ERR
+"${compose[@]}" up -d
+echo "Restored from $file. The app is starting (docker compose -f compose.prod.yaml logs -f app)."

@@ -1,0 +1,65 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  /* the parchment glow: a lighter spot top left, a faint stain bottom right */
+  background-image:
+    radial-gradient(circle at 12% 0%, var(--color-glow), transparent 32rem),
+    radial-gradient(circle at 100% 100%, var(--color-stain), transparent 36rem);
+  background-repeat: no-repeat;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-title);
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* While a sheet (modal <dialog>) is open, the page behind it stays put – iOS would scroll it otherwise. */
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+/* Text only for screen readers (e.g. labels next to icons). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

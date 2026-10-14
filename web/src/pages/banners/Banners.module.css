@@ -1,0 +1,235 @@
+/* The Banner Hall page (M32a). Phone first: one column of cards; the stash rows wrap under the banner. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 44rem;
+  align-content: start;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.head h1,
+.head p {
+  margin: 0;
+}
+
+.back {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover,
+.back:focus-visible,
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline;
+}
+
+.link {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.body p {
+  margin: 0;
+}
+
+.warning {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  color: var(--color-text-muted);
+}
+
+/* ---------- the slot of this village ---------- */
+.slot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.slotText,
+.stashText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+/* an empty slot: a dashed outline of a banner */
+.emptySlot {
+  flex: none;
+  width: 56px;
+  height: 84px;
+  border: 2px dashed var(--color-border);
+  border-radius: calc(var(--radius) - 0.25rem);
+}
+
+/* ---------- the stash ---------- */
+.stash {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stashRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.stashRow:first-child {
+  border-top: 0;
+}
+
+.stashText {
+  flex-basis: 10rem;
+}
+
+/* ---------- the villages ---------- */
+.villages {
+  display: grid;
+  margin: 0;
+  padding: 0 0 var(--space-1);
+  list-style: none;
+}
+
+.villageRow {
+  border-top: 1px solid var(--color-divider);
+}
+
+.villageRow:first-child {
+  border-top: 0;
+}
+
+.villageLink {
+  min-height: var(--touch-target);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.villageLink:hover,
+a.villageLink:focus-visible {
+  background: var(--color-well);
+}
+
+.currentRow {
+  background: var(--color-well);
+}
+
+.villageName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.noBanner {
+  width: 20px;
+  height: 30px;
+  flex: none;
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+}
+
+/* ---------- fusing (M32c) ---------- */
+.success {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.fuseGroup {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.fuseTier {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.fuseList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* a banner to tap: picture over name, a thick accent rim when chosen */
+.fuseChoice {
+  min-width: 5.5rem;
+  min-height: var(--touch-target);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: calc(var(--radius) - 0.25rem);
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.fuseChoice:hover,
+.fuseChoice:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.fuseChosen {
+  border-color: var(--color-accent);
+  background: var(--color-well);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.fuseTypes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: calc(var(--radius) - 0.25rem);
+}
+
+.fuseTypes legend {
+  padding: 0 var(--space-1);
+  font-weight: 600;
+}
+
+.fuseType {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
