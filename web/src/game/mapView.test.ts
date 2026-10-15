@@ -219,10 +219,10 @@ describe('villageKind', () => {
 describe('villageSize', () => {
   it('has three sizes by points', () => {
     expect(villageSize(0)).toBe(0);
-    expect(villageSize(299)).toBe(0);
-    expect(villageSize(300)).toBe(1);
-    expect(villageSize(1999)).toBe(1);
-    expect(villageSize(2000)).toBe(2);
+    expect(villageSize(279)).toBe(0);
+    expect(villageSize(280)).toBe(1);
+    expect(villageSize(1599)).toBe(1);
+    expect(villageSize(1600)).toBe(2);
   });
 });
 

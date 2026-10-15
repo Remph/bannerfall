@@ -3,7 +3,7 @@ package de.bannerfall.report;
 import java.util.List;
 
 /**
- * The answer of {@code POST /api/reports/{id}/share} (M40).
+ * The answer of {@code POST /api/reports/{id}/share} (M40) and {@code …/share-guild}.
  *
  * @param sentTo the recipients' names as they are spelled, each once
  */

@@ -3,8 +3,8 @@ npc:
   templates:
     BALANCED:
       stages:
-        - { name: EARLY, below-points: 1000, troop-share: 0.30 }
-        - { name: MID, below-points: 7000, troop-share: 0.40 }
+        - { name: EARLY, below-points: 850, troop-share: 0.30 }
+        - { name: MID, below-points: 4500, troop-share: 0.40 }
         - { name: LATE, troop-share: 0.50 }
       mix:
         EARLY: { SPEARMAN: 50, AXEMAN: 50 }

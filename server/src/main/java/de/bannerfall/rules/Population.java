@@ -11,12 +11,42 @@ public final class Population {
 
     private Population() {}
 
-    /** Farm capacity at {@code level ≥ 1}: {@code round(240 × 1.172^(L−1))}. */
+    /** Extra farm capacity in % at levels 10–15 (1.2.3: the mid game got too little room). */
+    static final double MID_BONUS_PERCENT = 15;
+
+    /** Extra farm capacity in % from level 22 on (room for thieves, paladin and Banner Hall). */
+    static final double LATE_BONUS_PERCENT = 3;
+
+    /**
+     * Farm capacity at {@code level ≥ 1}: {@code round(round(240 × 1.172^(L−1)) × (1 + bonus(L) /
+     * 100))}, see {@link #bonusPercent(int)}.
+     */
     public static int farmCapacity(int level) {
         if (level < 1) {
             throw new IllegalArgumentException("farm level must be at least 1: " + level);
         }
-        return (int) Math.round(240 * Math.pow(1.172, level - 1));
+        long base = Math.round(240 * Math.pow(1.172, level - 1));
+        return (int) Math.round(base * (1 + bonusPercent(level) / 100));
+    }
+
+    /**
+     * The farm bonus in %: 0 up to level 5, rising evenly to {@link #MID_BONUS_PERCENT} at 10, held
+     * to 15, falling evenly to {@link #LATE_BONUS_PERCENT} at 22 and held from there.
+     */
+    static double bonusPercent(int level) {
+        if (level <= 5) {
+            return 0;
+        }
+        if (level < 10) {
+            return MID_BONUS_PERCENT * (level - 5) / 5;
+        }
+        if (level <= 15) {
+            return MID_BONUS_PERCENT;
+        }
+        if (level < 22) {
+            return MID_BONUS_PERCENT + (LATE_BONUS_PERCENT - MID_BONUS_PERCENT) * (level - 15) / 7;
+        }
+        return LATE_BONUS_PERCENT;
     }
 
     /**

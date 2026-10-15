@@ -51,10 +51,10 @@ class NpcTemplatesTest {
         NpcTemplates.Template template = TEMPLATES.of(NpcPersonality.BALANCED);
 
         assertThat(template.stageFor(0).name()).isEqualTo("EARLY");
-        assertThat(template.stageFor(999).name()).isEqualTo("EARLY");
-        assertThat(template.stageFor(1000).name()).isEqualTo("MID");
-        assertThat(template.stageFor(6999).name()).isEqualTo("MID");
-        assertThat(template.stageFor(7000).name()).isEqualTo("LATE");
+        assertThat(template.stageFor(849).name()).isEqualTo("EARLY");
+        assertThat(template.stageFor(850).name()).isEqualTo("MID");
+        assertThat(template.stageFor(4499).name()).isEqualTo("MID");
+        assertThat(template.stageFor(4500).name()).isEqualTo("LATE");
     }
 
     @Test

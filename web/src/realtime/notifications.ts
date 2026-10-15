@@ -3,6 +3,7 @@ import { meQueryKey, type Me } from '../api/queries/auth';
 import { achievementsQueryKey } from '../api/queries/achievements';
 import { bannersQueryKey } from '../api/queries/banners';
 import { buildingsQueryKey } from '../api/queries/buildings';
+import { farmListsQueryKey } from '../api/queries/farm';
 import { mapMovementsQueryKey, mapQueryKey } from '../api/queries/map';
 import { messagesQueryKey } from '../api/queries/messages';
 import { marketQueryKey, offersQueryKey } from '../api/queries/market';
@@ -112,10 +113,16 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
       ];
     case 'REPORT_CREATED':
       // an attack's report brings the loyalty the player has just seen on the map (M21); a copy
-      // another player sent (M40) changes nothing there
-      return (notification.kind === 'ATTACK' || notification.kind === 'SCOUT') && notification.sharedBy === null
-        ? [reportsQueryKey, mapQueryKey]
-        : [reportsQueryKey];
+      // another player sent (M40) changes nothing there. A landed attack also changes the farm
+      // list's banner chances: the attack is no longer on the way, and it may have used the roll
+      // (1.2.3)
+      if (notification.sharedBy !== null) {
+        return [reportsQueryKey];
+      }
+      if (notification.kind === 'ATTACK') {
+        return [reportsQueryKey, mapQueryKey, farmListsQueryKey];
+      }
+      return notification.kind === 'SCOUT' ? [reportsQueryKey, mapQueryKey] : [reportsQueryKey];
     case 'BUILD_COMPLETE':
       // a new level unlocks units and shortens recruit times (M5b review); points are in /api/me
       return [

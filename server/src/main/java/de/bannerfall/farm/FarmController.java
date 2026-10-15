@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -66,12 +67,15 @@ class FarmController {
 
     /**
      * "Send all" (M39): the list from the top, one attack per entry, until it ends or the units run
-     * out; the answer says what was sent, skipped and where it stopped.
+     * out; the answer says what was sent, skipped and where it stopped. {@code
+     * bannerChanceOnly=true} (1.2.3) sends only the entries with {@code bannerChance}.
      */
     @PostMapping("/send-all")
     FarmSendAllDto sendAll(
-            @PathVariable long villageId, @AuthenticationPrincipal AccountPrincipal me) {
-        return farmService.sendAll(villageId, playerService.idOf(me.accountId()));
+            @PathVariable long villageId,
+            @RequestParam(defaultValue = "false") boolean bannerChanceOnly,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return farmService.sendAll(villageId, playerService.idOf(me.accountId()), bannerChanceOnly);
     }
 
     /** One attack with the target's template; the answer is the movement, like POST …/commands. */

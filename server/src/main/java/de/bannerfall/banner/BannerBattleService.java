@@ -4,6 +4,8 @@ import de.bannerfall.achievement.Achievement;
 import de.bannerfall.achievement.AchievementService;
 import de.bannerfall.common.RandomSource;
 import de.bannerfall.gamedata.BannerType;
+import de.bannerfall.gamedata.GameData;
+import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.player.Player;
@@ -50,6 +52,7 @@ public class BannerBattleService {
     private final JdbcClient jdbc;
     private final ApplicationEventPublisher notifications;
     private final AchievementService achievements;
+    private final GameData gameData;
 
     BannerBattleService(
             BannerRepository banners,
@@ -59,7 +62,8 @@ public class BannerBattleService {
             RandomSource random,
             JdbcClient jdbc,
             ApplicationEventPublisher notifications,
-            AchievementService achievements) {
+            AchievementService achievements,
+            GameData gameData) {
         this.banners = banners;
         this.events = events;
         this.catalog = catalog;
@@ -68,6 +72,7 @@ public class BannerBattleService {
         this.jdbc = jdbc;
         this.notifications = notifications;
         this.achievements = achievements;
+        this.gameData = gameData;
     }
 
     /**
@@ -152,6 +157,28 @@ public class BannerBattleService {
                         winner.getId(),
                         new GameNotification.BannerFound(type, tier, VillageRefDto.of(village))));
         return Optional.of(new BattleReport.ScoutedBanner(type, tier));
+    }
+
+    /**
+     * Whether an attack with these units can win a banner roll against the loser at all
+     * (02-game-rules §21.7): not with scouts alone (there is no main battle), and against a
+     * barbarian village only with at least {@code drops.minLoserPop} population, since the
+     * attacker's army is what counts there. Against a player the defenders decide, which the
+     * attacker can't know. The farm list's "Send banner chances" (§18) leaves out the rest.
+     */
+    public boolean attackCanRoll(Loser loser, Map<UnitType, Integer> units) {
+        if (units.entrySet().stream()
+                .noneMatch(e -> e.getKey() != UnitType.SCOUT && e.getValue() > 0)) {
+            return false;
+        }
+        if (!loser.barbarian()) {
+            return true;
+        }
+        int pop = 0;
+        for (var entry : units.entrySet()) {
+            pop += entry.getValue() * gameData.unit(entry.getKey()).pop();
+        }
+        return pop >= catalog.drops().minLoserPop();
     }
 
     /**

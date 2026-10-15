@@ -16,19 +16,75 @@ interface SendAllBarProps {
   targets: FarmTarget[];
   /** Whether "send all" leaves players' villages out of this list now (the sender is protected). */
   leavesPlayersOut: boolean;
+  /**
+   * The targets with a banner chance (`bannerChance`: no "Banner chance used" pill, a template that
+   * can win a roll) for the second button (1.2.3); undefined hides it (a world without banner drops).
+   */
+  bannerChances: number | undefined;
   pending: boolean;
   result: SendAllResult | undefined;
   error: unknown;
-  onSend: () => void;
+  onSend: (bannerChanceOnly: boolean) => void;
 }
 
 /**
- * "Send all" (M39, 02-game-rules §18) above the list: two taps, since one sends up to 50 attacks –
- * the first turns the button into "Really send all?", without a second it turns back after a few
- * seconds. After the run: how many attacks went out and why it ended; the rows say the rest.
+ * "Send all" (M39, 02-game-rules §18) above the list, and next to it "Send banner chances", the same
+ * run over only the targets without "Banner chance used" (1.2.3). Both take two taps, since one
+ * sends up to 50 attacks. After the run: how many attacks went out and why it ended; the rows say
+ * the rest.
  */
-export function SendAllBar({ targets, leavesPlayersOut, pending, result, error, onSend }: SendAllBarProps) {
+export function SendAllBar({
+  targets,
+  leavesPlayersOut,
+  bannerChances,
+  pending,
+  result,
+  error,
+  onSend,
+}: SendAllBarProps) {
   const t = useT();
+  return (
+    <div className={styles.sendAll}>
+      <div className={styles.actions}>
+        <TwoTapButton
+          label={t.farm.sendAll}
+          armedLabel={t.farm.sendAllArmed}
+          disabled={pending}
+          onSend={() => onSend(false)}
+        />
+        {bannerChances !== undefined && (
+          <TwoTapButton
+            variant="secondary"
+            label={t.farm.sendBannerChances(bannerChances)}
+            armedLabel={t.farm.sendBannerChancesArmed}
+            disabled={pending || bannerChances === 0}
+            onSend={() => onSend(true)}
+          />
+        )}
+      </div>
+      <p className={styles.meta}>{t.farm.sendAllHint}</p>
+      {bannerChances !== undefined && <p className={styles.meta}>{t.farm.sendBannerChancesHint}</p>}
+      {leavesPlayersOut && <p className={styles.notice}>{t.farm.sendAllLeavesPlayersOut}</p>}
+      {result !== undefined && (
+        <p className={styles.sent} role="status">
+          {summary(t, result, targets)}
+        </p>
+      )}
+      {error != null && <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>}
+    </div>
+  );
+}
+
+interface TwoTapButtonProps {
+  label: string;
+  armedLabel: string;
+  variant?: 'secondary';
+  disabled: boolean;
+  onSend: () => void;
+}
+
+/** The first tap turns the label into the question, without a second it turns back after a few seconds. */
+function TwoTapButton({ label, armedLabel, variant, disabled, onSend }: TwoTapButtonProps) {
   const [armed, setArmed] = useState(false);
 
   useEffect(() => {
@@ -49,21 +105,9 @@ export function SendAllBar({ targets, leavesPlayersOut, pending, result, error, 
   }
 
   return (
-    <div className={styles.sendAll}>
-      <div className={styles.actions}>
-        <Button type="button" disabled={pending} onClick={onClick} onBlur={() => setArmed(false)}>
-          {armed ? t.farm.sendAllArmed : t.farm.sendAll}
-        </Button>
-      </div>
-      <p className={styles.meta}>{t.farm.sendAllHint}</p>
-      {leavesPlayersOut && <p className={styles.notice}>{t.farm.sendAllLeavesPlayersOut}</p>}
-      {result !== undefined && (
-        <p className={styles.sent} role="status">
-          {summary(t, result, targets)}
-        </p>
-      )}
-      {error != null && <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>}
-    </div>
+    <Button type="button" variant={variant} disabled={disabled} onClick={onClick} onBlur={() => setArmed(false)}>
+      {armed ? armedLabel : label}
+    </Button>
   );
 }
 

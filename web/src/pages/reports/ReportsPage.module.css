@@ -37,7 +37,8 @@
   gap: var(--space-2) var(--space-3);
 }
 
-/* "Mark all as read" and "Delete all" (M38): side by side, wrapping under the title on a phone */
+/* "Mark all as read", "Delete barbarian reports" (1.2.3) and "Delete all" (M38): side by side,
+   wrapping under the title on a phone */
 .headActions {
   display: flex;
   flex-wrap: wrap;
@@ -552,6 +553,16 @@
 .sendForm {
   display: grid;
   gap: var(--space-3);
+}
+
+/* the whole guild in one tap, above the names */
+.guildSend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* the inbox's players as one-tap picks */

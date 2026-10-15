@@ -84,9 +84,11 @@ describe('staleQueries', () => {
   });
 
   it('also reloads the map for the report of an own attack: it shows the loyalty just seen', () => {
+    // and the farm lists: the attack is no longer on the way and may have used the banner roll
     expect(staleQueries({ type: 'REPORT_CREATED', reportId: 5, kind: 'ATTACK', sharedBy: null })).toEqual([
       ['reports'],
       ['mapChunk'],
+      ['farm'],
     ]);
     expect(staleQueries({ type: 'REPORT_CREATED', reportId: 6, kind: 'SCOUT', sharedBy: null })).toEqual([
       ['reports'],

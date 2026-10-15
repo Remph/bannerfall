@@ -64,6 +64,21 @@ export function bannerRollBackAt(nextBannerRollAt: string | null, nowMs: number)
   return at > nowMs ? at : undefined;
 }
 
+/**
+ * The next moment a pill runs out, as a delay from now in ms (the list is fetched again then, so the
+ * pill goes on time); undefined when no row has one.
+ */
+export function nextBannerRollBackIn(nextBannerRollAts: (string | null)[], nowMs: number): number | undefined {
+  let next: number | undefined;
+  for (const at of nextBannerRollAts) {
+    const back = bannerRollBackAt(at, nowMs);
+    if (back !== undefined && (next === undefined || back < next)) {
+      next = back;
+    }
+  }
+  return next === undefined ? undefined : next - nowMs;
+}
+
 /** What "send all" (M39) answers: what went out, what was skipped and why, where it stopped. */
 export type SendAllResult = components['schemas']['FarmSendAllDto'];
 

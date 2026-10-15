@@ -9,6 +9,7 @@ import {
   sendableUnits,
   trainAttacks,
   troopOverview,
+  unitsAway,
   withoutZeros,
 } from './troops';
 
@@ -111,6 +112,26 @@ describe('nextArrivalMs', () => {
 
   it('is undefined without movements', () => {
     expect(nextArrivalMs([])).toBeUndefined();
+  });
+});
+
+describe('unitsAway', () => {
+  it('adds up stacks elsewhere, outgoing commands and returns, without incoming attacks and supports', () => {
+    expect(
+      unitsAway({
+        ownUnitsElsewhere: [{ units: { SPEARMAN: 20 } }, { units: { SPEARMAN: 5, SCOUT: 0 } }],
+        outgoing: [{ units: { AXEMAN: 50 } }],
+        incoming: [
+          { kind: 'RETURN', units: { AXEMAN: 10, SPEARMAN: 1 } },
+          { kind: 'ATTACK', units: null },
+          { kind: 'SUPPORT', units: { SPEARMAN: 40 } },
+        ],
+      }),
+    ).toEqual({ SPEARMAN: 26, AXEMAN: 60 });
+  });
+
+  it('is empty when everything is at home', () => {
+    expect(unitsAway({ ownUnitsElsewhere: [], outgoing: [], incoming: [] })).toEqual({});
   });
 });
 

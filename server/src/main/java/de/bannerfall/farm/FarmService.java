@@ -12,7 +12,9 @@ import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.movement.CommandKind;
 import de.bannerfall.movement.CommandRequest;
 import de.bannerfall.movement.CommandService;
+import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementDto;
+import de.bannerfall.movement.MovementRepository;
 import de.bannerfall.player.Player;
 import de.bannerfall.rules.RecruitRules;
 import de.bannerfall.rules.Travel;
@@ -22,13 +24,16 @@ import de.bannerfall.village.VillageLocker;
 import de.bannerfall.village.VillageRefDto;
 import de.bannerfall.village.VillageRepository;
 import de.bannerfall.world.WorldService;
+import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +59,7 @@ public class FarmService {
     private final Clock clock;
     private final VillageBanners villageBanners;
     private final BannerBattleService bannerBattles;
+    private final MovementRepository movements;
 
     FarmService(
             FarmTargetRepository targets,
@@ -64,7 +70,8 @@ public class FarmService {
             WorldService worldService,
             Clock clock,
             VillageBanners villageBanners,
-            BannerBattleService bannerBattles) {
+            BannerBattleService bannerBattles,
+            MovementRepository movements) {
         this.targets = targets;
         this.villages = villages;
         this.locker = locker;
@@ -74,6 +81,7 @@ public class FarmService {
         this.clock = clock;
         this.villageBanners = villageBanners;
         this.bannerBattles = bannerBattles;
+        this.movements = movements;
     }
 
     /**
@@ -97,7 +105,7 @@ public class FarmService {
             byId.put(target.getId(), target);
         }
         double haste = villageBanners.effectOf(source).haste(); // one lookup for the list
-        Map<String, Instant> rolls = nextRolls(playerId, byId.values(), now); // and one for all
+        BannerChances chances = new BannerChances(playerId, byId.values(), now); // and for all
         return entries.stream()
                 .map(
                         entry ->
@@ -106,7 +114,7 @@ public class FarmService {
                                         entry,
                                         byId.get(entry.getTargetVillageId()),
                                         haste,
-                                        rolls,
+                                        chances,
                                         now))
                 .toList();
     }
@@ -151,7 +159,7 @@ public class FarmService {
                 entry,
                 target,
                 villageBanners.effectOf(source).haste(),
-                nextRolls(playerId, List.of(target), now),
+                new BannerChances(playerId, List.of(target), now),
                 now);
     }
 
@@ -175,7 +183,7 @@ public class FarmService {
                 entry,
                 target,
                 villageBanners.effectOf(source).haste(),
-                nextRolls(playerId, List.of(target), now),
+                new BannerChances(playerId, List.of(target), now),
                 now);
     }
 
@@ -224,10 +232,24 @@ public class FarmService {
      * the first entry the units at home don't cover, or at the end of the list. Each attack that
      * went out stays sent; the whole run holds the village's lock, so nothing else takes units from
      * it in between.
+     *
+     * <p>With {@code bannerChanceOnly} (1.2.3) the run sends only the entries with a banner chance
+     * ({@link FarmTargetDto#bannerChance()}): the others are neither sent nor skipped. Those are
+     * entries whose roll is used, whose pair already has an attack on the way (sent earlier or by
+     * this run), or whose template can't win one.
+     *
+     * @throws GameRuleException {@code BANNERS_DISABLED} for {@code bannerChanceOnly} in a world
+     *     without banners or drops
      */
     @Transactional
-    public FarmSendAllDto sendAll(long villageId, long playerId) {
+    public FarmSendAllDto sendAll(long villageId, long playerId, boolean bannerChanceOnly) {
         Village source = locker.lockOwned(villageId, playerId);
+        if (bannerChanceOnly) {
+            if (!bannerDrops(worldService.settings())) {
+                throw new GameRuleException(
+                        ErrorCode.BANNERS_DISABLED, "This world has no banner drops");
+            }
+        }
         Instant now = clock.instant();
         List<FarmTarget> entries = targets.findByVillageIdOrderByIdAsc(villageId);
         Map<Long, Village> byId = new HashMap<>();
@@ -236,6 +258,8 @@ public class FarmService {
                         entries.stream().map(FarmTarget::getTargetVillageId).toList())) {
             byId.put(target.getId(), target);
         }
+        BannerChances chances =
+                bannerChanceOnly ? new BannerChances(playerId, byId.values(), now) : null;
         Instant ownProtection = source.getPlayer().getProtectedUntil();
         boolean senderProtected = ownProtection != null && ownProtection.isAfter(now);
 
@@ -243,6 +267,9 @@ public class FarmService {
         List<FarmSendAllDto.Skipped> skipped = new ArrayList<>();
         for (FarmTarget entry : entries) {
             Village target = byId.get(entry.getTargetVillageId());
+            if (chances != null && !chances.has(entry, target)) {
+                continue;
+            }
             Player owner = target.getPlayer();
             if (senderProtected && owner != null && owner.getId() != playerId) {
                 skipped.add(
@@ -262,6 +289,9 @@ public class FarmService {
             if (attempt.movement() != null) {
                 entry.sentAt(clock.instant());
                 sent.add(entry.getId());
+                if (chances != null) {
+                    chances.claim(target);
+                }
                 continue;
             }
             List<ErrorCode> errors = attempt.errors();
@@ -326,32 +356,75 @@ public class FarmService {
         return new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, detail);
     }
 
+    /** Whether banners can drop in the world at all (02-game-rules §21.7, §21.9). */
+    private static boolean bannerDrops(WorldSettings world) {
+        return world.bannersEnabled() && world.bannerDropFactor() > 0;
+    }
+
     /**
-     * The player's banner rolls against these targets (02-game-rules §21.7): per player for a
-     * player's or NPC lord's village, per village for a barbarian one, keyed as in {@link
-     * BannerBattleService.Loser}.
+     * The player's banner chances against the targets of one answer (02-game-rules §21.7), per pair
+     * as in {@link BannerBattleService.Loser} (per player for a player's or NPC lord's village, per
+     * barbarian village): when a used roll comes back, and the pairs that are taken already. A pair
+     * is taken by one of the player's attacks on the way that can win a roll (it uses the roll when
+     * it lands, so a second attack has no chance, 1.2.3) and by an entry this answer gave the
+     * chance to ({@link #claim}), so only the first entry of a pair has it.
      */
-    private Map<String, Instant> nextRolls(
-            long playerId, Collection<Village> targets, Instant now) {
-        return bannerBattles.nextRolls(
-                playerId,
-                targets.stream()
-                        .map(target -> BannerBattleService.Loser.defenderOf(target).key())
-                        .toList(),
-                now);
+    private final class BannerChances {
+
+        private final Map<String, Instant> rolls;
+        private final Set<String> taken = new HashSet<>();
+
+        BannerChances(long playerId, Collection<Village> targets, Instant now) {
+            rolls =
+                    bannerBattles.nextRolls(
+                            playerId, targets.stream().map(BannerChances::key).toList(), now);
+            for (Movement attack : movements.findAttacksUnderWay(playerId)) {
+                BannerBattleService.Loser loser =
+                        BannerBattleService.Loser.defenderOf(attack.getTargetVillage());
+                if (bannerBattles.attackCanRoll(loser, attack.getUnits().toMap())) {
+                    taken.add(loser.key());
+                }
+            }
+        }
+
+        private static String key(Village target) {
+            return BannerBattleService.Loser.defenderOf(target).key();
+        }
+
+        /** When the used roll against the target comes back; null if it isn't used. */
+        Instant nextRollAt(Village target) {
+            return rolls.get(key(target));
+        }
+
+        /**
+         * Whether a won attack with the entry's template can roll a banner (02-game-rules §21.7):
+         * the roll is free, no attack on the way or earlier entry has the pair, and the template
+         * can win one at all ({@link BannerBattleService#attackCanRoll}). Assumes banners drop.
+         */
+        boolean has(FarmTarget entry, Village target) {
+            BannerBattleService.Loser loser = BannerBattleService.Loser.defenderOf(target);
+            return !rolls.containsKey(loser.key())
+                    && !taken.contains(loser.key())
+                    && bannerBattles.attackCanRoll(loser, entry.getUnits().toMap());
+        }
+
+        /** The target's pair has its attack now: later entries of the pair have no chance. */
+        void claim(Village target) {
+            taken.add(key(target));
+        }
     }
 
     /**
      * @param haste the source's Haste banner (02-game-rules §21.2), so the trip shown is the one
      *     the attack will take
-     * @param rolls {@link #nextRolls} for (at least) this target
+     * @param chances the banner chances of this answer; the entry claims its pair if it has one
      */
     private FarmTargetDto toDto(
             Village source,
             FarmTarget entry,
             Village target,
             double haste,
-            Map<String, Instant> rolls,
+            BannerChances chances,
             Instant now) {
         UnitCounts units = entry.getUnits();
         double distance = Travel.distance(source.coordinates(), target.coordinates());
@@ -364,6 +437,10 @@ public class FarmService {
                         haste);
         Player owner = target.getPlayer();
         Instant protectedUntil = owner == null ? null : owner.getProtectedUntil();
+        boolean bannerChance = bannerDrops(worldService.settings()) && chances.has(entry, target);
+        if (bannerChance) {
+            chances.claim(target);
+        }
         return new FarmTargetDto(
                 entry.getId(),
                 VillageRefDto.of(target),
@@ -372,6 +449,7 @@ public class FarmService {
                 travelSeconds,
                 protectedUntil != null && protectedUntil.isAfter(now) ? protectedUntil : null,
                 entry.getLastSentAt(),
-                rolls.get(BannerBattleService.Loser.defenderOf(target).key()));
+                chances.nextRollAt(target),
+                bannerChance);
     }
 }

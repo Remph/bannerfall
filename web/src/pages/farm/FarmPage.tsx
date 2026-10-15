@@ -1,12 +1,19 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useFarmTargets, useSendAllFarm } from '../../api/queries/farm';
 import { useVillage } from '../../api/queries/villages';
+import { useWorld } from '../../api/queries/world';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { FARM_LIST_MAX, bannerRollBackAt, farmSendEndsProtection, sendAllNotes } from '../../game/farm';
+import {
+  FARM_LIST_MAX,
+  bannerRollBackAt,
+  farmSendEndsProtection,
+  nextBannerRollBackIn,
+  sendAllNotes,
+} from '../../game/farm';
 import { serverNow } from '../../game/serverTime';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -37,6 +44,27 @@ function Farm({ villageId }: { villageId: number }) {
   const village = useVillage(villageId);
   const targets = useFarmTargets(villageId);
   const sendAll = useSendAllFarm(villageId);
+  const world = useWorld().data;
+  // the banner button only where banners can drop (02-game-rules §21.7)
+  const bannerDrops = world !== undefined && world.bannersEnabled && world.bannerDropFactor > 0;
+  const targetList = targets.data;
+  const refetchTargets = targets.refetch;
+  // a "Banner chance used" pill goes when its time is up: the list is fetched again then (a second
+  // later, so the server's clock is past it too)
+  useEffect(() => {
+    const backIn =
+      targetList === undefined
+        ? undefined
+        : nextBannerRollBackIn(
+            targetList.map((target) => target.nextBannerRollAt),
+            serverNow(),
+          );
+    if (backIn === undefined) {
+      return;
+    }
+    const timer = setTimeout(() => void refetchTargets(), backIn + 1000);
+    return () => clearTimeout(timer);
+  }, [targetList, refetchTargets]);
   // one object per note and run: a row hides its note once it has sent by itself since (TargetRow)
   const notes = useMemo(() => (sendAll.data === undefined ? undefined : sendAllNotes(sendAll.data)), [sendAll.data]);
   const [params] = useSearchParams();
@@ -83,10 +111,11 @@ function Farm({ villageId }: { villageId: number }) {
               leavesPlayersOut={targets.data.some((target) =>
                 farmSendEndsProtection(Date.parse(me.protectedUntil), target.target.playerId, serverNow()),
               )}
+              bannerChances={bannerDrops ? targets.data.filter((target) => target.bannerChance).length : undefined}
               pending={sendAll.isPending}
               result={sendAll.data}
               error={sendAll.error}
-              onSend={() => sendAll.mutate()}
+              onSend={(bannerChanceOnly) => sendAll.mutate(bannerChanceOnly)}
             />
             <ul className={styles.list}>
               {targets.data.map((target) => (

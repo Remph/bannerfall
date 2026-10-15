@@ -3,8 +3,8 @@ npc:
   templates:
     OFFENSIVE:
       stages:
-        - { name: EARLY, below-points: 1000, troop-share: 0.35 }
-        - { name: MID, below-points: 7000, troop-share: 0.50 }
+        - { name: EARLY, below-points: 850, troop-share: 0.35 }
+        - { name: MID, below-points: 4500, troop-share: 0.50 }
         - { name: LATE, troop-share: 0.60 }
       mix:                       # share of the army's population
         EARLY: { SPEARMAN: 30, AXEMAN: 70 }

@@ -161,14 +161,21 @@ public final class BuildRules {
         return previousEnd == null || previousEnd.isBefore(now) ? now : previousEnd;
     }
 
-    /** Points of a building at {@code level}: {@code Σ_{l=1..L} round(ptsBase × 1.2^(l−1))}. */
+    /**
+     * Each level of a building is worth this much more than the one below it (02-game-rules §4.2):
+     * 1.15 since 1.2.3 (1.2 in 1.2.2 and earlier), so a fully built village is worth about 29 000
+     * points instead of 70 000.
+     */
+    static final double POINTS_GROWTH = 1.15;
+
+    /** Points of a building at {@code level}: {@code Σ_{l=1..L} round(ptsBase × 1.15^(l−1))}. */
     public static int points(BuildingDef def, int level) {
         if (level < 0) {
             throw new IllegalArgumentException("level must not be negative: " + level);
         }
         int sum = 0;
         for (int l = 1; l <= level; l++) {
-            sum += (int) Math.round(def.pointsBase() * Math.pow(1.2, l - 1));
+            sum += (int) Math.round(def.pointsBase() * Math.pow(POINTS_GROWTH, l - 1));
         }
         return sum;
     }

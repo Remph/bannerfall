@@ -9,6 +9,7 @@ import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,25 @@ class PointsServiceTest {
                         });
 
         assertThat(villages.findById(id).orElseThrow().getPoints()).isEqualTo(10);
+    }
+
+    /** What the start of the server does after an update that changed the points numbers. */
+    @Test
+    void storedPointsFromOldNumbersAreFoundAndRecalculated() throws Exception {
+        TestPlayer player = TestPlayer.register(mockMvc);
+        // Town Hall 10: 260 points with the growth of 1.2 until 1.2.2, 203 with 1.15
+        jdbc.sql("update village set b_headquarters = 10, points = 289 where id = ?")
+                .param(player.villageId)
+                .update();
+        jdbc.sql("update player set points = 289 where id = ?").param(player.playerId).update();
+
+        assertThat(pointsService.findStale()).contains(player.villageId);
+        pointsService.recalculateAll(List.of(player.villageId));
+
+        // 203 + woodcutter, clay pit, iron mine and warehouse 6 each + farm 5
+        assertThat(villages.findById(player.villageId).orElseThrow().getPoints()).isEqualTo(232);
+        assertThat(players.findById(player.playerId).orElseThrow().getPoints()).isEqualTo(232);
+        assertThat(pointsService.findStale()).doesNotContain(player.villageId);
     }
 
     private static Coordinates farAway() {

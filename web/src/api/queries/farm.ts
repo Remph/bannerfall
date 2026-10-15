@@ -10,8 +10,11 @@ import { villageQueryKey } from './villages';
 
 export type FarmTarget = components['schemas']['FarmTargetDto'];
 
+/** Every village's farm list (a prefix for `invalidateQueries`). */
+export const farmListsQueryKey = ['farm'] as const;
+
 export function farmQueryKey(villageId: number) {
-  return ['farm', villageId] as const;
+  return [...farmListsQueryKey, villageId] as const;
 }
 
 /** GET /api/villages/{id}/farm-targets: the village's list in the order the targets were added. */
@@ -97,14 +100,15 @@ export function useSendFarm(villageId: number) {
 /**
  * POST …/farm-targets/send-all (M39): the list from the top, one attack per entry, until it is done
  * or the troops run out. The answer says what went out, what was skipped and where it stopped.
+ * `bannerChanceOnly` (1.2.3) leaves out the entries whose banner roll is used.
  */
 export function useSendAllFarm(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () =>
+    mutationFn: (bannerChanceOnly: boolean) =>
       expectData(
         api.POST('/api/villages/{villageId}/farm-targets/send-all', {
-          params: { path: { villageId } },
+          params: { path: { villageId }, query: { bannerChanceOnly } },
         }),
       ),
     onSettled: () => refreshAfterSend(queryClient, villageId),

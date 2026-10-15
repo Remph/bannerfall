@@ -90,4 +90,44 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @Modifying
     @Query("delete from Report r where r.playerId = :playerId and r.id <= :upToId")
     int deleteOwnedUpTo(long playerId, long upToId);
+
+    /**
+     * What "Delete barbarian reports" removes (1.2.3, 02-game-rules §14): the player's own attack
+     * and scout reports on a village that was barbarian then (the defender snapshot has no owner),
+     * except those where he gained a banner (found, or stolen by his thieves; the "New banner"
+     * pill, {@code BattleReport.bannersGained}). Copies other players sent stay. Reads the stored
+     * JSON, so an unreadable payload counts too when its defender has no owner.
+     */
+    String BARBARIAN_WITHOUT_BANNER =
+            " and r.kind in ('ATTACK', 'SCOUT') and r.shared_by_id is null"
+                    + " and r.payload -> 'defender' ->> 'playerId' is null"
+                    + " and coalesce(jsonb_typeof(r.payload -> 'banners' -> 'found'), 'null')"
+                    + " <> 'object'"
+                    + " and not coalesce(r.payload -> 'banners' -> 'theft' ->> 'result' = 'STOLEN'"
+                    + " and jsonb_typeof(r.payload -> 'banners' -> 'theft' -> 'banner')"
+                    + " = 'object', false)";
+
+    /**
+     * How many reports "Delete barbarian reports" would delete with the same {@code upToId}, so the
+     * number the confirmation names is the number that goes.
+     */
+    @Query(
+            value =
+                    "select count(*) from report r where r.player_id = :playerId and r.id <="
+                            + " :upToId"
+                            + BARBARIAN_WITHOUT_BANNER,
+            nativeQuery = true)
+    long countBarbarianWithoutBannerUpTo(long playerId, long upToId);
+
+    /**
+     * Deletes the player's reports about barbarian villages ({@link #BARBARIAN_WITHOUT_BANNER})
+     * with an id up to {@code upToId}; the number of rows deleted.
+     */
+    @Modifying
+    @Query(
+            value =
+                    "delete from report r where r.player_id = :playerId and r.id <= :upToId"
+                            + BARBARIAN_WITHOUT_BANNER,
+            nativeQuery = true)
+    int deleteBarbarianWithoutBannerUpTo(long playerId, long upToId);
 }

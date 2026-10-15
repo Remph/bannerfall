@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useDeleteAllReports, useReadAllReports, useReportPage, type ReportItem } from '../../api/queries/reports';
+import {
+  useDeleteAllReports,
+  useDeleteBarbarianReports,
+  useReadAllReports,
+  useReportPage,
+  type ReportItem,
+} from '../../api/queries/reports';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
@@ -20,7 +26,8 @@ import { reportTitle } from './reportText';
 
 /**
  * /reports?page= – the player's reports, newest first (05-frontend §3): unread ones bold, an icon
- * per kind, coloured by the result; mark all as read, delete one or all (M38), pages of 25.
+ * per kind, coloured by the result; mark all as read, delete one or all (M38) or the reports on
+ * barbarian villages (1.2.3), pages of 25.
  */
 export function ReportsPage() {
   const t = useT();
@@ -29,10 +36,13 @@ export function ReportsPage() {
   const reports = useReportPage(page);
   const readAll = useReadAllReports();
   const deleteAll = useDeleteAllReports();
+  const deleteBarbarian = useDeleteBarbarianReports();
   const navigate = useNavigate();
   // what "Delete all" will delete, fixed when the sheet opens: the counts it names and the newest
   // report the player saw (one that arrives while the sheet is open stays)
   const [deleteAllOf, setDeleteAllOf] = useState<{ upTo: number; total: number; unread: number } | null>(null);
+  // the same for "Delete barbarian reports": the newest report seen and how many will go
+  const [deleteBarbarianOf, setDeleteBarbarianOf] = useState<{ upTo: number; count: number } | null>(null);
   // a failed delete of one line, shown below the list of its page (the error itself: translated
   // while rendering); the next delete clears it
   const [deleteError, setDeleteError] = useState<{ page: number; error: Error } | null>(null);
@@ -51,7 +61,7 @@ export function ReportsPage() {
     return <p>{t.common.loading}</p>;
   }
 
-  const { items, total, unread, newestId } = reports.data;
+  const { items, total, unread, newestId, barbarian } = reports.data;
   const pages = pageCount(total, REPORTS_PAGE_SIZE);
   // e.g. the last report of the last page was deleted: go to the page that is the last one now
   if (items.length === 0 && page > 0 && total > 0 && !reports.isFetching) {
@@ -81,6 +91,22 @@ export function ReportsPage() {
             >
               {t.reports.markAllRead}
             </Button>
+            {barbarian > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="small"
+                className={styles.deleteAll}
+                disabled={deleteBarbarian.isPending}
+                onClick={() => {
+                  deleteBarbarian.reset();
+                  setDeleteBarbarianOf({ upTo: newestId, count: barbarian });
+                }}
+              >
+                <Icon name="trash" />
+                {t.reports.deleteBarbarian}
+              </Button>
+            )}
             <Button
               type="button"
               variant="danger"
@@ -122,6 +148,24 @@ export function ReportsPage() {
           });
         }}
         onClose={() => setDeleteAllOf(null)}
+      />
+      <ConfirmSheet
+        open={deleteBarbarianOf !== null}
+        title={t.reports.deleteBarbarianTitle}
+        text={deleteBarbarianOf === null ? '' : t.reports.deleteBarbarianText(deleteBarbarianOf.count)}
+        confirmLabel={t.reports.deleteBarbarian}
+        danger
+        pending={deleteBarbarian.isPending}
+        error={deleteBarbarian.error}
+        onConfirm={() => {
+          if (deleteBarbarianOf === null) {
+            return;
+          }
+          deleteBarbarian.mutate(deleteBarbarianOf.upTo, {
+            onSuccess: () => setDeleteBarbarianOf(null),
+          });
+        }}
+        onClose={() => setDeleteBarbarianOf(null)}
       />
 
       {items.length === 0 ? (

@@ -368,6 +368,7 @@ export const de: Dictionary = {
     toTownHall: 'Im Rathaus bauen',
     unitsTitle: (building: string) => `Einheiten (${building})`,
     atHome: (amount: string) => `${amount} im Dorf`,
+    atHomeOfTotal: (amount: string, total: string) => `${amount} im Dorf (${total} gesamt)`,
     perUnit: 'Kosten pro Einheit',
     total: (count: string) => `Gesamt für ${count}:`,
     time: 'Ausbildungszeit',
@@ -854,6 +855,7 @@ export const de: Dictionary = {
     unread: 'ungelesen',
     markAllRead: 'Alle als gelesen markieren',
     deleteAll: 'Alle löschen',
+    deleteBarbarian: 'Barbarenberichte löschen',
     addToFarm: (village: string) => `${village} zur Farmliste hinzufügen`,
     onFarmList: (village: string) => `${village} steht auf der Farmliste`,
     send: 'Senden',
@@ -864,7 +866,12 @@ export const de: Dictionary = {
     sendNamesHint: 'Namen mit Komma getrennt, höchstens 10.',
     sendRecent: 'Zuletzt geschrieben',
     sendTooMany: (max: number) => `Höchstens ${max} Spieler auf einmal.`,
+    sendGuild: 'An die Gilde senden',
+    sendGuildText: (tag: string, others: number) =>
+      `Deine Gilde [${tag}]: ${others} ${others === 1 ? 'weiteres Mitglied' : 'weitere Mitglieder'}`,
     sentTo: (names: string) => `Gesendet an ${names}.`,
+    sentToNobody:
+      'An niemanden gesendet: Du hast die anderen Mitglieder deiner Gilde gesperrt, oder sie haben zu viele ungelesene Berichte von dir.',
     sendErrors: {
       PLAYER_NOT_FOUND: (name: string) => `Einen Spieler namens ${name} gibt es nicht. Es wurde nichts gesendet.`,
       OWN_PLAYER: (name: string) =>
@@ -880,6 +887,9 @@ export const de: Dictionary = {
     deleteAllTitle: 'Alle Berichte löschen?',
     deleteAllText: (total: number, unread: number) =>
       `${total === 1 ? 'Dein Bericht wird' : `Alle ${total} Berichte werden`} gelöscht${unread > 0 && total > 1 ? ` (davon ${unread} ungelesen)` : ''}. Das kann nicht rückgängig gemacht werden. Berichte, die ab jetzt ankommen, bleiben.`,
+    deleteBarbarianTitle: 'Barbarenberichte löschen?',
+    deleteBarbarianText: (count: number) =>
+      `${count === 1 ? 'Dein Bericht über einen Angriff oder eine Spähaktion auf ein Barbarendorf wird' : `Deine ${count} Berichte über Angriffe und Spähaktionen auf Barbarendörfer werden`} gelöscht. Berichte mit einem neuen Banner bleiben, ebenso Berichte, die dir andere geschickt haben, und alle, die ab jetzt ankommen. Das kann nicht rückgängig gemacht werden.`,
     empty: 'Noch keine Berichte. Sie erscheinen hier, wenn deine Truppen kämpfen oder eine Unterstützung ankommt.',
     emptyPage: 'Auf dieser Seite gibt es keine Berichte mehr.',
     unreadableText: 'Dieser Bericht kann nicht mehr angezeigt werden. Du kannst ihn löschen.',
@@ -1049,6 +1059,10 @@ export const de: Dictionary = {
     sendAllArmed: 'Wirklich alle schicken?',
     sendAllHint:
       'Schickt die Ziele von oben nach unten, bis die Liste durch ist oder die Truppen für ein Ziel nicht reichen.',
+    sendBannerChances: (count: number) => `Bannerchancen schicken (${count})`,
+    sendBannerChancesArmed: 'Wirklich Bannerchancen schicken?',
+    sendBannerChancesHint:
+      '„Bannerchancen schicken“ macht dasselbe, aber nur für die Ziele ohne „Bannerchance genutzt“, deren Vorlage ein Banner gewinnen kann (nicht nur Späher, gegen Barbarendörfer mindestens 30 Bevölkerung) und zu denen noch kein Angriff von dir unterwegs ist. Die Dörfer eines Spielers teilen sich eine Chance, darum geht nur das erste davon.',
     sendAllLeavesPlayersOut: 'Solange dein Anfängerschutz läuft, lässt „Alle schicken“ die Dörfer von Spielern aus.',
     sendAllSent: (count: number) =>
       count === 0 ? 'Kein Angriff geschickt' : count === 1 ? '1 Angriff geschickt' : `${count} Angriffe geschickt`,

@@ -99,39 +99,61 @@ export interface TroopOverviewRow {
 }
 
 /** What the overview needs of GET …/troops (`Troops` in api/queries/troops.ts). */
-interface TroopLists {
+interface TroopLists extends AwayLists {
   home: UnitMap;
   supportsHere: readonly { units: UnitMap }[];
+}
+
+/** What `unitsAway` needs of GET …/troops. */
+interface AwayLists {
   ownUnitsElsewhere: readonly { units: UnitMap }[];
   outgoing: readonly { units: UnitMap }[];
   incoming: readonly { kind: MovementKind; units: UnitMap | null }[];
 }
 
 /**
- * The troop overview of the rally point (M33): per unit type, how many of the village's own units
- * are at home, away and in all, and how much support of other villages stands here. Only types
- * with any of them, in unit order.
- *
- * Away counts the stacks in other villages, the outgoing commands (`outgoing` holds only this
- * village's attacks and supports) and the RETURNs in `incoming`: a return always walks to its home
- * village, so the ones arriving here are this village's units. Incoming attacks and supports
- * belong to other villages (an own attack on a village conquered meanwhile too).
+ * The village's own units away, per type: the stacks in other villages, the outgoing commands
+ * (`outgoing` holds only this village's attacks and supports) and the RETURNs in `incoming`: a
+ * return always walks to its home village, so the ones arriving here are this village's units.
+ * Incoming attacks and supports belong to other villages (an own attack on a village conquered
+ * meanwhile too).
  */
-export function troopOverview(troops: TroopLists): TroopOverviewRow[] {
-  const away = [
+export function unitsAway(troops: AwayLists): UnitMap {
+  const maps = [
     ...troops.ownUnitsElsewhere.map((stack) => stack.units),
     ...troops.outgoing.map((movement) => movement.units),
     ...troops.incoming.flatMap((movement) =>
       movement.kind === 'RETURN' && movement.units !== null ? [movement.units] : [],
     ),
   ];
-  const supports = troops.supportsHere.map((stack) => stack.units);
-  const sum = (maps: readonly UnitMap[], type: UnitType) =>
-    maps.reduce((total, units) => total + (units[type] ?? 0), 0);
+  return sumUnits(maps);
+}
+
+function sumUnits(maps: readonly UnitMap[]): UnitMap {
+  const sum: UnitMap = {};
+  for (const units of maps) {
+    for (const type of unitTypes) {
+      const count = units[type] ?? 0;
+      if (count > 0) {
+        sum[type] = (sum[type] ?? 0) + count;
+      }
+    }
+  }
+  return sum;
+}
+
+/**
+ * The troop overview of the rally point (M33): per unit type, how many of the village's own units
+ * are at home, away (`unitsAway`) and in all, and how much support of other villages stands here.
+ * Only types with any of them, in unit order.
+ */
+export function troopOverview(troops: TroopLists): TroopOverviewRow[] {
+  const away = unitsAway(troops);
+  const supports = sumUnits(troops.supportsHere.map((stack) => stack.units));
   return unitTypes.flatMap((type): TroopOverviewRow[] => {
     const home = troops.home[type] ?? 0;
-    const outside = sum(away, type);
-    const support = sum(supports, type);
+    const outside = away[type] ?? 0;
+    const support = supports[type] ?? 0;
     return home + outside + support > 0 ? [{ type, home, outside, total: home + outside, support }] : [];
   });
 }

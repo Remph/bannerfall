@@ -64,13 +64,16 @@ public class ReportService {
     @Transactional(readOnly = true)
     public ReportPageDto list(long playerId, int page, int size) {
         Page<Report> found = reports.findVisible(playerId, PageRequest.of(page, size));
+        long newestId = reports.maxIdOfPlayer(playerId);
         return new ReportPageDto(
                 found.map(ReportItemDto::of).getContent(),
                 page,
                 size,
                 found.getTotalElements(),
                 reports.countUnreadVisible(playerId),
-                reports.maxIdOfPlayer(playerId));
+                newestId,
+                // up to newestId: a report arriving between the two queries isn't counted either
+                reports.countBarbarianWithoutBannerUpTo(playerId, newestId));
     }
 
     /**
@@ -117,6 +120,17 @@ public class ReportService {
     @Transactional
     public int deleteAll(long playerId, long upToId) {
         return reports.deleteOwnedUpTo(playerId, upToId);
+    }
+
+    /**
+     * Deletes the player's own attack and scout reports on barbarian villages up to {@code upToId},
+     * read or not, except those with a new banner (1.2.3); reports that came in after it stay.
+     *
+     * @return the number of reports deleted
+     */
+    @Transactional
+    public int deleteBarbarian(long playerId, long upToId) {
+        return reports.deleteBarbarianWithoutBannerUpTo(playerId, upToId);
     }
 
     /** Marks all of the player's reports as read. */

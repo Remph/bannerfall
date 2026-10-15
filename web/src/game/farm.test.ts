@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   bannerRollBackAt,
+  nextBannerRollBackIn,
   farmSendEndsProtection,
   farmUnitTypes,
   fitsHome,
@@ -34,6 +35,19 @@ describe('bannerRollBackAt', () => {
   it('is undefined when the roll is free (null) or back already', () => {
     expect(bannerRollBackAt(null, now)).toBeUndefined();
     expect(bannerRollBackAt('2026-10-15T08:00:00Z', now)).toBeUndefined();
+  });
+});
+
+describe('nextBannerRollBackIn', () => {
+  const now = Date.parse('2026-10-15T08:00:00Z');
+
+  it('is the time until the first pill runs out', () => {
+    expect(nextBannerRollBackIn([null, '2026-10-15T14:00:00Z', '2026-10-15T09:00:00Z'], now)).toBe(3_600_000);
+  });
+
+  it('is undefined without a pill', () => {
+    expect(nextBannerRollBackIn([null, '2026-10-15T07:00:00Z'], now)).toBeUndefined();
+    expect(nextBannerRollBackIn([], now)).toBeUndefined();
   });
 });
 

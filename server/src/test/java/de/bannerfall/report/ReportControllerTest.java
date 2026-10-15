@@ -13,8 +13,12 @@ import de.bannerfall.Browser;
 import de.bannerfall.IntegrationTest;
 import de.bannerfall.MutableClock;
 import de.bannerfall.TestPlayer;
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.report.BattleReport.BannerReport;
+import de.bannerfall.report.BattleReport.ScoutedBanner;
+import de.bannerfall.report.BattleReport.TheftReport;
 import de.bannerfall.village.VillageRefDto;
 import java.time.Instant;
 import java.util.List;
@@ -38,6 +42,8 @@ class ReportControllerTest {
 
     private static final VillageRefDto BEN = new VillageRefDto(1, "Benhausen", 48, 52, 7L, "Ben");
     private static final VillageRefDto TOM = new VillageRefDto(2, "Tomburg", 50, 50, 8L, "Tom");
+    private static final VillageRefDto BARBARIANS =
+            new VillageRefDto(3, "Barbarendorf", 54, 65, null, null);
 
     @Autowired MockMvc mockMvc;
     @Autowired MutableClock clock;
@@ -254,6 +260,85 @@ class ReportControllerTest {
     }
 
     @Test
+    void deleteBarbarianDeletesTheOwnAttacksAndScoutsOnBarbariansWithoutANewBanner()
+            throws Exception {
+        Instant now = clock.instant();
+        ScoutedBanner banner = new ScoutedBanner(BannerType.HARVEST, 1);
+        // these go: an attack, a scout, a failed theft, read or not
+        create(ReportKind.ATTACK, now, battleOn(BARBARIANS, null), player, other);
+        create(ReportKind.SCOUT, now, battleOn(BARBARIANS, null), player);
+        TheftReport failed = new TheftReport(5, 5, 0.3, TheftResult.FAILED, null);
+        create(
+                ReportKind.ATTACK,
+                now,
+                battleOn(BARBARIANS, new BannerReport(null, null, null, failed, null)),
+                player);
+        player.report(newestId(player)).andExpect(status().isOk());
+        // these stay: a found banner, a stolen one, a player's village, other kinds
+        create(
+                ReportKind.ATTACK,
+                now,
+                battleOn(BARBARIANS, new BannerReport(null, null, banner, null, null)),
+                player);
+        TheftReport stolen = new TheftReport(5, 5, 0.3, TheftResult.STOLEN, banner);
+        create(
+                ReportKind.ATTACK,
+                now,
+                battleOn(BARBARIANS, new BannerReport(null, null, null, stolen, null)),
+                player);
+        create(ReportKind.ATTACK, now, battle(), player);
+        create(ReportKind.DEFENSE, now, battle(), player);
+        create(ReportKind.SUPPORT_ARRIVED, now, support(), player);
+        // a copy another player sent stays too
+        long othersReport = newestId(other);
+        other.browser
+                .post(
+                        "/api/reports/" + othersReport + "/share",
+                        "{\"names\":[\"" + name(player) + "\"]}")
+                .andExpect(status().isOk());
+        String seen = body(player.reports());
+        assertThat(number(seen, "$.total").intValue()).isEqualTo(9);
+        assertThat(number(seen, "$.barbarian").intValue()).isEqualTo(3);
+        long upTo = number(seen, "$.newestId").longValue();
+        // arrives while the player confirms
+        create(ReportKind.ATTACK, now, battleOn(BARBARIANS, null), player);
+
+        player.browser
+                .post("/api/reports/delete-barbarian?upTo=" + upTo, "")
+                .andExpect(status().isNoContent());
+
+        String after = body(player.reports());
+        assertThat(number(after, "$.total").intValue()).isEqualTo(7);
+        assertThat(number(after, "$.barbarian").intValue()).isEqualTo(1);
+        // the late one, found, stolen, the copy; the player's village twice; the support
+        assertThat(JsonPath.<List<String>>read(after, "$.items[*].summary.to.name"))
+                .filteredOn("Barbarendorf"::equals)
+                .hasSize(4);
+        assertThat(JsonPath.<List<Object>>read(after, "$.items[*].sharedBy.name")).hasSize(1);
+        assertThat(JsonPath.<List<Object>>read(after, "$.items[*].summary.bannersGained[0]"))
+                .hasSize(2);
+        other.reports()
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.barbarian").value(1));
+    }
+
+    @Test
+    void deleteBarbarianWithoutReportsOrWithABadLimit() throws Exception {
+        player.reports().andExpect(jsonPath("$.barbarian").value(0));
+        player.browser
+                .post("/api/reports/delete-barbarian?upTo=0", "")
+                .andExpect(status().isNoContent());
+        player.browser
+                .post("/api/reports/delete-barbarian", "")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+        player.browser
+                .post("/api/reports/delete-barbarian?upTo=-1", "")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("upTo"));
+    }
+
+    @Test
     void readAllMarksOnlyTheOwnReportsRead() throws Exception {
         create(ReportKind.ATTACK, clock.instant(), battle(), player, other);
         create(ReportKind.SUPPORT_ARRIVED, clock.instant(), support(), player);
@@ -314,6 +399,9 @@ class ReportControllerTest {
         anonymous.get("/api/reports/unread").andExpect(status().isUnauthorized());
         anonymous.post("/api/reports/read-all", "").andExpect(status().isUnauthorized());
         anonymous.post("/api/reports/delete-all?upTo=1", "").andExpect(status().isUnauthorized());
+        anonymous
+                .post("/api/reports/delete-barbarian?upTo=1", "")
+                .andExpect(status().isUnauthorized());
     }
 
     // ---- helpers ----
@@ -350,6 +438,31 @@ class ReportControllerTest {
                 null,
                 new ResourceAmounts(150, 425, 425),
                 null);
+    }
+
+    private String name(TestPlayer player) {
+        return jdbc.sql("select name from player where id = :id")
+                .param("id", player.playerId)
+                .query(String.class)
+                .single();
+    }
+
+    /** The player's attack on {@code defender}, won, with {@code banners} (null: none). */
+    private static BattleReport battleOn(VillageRefDto defender, BannerReport banners) {
+        return new BattleReport(
+                BEN,
+                defender,
+                BattleOutcome.ATTACKER_WON,
+                0.05,
+                Map.of(UnitType.AXEMAN, 100),
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                null,
+                new ResourceAmounts(150, 425, 425),
+                null,
+                banners);
     }
 
     private static SupportReport support() {

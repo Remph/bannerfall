@@ -3,8 +3,8 @@ npc:
   templates:
     DEFENSIVE:
       stages:
-        - { name: EARLY, below-points: 1000, troop-share: 0.25 }
-        - { name: MID, below-points: 7000, troop-share: 0.35 }
+        - { name: EARLY, below-points: 850, troop-share: 0.25 }
+        - { name: MID, below-points: 4500, troop-share: 0.35 }
         - { name: LATE, troop-share: 0.45 }
       mix:
         EARLY: { SPEARMAN: 65, SWORDSMAN: 35 }

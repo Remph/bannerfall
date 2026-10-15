@@ -80,6 +80,17 @@ class ReportController {
         reportService.deleteAll(playerService.idOf(me.accountId()), upTo);
     }
 
+    /**
+     * Deletes the player's own attack and scout reports on barbarian villages up to {@code upTo},
+     * except those with a new banner (1.2.3, 02-game-rules §14).
+     */
+    @PostMapping("/delete-barbarian")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteBarbarian(
+            @RequestParam @Min(0) long upTo, @AuthenticationPrincipal AccountPrincipal me) {
+        reportService.deleteBarbarian(playerService.idOf(me.accountId()), upTo);
+    }
+
     /** Sends a copy of the report to other players by name (M40, 02-game-rules §14). */
     @PostMapping("/{reportId}/share")
     ReportShareDto share(
@@ -88,6 +99,17 @@ class ReportController {
             @AuthenticationPrincipal AccountPrincipal me) {
         return new ReportShareDto(
                 shareService.share(reportId, playerService.idOf(me.accountId()), body.names()));
+    }
+
+    /**
+     * Sends a copy of the report to every other member of the player's guild (02-game-rules §14);
+     * skips the members a named send would refuse.
+     */
+    @PostMapping("/{reportId}/share-guild")
+    ReportShareDto shareWithGuild(
+            @PathVariable long reportId, @AuthenticationPrincipal AccountPrincipal me) {
+        return new ReportShareDto(
+                shareService.shareWithGuild(reportId, playerService.idOf(me.accountId())));
     }
 
     @PostMapping("/read-all")

@@ -16,10 +16,63 @@ class PopulationTest {
 
     private final GameData data = TestGameData.load();
 
+    /** The whole table of 02-game-rules §3 (1.2.3). */
     @ParameterizedTest(name = "farm {0} → {1}")
-    @CsvSource({"1, 240", "5, 453", "10, 1001", "20, 4896", "30, 23939"})
+    @CsvSource({
+        "1, 240",
+        "2, 281",
+        "3, 330",
+        "4, 386",
+        "5, 453",
+        "6, 547",
+        "7, 659",
+        "8, 795",
+        "9, 956",
+        "10, 1151",
+        "11, 1350",
+        "12, 1581",
+        "13, 1854",
+        "14, 2172",
+        "15, 2546",
+        "16, 2940",
+        "17, 3393",
+        "18, 3915",
+        "19, 4517",
+        "20, 5211",
+        "21, 6009",
+        "22, 6927",
+        "23, 8118",
+        "24, 9514",
+        "25, 11151",
+        "26, 13069",
+        "27, 15317",
+        "28, 17951",
+        "29, 21039",
+        "30, 24657"
+    })
     void farmCapacityMatchesTheRulebook(int level, int expected) {
         assertThat(Population.farmCapacity(level)).isEqualTo(expected);
+    }
+
+    @Test
+    void farmCapacityNeverDropsBelowTheOldCurve() {
+        // Running worlds take the new curve with an update: no village may end up over its limit.
+        for (int level = 1; level <= 30; level++) {
+            long old = Math.round(240 * Math.pow(1.172, level - 1));
+            assertThat(Population.farmCapacity(level))
+                    .as("farm %d", level)
+                    .isGreaterThanOrEqualTo((int) old);
+        }
+    }
+
+    @Test
+    void everyFarmLevelAddsMoreThanTheOneBefore() {
+        int lastGain = 0;
+        for (int level = 2; level <= 30; level++) {
+            int gain = Population.farmCapacity(level) - Population.farmCapacity(level - 1);
+            assertThat(gain).as("farm %d", level).isGreaterThan(lastGain);
+            lastGain = gain;
+        }
     }
 
     @Test

@@ -10,6 +10,7 @@ import {
   type RecruitUnit,
 } from '../../api/queries/recruitment';
 import { usePaladin } from '../../api/queries/paladin';
+import { useRefreshWhenMovementsArrive, useTroops } from '../../api/queries/troops';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
@@ -32,6 +33,7 @@ import {
 import { freePaladinSlots, cappedBySlots } from '../../game/paladin';
 import { projectResources, whenAffordable, type ResourceAmounts } from '../../game/resources';
 import { useServerNow } from '../../game/serverTime';
+import { unitsAway, type UnitMap } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { VillageError } from '../village/VillageError';
@@ -69,6 +71,10 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
   const queueSize = world.data?.recruitQueueSize;
   // New units show up at home by themselves while this screen is open.
   useRefreshWhenUnitsDone(villageId, recruitment.data, recruitment.dataUpdatedAt, recruitment.errorUpdatedAt);
+  // The units away, for each unit's total; an arrival refreshes them together with the units at home.
+  const troops = useTroops(villageId);
+  useRefreshWhenMovementsArrive(villageId, troops.data, troops.dataUpdatedAt, troops.errorUpdatedAt);
+  const away = troops.data === undefined ? undefined : unitsAway(troops.data);
 
   if (village.isError) {
     return <VillageError error={village.error} onRetry={() => void village.refetch()} />;
@@ -108,7 +114,7 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
           />
         </div>
         <div className={styles.units}>
-          <UnitList village={village.data} info={info} queueSize={queueSize} />
+          <UnitList village={village.data} info={info} queueSize={queueSize} away={away} />
         </div>
         {import.meta.env.DEV && (
           <div className={styles.dev}>
@@ -182,6 +188,8 @@ interface UnitListProps {
   info: RecruitBuilding;
   /** Orders per building (world setting); undefined while it is loading. */
   queueSize: number | undefined;
+  /** The village's own units away (supporting elsewhere or on the way); undefined while loading. */
+  away: UnitMap | undefined;
 }
 
 /**
@@ -189,7 +197,7 @@ interface UnitListProps {
  * typed counts live here, not in the rows: resources and population are shared, so every row's
  * maximum is what is left after the other rows (M27), and "recruit all" sends every filled-in row.
  */
-function UnitList({ village, info, queueSize }: UnitListProps) {
+function UnitList({ village, info, queueSize, away }: UnitListProps) {
   const t = useT();
   const now = useServerNow();
   const enqueue = useEnqueueRecruit(village.id);
@@ -216,6 +224,9 @@ function UnitList({ village, info, queueSize }: UnitListProps) {
       .filter((row) => row.unit.unit !== except)
       .map((row) => ({ cost: row.unit.cost, pop: row.unit.pop, count: row.count }));
   const setCount = (unit: UnitType, count: number) => setCounts((current) => ({ ...current, [unit]: count }));
+  // at home plus away; unknown until the troops are loaded
+  const ownTotal = (unit: UnitType) =>
+    away === undefined ? undefined : (village.unitsHome[unit] ?? 0) + (away[unit] ?? 0);
 
   return (
     <Card title={t.recruit.unitsTitle(t.buildings[info.building])}>
@@ -230,6 +241,7 @@ function UnitList({ village, info, queueSize }: UnitListProps) {
               stock={stock}
               freePop={freePop}
               others={typed(unit.unit)}
+              total={ownTotal(unit.unit)}
               count={counts[unit.unit] ?? 0}
               onCount={(count) => setCount(unit.unit, count)}
               slotLimit={unit.unit === 'PALADIN' ? freeSlots : undefined}
@@ -252,6 +264,7 @@ function UnitList({ village, info, queueSize }: UnitListProps) {
               villageId={village.id}
               unit={unit}
               atHome={village.unitsHome[unit.unit] ?? 0}
+              total={ownTotal(unit.unit)}
               dismissQueueFull={dismissQueueFull}
             />
           ),
@@ -349,6 +362,8 @@ interface UnitRowProps {
   freePop: number;
   /** The other filled-in rows: what they cost is not available to this one (M27). */
   others: readonly TypedRow[];
+  /** All of the village's own units of this type, at home and away; undefined while loading. */
+  total: number | undefined;
   count: number;
   onCount: (count: number) => void;
   /** Paladin only: the free slots, which cap the count like resources do. */
@@ -373,6 +388,7 @@ function UnitRow(props: UnitRowProps) {
     stock,
     freePop,
     others,
+    total,
     count,
     onCount,
     slotLimit,
@@ -421,6 +437,7 @@ function UnitRow(props: UnitRowProps) {
         <UnitHead
           unit={unit}
           atHome={village.unitsHome[unit.unit] ?? 0}
+          total={total}
           dismiss={
             <DismissUnit
               villageId={village.id}
@@ -479,8 +496,14 @@ function UnitRow(props: UnitRowProps) {
 }
 
 /** A unit whose requirements aren't met: what it costs and what it needs (current levels count). */
-function LockedUnitRow(props: { villageId: number; unit: RecruitUnit; atHome: number; dismissQueueFull: boolean }) {
-  const { villageId, unit, atHome, dismissQueueFull } = props;
+function LockedUnitRow(props: {
+  villageId: number;
+  unit: RecruitUnit;
+  atHome: number;
+  total: number | undefined;
+  dismissQueueFull: boolean;
+}) {
+  const { villageId, unit, atHome, total, dismissQueueFull } = props;
   const t = useT();
   return (
     <li className={`${styles.row} ${styles.locked}`}>
@@ -488,6 +511,7 @@ function LockedUnitRow(props: { villageId: number; unit: RecruitUnit; atHome: nu
         <UnitHead
           unit={unit}
           atHome={atHome}
+          total={total}
           dismiss={<DismissUnit villageId={villageId} unit={unit} atHome={atHome} queueFull={dismissQueueFull} />}
         />
         {unit.unit === 'PALADIN' && <PaladinSlots />}
@@ -510,8 +534,9 @@ function LockedUnitRow(props: { villageId: number; unit: RecruitUnit; atHome: nu
   );
 }
 
-/** Icon, name and how many of them are at home. */
-function UnitHead({ unit, atHome, dismiss }: { unit: RecruitUnit; atHome: number; dismiss: ReactNode }) {
+/** Icon, name and how many of them are at home, with the village's total once the troops are loaded. */
+function UnitHead(props: { unit: RecruitUnit; atHome: number; total: number | undefined; dismiss: ReactNode }) {
+  const { unit, atHome, total, dismiss } = props;
   const { t, language } = useI18n();
   return (
     <div className={styles.unitHead}>
@@ -519,7 +544,11 @@ function UnitHead({ unit, atHome, dismiss }: { unit: RecruitUnit; atHome: number
         <Icon name={unit.unit} />
       </span>
       <h3 className={styles.name}>{t.units[unit.unit]}</h3>
-      <span className={styles.atHome}>{t.recruit.atHome(formatNumber(atHome, language))}</span>
+      <span className={styles.atHome}>
+        {total === undefined
+          ? t.recruit.atHome(formatNumber(atHome, language))
+          : t.recruit.atHomeOfTotal(formatNumber(atHome, language), formatNumber(total, language))}
+      </span>
       {dismiss}
     </div>
   );

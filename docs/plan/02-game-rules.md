@@ -102,8 +102,23 @@ Three resources: **wood, clay, iron**. Produced by WOODCUTTER, CLAY_PIT, IRON_MI
 |---|---|
 | Production per hour at level L | `L == 0 ? 5 : 30 × 1.165^(L−1)`, then × `speed` × owner's production factor (1.0 for humans and barbarians; NPC lords see §11b) – not rounded |
 | Warehouse capacity (per resource) | `round(1000 × 1.229^(L−1))` (L ≥ 1) |
-| Farm population capacity | `round(240 × 1.172^(L−1))` (L ≥ 1) |
+| Farm population capacity | `round(round(240 × 1.172^(L−1)) × (1 + bonus(L) / 100))` (L ≥ 1), bonus below |
 | Hiding place (per resource, protected from loot) | `L == 0 ? 0 : round(150 × 1.334^(L−1))` |
+
+**Farm bonus (1.2.3).** Simulations of defensive, offensive and mixed villages showed that buildings take about 30 % of the farm at every level, so the old curve had no gap in the mid game; what made farm 10–15 tight are the fixed extras (an attacker's scouts, banner thieves and the paladin need about 170 population, a quarter of the free room at farm 10 and under 1 % at 30). So the farm gives extra room on top of the old curve: `bonus(L)` is 0 % up to level 5, rises evenly to **15 %** at 10, stays there to 15, falls evenly to **3 %** at 22 and stays 3 % to 30 (`Population.MID_BONUS_PERCENT`, `LATE_BONUS_PERCENT`). No level is lower than before, so a running world takes it with an update.
+
+| L | farm | L | farm | L | farm |
+|---|---|---|---|---|---|
+| 1 | 240 | 11 | 1 350 | 21 | 6 009 |
+| 2 | 281 | 12 | 1 581 | 22 | 6 927 |
+| 3 | 330 | 13 | 1 854 | 23 | 8 118 |
+| 4 | 386 | 14 | 2 172 | 24 | 9 514 |
+| 5 | 453 | 15 | 2 546 | 25 | 11 151 |
+| 6 | 547 | 16 | 2 940 | 26 | 13 069 |
+| 7 | 659 | 17 | 3 393 | 27 | 15 317 |
+| 8 | 795 | 18 | 3 915 | 28 | 17 951 |
+| 9 | 956 | 19 | 4 517 | 29 | 21 039 |
+| 10 | 1 151 | 20 | 5 211 | 30 | 24 657 |
 
 **Banners (M32a, §21.2).** A **Harvest** banner multiplies the production of all three resources of its village by `1 + bonus`; a **Treasury** banner raises the warehouse and the hiding place capacity to `round(capacity × (1 + bonus))`. Both change what a village makes and holds, so the village is caught up first when a banner is equipped or taken down.
 
@@ -116,9 +131,9 @@ Reference values (speed 1):
 | 0 | 5 | – | – | 0 |
 | 1 | 30.00 | 1 000 | 240 | 150 |
 | 5 | 55.26 | 2 281 | 453 | 475 |
-| 10 | 118.59 | 6 397 | 1 001 | 2 007 |
-| 20 | 546.15 | 50 290 | 4 896 | – |
-| 30 | 2 515.20 | 395 371 | 23 939 | – |
+| 10 | 118.59 | 6 397 | 1 151 | 2 007 |
+| 20 | 546.15 | 50 290 | 5 211 | – |
+| 30 | 2 515.20 | 395 371 | 24 657 | – |
 
 **Lazy production** (`Production.advance`), for each resource:
 ```
@@ -166,7 +181,7 @@ resourcesUpdatedAt = max(resourcesUpdatedAt, t)
 | Population used by a building at level L | `L == 0 ? 0 : round(popBase × 1.17^(L−1))` |
 | Extra population needed for an upgrade to L | `popTotal(L) − popTotal(L−1)` |
 | Build time to reach level L | `max(1, round(baseTime × 1.18^(L−1) × 0.952^hqLevel / speed))` |
-| Points of a building at level L | `Σ_{l=1..L} round(ptsBase × 1.2^(l−1))` |
+| Points of a building at level L | `Σ_{l=1..L} round(ptsBase × 1.15^(l−1))` (1.15 since 1.2.3; 1.2 in 1.2.2 and earlier) |
 | Village points | sum over all buildings |
 | Player points | sum over the player's villages |
 
@@ -175,6 +190,8 @@ resourcesUpdatedAt = max(resourcesUpdatedAt, t)
 A **Builders** banner (M32a, §21.2) shortens the time of every **new** build order: `max(1, round(time × (1 − bonus)))`, applied once when the order is queued (a queued order keeps its time, like the HQ level). Costs are unchanged.
 
 Reference: HQ level 2 with HQ 1 → 1011 s. Woodcutter 30 with HQ 20 → 40 885 s (≈ 11.4 h at speed 1).
+
+**Points growth (1.2.3).** Until 1.2.2 each level was worth 1.2 × the level below it, while costs grow by about 1.26 per level. High levels gave huge points: a fully built village was worth 69 571, the Town Hall 30 alone 11 817. 1.2.3 lowers the growth to 1.15. Low levels barely change (a new village stays at 39, Town Hall 5 goes from 74 to 67), a fully built village is worth 29 120 and the Town Hall 30 4 349. Village points are stored, so the server recalculates every village and player once at start whenever the stored points differ from the formula (`PointsService.recalculateAll`); that is how a running world takes over the new numbers.
 
 ### 4.3 Build queue rules
 
@@ -601,13 +618,14 @@ Visibility rules:
 - Every player whose support stack fought gets a `DEFENSE` report.
 - Scouting results appear only if scouting succeeded.
 
-Reports have a read flag; players can delete their own reports, one at a time or **all at once** (M38: "Delete all" after one confirmation removes every report up to the newest one the list showed, read or unread; a report that arrives while the player confirms stays).
+Reports have a read flag; players can delete their own reports, one at a time or **all at once** (M38: "Delete all" after one confirmation removes every report up to the newest one the list showed, read or unread; a report that arrives while the player confirms stays), or **only those on barbarian villages** (1.2.3: "Delete barbarian reports", shown while there are any, removes the player's own attack and scout reports on a village that was barbarian at the time, read or unread, up to the newest one the list showed; reports where the player gained a banner (the "New banner" pill) stay, and so do copies other players sent).
 
 **Sending a report to other players (M40, v1.2.1).** A player sends any of his own reports to one or more players by name (at most 10 per send, names ignore case, a name given twice counts once):
 - Each recipient gets a **copy in his own reports list**: the same kind, time and payload, unread, marked "Sent by Anna". In the list a copy sorts by when it **arrived**, so it lands on top like new mail; its line and the report still show when it happened (M40 review). The copy shows the sender's view unchanged ("you" and "your" mean the player whose report it was, which the copy names), so nothing in it is recomputed for the recipient. A copy can be sent on; it keeps naming the player whose report it was first, and says who sent it last. Copies are independent rows: deleting the original leaves them, and a copy is read, deleted and counted like any other report. The recipient is notified (`REPORT_CREATED` with the sender's name).
 - **The rules of private messages (§17) apply:** human players only (an unknown name, an NPC lord or a deleted account is `PLAYER_NOT_FOUND`), not to yourself (`OWN_PLAYER`), not to a player you blocked (`PLAYER_BLOCKED`), **one send per second and sender, shared with private messages** (`MESSAGE_RATE_LIMIT`), and at most **30 unread copies from one sender** in one recipient's list (`INBOX_FULL`). A send is **all or nothing**: the first name that fails stops it, nothing is sent, and the error names that player.
 - **A recipient who blocked the sender** is told nothing and the sender can't tell: the send succeeds, the copy is stored as read and without a notification, and the limit of 30 counts the copies since the block (as for messages). While the block lasts the recipient's list and unread count leave out every copy from that player, the earlier ones too; unblocking brings them back. ("Delete all" still deletes them, since it deletes everything up to the newest report.)
 - A report whose stored payload can't be read any more can't be sent (`REPORT_UNREADABLE`).
+- **Send to guild (1.2.3).** A guild member can send a report to **every other member of his guild** with one button, without typing a name (useful before he has written to anyone). It is the same copy under the same rules, with two differences: there is no limit of 10, and it is **not all or nothing**: members a named send would refuse (those the sender blocked, deleted accounts, those with 30 unread copies from him) are left out and the rest get it; the answer lists who got it (by name), and can be empty. A member who blocked the sender gets the hidden copy above and counts as sent. One send takes the one-per-second slot. Errors: `GUILDS_DISABLED` while guilds are off, `NOT_IN_GUILD`.
 - Defaults picked (overrulable): no note with the report (the private messages are for that); a copy keeps the original's kind and result colour, seen from its first owner's side; the "Add to farm list" link works on copies (the reader's current village, without the sender's units as template).
 
 Details (M8b):
@@ -690,6 +708,7 @@ A list of targets per village with the units the player usually sends, a one-tap
 - **Template:** the units that are sent, 0 … 30 000 per type, at least one unit, **no nobles and no paladin** (a noble needs a decision each time, a paladin is a general and not a raider; M31). It can be changed at any time. Units don't have to be at home when it is saved.
 - **Send:** one tap sends exactly the template as an **attack** from the list's village, through the same code as a normal command (§6): units leave home now, the same errors (`NOT_ENOUGH_UNITS`, `PROTECTED_TARGET` at the arrival time, `OWN_VILLAGE` if the player has conquered the target since …), nothing is sent in part. The attack ends the sender's own beginner protection like any other, unless the target is a barbarian village (§6; the template has no nobles). The entry remembers when it was last sent.
 - **Send all (M39):** one button above the list works through it **from the top** (the order the targets were added), each entry exactly like its own Send (its template, an attack, the same rules). It goes on until the list is done or it reaches the first entry whose template the units at home don't cover (`NOT_ENOUGH_UNITS`): **there it stops**, even when a later, smaller template would still fit. Entries whose target can't be hit right now are **skipped** and the run goes on: the target player is under beginner protection at arrival (`PROTECTED_TARGET`) or the target is the player's own village by now (`OWN_VILLAGE`). A skipped entry stops nothing, even if its units would not have been enough either. While the **sender's own beginner protection** lasts, players' villages are skipped as well (default): a single Send of such a target asks twice because it ends that protection, so one tap for the whole list never does; barbarian villages are sent. Every attack that went out stays sent (no all-or-nothing, unlike an attack train); the run holds the village's lock, so nothing else takes its units in between. The answer lists the sent and skipped entries (with the reason) and where it stopped. Two taps (the button turns into "Really send all?", like a protected row's Send) since one tap sends up to 50 attacks; no other confirmation, no cooldown, entries with an attack already on the way are sent again.
+- **Send banner chances (1.2.3):** a second button next to "Send all" runs the same way over only the entries with a banner chance: no "Banner chance used" (§21.7: the player's roll against that target is free) and a template that can win a roll (not scouts alone; against a barbarian village at least 30 population, since the attacker's army is the losing side's size there). An entry whose pair (§21.7) already has one of the player's attacks on the way that can win a roll is left out too, since that attack uses the roll when it lands; a player's villages are one pair, so only the first of them on the list gets the chance (1.2.3, after the review). So a player can go for banners in one tap. The entries left out are neither sent nor counted as skipped. Hidden in worlds without banner drops.
 - **List display:** distance and one-way travel time of the template (the slowest unit), the target's beginner protection if it still lasts, when it was last sent. No result of the last attack is shown (default; the reports have it).
 - **From a report (M38):** a battle report offers the other side's village for the farm list: in the attacker's `ATTACK` and `SCOUT` reports the attacked village, in a `DEFENSE` report (also a supporter's) the attacker's village; never one of the reader's own villages. It opens the farm list of the village that sent the attack or scouts (while it is still the reader's), otherwise the current village's (like the map's "Add to farm list"), with the target filled in, and from an `ATTACK` report also the units that attack sent (without nobles, paladin and thieves) as the template; the player checks and adds it there. A village already on that list gets a link to the list instead.
 - **Owner change:** when a village changes hands (§10), its farm list is dropped with its orders; the new owner starts with an empty one.
@@ -745,7 +764,7 @@ Guild ones can only be earned while the host has guilds on.
 
 | Key | EN | Counts | Bronze | Silver | Gold |
 |---|---|---|---|---|---|
-| GROWTH | Growth | Player points (current, never lost again once earned) | 1 000 | 5 000 | 20 000 |
+| GROWTH | Growth | Player points (current, never lost again once earned; 1 000 / 5 000 / 20 000 until 1.2.2, lowered with the points growth of 1.15 in 1.2.3, §4.2) | 1 000 | 3 500 | 12 500 |
 | LANDLORD | Landlord | Villages owned at the same time | 3 | 8 | 15 |
 | STANDING_ARMY | Standing Army | Units finished in recruit orders (scouts and nobles excluded) | 200 | 2 000 | 10 000 |
 | VICTOR | Victor | Counted attack wins | 10 | 50 | 250 |

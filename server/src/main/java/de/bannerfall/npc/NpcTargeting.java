@@ -32,8 +32,12 @@ import java.util.function.Predicate;
  */
 public final class NpcTargeting {
 
-    /** A barbarian village with at most this many points can be probed without scouting. */
-    static final int PROBE_MAX_POINTS = 788;
+    /**
+     * A barbarian village with at most this many points can be probed without scouting: the most a
+     * spawned one reaches by growth (mines 12, warehouse 5, farm 1, Town Hall 1, wall 2; 788 with
+     * the points growth of 1.2 in 1.2.2 and earlier).
+     */
+    static final int PROBE_MAX_POINTS = 591;
 
     /** The wall a probe expects (the most a spawned barbarian village has). */
     static final int PROBE_WALL = 2;

@@ -3,6 +3,7 @@ package de.bannerfall.farm;
 import static de.bannerfall.TestPlayer.body;
 import static de.bannerfall.TestPlayer.number;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,6 +18,7 @@ import de.bannerfall.TestWorldConfiguration;
 import de.bannerfall.common.Coordinates;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.village.OwnerChange;
+import de.bannerfall.world.WorldService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,6 +52,7 @@ class FarmFlowTest {
     @Autowired JdbcClient jdbc;
     @Autowired OwnerChange ownerChange;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired WorldService worldService;
 
     private TestPlayer farmer;
     private TestPlayer victim;
@@ -384,6 +387,131 @@ class FarmFlowTest {
         } finally {
             removeBarbarians(barbarian);
         }
+    }
+
+    @Test
+    void sendBannerChancesLeavesOutTheTargetsWhoseRollIsUsed() throws Exception {
+        setProtection(farmer, clock.instant().minusSeconds(1));
+        jdbc.sql("update unit_stack set u_axeman = 100 where home_village_id = ?")
+                .params(farmer.villageId)
+                .update();
+        Placed rolled = barbarianVillage();
+        Placed small = barbarianVillage();
+        Placed scouted = barbarianVillage();
+        Placed open = barbarianVillage();
+        try {
+            addOk(victimAt, "{\"AXEMAN\":5}");
+            addOk(rolled.at(), "{\"AXEMAN\":30}");
+            // free rolls, but these templates can't win one (§21.7): against barbarians the
+            // attacker's army must have 30 population, and scouts alone fight no battle
+            addOk(small.at(), "{\"AXEMAN\":29}");
+            addOk(scouted.at(), "{\"SCOUT\":20}");
+            long openEntry = addOk(open.at(), "{\"AXEMAN\":30}");
+            // the roll against the victim (all of his villages) and one barbarian village is used
+            roll("P" + victim.playerId, clock.instant().minus(Duration.ofHours(23)));
+            roll("V" + rolled.id(), clock.instant().minus(Duration.ofHours(1)));
+            // a roll older than a day is back
+            roll("V" + open.id(), clock.instant().minus(Duration.ofHours(25)));
+            farmer.browser
+                    .get(path(farmer))
+                    .andExpect(
+                            jsonPath("$[*].bannerChance")
+                                    .value(contains(false, false, false, false, true)));
+
+            String result =
+                    body(
+                            farmer.browser
+                                    .post(path(farmer) + "/send-all?bannerChanceOnly=true", "")
+                                    .andExpect(status().isOk()));
+            assertThat(JsonPath.<List<Integer>>read(result, "$.sent"))
+                    .containsExactly((int) openEntry);
+            assertThat(JsonPath.<List<Object>>read(result, "$.skipped")).isEmpty();
+            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
+            assertThat(homeAxemen()).isEqualTo(70);
+        } finally {
+            jdbc.sql("delete from banner_roll where winner_id = ?").param(farmer.playerId).update();
+            removeBarbarians(rolled, small, scouted, open);
+        }
+    }
+
+    @Test
+    void sendBannerChancesLeavesOutPairsThatHaveAnAttackOnTheWay() throws Exception {
+        setProtection(farmer, clock.instant().minusSeconds(1));
+        jdbc.sql("update unit_stack set u_axeman = 200, u_scout = 10 where home_village_id = ?")
+                .params(farmer.villageId)
+                .update();
+        Placed first = barbarianVillage();
+        Placed secondOfVictim = barbarianVillage();
+        Placed attacked = barbarianVillage();
+        Placed scouted = barbarianVillage();
+        jdbc.sql("update village set player_id = ? where id = ?")
+                .params(victim.playerId, secondOfVictim.id())
+                .update();
+        try {
+            long firstEntry = addOk(first.at(), "{\"AXEMAN\":30}");
+            long victimEntry = addOk(victimAt, "{\"AXEMAN\":30}");
+            // the victim's second village: one pair with his first (§21.7)
+            addOk(secondOfVictim.at(), "{\"AXEMAN\":30}");
+            long attackedEntry = addOk(attacked.at(), "{\"AXEMAN\":30}");
+            long scoutedEntry = addOk(scouted.at(), "{\"AXEMAN\":30}");
+            // on the way: an attack that will use the roll, and scouts alone, which won't
+            farmer.browser
+                    .post(path(farmer) + "/" + attackedEntry + "/send", "")
+                    .andExpect(status().isCreated());
+            farmer.command("ATTACK", scouted.at(), "{\"SCOUT\":5}").andExpect(status().isCreated());
+            farmer.browser
+                    .get(path(farmer))
+                    .andExpect(
+                            jsonPath("$[*].bannerChance")
+                                    .value(contains(true, true, false, false, true)));
+
+            String result =
+                    body(
+                            farmer.browser
+                                    .post(path(farmer) + "/send-all?bannerChanceOnly=true", "")
+                                    .andExpect(status().isOk()));
+            assertThat(JsonPath.<List<Integer>>read(result, "$.sent"))
+                    .containsExactly((int) firstEntry, (int) victimEntry, (int) scoutedEntry);
+            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
+            // every pair has its attack on the way now
+            farmer.browser
+                    .get(path(farmer))
+                    .andExpect(
+                            jsonPath("$[*].bannerChance")
+                                    .value(contains(false, false, false, false, false)));
+        } finally {
+            jdbc.sql("delete from movement where target_village_id = ?")
+                    .param(victim.villageId)
+                    .update();
+            removeBarbarians(first, secondOfVictim, attacked, scouted);
+        }
+    }
+
+    @Test
+    void sendBannerChancesNeedsBannerDrops() throws Exception {
+        double factor =
+                jdbc.sql("select banner_drop_factor from world_settings")
+                        .query(Double.class)
+                        .single();
+        try {
+            jdbc.sql("update world_settings set banner_drop_factor = 0").update();
+            worldService.reload();
+            farmer.browser
+                    .post(path(farmer) + "/send-all?bannerChanceOnly=true", "")
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("BANNERS_DISABLED"));
+            // the plain "send all" doesn't care
+            sendAll();
+        } finally {
+            jdbc.sql("update world_settings set banner_drop_factor = ?").param(factor).update();
+            worldService.reload();
+        }
+    }
+
+    private void roll(String loserKey, Instant at) {
+        jdbc.sql("insert into banner_roll (winner_id, loser_key, rolled_at) values (?, ?, ?)")
+                .params(farmer.playerId, loserKey, Timestamp.from(at))
+                .update();
     }
 
     @Test

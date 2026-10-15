@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { errorMessage } from '../../api/errors';
+import { useMyGuild } from '../../api/queries/guilds';
 import { useConversations } from '../../api/queries/messages';
-import { useShareReport } from '../../api/queries/reports';
+import { useShareReport, useShareReportWithGuild } from '../../api/queries/reports';
+import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
@@ -25,7 +28,8 @@ interface SendReportButtonProps {
 /**
  * "Send" on a report (M40): a sheet where the player names one or more players; each gets a copy
  * of the report in their list that says who sent it. The players of the inbox are offered as quick
- * picks, so on a phone a name is often one tap.
+ * picks, so on a phone a name is often one tap. A member of a guild can also send it to the whole
+ * guild with one button, without knowing any name.
  */
 export function SendReportButton({ reportId, title, onSent }: SendReportButtonProps) {
   const t = useT();
@@ -61,22 +65,42 @@ function SendForm({ reportId, onSent }: { reportId: number; onSent: (names: stri
   const t = useT();
   const [input, setInput] = useState('');
   const share = useShareReport(reportId);
+  const shareWithGuild = useShareReportWithGuild(reportId);
   const conversations = useConversations();
+  const guildsEnabled = useWorld().data?.guildsEnabled === true;
+  const guild = useMyGuild().data?.guild ?? null;
+  // the other members: the button only shows when there is someone to send to
+  const guildOthers = guild === null ? 0 : guild.members.length - 1;
   const names = shareNames(input);
   const tooMany = names.length > MAX_SHARE_RECIPIENTS;
   const picks = (conversations.data ?? []).slice(0, QUICK_PICKS).map((conversation) => conversation.playerName);
+  const pending = share.isPending || shareWithGuild.isPending;
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (names.length === 0 || tooMany) {
       return;
     }
+    shareWithGuild.reset();
     share.mutate(names, { onSuccess: (result) => onSent(result.sentTo) });
+  }
+
+  function onSendToGuild() {
+    share.reset();
+    shareWithGuild.mutate(undefined, { onSuccess: (result) => onSent(result.sentTo) });
   }
 
   return (
     <form className={styles.sendForm} onSubmit={onSubmit}>
       <p className={styles.muted}>{t.reports.sendText}</p>
+      {guildsEnabled && guild !== null && guildOthers > 0 && (
+        <div className={styles.guildSend}>
+          <span className={styles.picksLabel}>{t.reports.sendGuildText(guild.tag, guildOthers)}</span>
+          <Button type="button" variant="secondary" onClick={onSendToGuild} disabled={pending}>
+            <Icon name="send" /> {t.reports.sendGuild}
+          </Button>
+        </div>
+      )}
       {picks.length > 0 && (
         <div className={styles.picks}>
           <span className={styles.picksLabel}>{t.reports.sendRecent}</span>
@@ -103,8 +127,9 @@ function SendForm({ reportId, onSent }: { reportId: number; onSent: (names: stri
         spellCheck={false}
       />
       {share.isError && <ErrorMessage>{sendError(t, share.error)}</ErrorMessage>}
+      {shareWithGuild.isError && <ErrorMessage>{errorMessage(t, shareWithGuild.error)}</ErrorMessage>}
       <div className={styles.sendButtons}>
-        <Button type="submit" disabled={names.length === 0 || tooMany || share.isPending}>
+        <Button type="submit" disabled={names.length === 0 || tooMany || pending}>
           <Icon name="send" /> {t.reports.send}
         </Button>
       </div>

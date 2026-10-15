@@ -37,6 +37,18 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
     long countIncomingAttacks(long villageId);
 
     /**
+     * The player's attacks still on the way, from any of his villages, with their targets and the
+     * targets' owners (the farm list's banner chances, 1.2.3).
+     */
+    @Query(
+            """
+            select m from Movement m join fetch m.targetVillage t left join fetch t.player
+            where m.ownerPlayerId = :playerId
+              and m.kind = de.bannerfall.movement.MovementKind.ATTACK
+            """)
+    List<Movement> findAttacksUnderWay(long playerId);
+
+    /**
      * The ids of the villages to lock before the movement itself is read: a handler that read the
      * movement first would keep its old state after waiting for the locks.
      */

@@ -4,7 +4,7 @@
 # earned stay earned).
 achievements:
   levels:
-    GROWTH: [1000, 5000, 20000]            # player points
+    GROWTH: [1000, 3500, 12500]            # player points (1000, 5000, 20000 before the points growth of 1.15)
     LANDLORD: [3, 8, 15]                   # villages owned at the same time
     STANDING_ARMY: [200, 2000, 10000]      # units finished in recruit orders (no scouts, no nobles)
     VICTOR: [10, 50, 250]                  # counted attack wins

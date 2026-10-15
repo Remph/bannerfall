@@ -160,12 +160,41 @@ export function useShareReport(reportId: number) {
   });
 }
 
+/**
+ * POST /api/reports/{id}/share-guild: sends a copy of the report to every other member of the
+ * player's guild. Not all or nothing: members a named send would refuse are left out, so `sentTo`
+ * can be shorter than the guild, or empty.
+ */
+export function useShareReportWithGuild(reportId: number) {
+  return useMutation({
+    mutationFn: () => expectData(api.POST('/api/reports/{reportId}/share-guild', { params: { path: { reportId } } })),
+  });
+}
+
 /** POST /api/reports/read-all: every report counts as read. */
 export function useReadAllReports() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
       await api.POST('/api/reports/read-all');
+    },
+    onSettled: () => refreshReports(queryClient),
+  });
+}
+
+/**
+ * POST /api/reports/delete-barbarian?upTo=: deletes the player's own attack and scout reports on
+ * barbarian villages up to `upTo`, except those with a new banner (1.2.3); the list's `barbarian`
+ * says how many.
+ */
+export function useDeleteBarbarianReports() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (upTo: number) => {
+      await api.POST('/api/reports/delete-barbarian', { params: { query: { upTo } } });
+    },
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['report'], type: 'inactive' });
     },
     onSettled: () => refreshReports(queryClient),
   });

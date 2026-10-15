@@ -420,6 +420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/{reportId}/share-guild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["shareWithGuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports/read-all": {
         parameters: {
             query?: never;
@@ -430,6 +446,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["readAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/delete-barbarian": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deleteBarbarian"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1822,6 +1854,7 @@ export interface components {
             lastSentAt: string | null;
             /** Format: date-time */
             nextBannerRollAt: string | null;
+            bannerChance: boolean;
         };
         VillageRefDto: {
             /** Format: int64 */
@@ -2969,6 +3002,8 @@ export interface components {
             unread: number;
             /** Format: int64 */
             newestId: number;
+            /** Format: int64 */
+            barbarian: number;
         };
         ReportSharedBy: {
             /** Format: int64 */
@@ -2984,6 +3019,12 @@ export interface components {
             /** @enum {string|null} */
             outcome: "ATTACKER_WON" | "DEFENDER_WON" | "SCOUTS_ONLY" | null;
             bannersGained: components["schemas"]["ScoutedBanner"][];
+        };
+        ScoutedBanner: {
+            /** @enum {string} */
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            /** Format: int32 */
+            tier: number;
         };
         BannerReport: {
             /** Format: double */
@@ -3094,12 +3135,6 @@ export interface components {
         };
         ReportPayload: {
             type: string;
-        };
-        ScoutedBanner: {
-            /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
-            /** Format: int32 */
-            tier: number;
         };
         ScoutingReport: {
             succeeded: boolean;
@@ -4070,7 +4105,9 @@ export interface operations {
     };
     sendAll: {
         parameters: {
-            query?: never;
+            query?: {
+                bannerChanceOnly?: boolean;
+            };
             header?: never;
             path: {
                 villageId: number;
@@ -4349,9 +4386,51 @@ export interface operations {
             };
         };
     };
+    shareWithGuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reportId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReportShareDto"];
+                };
+            };
+        };
+    };
     readAll: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteBarbarian: {
+        parameters: {
+            query: {
+                upTo: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

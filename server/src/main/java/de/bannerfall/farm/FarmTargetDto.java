@@ -18,6 +18,11 @@ import java.util.Map;
  * @param nextBannerRollAt the player has used the banner roll against this target (02-game-rules
  *     §21.7: per player, or per barbarian village) and may roll again from then on; null when a won
  *     battle would roll now, or banners or drops are switched off
+ * @param bannerChance a won attack with the template can roll a banner now (1.2.3, §21.7): drops
+ *     are on, the roll is free, none of the player's attacks that could use it is on the way, no
+ *     earlier entry of the list has the same pair (a player's villages share one), and the template
+ *     can win one (not scouts alone, against barbarians at least {@code drops.minLoserPop}
+ *     population). The entries "Send banner chances" sends.
  */
 public record FarmTargetDto(
         long id,
@@ -27,4 +32,5 @@ public record FarmTargetDto(
         long travelSeconds,
         @Schema(nullable = true) Instant protectedUntil,
         @Schema(nullable = true) Instant lastSentAt,
-        @Schema(nullable = true) Instant nextBannerRollAt) {}
+        @Schema(nullable = true) Instant nextBannerRollAt,
+        boolean bannerChance) {}

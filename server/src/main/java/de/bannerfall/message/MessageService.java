@@ -316,6 +316,19 @@ public class MessageService {
         return recipient;
     }
 
+    /**
+     * Whether {@code senderId} may send messages or reports to the player: another human with an
+     * active account whom the sender hasn't blocked. The rules of {@link #recipientByName} without
+     * its errors, for sending a report to the whole guild, which skips who fails them.
+     */
+    @Transactional(readOnly = true)
+    public boolean canSendTo(long senderId, Player recipient) {
+        return recipient.getId() != senderId
+                && !recipient.isNpc()
+                && hasActiveAccount(recipient)
+                && !isBlocked(senderId, recipient.getId());
+    }
+
     /** A player who can read messages: no NPC lord, no deleted or for good banned account. */
     private Player humanPlayer(long id) {
         return players.findById(id)

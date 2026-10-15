@@ -175,11 +175,11 @@ class BuildRulesTest {
         "HEADQUARTERS, 0, 0",
         "HEADQUARTERS, 1, 10",
         "HEADQUARTERS, 2, 22",
-        "HEADQUARTERS, 5, 74",
-        "HEADQUARTERS, 10, 260",
-        "HEADQUARTERS, 30, 11817",
-        "BARRACKS, 3, 58",
-        "WALL, 20, 1495",
+        "HEADQUARTERS, 5, 67",
+        "HEADQUARTERS, 10, 203",
+        "HEADQUARTERS, 30, 4349",
+        "BARRACKS, 3, 55",
+        "WALL, 20, 819",
         "RALLY_POINT, 1, 0"
     })
     void buildingPointsAreTheSumOverAllLevels(BuildingType type, int level, int expected) {

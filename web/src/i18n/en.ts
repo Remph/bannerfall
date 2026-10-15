@@ -400,6 +400,8 @@ export const en = {
     toTownHall: 'Build it in the Town Hall',
     unitsTitle: (building: string) => `Units (${building})`,
     atHome: (amount: string) => `${amount} at home`,
+    /** At home and all of the village's own units, the ones away included. */
+    atHomeOfTotal: (amount: string, total: string) => `${amount} at home (${total} total)`,
     /** Names the cost list of one unit (screen readers). */
     perUnit: 'Cost per unit',
     /** Label of the cost list for the typed count. */
@@ -943,6 +945,8 @@ export const en = {
     markAllRead: 'Mark all as read',
     /** M38: deletes every report of the list after one confirm. */
     deleteAll: 'Delete all',
+    /** 1.2.3: deletes the own attack and scout reports on barbarian villages, except new banners. */
+    deleteBarbarian: 'Delete barbarian reports',
     /** M38: on a battle report, the other side's village for the current village's farm list. */
     addToFarm: (village: string) => `Add ${village} to the farm list`,
     onFarmList: (village: string) => `${village} is on the farm list`,
@@ -956,7 +960,14 @@ export const en = {
     /** Quick picks above the field: the players of the player's inbox. */
     sendRecent: 'You recently wrote to',
     sendTooMany: (max: number) => `At most ${max} players at once.`,
+    /** One button that sends to every other member of the player's guild, so no name is needed. */
+    sendGuild: 'Send to guild',
+    sendGuildText: (tag: string, others: number) =>
+      `Your guild [${tag}]: ${others} other ${others === 1 ? 'member' : 'members'}`,
     sentTo: (names: string) => `Sent to ${names}.`,
+    /** After a guild send that reached nobody (all left out: blocked, or too many unread). */
+    sentToNobody:
+      'Sent to nobody: you blocked the other members of your guild, or they have too many unread reports from you.',
     /** An error that names the player the send stopped at (nothing was sent). */
     sendErrors: {
       PLAYER_NOT_FOUND: (name: string) => `There is no player called ${name}. Nothing was sent.`,
@@ -972,6 +983,9 @@ export const en = {
     deleteAllTitle: 'Delete all reports?',
     deleteAllText: (total: number, unread: number) =>
       `${total === 1 ? 'Your report' : `All ${total} reports`}${unread > 0 && total > 1 ? ` (${unread} of them unread)` : ''} will be deleted. This can’t be undone. Reports that arrive from now on stay.`,
+    deleteBarbarianTitle: 'Delete barbarian reports?',
+    deleteBarbarianText: (count: number) =>
+      `${count === 1 ? 'Your report on an attack or scouting of a barbarian village' : `Your ${count} reports on attacks and scouting of barbarian villages`} will be deleted. Reports with a new banner stay, as do reports other players sent you and reports that arrive from now on. This can’t be undone.`,
     empty: 'No reports yet. They appear here when your troops fight or a support arrives.',
     emptyPage: 'There are no reports on this page any more.',
     unreadableText: 'This report can’t be shown any more. You can delete it.',
@@ -1154,6 +1168,11 @@ export const en = {
     sendAll: 'Send all',
     sendAllArmed: 'Really send all?',
     sendAllHint: 'Sends the targets from top to bottom until the list is done or the troops for a target run short.',
+    /** Like "send all", but only the targets with a banner chance (`bannerChance`, 1.2.3). */
+    sendBannerChances: (count: number) => `Send banner chances (${count})`,
+    sendBannerChancesArmed: 'Really send banner chances?',
+    sendBannerChancesHint:
+      '“Send banner chances” does the same, but only for the targets without “Banner chance used” whose template can win a banner (not scouts alone, and at least 30 population against barbarian villages) and that have no attack of yours on the way yet. A player’s villages share one chance, so only the first of them is sent.',
     sendAllLeavesPlayersOut: 'While your beginner protection lasts, “Send all” leaves players’ villages out.',
     sendAllSent: (count: number) =>
       count === 0 ? 'No attack sent' : count === 1 ? '1 attack sent' : `${count} attacks sent`,

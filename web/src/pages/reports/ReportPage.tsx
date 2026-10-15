@@ -165,8 +165,9 @@ function ReportContent({ report, back, onDeleted }: ReportContentProps) {
         </div>
       )}
       {sentTo !== null && (
-        <p className={styles.sentTo} role="status">
-          {t.reports.sentTo(sentTo.join(', '))}
+        // a guild send can reach nobody: every member left out
+        <p className={sentTo.length > 0 ? styles.sentTo : styles.muted} role="status">
+          {sentTo.length > 0 ? t.reports.sentTo(sentTo.join(', ')) : t.reports.sentToNobody}
         </p>
       )}
       {deleteError !== null && <ErrorMessage>{errorMessage(t, deleteError)}</ErrorMessage>}

@@ -54,7 +54,7 @@ class AchievementCatalogTest {
     void theDraftThresholdsOfTheRulebook() {
         AchievementCatalog catalog = real();
 
-        assertThat(catalog.thresholds(Achievement.GROWTH)).containsExactly(1000L, 5000L, 20000L);
+        assertThat(catalog.thresholds(Achievement.GROWTH)).containsExactly(1000L, 3500L, 12500L);
         assertThat(catalog.thresholds(Achievement.LANDLORD)).containsExactly(3L, 8L, 15L);
         assertThat(catalog.thresholds(Achievement.STANDING_ARMY))
                 .containsExactly(200L, 2000L, 10000L);

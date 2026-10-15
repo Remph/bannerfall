@@ -23,11 +23,13 @@ export const AXIS_STEP = 5;
 export const KEY_PAN_FIELDS = 2;
 
 /**
- * Village sizes on the map by points: below 300 small, below 2,000 medium, else large. A new
- * village has 39 points, a fully built one about 69,500 (02-game-rules §4.2).
+ * Village sizes on the map by points: below 280 small, below 1,600 medium, else large. A new
+ * village has 39 points, a fully built one about 29,100 (02-game-rules §4.2). Until 1.2.2 the
+ * limits were 300 and 2,000 on the old points growth of 1.2; the new ones are the same build
+ * steps on the growth of 1.15, so a village changes size at the same point as before.
  */
-const MEDIUM_VILLAGE_POINTS = 300;
-const LARGE_VILLAGE_POINTS = 2000;
+const MEDIUM_VILLAGE_POINTS = 280;
+const LARGE_VILLAGE_POINTS = 1600;
 
 export interface Point {
   x: number;
