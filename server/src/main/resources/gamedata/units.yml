@@ -11,7 +11,7 @@ gamedata:
     SPEARMAN:
       building: BARRACKS
       requires: { BARRACKS: 1 }
-      cost: { wood: 50, clay: 30, iron: 10 }
+      cost: { wood: 40, clay: 35, iron: 15 }
       pop: 1
       attack: 10
       defense-infantry: 15
@@ -24,13 +24,13 @@ gamedata:
         - attack: 11
           defense-infantry: 17
           defense-cavalry: 44
-          cost: { wood: 1000, clay: 600, iron: 200 }
+          cost: { wood: 800, clay: 700, iron: 300 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 12
           defense-infantry: 18
           defense-cavalry: 48
-          cost: { wood: 2500, clay: 1500, iron: 500 }
+          cost: { wood: 2000, clay: 1750, iron: 750 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
     SWORDSMAN:
@@ -61,7 +61,7 @@ gamedata:
     AXEMAN:
       building: BARRACKS
       requires: { BARRACKS: 2, SMITHY: 2 }
-      cost: { wood: 60, clay: 30, iron: 40 }
+      cost: { wood: 50, clay: 35, iron: 45 }
       pop: 1
       attack: 40
       defense-infantry: 10
@@ -74,13 +74,13 @@ gamedata:
         - attack: 44
           defense-infantry: 11
           defense-cavalry: 6
-          cost: { wood: 1200, clay: 600, iron: 800 }
+          cost: { wood: 1000, clay: 700, iron: 900 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 48
           defense-infantry: 12
           defense-cavalry: 7
-          cost: { wood: 3000, clay: 1500, iron: 2000 }
+          cost: { wood: 2500, clay: 1750, iron: 2250 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
     SCOUT:

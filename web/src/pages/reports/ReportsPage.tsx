@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useDeleteAllReports, useReadAllReports, useReportPage, type ReportItem } from '../../api/queries/reports';
+import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -173,8 +174,8 @@ interface ReportLineProps {
 }
 
 /**
- * One report: kind icon (coloured by the result), title, time and result, who sent it (a copy,
- * M40); the delete button.
+ * One report: kind icon (coloured by the result), title, time and result, the banners the reader
+ * gained there, who sent it (a copy, M40); the delete button.
  */
 function ReportLine({ item, page, onDeleteStart, onDeleteError }: ReportLineProps) {
   const { t, language } = useI18n();
@@ -182,6 +183,7 @@ function ReportLine({ item, page, onDeleteStart, onDeleteError }: ReportLineProp
   // a copy someone sent (M40) reads as its first owner saw it
   const title = reportTitle(t, item.kind, item.summary, viewerOf(item.sharedBy, me.playerId));
   const result = resultFor(item.kind, item.summary?.outcome ?? null);
+  const bannersGained = item.summary?.bannersGained ?? [];
   return (
     <li className={item.read ? styles.line : `${styles.line} ${styles.unread}`}>
       <Link className={styles.lineLink} to={reportPath(item.id)} state={{ from: reportsPath(page) }}>
@@ -199,6 +201,14 @@ function ReportLine({ item, page, onDeleteStart, onDeleteError }: ReportLineProp
             {result !== 'none' && (
               <span className={[styles.resultPill, styles[result]].filter(Boolean).join(' ')}>
                 {t.reports.results[result]}
+              </span>
+            )}
+            {bannersGained.length > 0 && (
+              <span className={styles.bannerPill}>
+                {bannersGained.map((banner, index) => (
+                  <Banner key={index} type={banner.type} tier={banner.tier} size={10} />
+                ))}
+                {t.reports.bannerGained(bannersGained.length)}
               </span>
             )}
             {item.sharedBy !== null && (

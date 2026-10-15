@@ -128,7 +128,7 @@ function MessageList({
   const listRef = useRef<HTMLDivElement>(null);
   // where the reader is, measured from the end: new messages only scroll along when he is at the
   // end, and older ones put in front must not move what he is looking at
-  const fromBottom = useRef(0);
+  const position = useRef<ListPosition>({ fromBottom: 0, height: 0 });
   const shownEnds = useRef<{ first: number; last: number } | null>(null);
   const [unseenBelow, setUnseenBelow] = useState(false);
   const now = serverNow();
@@ -145,7 +145,7 @@ function MessageList({
     }
     const before = shownEnds.current;
     shownEnds.current = { first, last };
-    const atEnd = fromBottom.current <= list.clientHeight + 48;
+    const atEnd = position.current.fromBottom <= position.current.height + 48;
     if (before === null || (last !== before.last && (atEnd || lastIsMine))) {
       // first render, or a new message while at the end (or my own): to the end
       list.scrollTop = list.scrollHeight;
@@ -153,17 +153,41 @@ function MessageList({
       setUnseenBelow(true);
     } else if (first !== before.first) {
       // older messages in front: keep the same distance from the end
-      list.scrollTop = list.scrollHeight - fromBottom.current;
+      list.scrollTop = list.scrollHeight - position.current.fromBottom;
+    } else if (atEnd) {
+      // the same messages again (the list may have had no height before): still at the end
+      list.scrollTop = list.scrollHeight;
     }
-    fromBottom.current = list.scrollHeight - list.scrollTop;
+    position.current = measure(list);
   }, [first, last, lastIsMine]);
+
+  // The phone's sheet shows the list only after the first render (the dialog opens in an effect),
+  // so the list may have no height yet when it scrolls to the end above. When it gets its size, or
+  // the size changes (the keyboard opens), a reader who was at the end is put back there.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list === null || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (list.clientHeight === position.current.height) {
+        return;
+      }
+      if (position.current.fromBottom <= position.current.height + 48) {
+        list.scrollTop = list.scrollHeight;
+      }
+      position.current = measure(list);
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, []);
 
   function onScroll() {
     const list = listRef.current;
     if (list === null) {
       return;
     }
-    fromBottom.current = list.scrollHeight - list.scrollTop;
+    position.current = measure(list);
     if (isNearBottom(list.scrollTop, list.clientHeight, list.scrollHeight)) {
       setUnseenBelow(false);
     }
@@ -241,6 +265,16 @@ function MessageList({
       )}
     </div>
   );
+}
+
+/** Where the reader is in the list: the distance of the end from the top of the view, and the list's height then. */
+interface ListPosition {
+  fromBottom: number;
+  height: number;
+}
+
+function measure(list: HTMLElement): ListPosition {
+  return { fromBottom: list.scrollHeight - list.scrollTop, height: list.clientHeight };
 }
 
 function Composer({ channel }: { channel: ChatChannel }) {

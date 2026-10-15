@@ -97,6 +97,17 @@ class NpcBalanceTest {
                                         "{\"later\":{\"1\":2},\"lastReportId\":5}")
                                 .lastReportId())
                 .isEqualTo(5);
+        // a grudge saved before the attacker's scouts were kept: none known
+        assertThat(
+                        converter
+                                .convertToEntityAttribute(
+                                        "{\"grudges\":{\"20\":{\"until\":\"2026-10-07T10:00:00Z\","
+                                                + "\"sourceVillageId\":2,\"retaliated\":false}}}")
+                                .grudges()
+                                .get(20L))
+                .isEqualTo(
+                        new NpcMemory.Grudge(
+                                java.time.Instant.parse("2026-10-07T10:00:00Z"), 2, false, 0));
     }
 
     @Test

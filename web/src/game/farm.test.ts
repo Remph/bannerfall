@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { farmSendEndsProtection, farmUnitTypes, fitsHome, hasUnits, sendAllNotes, templateOf } from './farm';
+import {
+  bannerRollBackAt,
+  farmSendEndsProtection,
+  farmUnitTypes,
+  fitsHome,
+  hasUnits,
+  sendAllNotes,
+  templateOf,
+} from './farm';
 
 describe('farmUnitTypes', () => {
   it('has every type but the noble, the paladin and the banner thief, in unit order', () => {
@@ -13,6 +21,19 @@ describe('farmUnitTypes', () => {
       'RAM',
       'CATAPULT',
     ]);
+  });
+});
+
+describe('bannerRollBackAt', () => {
+  const now = Date.parse('2026-10-15T08:00:00Z');
+
+  it('is the time the roll comes back while that is ahead', () => {
+    expect(bannerRollBackAt('2026-10-15T14:30:00Z', now)).toBe(Date.parse('2026-10-15T14:30:00Z'));
+  });
+
+  it('is undefined when the roll is free (null) or back already', () => {
+    expect(bannerRollBackAt(null, now)).toBeUndefined();
+    expect(bannerRollBackAt('2026-10-15T08:00:00Z', now)).toBeUndefined();
   });
 });
 

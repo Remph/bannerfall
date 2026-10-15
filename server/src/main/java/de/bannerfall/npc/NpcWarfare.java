@@ -295,7 +295,8 @@ class NpcWarfare {
     private static void retaliated(NpcTurn turn, long playerId) {
         Grudge grudge = turn.memory.grudges.get(playerId);
         turn.memory.grudges.put(
-                playerId, new Grudge(grudge.until(), grudge.sourceVillageId(), true));
+                playerId,
+                new Grudge(grudge.until(), grudge.sourceVillageId(), true, grudge.scouts()));
     }
 
     /**
@@ -319,7 +320,7 @@ class NpcWarfare {
                     && intel.leftAloneUntil().isAfter(turn.now)) {
                 continue;
             }
-            int scouts = NpcTargeting.scoutCount(intel);
+            int scouts = NpcTargeting.scoutCount(intel, knownScouts(turn, target));
             if (turn.available.getOrDefault(UnitType.SCOUT, 0) < scouts) {
                 continue;
             }
@@ -337,6 +338,18 @@ class NpcWarfare {
             recordSent(turn, target);
             sent++;
         }
+    }
+
+    /**
+     * The scouts the lord knows stand in {@code target}: those an attack from there on the lord
+     * brought home, while that grudge is active (0 if none).
+     */
+    private static int knownScouts(NpcTurn turn, MapVillage target) {
+        if (!turn.grudgeAgainst(target.playerId())) {
+            return 0;
+        }
+        Grudge grudge = turn.memory.grudges.get(target.playerId());
+        return grudge.sourceVillageId() == target.id() ? grudge.scouts() : 0;
     }
 
     /** The villages an attack of this turn would need intel about, most important first. */

@@ -16,7 +16,11 @@ import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -82,6 +86,12 @@ public class BannerBattleService {
         public static Loser barbarianVillage(long villageId) {
             return new Loser("V" + villageId, true);
         }
+
+        /** The side of {@code village} when it loses: its owner, or the barbarian village. */
+        public static Loser defenderOf(Village village) {
+            Player owner = village.getPlayer();
+            return owner == null ? barbarianVillage(village.getId()) : player(owner.getId());
+        }
     }
 
     /**
@@ -142,6 +152,40 @@ public class BannerBattleService {
                         winner.getId(),
                         new GameNotification.BannerFound(type, tier, VillageRefDto.of(village))));
         return Optional.of(new BattleReport.ScoutedBanner(type, tier));
+    }
+
+    /**
+     * When the winner may roll against each of these losers again (02-game-rules §21.7, shown in
+     * the farm list): the end of the pair window for every pair that rolled inside it; a loser the
+     * winner may roll against now is missing. Empty when banners or drops are switched off. Only
+     * reads: the size filter and the daily cap still decide at the battle.
+     *
+     * @param loserKeys {@link Loser#key()} of each loser
+     */
+    public Map<String, Instant> nextRolls(
+            long winnerId, Collection<String> loserKeys, Instant now) {
+        WorldSettings world = worldService.settings();
+        if (!world.bannersEnabled() || world.bannerDropFactor() <= 0 || loserKeys.isEmpty()) {
+            return Map.of();
+        }
+        Duration window = Duration.ofHours(catalog.drops().pairHours());
+        return jdbc
+                .sql(
+                        """
+                        select loser_key, rolled_at from banner_roll
+                        where winner_id = :winner and loser_key in (:losers) and rolled_at > :cutoff
+                        """)
+                .param("winner", winnerId)
+                .param("losers", Set.copyOf(loserKeys))
+                .param("cutoff", java.sql.Timestamp.from(now.minus(window)))
+                .query(
+                        (rs, n) ->
+                                Map.entry(
+                                        rs.getString("loser_key"),
+                                        rs.getTimestamp("rolled_at").toInstant().plus(window)))
+                .list()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

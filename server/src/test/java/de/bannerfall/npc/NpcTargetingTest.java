@@ -267,6 +267,17 @@ class NpcTargetingTest {
         assertThat(NpcTargeting.scoutCount(failedOnce)).isEqualTo(6);
     }
 
+    @Test
+    void scoutsTheLordKnowsStandThereCountLikeScoutsSeen() {
+        assertThat(NpcTargeting.scoutCount(null, 46)).isEqualTo(93);
+        assertThat(NpcTargeting.scoutCount(null, 1)).isEqualTo(5);
+        assertThat(NpcTargeting.scoutCount(intel(NOW, Map.of(), null), 1)).isEqualTo(3);
+        assertThat(NpcTargeting.scoutCount(intel(NOW, Map.of(UnitType.SCOUT, 4), null), 10))
+                .isEqualTo(21);
+        assertThat(NpcTargeting.scoutCount(intel(NOW, Map.of(UnitType.SCOUT, 4), null), 2))
+                .isEqualTo(9);
+    }
+
     // ---- farming (§6.2) ----
 
     @Test

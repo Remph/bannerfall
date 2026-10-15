@@ -55,7 +55,7 @@ class RecruitRulesTest {
     @Test
     void costAndPopulationAreMultipliedByTheCount() {
         assertThat(RecruitRules.cost(data.unit(UnitType.SPEARMAN), 10))
-                .isEqualTo(new ResourceAmounts(500, 300, 100));
+                .isEqualTo(new ResourceAmounts(400, 350, 150));
         assertThat(RecruitRules.cost(data.unit(UnitType.NOBLE), 2))
                 .isEqualTo(new ResourceAmounts(80_000, 100_000, 100_000));
         assertThat(RecruitRules.pop(data.unit(UnitType.SCOUT), 3)).isEqualTo(6);
@@ -71,13 +71,13 @@ class RecruitRulesTest {
 
     @Test
     void theCheapestResourceOrThePopulationLimitsHowManyArePaidFor() {
-        var spearman = data.unit(UnitType.SPEARMAN); // 50 / 30 / 10, 1 pop
-        // wood: 500 / 50 = 10, clay 16, iron 50, population 203
+        var spearman = data.unit(UnitType.SPEARMAN); // 40 / 35 / 15, 1 pop
+        // wood: 500 / 40 = 12, clay 14, iron 33, population 203
         assertThat(RecruitRules.maxAffordable(spearman, new ResourceAmounts(500, 500, 500), 203))
-                .isEqualTo(10);
-        // iron: 99 / 10 = 9 (rounded down)
+                .isEqualTo(12);
+        // iron: 99 / 15 = 6 (rounded down)
         assertThat(RecruitRules.maxAffordable(spearman, new ResourceAmounts(5000, 5000, 99), 203))
-                .isEqualTo(9);
+                .isEqualTo(6);
         // population
         assertThat(RecruitRules.maxAffordable(spearman, new ResourceAmounts(5000, 5000, 5000), 7))
                 .isEqualTo(7);

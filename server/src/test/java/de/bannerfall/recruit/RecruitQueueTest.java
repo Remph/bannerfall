@@ -159,10 +159,10 @@ class RecruitQueueTest {
         String after = body(player.village());
         assertThat(number(after, "$.unitsHome.SPEARMAN").intValue()).isEqualTo(1);
         assertThat(number(after, "$.population.used").intValue()).isEqualTo(40);
-        // three spearmen refunded: 3 × (50, 30, 10)
-        assertThat(stock(after, "wood")).isCloseTo(stock(before, "wood") + 150, within(EPSILON));
-        assertThat(stock(after, "clay")).isCloseTo(stock(before, "clay") + 90, within(EPSILON));
-        assertThat(stock(after, "iron")).isCloseTo(stock(before, "iron") + 30, within(EPSILON));
+        // three spearmen refunded: 3 × (40, 35, 15)
+        assertThat(stock(after, "wood")).isCloseTo(stock(before, "wood") + 120, within(EPSILON));
+        assertThat(stock(after, "clay")).isCloseTo(stock(before, "clay") + 105, within(EPSILON));
+        assertThat(stock(after, "iron")).isCloseTo(stock(before, "iron") + 45, within(EPSILON));
 
         // the second order starts now instead of at 4000 s and keeps its duration
         player.recruitment()
@@ -192,7 +192,7 @@ class RecruitQueueTest {
         player.cancelRecruit(secondId).andExpect(status().isNoContent());
 
         String after = body(player.village());
-        assertThat(stock(after, "wood")).isCloseTo(stock(before, "wood") + 100, within(EPSILON));
+        assertThat(stock(after, "wood")).isCloseTo(stock(before, "wood") + 80, within(EPSILON));
         assertThat(number(after, "$.population.used").intValue()).isEqualTo(41);
         player.recruitment()
                 .andExpect(jsonPath("$[0].queue.length()").value(1))

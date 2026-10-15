@@ -306,6 +306,10 @@ class ConquestFlowTest {
                         JsonPath.<Map<String, Object>>read(
                                 defender.newestReport("VILLAGE_LOST"), "$.payload.banner"))
                 .isEqualTo(moved);
+        // the report list tags the conqueror's report only
+        assertThat(attacker.bannersGainedIn("CONQUEST"))
+                .containsExactly(Map.of("type", "WAR", "tier", 2));
+        assertThat(defender.bannersGainedIn("VILLAGE_LOST")).isEmpty();
         // M32c: the conqueror took a banner that wasn't his, the defender lost his colours
         assertThat(achievementLevel(attacker, "BANNER_THIEF")).isEqualTo(1);
         assertThat(achievementLevel(defender, "COLOURS_LOST")).isEqualTo(1);

@@ -25,13 +25,13 @@ class BuildRulesTest {
 
     @ParameterizedTest(name = "{0} level {1} → {2}/{3}/{4}")
     @CsvSource({
-        "HEADQUARTERS, 1, 90, 80, 70",
-        "HEADQUARTERS, 10, 720, 640, 560",
+        "HEADQUARTERS, 1, 80, 85, 75",
+        "HEADQUARTERS, 10, 640, 680, 600",
         "WOODCUTTER, 5, 122, 146, 98",
-        "IRON_MINE, 7, 289, 250, 270",
-        "CLAY_PIT, 12, 901, 693, 554",
+        "IRON_MINE, 7, 250, 270, 289",
+        "CLAY_PIT, 12, 762, 762, 624",
         "WALL, 3, 79, 159, 32",
-        "FARM, 30, 90692, 80615, 60461",
+        "FARM, 30, 80615, 80615, 70538",
         "ACADEMY, 1, 15000, 25000, 10000"
     })
     void costIsBaseTimesFactorToTheLevelMinusOne(

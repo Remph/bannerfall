@@ -2,6 +2,7 @@ package de.bannerfall.report;
 
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.village.VillageRefDto;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,7 +21,7 @@ public record SupportReport(VillageRefDto from, VillageRefDto to, Map<UnitType, 
     }
 
     @Override
-    public ReportSummary summary() {
-        return new ReportSummary(from, to, null);
+    public ReportSummary summary(ReportKind kind) {
+        return new ReportSummary(from, to, null, List.of());
     }
 }

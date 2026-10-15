@@ -1820,6 +1820,8 @@ export interface components {
             protectedUntil: string | null;
             /** Format: date-time */
             lastSentAt: string | null;
+            /** Format: date-time */
+            nextBannerRollAt: string | null;
         };
         VillageRefDto: {
             /** Format: int64 */
@@ -2981,6 +2983,7 @@ export interface components {
             to: components["schemas"]["VillageRefDto"];
             /** @enum {string|null} */
             outcome: "ATTACKER_WON" | "DEFENDER_WON" | "SCOUTS_ONLY" | null;
+            bannersGained: components["schemas"]["ScoutedBanner"][];
         };
         BannerReport: {
             /** Format: double */

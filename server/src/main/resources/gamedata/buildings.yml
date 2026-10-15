@@ -5,7 +5,7 @@ gamedata:
     HEADQUARTERS:
       max-level: 30
       start-level: 1
-      base-cost: { wood: 90, clay: 80, iron: 70 }
+      base-cost: { wood: 80, clay: 85, iron: 75 }
       cost-factor: 1.26
       pop-base: 5
       base-seconds: 900
@@ -14,7 +14,7 @@ gamedata:
     BARRACKS:
       max-level: 25
       start-level: 0
-      base-cost: { wood: 200, clay: 170, iron: 90 }
+      base-cost: { wood: 180, clay: 180, iron: 100 }
       cost-factor: 1.26
       pop-base: 7
       base-seconds: 1800
@@ -86,7 +86,7 @@ gamedata:
     CLAY_PIT:
       max-level: 30
       start-level: 1
-      base-cost: { wood: 65, clay: 50, iron: 40 }
+      base-cost: { wood: 55, clay: 55, iron: 45 }
       cost-factor: 1.27
       pop-base: 10
       base-seconds: 900
@@ -95,7 +95,7 @@ gamedata:
     IRON_MINE:
       max-level: 30
       start-level: 1
-      base-cost: { wood: 75, clay: 65, iron: 70 }
+      base-cost: { wood: 65, clay: 70, iron: 75 }
       cost-factor: 1.252
       pop-base: 10
       base-seconds: 1080
@@ -104,7 +104,7 @@ gamedata:
     FARM:
       max-level: 30
       start-level: 1
-      base-cost: { wood: 45, clay: 40, iron: 30 }
+      base-cost: { wood: 40, clay: 40, iron: 35 }
       cost-factor: 1.30
       pop-base: 0
       base-seconds: 1200
@@ -113,7 +113,7 @@ gamedata:
     WAREHOUSE:
       max-level: 30
       start-level: 1
-      base-cost: { wood: 60, clay: 50, iron: 40 }
+      base-cost: { wood: 50, clay: 55, iron: 45 }
       cost-factor: 1.265
       pop-base: 0
       base-seconds: 1020

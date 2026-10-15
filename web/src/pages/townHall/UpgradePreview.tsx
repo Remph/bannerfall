@@ -2,6 +2,7 @@ import type { BuildingInfo } from '../../api/queries/buildings';
 import type { Village } from '../../api/queries/villages';
 import { CostList } from '../../components/CostList';
 import { Icon } from '../../components/Icon';
+import { byBuildingOrder } from '../../game/gameData';
 import type { ResourceAmounts } from '../../game/resources';
 import { formatEffect, upgradeBlocker } from '../../game/upgradePreview';
 import { useI18n } from '../../i18n';
@@ -45,7 +46,7 @@ export function UpgradePreviewBody({ info, context }: BodyProps) {
     context.bannersEnabled,
   );
   const unlocks = [
-    ...next.unlocksBuildings.map((building) => t.buildings[building]),
+    ...[...next.unlocksBuildings].sort(byBuildingOrder).map((building) => t.buildings[building]),
     ...next.unlocksUnits.map((unit) => t.units[unit]),
   ];
   return (

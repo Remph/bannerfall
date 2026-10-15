@@ -1,4 +1,9 @@
-# Bannerfall
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-header-dark.png">
+    <img src="docs/images/readme-header-light.png" alt="Bannerfall" width="480">
+  </picture>
+</h1>
 
 A browser strategy game in the style of the classic "villages, troops, attacks" games, built for a small group of friends: build up villages, train troops, attack and support each other, conquer villages, trade, found guilds, chat and collect achievements. Version 1.2 adds unit levels researched in the Smithy, the paladin and banners (found in battle, flown from the Banner Hall, fused and stolen), and barbarians that build walls. Computer-controlled NPC lords and passive barbarian villages fill the world when only a few people play.
 
@@ -12,7 +17,7 @@ Not affiliated with any existing game. Own name, own numbers, own graphics.
 |---|---|
 | `server/` | Spring Boot app (Java 25, Gradle Kotlin DSL, PostgreSQL) |
 | `web/` | React + TypeScript app (Vite, pnpm) |
-| `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`) and the hosting guide (`hosting.md`) |
+| `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`), the hosting guide (`hosting.md`) and the README header images (`images/`) |
 | `compose.yaml` | Local development database (PostgreSQL 18) |
 | `Dockerfile`, `compose.prod.yaml`, `Caddyfile`, `.env.example` | Production: the image, app + database + Caddy, settings template |
 | `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore` |

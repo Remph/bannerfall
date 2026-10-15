@@ -1,12 +1,16 @@
 /**
- * The canonical orders of 02-game-rules §4.1 and §5.1 – the same as the server enums BuildingType and
- * UnitType. UI lists follow them. (The API sends buildings and units as maps keyed by these names.)
+ * The orders UI lists follow: 02-game-rules §4.1 and §5.1, the same as the server enums BuildingType
+ * and UnitType, except that the Banner Hall shows between the Workshop and the Academy (1.2.2; the
+ * server keeps it last, so nothing stored or computed there changes). Lists the server sends in its
+ * own order are sorted with `byBuildingOrder`. (The API sends buildings and units as maps keyed by
+ * these names.)
  */
 export const buildingTypes = [
   'HEADQUARTERS',
   'BARRACKS',
   'STABLE',
   'WORKSHOP',
+  'BANNER_HALL',
   'ACADEMY',
   'SMITHY',
   'RALLY_POINT',
@@ -18,11 +22,15 @@ export const buildingTypes = [
   'WAREHOUSE',
   'HIDING_PLACE',
   'WALL',
-  'BANNER_HALL',
 ] as const;
 
 /** 'HEADQUARTERS' | 'BARRACKS' | … – derived from the array, so both stay in sync. */
 export type BuildingType = (typeof buildingTypes)[number];
+
+/** Compares two buildings by the UI order above, for `sort`. */
+export function byBuildingOrder(a: BuildingType, b: BuildingType): number {
+  return buildingTypes.indexOf(a) - buildingTypes.indexOf(b);
+}
 
 export const unitTypes = [
   'SPEARMAN',
@@ -40,13 +48,13 @@ export const unitTypes = [
 
 export type UnitType = (typeof unitTypes)[number];
 
-/** The buildings that train units, in building order (server: GameData.RECRUITING_BUILDINGS). */
+/** The buildings that train units, in the UI's building order (server: GameData.RECRUITING_BUILDINGS). */
 export const recruitingBuildings = [
   'BARRACKS',
   'STABLE',
   'WORKSHOP',
-  'ACADEMY',
   'BANNER_HALL',
+  'ACADEMY',
 ] as const satisfies readonly BuildingType[];
 
 export type RecruitingBuilding = (typeof recruitingBuildings)[number];

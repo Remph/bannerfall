@@ -15,6 +15,9 @@ import java.util.Map;
  * @param protectedUntil the target player's beginner protection (the client compares it with the
  *     time of arrival); null for barbarians and players without
  * @param lastSentAt when the helper last sent the template, null if never
+ * @param nextBannerRollAt the player has used the banner roll against this target (02-game-rules
+ *     §21.7: per player, or per barbarian village) and may roll again from then on; null when a won
+ *     battle would roll now, or banners or drops are switched off
  */
 public record FarmTargetDto(
         long id,
@@ -23,4 +26,5 @@ public record FarmTargetDto(
         double distance,
         long travelSeconds,
         @Schema(nullable = true) Instant protectedUntil,
-        @Schema(nullable = true) Instant lastSentAt) {}
+        @Schema(nullable = true) Instant lastSentAt,
+        @Schema(nullable = true) Instant nextBannerRollAt) {}

@@ -996,6 +996,8 @@ export const en = {
       TRADE_ARRIVED: 'Merchants arrived',
     } satisfies Record<ReportKind, string>,
     results: { won: 'Won', lost: 'Lost' },
+    /** Next to the result in the list: the reader gained a banner there (found, stolen, conquered). */
+    bannerGained: (count: number): string => (count === 1 ? 'New banner' : 'New banners'),
     /** Village names are already in the texts; barbarian villages are "Barbarian village". */
     titles: {
       battle: (from: string, to: string) => `${from} attacks ${to}`,
@@ -1134,6 +1136,10 @@ export const en = {
     trip: (distance: string, duration: string) => `${distance} fields · ${duration} one way`,
     lastSent: (when: string) => `last sent ${when}`,
     protectedUntil: (when: string) => `Under beginner protection until ${when}`,
+    /** Your daily banner chance against this target is used (02 §21.7); `when` it comes back. */
+    bannerRollUsed: (when: string) => `Banner chance used · back at ${when}`,
+    bannerRollHint:
+      '“Banner chance used”: a won battle against this target has had its chance at a banner today. Against a player that counts for all their villages. The chance comes back at the time shown; plundering works as always.',
     notEnough: 'Not enough troops at home for this.',
     sent: (arrival: string) => `Attack sent – arrives ${arrival}`,
     send: 'Send',

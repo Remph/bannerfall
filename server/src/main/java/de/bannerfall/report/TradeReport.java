@@ -2,6 +2,7 @@ package de.bannerfall.report;
 
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.village.VillageRefDto;
+import java.util.List;
 
 /**
  * Merchants delivered resources (kind TRADE_ARRIVED; 02-game-rules §12, §14): a plain transport or
@@ -23,7 +24,7 @@ public record TradeReport(
     }
 
     @Override
-    public ReportSummary summary() {
-        return new ReportSummary(from, to, null);
+    public ReportSummary summary(ReportKind kind) {
+        return new ReportSummary(from, to, null, List.of());
     }
 }

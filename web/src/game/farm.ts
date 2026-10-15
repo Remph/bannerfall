@@ -51,6 +51,19 @@ export function farmSendEndsProtection(
   return protectedUntilMs > nowMs && targetPlayerId !== null;
 }
 
+/**
+ * When the player's banner roll against this target comes back (02-game-rules §21.7, 1.2.2): the
+ * server's `nextBannerRollAt` while it is still ahead, undefined when a won battle would roll now
+ * (or banners are off: the server sends null then).
+ */
+export function bannerRollBackAt(nextBannerRollAt: string | null, nowMs: number): number | undefined {
+  if (nextBannerRollAt === null) {
+    return undefined;
+  }
+  const at = Date.parse(nextBannerRollAt);
+  return at > nowMs ? at : undefined;
+}
+
 /** What "send all" (M39) answers: what went out, what was skipped and why, where it stopped. */
 export type SendAllResult = components['schemas']['FarmSendAllDto'];
 

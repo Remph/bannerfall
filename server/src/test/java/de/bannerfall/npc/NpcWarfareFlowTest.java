@@ -329,13 +329,45 @@ class NpcWarfareFlowTest {
                     m.grudges.put(
                             human.playerId,
                             new NpcMemory.Grudge(
-                                    now.plus(Duration.ofHours(10)), human.villageId, false));
+                                    now.plus(Duration.ofHours(10)), human.villageId, false, 0));
                 });
 
         round(lord);
 
         assertThat(attacksTo(lord, human.villageId)).hasSize(1);
         assertThat(memory(lord).grudges().get(human.playerId).retaliated()).isTrue();
+    }
+
+    @Test
+    void noScoutingAgainstAVillageWhoseScoutsTheLordKnowsItCannotBeat() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        units(villageOf(lord), Map.of(UnitType.AXEMAN, 100, UnitType.SCOUT, 10));
+        TestPlayer human = human(30, 0, true);
+        Instant until = clock.instant().plus(Duration.ofHours(10));
+        // 46 scouts came home from scouting the lord: its 10 can't beat them
+        remember(
+                lord,
+                m ->
+                        m.grudges.put(
+                                human.playerId,
+                                new NpcMemory.Grudge(until, human.villageId, false, 46)));
+
+        round(lord);
+
+        assertThat(movementsTo(lord, human.villageId)).isEmpty();
+
+        // 4 came home: 2 × 4 + 1 of its 10 are enough
+        remember(
+                lord,
+                m ->
+                        m.grudges.put(
+                                human.playerId,
+                                new NpcMemory.Grudge(until, human.villageId, false, 4)));
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+
+        List<Map<String, Object>> sent = movementsTo(lord, human.villageId);
+        assertThat(sent).singleElement().satisfies(m -> assertThat(m).containsEntry("u_scout", 9));
     }
 
     // ---- defence (§6.5) ----

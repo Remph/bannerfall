@@ -27,8 +27,8 @@ class GameDataTest {
             delimiter = '|',
             textBlock =
                     """
-                    HEADQUARTERS | 30 | 1 |    90 |    80 |    70 | 1.26  |  5 |   900 |  10 | -
-                    BARRACKS     | 25 | 0 |   200 |   170 |    90 | 1.26  |  7 |  1800 |  16 | HEADQUARTERS:3
+                    HEADQUARTERS | 30 | 1 |    80 |    85 |    75 | 1.26  |  5 |   900 |  10 | -
+                    BARRACKS     | 25 | 0 |   180 |   180 |   100 | 1.26  |  7 |  1800 |  16 | HEADQUARTERS:3
                     STABLE       | 20 | 0 |   270 |   240 |   260 | 1.26  |  8 |  6000 |  20 | HEADQUARTERS:10;BARRACKS:5;SMITHY:5
                     WORKSHOP     | 15 | 0 |   300 |   240 |   260 | 1.26  |  8 |  6000 |  24 | HEADQUARTERS:10;SMITHY:10
                     ACADEMY      |  1 | 0 | 15000 | 25000 | 10000 | 1.0   | 80 | 64800 | 512 | HEADQUARTERS:20;SMITHY:20;MARKET:10
@@ -36,10 +36,10 @@ class GameDataTest {
                     RALLY_POINT  |  1 | 1 |    10 |    40 |    30 | 1.0   |  0 |   600 |   0 | -
                     MARKET       | 25 | 0 |   100 |   100 |   100 | 1.26  | 20 |  2700 |  10 | HEADQUARTERS:3;WAREHOUSE:2
                     WOODCUTTER   | 30 | 1 |    50 |    60 |    40 | 1.25  |  5 |   900 |   6 | -
-                    CLAY_PIT     | 30 | 1 |    65 |    50 |    40 | 1.27  | 10 |   900 |   6 | -
-                    IRON_MINE    | 30 | 1 |    75 |    65 |    70 | 1.252 | 10 |  1080 |   6 | -
-                    FARM         | 30 | 1 |    45 |    40 |    30 | 1.30  |  0 |  1200 |   5 | -
-                    WAREHOUSE    | 30 | 1 |    60 |    50 |    40 | 1.265 |  0 |  1020 |   6 | -
+                    CLAY_PIT     | 30 | 1 |    55 |    55 |    45 | 1.27  | 10 |   900 |   6 | -
+                    IRON_MINE    | 30 | 1 |    65 |    70 |    75 | 1.252 | 10 |  1080 |   6 | -
+                    FARM         | 30 | 1 |    40 |    40 |    35 | 1.30  |  0 |  1200 |   5 | -
+                    WAREHOUSE    | 30 | 1 |    50 |    55 |    45 | 1.265 |  0 |  1020 |   6 | -
                     HIDING_PLACE | 10 | 0 |    50 |    60 |    50 | 1.25  |  2 |  1800 |   5 | -
                     WALL         | 20 | 0 |    50 |   100 |    20 | 1.26  |  5 |  3600 |   8 | BARRACKS:1
                     BANNER_HALL  |  3 | 0 |   300 |   350 |   250 | 1.5   |  8 |  7200 |  20 | HEADQUARTERS:8;BARRACKS:5
@@ -75,9 +75,9 @@ class GameDataTest {
             delimiter = '|',
             textBlock =
                     """
-                    SPEARMAN      | BARRACKS | BARRACKS:1           |    50 |    30 |    10 |   1 |  10 |  15 |  40 | INFANTRY | 18 | 25 |  1000
+                    SPEARMAN      | BARRACKS | BARRACKS:1           |    40 |    35 |    15 |   1 |  10 |  15 |  40 | INFANTRY | 18 | 25 |  1000
                     SWORDSMAN     | BARRACKS | BARRACKS:1;SMITHY:1  |    30 |    30 |    70 |   1 |  20 |  50 |  20 | INFANTRY | 22 | 15 |  1450
-                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    60 |    30 |    40 |   1 |  40 |  10 |   5 | INFANTRY | 18 | 10 |  1300
+                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    50 |    35 |    45 |   1 |  40 |  10 |   5 | INFANTRY | 18 | 10 |  1300
                     SCOUT         | STABLE   | STABLE:1             |    50 |    50 |    20 |   2 |   0 |   2 |   1 | INFANTRY |  9 |  0 |   900
                     LIGHT_CAVALRY | STABLE   | STABLE:3             |   125 |   100 |   250 |   4 | 120 |  30 |  40 | CAVALRY  | 10 | 80 |  1800
                     HEAVY_CAVALRY | STABLE   | STABLE:10;SMITHY:15  |   200 |   150 |   600 |   6 | 150 | 200 |  80 | CAVALRY  | 11 | 50 |  3600

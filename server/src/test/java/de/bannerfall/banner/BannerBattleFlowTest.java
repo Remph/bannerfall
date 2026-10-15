@@ -310,6 +310,9 @@ class BannerBattleFlowTest {
                 .isEqualTo(Map.of("type", "HARVEST", "tier", 1));
         assertThat((Object) JsonPath.read(defender.newestReport("DEFENSE"), "$.payload.banners"))
                 .isNull();
+        assertThat(attacker.bannersGainedIn("ATTACK"))
+                .containsExactly(Map.of("type", "HARVEST", "tier", 1));
+        assertThat(defender.bannersGainedIn("DEFENSE")).isEmpty();
         assertThat(bannersOf(attacker)).containsExactly("HARVEST:1:FOUND");
         assertThat(
                         count(
@@ -361,6 +364,8 @@ class BannerBattleFlowTest {
                         JsonPath.<Map<String, Object>>read(
                                 defender.newestReport("DEFENSE"), "$.payload.banners.found"))
                 .isEqualTo(Map.of("type", "HARVEST", "tier", 1));
+        assertThat(defender.bannersGainedIn("DEFENSE"))
+                .containsExactly(Map.of("type", "HARVEST", "tier", 1));
         assertThat(bannersOf(defender)).containsExactly("HARVEST:1:FOUND");
         assertThat(bannersOf(attacker)).isEmpty();
     }
@@ -417,6 +422,48 @@ class BannerBattleFlowTest {
         setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
         arriveAt(attack(attacker, defender, "{\"AXEMAN\":100}"));
         assertThat(bannersOf(attacker)).isEmpty();
+    }
+
+    @Test
+    void theFarmListShowsWhenTheNextBannerRollComes() throws Exception {
+        long barbarian = barbarianVillage();
+        Coordinates barbarianAt = coordinatesOf(barbarian);
+        addFarmTarget(attacker, coordinates(defender));
+        addFarmTarget(attacker, barbarianAt);
+        assertThat(nextBannerRolls(attacker)).containsExactly(null, null);
+
+        // a small army rolls nothing and uses nothing up
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 300));
+        setUnits(defender, Map.of(UnitType.SPEARMAN, 29));
+        arriveAt(attack(attacker, defender, "{\"AXEMAN\":100}"));
+        assertThat(nextBannerRolls(attacker)).containsExactly(null, null);
+
+        // a big enough battle uses the pair's roll even though nothing drops (dice: NEVER)
+        setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
+        Instant battle = attack(attacker, defender, "{\"AXEMAN\":100}");
+        arriveAt(battle);
+        assertThat(bannersOf(attacker)).isEmpty();
+        Instant back = battle.plus(Duration.ofHours(24));
+        assertThat(nextBannerRolls(attacker)).containsExactly(back, null);
+
+        // only the winner's rolls count: the defender's list doesn't show them
+        addFarmTarget(defender, coordinates(attacker));
+        assertThat(nextBannerRolls(defender)).containsExactly((Instant) null);
+
+        // banners off: no tag
+        setBanners(false, 1.0);
+        assertThat(nextBannerRolls(attacker)).containsExactly(null, null);
+        setBanners(true, 1.0);
+
+        // a real day after the battle the player's roll is back
+        clock.set(back);
+        assertThat(nextBannerRolls(attacker)).containsExactly(null, null);
+
+        // a barbarian village is its own pair
+        Instant raid = attack(attacker, barbarianAt, "{\"AXEMAN\":30}");
+        arriveAt(raid);
+        assertThat(nextBannerRolls(attacker))
+                .containsExactly(null, raid.plus(Duration.ofHours(24)));
     }
 
     // ---- the banner thief (§21.5) ----
@@ -502,6 +549,9 @@ class BannerBattleFlowTest {
                         JsonPath.<Map<String, Object>>read(
                                 defender.newestReport("DEFENSE"), "$.payload.banners.stolen"))
                 .isEqualTo(Map.of("type", "HARVEST", "tier", 2));
+        assertThat(attacker.bannersGainedIn("ATTACK"))
+                .containsExactly(Map.of("type", "HARVEST", "tier", 2));
+        assertThat(defender.bannersGainedIn("DEFENSE")).isEmpty();
         assertThat(sent.toPlayer(defender.playerId))
                 .anyMatch(
                         json ->
@@ -542,6 +592,7 @@ class BannerBattleFlowTest {
                 .isEqualTo(defender.villageId);
         assertThat((Object) JsonPath.read(defender.newestReport("DEFENSE"), "$.payload.banners"))
                 .isNull();
+        assertThat(attacker.bannersGainedIn("ATTACK")).isEmpty();
     }
 
     @Test
@@ -662,6 +713,27 @@ class BannerBattleFlowTest {
         String preview =
                 body(from.previewCommand(kind, target, unitsJson).andExpect(status().isOk()));
         return number(preview, "$.travelSeconds").longValue();
+    }
+
+    private void addFarmTarget(TestPlayer player, Coordinates target) throws Exception {
+        player.browser
+                .post(
+                        player.villagePath() + "/farm-targets",
+                        "{\"target\":{\"x\":"
+                                + target.x()
+                                + ",\"y\":"
+                                + target.y()
+                                + "},\"units\":{\"AXEMAN\":1}}")
+                .andExpect(status().isCreated());
+    }
+
+    /** {@code nextBannerRollAt} of each farm list entry, in list order. */
+    private List<Instant> nextBannerRolls(TestPlayer player) throws Exception {
+        List<String> rolls =
+                JsonPath.read(
+                        body(player.browser.get(player.villagePath() + "/farm-targets")),
+                        "$[*].nextBannerRollAt");
+        return rolls.stream().map(at -> at == null ? null : Instant.parse(at)).toList();
     }
 
     private void arriveAt(Instant at) {

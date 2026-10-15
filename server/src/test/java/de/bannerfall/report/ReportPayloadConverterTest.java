@@ -66,8 +66,8 @@ class ReportPayloadConverterTest {
 
         assertThat(json).contains("\"type\":\"CONQUEST\"");
         assertThat(converter.convertToEntityAttribute(json)).isEqualTo(report);
-        assertThat(report.summary().from()).isEqualTo(BEN);
-        assertThat(report.summary().to()).isEqualTo(BARBARIANS);
+        assertThat(report.summary(ReportKind.CONQUEST).from()).isEqualTo(BEN);
+        assertThat(report.summary(ReportKind.CONQUEST).to()).isEqualTo(BARBARIANS);
     }
 
     @Test
@@ -93,7 +93,7 @@ class ReportPayloadConverterTest {
 
         assertThat(json).contains("\"type\":\"TRADE\"");
         assertThat(converter.convertToEntityAttribute(json)).isEqualTo(report);
-        assertThat(report.summary().from()).isEqualTo(BEN);
+        assertThat(report.summary(ReportKind.TRADE_ARRIVED).from()).isEqualTo(BEN);
     }
 
     @Test

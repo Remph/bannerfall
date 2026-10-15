@@ -139,8 +139,8 @@ resourcesUpdatedAt = max(resourcesUpdatedAt, t)
 
 | Key | EN | DE | Max | Start | Wood | Clay | Iron | Factor | Pop | Time (s) | Pts | Requires |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| HEADQUARTERS | Town Hall | Rathaus | 30 | 1 | 90 | 80 | 70 | 1.26 | 5 | 900 | 10 | – |
-| BARRACKS | Barracks | Kaserne | 25 | 0 | 200 | 170 | 90 | 1.26 | 7 | 1800 | 16 | HQ 3 |
+| HEADQUARTERS | Town Hall | Rathaus | 30 | 1 | 80 | 85 | 75 | 1.26 | 5 | 900 | 10 | – |
+| BARRACKS | Barracks | Kaserne | 25 | 0 | 180 | 180 | 100 | 1.26 | 7 | 1800 | 16 | HQ 3 |
 | STABLE | Stable | Stall | 20 | 0 | 270 | 240 | 260 | 1.26 | 8 | 6000 | 20 | HQ 10, Barracks 5, Smithy 5 |
 | WORKSHOP | Workshop | Werkstatt | 15 | 0 | 300 | 240 | 260 | 1.26 | 8 | 6000 | 24 | HQ 10, Smithy 10 |
 | ACADEMY | Academy | Akademie | 1 | 0 | 15000 | 25000 | 10000 | 1.0 | 80 | 64800 | 512 | HQ 20, Smithy 20, Market 10 |
@@ -148,13 +148,15 @@ resourcesUpdatedAt = max(resourcesUpdatedAt, t)
 | RALLY_POINT | Rally Point | Sammelplatz | 1 | 1 | 10 | 40 | 30 | 1.0 | 0 | 600 | 0 | – |
 | MARKET | Market | Marktplatz | 25 | 0 | 100 | 100 | 100 | 1.26 | 20 | 2700 | 10 | HQ 3, Warehouse 2 |
 | WOODCUTTER | Woodcutter | Holzfäller | 30 | 1 | 50 | 60 | 40 | 1.25 | 5 | 900 | 6 | – |
-| CLAY_PIT | Clay Pit | Lehmgrube | 30 | 1 | 65 | 50 | 40 | 1.27 | 10 | 900 | 6 | – |
-| IRON_MINE | Iron Mine | Eisenmine | 30 | 1 | 75 | 65 | 70 | 1.252 | 10 | 1080 | 6 | – |
-| FARM | Farm | Bauernhof | 30 | 1 | 45 | 40 | 30 | 1.30 | 0 | 1200 | 5 | – |
-| WAREHOUSE | Warehouse | Speicher | 30 | 1 | 60 | 50 | 40 | 1.265 | 0 | 1020 | 6 | – |
+| CLAY_PIT | Clay Pit | Lehmgrube | 30 | 1 | 55 | 55 | 45 | 1.27 | 10 | 900 | 6 | – |
+| IRON_MINE | Iron Mine | Eisenmine | 30 | 1 | 65 | 70 | 75 | 1.252 | 10 | 1080 | 6 | – |
+| FARM | Farm | Bauernhof | 30 | 1 | 40 | 40 | 35 | 1.30 | 0 | 1200 | 5 | – |
+| WAREHOUSE | Warehouse | Speicher | 30 | 1 | 50 | 55 | 45 | 1.265 | 0 | 1020 | 6 | – |
 | HIDING_PLACE | Hiding Place | Versteck | 10 | 0 | 50 | 60 | 50 | 1.25 | 2 | 1800 | 5 | – |
 | WALL | Wall | Wall | 20 | 0 | 50 | 100 | 20 | 1.26 | 5 | 3600 | 8 | Barracks 1 |
 | BANNER_HALL | Banner Hall | Bannerhalle | 3 | 0 | 300 | 350 | 250 | 1.5 | 8 | 7200 | 20 | HQ 8, Barracks 5 |
+
+**Wood balance (1.2.2).** Before 1.2.2 about 41 % of what a village spent in the early game was wood (37 % of the buildings, half of the spearmen and axemen) and about 38 % in the mid game, while the three mines produce the same. Wood ran out first and clay and iron piled up. 1.2.2 moved part of the wood price of the Town Hall, Barracks, Clay Pit, Iron Mine, Farm and Warehouse (and of the spearman and axeman, §5.1) onto clay and iron. Every total stays the same, so nothing gets cheaper; clay and iron just stop piling up unused. The demand is now about 36 / 35 / 29 % (wood / clay / iron) early and 34 / 32 / 33 % mid game (measured along the BALANCED NPC template, 09 §9, with its unit mix). Orders already queued keep what they paid.
 
 ### 4.2 Formulas
 
@@ -221,9 +223,9 @@ The Town Hall page shows what the **next** level of a building does before the p
 
 | Key | EN | DE | Building | Requires | Wood | Clay | Iron | Pop | Att | Def inf | Def cav | Type | Speed | Carry | Time (s) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| SPEARMAN | Spearman | Speerträger | BARRACKS | Barracks 1 | 50 | 30 | 10 | 1 | 10 | 15 | 40 | INF | 18 | 25 | 1000 |
+| SPEARMAN | Spearman | Speerträger | BARRACKS | Barracks 1 | 40 | 35 | 15 | 1 | 10 | 15 | 40 | INF | 18 | 25 | 1000 |
 | SWORDSMAN | Swordsman | Schwertkämpfer | BARRACKS | Barracks 1, Smithy 1 | 30 | 30 | 70 | 1 | 20 | 50 | 20 | INF | 22 | 15 | 1450 |
-| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 60 | 30 | 40 | 1 | 40 | 10 | 5 | INF | 18 | 10 | 1300 |
+| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 50 | 35 | 45 | 1 | 40 | 10 | 5 | INF | 18 | 10 | 1300 |
 | SCOUT | Scout | Späher | STABLE | Stable 1 | 50 | 50 | 20 | 2 | 0 | 2 | 1 | INF | 9 | 0 | 900 |
 | LIGHT_CAVALRY | Light Cavalry | Leichte Kavallerie | STABLE | Stable 3 | 125 | 100 | 250 | 4 | 120 | 30 | 40 | CAV | 10 | 80 | 1800 |
 | HEAVY_CAVALRY | Heavy Cavalry | Schwere Kavallerie | STABLE | Stable 10, Smithy 15 | 200 | 150 | 600 | 6 | 150 | 200 | 80 | CAV | 11 | 50 | 3600 |
@@ -291,7 +293,7 @@ The request (2026-10-13): "units still unlock through the building requirements;
 | HEAVY_CAVALRY | 150 / 165 / 180 | 200 / 220 / 240 | 80 / 88 / 96 |
 
 - **Upgraded scouts (M31 follow-up, 2026-10-13: "you can only see the unit levels starting from level 2")**: the scout's level 2 costs 1000 / 1000 / 400 (20× his recruit cost), takes 12 h at Smithy 1 and needs Smithy 10 like every level 2; his stats move only a little (defence 3 / 2 instead of 2 / 1, attack stays 0), the point is what the report shows. **An attacker's report shows the unit levels of the defenders only if his attack carried scouts at level 2 or more and the scouting succeeded** (the same condition as the other scouted data, §7.1, §14). Level 1 scouts, a failed scouting, a lost battle with no survivor and a world with unit levels off show no levels. His copy has no stacks (he never learns who supports a village), so he gets **one level per unit type: the highest among all defending stacks** (default; the defenders' own copy lists the levels per stack as before). A level 2 scout also does not change the scouting phase itself (§7.1): only the report.
-- **Cost and time**: a research costs **20×** (level 2) and **50×** (level 3) the unit's recruit cost, paid when it starts (e.g. spearman level 2: 1000 wood, 600 clay, 200 iron; heavy cavalry level 3: 10 000 / 7 500 / 30 000). It takes `max(1, round(baseSeconds × 0.937^(smithyLevel−1) / speed))` with `baseSeconds` 12 h (level 2) and 30 h (level 3) at Smithy 1 and world speed 1 – the same smithy-level factor as recruiting, with the smithy level of the village at the start. At speed 6 and Smithy 10: about 1 h 7 min for level 2.
+- **Cost and time**: a research costs **20×** (level 2) and **50×** (level 3) the unit's recruit cost, paid when it starts (e.g. spearman level 2: 800 wood, 700 clay, 300 iron; heavy cavalry level 3: 10 000 / 7 500 / 30 000). It takes `max(1, round(baseSeconds × 0.937^(smithyLevel−1) / speed))` with `baseSeconds` 12 h (level 2) and 30 h (level 3) at Smithy 1 and world speed 1 – the same smithy-level factor as recruiting, with the smithy level of the village at the start. At speed 6 and Smithy 10: about 1 h 7 min for level 2.
 - **Requirements** (current levels of the researching village, queued building levels don't count, like recruiting §5.2): **Smithy 10** for level 2, **Smithy 15** for level 3, plus the unit's own requirements of §5.1 (heavy cavalry: Stable 10 and Smithy 15 at every level). Levels go one at a time: level 3 only after level 2.
 - **One research at a time per village** (that village's smithy; default) and **one research per unit** at a time in the whole account, so a unit is not researched in two villages at once. `RESEARCH_BUSY` for both. Different units can be researched in different villages at the same time.
 - **No events, no catch-up.** A research row holds `startAt`/`endAt`; the level of a unit at time *t* is the highest level of the player's researches with `endAt ≤ t`, 1 if none. A battle reads the levels at the moment it happens (the arrival time of the attack), a research that finishes one second earlier counts. Finished rows stay.
@@ -944,6 +946,7 @@ Same chance for players and lords as requested; barbarians "a small chance". The
 - **Size:** the **losing** side must have fought with at least **30 population** of units (the attacker's sent units, or the defender's units in the village before losses; against barbarians the attacker's army must be at least 30 pop). Beating an empty village or a lone probe rolls nothing.
 - **One roll per pair per real day:** the same winner against the same loser (player, NPC lord, or one barbarian village) rolls at most **once per 24 real hours** (not scaled by speed: it protects the player's day, like the NPC attack caps, 09 §7). The reverse direction is its own pair.
 - **At most 8 drops per player per real 24 hours** as a safety net; normal play never hits it.
+- The farm list (§18) shows a "Banner chance used" tag with the time it comes back on each target whose pair roll is used (1.2.2), so players can aim for the targets that can still drop one. Against a player or lord the tag is on all of their villages, since the pair is the player.
 - Not eligible: attacks on one's own villages. A battle that conquers the village **does** roll (the banner that moves with the conquest and the drop are independent).
 - A player under beginner protection may win against barbarians and roll (M25), nobody can attack him.
 

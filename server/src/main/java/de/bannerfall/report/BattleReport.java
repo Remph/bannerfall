@@ -6,6 +6,7 @@ import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.village.VillageRefDto;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -114,8 +115,28 @@ public record BattleReport(
     }
 
     @Override
-    public ReportSummary summary() {
-        return new ReportSummary(attacker, defender, outcome);
+    public ReportSummary summary(ReportKind kind) {
+        return new ReportSummary(attacker, defender, outcome, bannersGained());
+    }
+
+    /**
+     * The banners the recipient's side gained in this battle: the one it found, the one its thieves
+     * stole. Each copy only holds what its recipient may know (a supporter's copy has no found
+     * banner, the defenders' copy no theft), so the payload alone decides.
+     */
+    private List<ScoutedBanner> bannersGained() {
+        if (banners == null) {
+            return List.of();
+        }
+        List<ScoutedBanner> gained = new ArrayList<>();
+        if (banners.found() != null) {
+            gained.add(banners.found());
+        }
+        TheftReport theft = banners.theft();
+        if (theft != null && theft.result() == TheftResult.STOLEN && theft.banner() != null) {
+            gained.add(theft.banner());
+        }
+        return List.copyOf(gained);
     }
 
     /**

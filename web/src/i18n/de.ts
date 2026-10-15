@@ -903,6 +903,7 @@ export const de: Dictionary = {
       TRADE_ARRIVED: 'Händler angekommen',
     },
     results: { won: 'Gewonnen', lost: 'Verloren' },
+    bannerGained: (count: number): string => (count === 1 ? 'Neues Banner' : 'Neue Banner'),
     titles: {
       battle: (from: string, to: string) => `${from} greift ${to} an`,
       scout: (from: string, to: string) => `${from} späht ${to} aus`,
@@ -1031,6 +1032,9 @@ export const de: Dictionary = {
     trip: (distance: string, duration: string) => `${distance} Felder · ${duration} einfach`,
     lastSent: (when: string) => `zuletzt geschickt ${when}`,
     protectedUntil: (when: string) => `Unter Anfängerschutz bis ${when}`,
+    bannerRollUsed: (when: string) => `Bannerchance genutzt · wieder ab ${when}`,
+    bannerRollHint:
+      '„Bannerchance genutzt“: Ein gewonnener Kampf gegen dieses Ziel hatte heute schon seine Chance auf ein Banner. Bei einem Spieler gilt das für alle seine Dörfer. Die Chance kommt zur angezeigten Zeit wieder; plündern geht wie immer.',
     notEnough: 'Dafür sind nicht genug Truppen im Dorf.',
     sent: (arrival: string) => `Angriff geschickt – Ankunft ${arrival}`,
     send: 'Schicken',

@@ -24,7 +24,7 @@ public record ReportItemDto(
                 report.getKind(),
                 report.getHappenedAt(),
                 report.isRead(),
-                report.getPayload() == null ? null : report.getPayload().summary(),
+                report.getPayload() == null ? null : report.getPayload().summary(report.getKind()),
                 report.getSharedBy());
     }
 }

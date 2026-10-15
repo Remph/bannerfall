@@ -9,12 +9,15 @@ export function villageName(t: Dictionary, village: VillageRef): string {
   return village.name ?? t.map.barbarianVillage;
 }
 
+/** What a title is made of: the list's summary, or the same read from a payload. */
+type TitleParts = Pick<ReportSummary, 'from' | 'to' | 'outcome'>;
+
 /**
  * The title of a report, the same in the list and on the detail page: "Benhausen attacks
  * Tomburg", "Support from Benhausen arrived in Tomburg", "Benhausen conquered Tomburg" … A support sent home reads differently
  * for the one whose units they are and for the one they left (02-game-rules §14).
  */
-export function reportTitle(t: Dictionary, kind: ReportKind, summary: ReportSummary | null, playerId: number): string {
+export function reportTitle(t: Dictionary, kind: ReportKind, summary: TitleParts | null, playerId: number): string {
   if (summary === null) {
     return t.reports.titles.unreadable;
   }

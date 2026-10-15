@@ -10,6 +10,7 @@ import { CostList } from '../../components/CostList';
 import { DevCheats } from '../../components/DevCheats';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { byBuildingOrder } from '../../game/gameData';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
 import { useServerNow } from '../../game/serverTime';
 import { upgradeBlocker } from '../../game/upgradePreview';
@@ -62,9 +63,10 @@ function TownHall({ villageId }: { villageId: number }) {
     // until the world is loaded the server has the last word (it refuses with BANNERS_DISABLED)
     bannersEnabled: world?.bannersEnabled ?? true,
   };
-  // `filter` keeps the order of the server's list, which is the canonical building order.
-  const available = buildings.data.filter((info) => info.requirementsMet);
-  const locked = buildings.data.filter((info) => !info.requirementsMet);
+  // the server lists them in its enum order; shown in the UI's (the Banner Hall after the Workshop)
+  const sorted = [...buildings.data].sort((a, b) => byBuildingOrder(a.building, b.building));
+  const available = sorted.filter((info) => info.requirementsMet);
+  const locked = sorted.filter((info) => !info.requirementsMet);
   return (
     <div className={styles.page}>
       <header className={styles.head}>

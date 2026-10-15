@@ -223,7 +223,7 @@ class NpcIntelTest {
 
         assertThat(memory.grudges)
                 .containsEntry(
-                        HUMAN, new NpcMemory.Grudge(AT.plus(Duration.ofHours(24)), 2, false));
+                        HUMAN, new NpcMemory.Grudge(AT.plus(Duration.ofHours(24)), 2, false, 3));
 
         var elsewhere =
                 new BattleReport(
@@ -244,14 +244,67 @@ class NpcIntelTest {
     }
 
     @Test
+    void theGrudgeKeepsTheMostScoutsThatWentHomeToTheSourceVillage() {
+        var memory = NpcMemory.empty().draft();
+        NpcIntel.learn(
+                memory, LORD, ReportKind.DEFENSE, AT, scoutsOnTheLord(TARGET, 50, 4), DATA, 1, 48);
+        assertThat(memory.grudges.get(HUMAN).scouts()).isEqualTo(46);
+
+        // a smaller scouting from the same village: the 46 are still there
+        NpcIntel.learn(
+                memory,
+                LORD,
+                ReportKind.DEFENSE,
+                AT.plusSeconds(60),
+                scoutsOnTheLord(TARGET, 10, 0),
+                DATA,
+                1,
+                48);
+        assertThat(memory.grudges.get(HUMAN).scouts()).isEqualTo(46);
+
+        // from another village: only what came home there counts
+        var other = new VillageRefDto(3, "H2", 6, 0, HUMAN, "H");
+        NpcIntel.learn(
+                memory,
+                LORD,
+                ReportKind.DEFENSE,
+                AT.plusSeconds(120),
+                scoutsOnTheLord(other, 6, 6),
+                DATA,
+                1,
+                48);
+        assertThat(memory.grudges.get(HUMAN))
+                .satisfies(
+                        g -> {
+                            assertThat(g.sourceVillageId()).isEqualTo(3);
+                            assertThat(g.scouts()).isZero();
+                        });
+    }
+
+    private static BattleReport scoutsOnTheLord(VillageRefDto from, int sent, int lost) {
+        return new BattleReport(
+                from,
+                LORD_VILLAGE,
+                BattleOutcome.SCOUTS_ONLY,
+                null,
+                Map.of(UnitType.SCOUT, sent),
+                Map.of(UnitType.SCOUT, lost),
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    @Test
     void pruningForgetsWhatIsOldOrNoLongerTrue() {
         Instant now = AT.plus(Duration.ofDays(8));
         var memory = NpcMemory.empty().draft();
         memory.intel.put(2L, intel(now.minus(Duration.ofHours(1)), HUMAN)); // kept
         memory.intel.put(3L, intel(now.minus(Duration.ofHours(1)), HUMAN)); // owner changed
         memory.intel.put(4L, intel(now.minus(Duration.ofDays(7)).minusSeconds(1), null)); // old
-        memory.grudges.put(HUMAN, new NpcMemory.Grudge(now, 2, false)); // expires now
-        memory.grudges.put(21L, new NpcMemory.Grudge(now.plusSeconds(1), 2, false));
+        memory.grudges.put(HUMAN, new NpcMemory.Grudge(now, 2, false, 0)); // expires now
+        memory.grudges.put(21L, new NpcMemory.Grudge(now.plusSeconds(1), 2, false, 0));
         memory.attacksSent.add(new NpcMemory.SentAttack(HUMAN, now.minus(Duration.ofHours(24))));
         memory.attacksSent.add(
                 new NpcMemory.SentAttack(HUMAN, now.minus(Duration.ofHours(24)).plusSeconds(1)));
@@ -287,7 +340,7 @@ class NpcIntelTest {
     void memoryWithIntelSurvivesTheJsonColumn() {
         var memory = NpcMemory.empty().draft();
         memory.intel.put(2L, intel(AT, HUMAN));
-        memory.grudges.put(HUMAN, new NpcMemory.Grudge(AT, 2, true));
+        memory.grudges.put(HUMAN, new NpcMemory.Grudge(AT, 2, true, 7));
         memory.attacksSent.add(new NpcMemory.SentAttack(HUMAN, AT));
         memory.farmed.put(2L, AT);
         memory.supported.add(new NpcMemory.Supported(5, 1));

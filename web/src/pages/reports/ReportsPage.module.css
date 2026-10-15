@@ -190,6 +190,20 @@
   color: var(--color-danger);
 }
 
+/* a banner the reader gained there: its small picture (or two) and "New banner" */
+.bannerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 /* ---------- delete with two taps ---------- */
 .delete {
   min-height: var(--touch-target);

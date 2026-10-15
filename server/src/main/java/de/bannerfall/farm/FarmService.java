@@ -1,5 +1,6 @@
 package de.bannerfall.farm;
 
+import de.bannerfall.banner.BannerBattleService;
 import de.bannerfall.banner.VillageBanners;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.common.Coordinates;
@@ -24,6 +25,7 @@ import de.bannerfall.world.WorldService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,7 @@ public class FarmService {
     private final WorldService worldService;
     private final Clock clock;
     private final VillageBanners villageBanners;
+    private final BannerBattleService bannerBattles;
 
     FarmService(
             FarmTargetRepository targets,
@@ -60,7 +63,8 @@ public class FarmService {
             GameData gameData,
             WorldService worldService,
             Clock clock,
-            VillageBanners villageBanners) {
+            VillageBanners villageBanners,
+            BannerBattleService bannerBattles) {
         this.targets = targets;
         this.villages = villages;
         this.locker = locker;
@@ -69,6 +73,7 @@ public class FarmService {
         this.worldService = worldService;
         this.clock = clock;
         this.villageBanners = villageBanners;
+        this.bannerBattles = bannerBattles;
     }
 
     /**
@@ -92,6 +97,7 @@ public class FarmService {
             byId.put(target.getId(), target);
         }
         double haste = villageBanners.effectOf(source).haste(); // one lookup for the list
+        Map<String, Instant> rolls = nextRolls(playerId, byId.values(), now); // and one for all
         return entries.stream()
                 .map(
                         entry ->
@@ -100,6 +106,7 @@ public class FarmService {
                                         entry,
                                         byId.get(entry.getTargetVillageId()),
                                         haste,
+                                        rolls,
                                         now))
                 .toList();
     }
@@ -139,7 +146,13 @@ public class FarmService {
         }
         Instant now = clock.instant();
         FarmTarget entry = targets.save(new FarmTarget(villageId, target.getId(), template, now));
-        return toDto(source, entry, target, villageBanners.effectOf(source).haste(), now);
+        return toDto(
+                source,
+                entry,
+                target,
+                villageBanners.effectOf(source).haste(),
+                nextRolls(playerId, List.of(target), now),
+                now);
     }
 
     /**
@@ -156,8 +169,14 @@ public class FarmService {
         FarmTarget entry = find(villageId, targetId);
         entry.setUnits(template);
         Village target = villages.findById(entry.getTargetVillageId()).orElseThrow();
+        Instant now = clock.instant();
         return toDto(
-                source, entry, target, villageBanners.effectOf(source).haste(), clock.instant());
+                source,
+                entry,
+                target,
+                villageBanners.effectOf(source).haste(),
+                nextRolls(playerId, List.of(target), now),
+                now);
     }
 
     /**
@@ -308,11 +327,32 @@ public class FarmService {
     }
 
     /**
+     * The player's banner rolls against these targets (02-game-rules §21.7): per player for a
+     * player's or NPC lord's village, per village for a barbarian one, keyed as in {@link
+     * BannerBattleService.Loser}.
+     */
+    private Map<String, Instant> nextRolls(
+            long playerId, Collection<Village> targets, Instant now) {
+        return bannerBattles.nextRolls(
+                playerId,
+                targets.stream()
+                        .map(target -> BannerBattleService.Loser.defenderOf(target).key())
+                        .toList(),
+                now);
+    }
+
+    /**
      * @param haste the source's Haste banner (02-game-rules §21.2), so the trip shown is the one
      *     the attack will take
+     * @param rolls {@link #nextRolls} for (at least) this target
      */
     private FarmTargetDto toDto(
-            Village source, FarmTarget entry, Village target, double haste, Instant now) {
+            Village source,
+            FarmTarget entry,
+            Village target,
+            double haste,
+            Map<String, Instant> rolls,
+            Instant now) {
         UnitCounts units = entry.getUnits();
         double distance = Travel.distance(source.coordinates(), target.coordinates());
         long travelSeconds =
@@ -331,6 +371,7 @@ public class FarmService {
                 distance,
                 travelSeconds,
                 protectedUntil != null && protectedUntil.isAfter(now) ? protectedUntil : null,
-                entry.getLastSentAt());
+                entry.getLastSentAt(),
+                rolls.get(BannerBattleService.Loser.defenderOf(target).key()));
     }
 }

@@ -141,8 +141,11 @@ public record NpcMemory(
      * @param until when it expires
      * @param sourceVillageId the village the latest attack came from
      * @param retaliated the lord has retaliated (or given up on it) for this grudge
+     * @param scouts the most scouts the attacks from {@code sourceVillageId} brought home (sent
+     *     minus lost): at least that many stand there, so the lord's own scouting has to beat them
+     *     (09 §6.3). 0 in memory written before this was kept
      */
-    public record Grudge(Instant until, long sourceVillageId, boolean retaliated) {}
+    public record Grudge(Instant until, long sourceVillageId, boolean retaliated, int scouts) {}
 
     /** A command towards a player village (a conquest train counts once). */
     public record SentAttack(long targetPlayerId, Instant at) {}

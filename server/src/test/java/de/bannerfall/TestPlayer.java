@@ -5,6 +5,7 @@ import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.UnitType;
 import java.util.List;
+import java.util.Map;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -211,6 +212,21 @@ public final class TestPlayer {
             throw new AssertionError("No " + kind + " report in " + list);
         }
         return body(report(ids.get(0).longValue()));
+    }
+
+    /**
+     * What the report list says about banners the player gained in his newest report of this kind
+     * ({@code summary.bannersGained}, e.g. {@code [{type: WAR, tier: 2}]}); fails if there is none
+     * on the first page.
+     */
+    public List<Map<String, Object>> bannersGainedIn(String kind) throws Exception {
+        String list = body(reports().andExpect(MockMvcResultMatchers.status().isOk()));
+        List<List<Map<String, Object>>> gained =
+                JsonPath.read(list, "$.items[?(@.kind == '" + kind + "')].summary.bannersGained");
+        if (gained.isEmpty()) {
+            throw new AssertionError("No " + kind + " report in " + list);
+        }
+        return gained.get(0);
     }
 
     /** The kinds of the player's reports on the first page, newest first. */

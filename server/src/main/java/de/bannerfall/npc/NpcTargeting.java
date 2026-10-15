@@ -268,10 +268,18 @@ public final class NpcTargeting {
      * doubled for each failure in a row.
      */
     public static int scoutCount(Intel intel) {
-        int base =
-                intel == null || intel.units() == null
-                        ? FIRST_SCOUTS
-                        : Math.max(3, 2 * intel.scoutsSeen() + 1);
+        return scoutCount(intel, 0);
+    }
+
+    /**
+     * Scouts for the next scouting when the lord also knows that at least {@code knownScouts} stand
+     * there (an attack from there brought them home): those count like scouts seen, so the lord
+     * never sends a handful against an army of scouts it knows about (§6.3).
+     */
+    public static int scoutCount(Intel intel, int knownScouts) {
+        boolean unseen = intel == null || intel.units() == null;
+        int seen = Math.max(unseen ? 0 : intel.scoutsSeen(), knownScouts);
+        int base = Math.max(unseen ? FIRST_SCOUTS : 3, 2 * seen + 1);
         int failures = intel == null ? 0 : Math.min(intel.scoutFailures(), 10);
         return base << failures;
     }

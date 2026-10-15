@@ -459,7 +459,7 @@ class BuildControllerTest {
                 .andExpect(jsonPath("$[1].missing[0].level").value(3))
                 // still shows what the first level would cost
                 .andExpect(jsonPath("$[1].next.level").value(1))
-                .andExpect(jsonPath("$[1].next.cost.wood").value(200));
+                .andExpect(jsonPath("$[1].next.cost.wood").value(180));
     }
 
     @Test

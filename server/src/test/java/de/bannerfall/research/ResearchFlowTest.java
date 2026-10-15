@@ -96,9 +96,9 @@ class ResearchFlowTest {
                 .isEqualTo(18 / speed);
         // the next research: level 2 costs 20 times the recruit cost, 12 h at Smithy 1
         assertThat(JsonPath.<Integer>read(smithy, spear + ".next.level")).isEqualTo(2);
-        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.wood")).isEqualTo(1000);
-        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.clay")).isEqualTo(600);
-        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.iron")).isEqualTo(200);
+        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.wood")).isEqualTo(800);
+        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.clay")).isEqualTo(700);
+        assertThat(JsonPath.<Integer>read(smithy, spear + ".next.cost.iron")).isEqualTo(300);
         assertThat(JsonPath.<Boolean>read(smithy, spear + ".next.affordable")).isTrue();
         assertThat(JsonPath.<List<?>>read(smithy, spear + ".next.missing")).isEmpty();
         assertThat(JsonPath.<Boolean>read(smithy, spear + ".next.villageBusy")).isFalse();
@@ -202,9 +202,9 @@ class ResearchFlowTest {
         assertThat(Instant.parse(JsonPath.read(order, "$.endAt")))
                 .isEqualTo(now.plusSeconds(seconds));
         player.village()
-                .andExpect(jsonPath("$.resources.wood").value(4000.0))
-                .andExpect(jsonPath("$.resources.clay").value(4400.0))
-                .andExpect(jsonPath("$.resources.iron").value(4800.0));
+                .andExpect(jsonPath("$.resources.wood").value(4200.0))
+                .andExpect(jsonPath("$.resources.clay").value(4300.0))
+                .andExpect(jsonPath("$.resources.iron").value(4700.0));
         String smithy = body(player.smithy());
         assertThat(JsonPath.<Integer>read(smithy, "$.running.id"))
                 .isEqualTo(JsonPath.<Integer>read(order, "$.id"));
@@ -327,7 +327,7 @@ class ResearchFlowTest {
 
     @Test
     void theStockMustPayForIt() throws Exception {
-        setStock(999, 10_000, 10_000);
+        setStock(799, 10_000, 10_000);
 
         player.research(UnitType.SPEARMAN)
                 .andExpect(status().isConflict())

@@ -110,7 +110,7 @@ function ReportContent({ report, back, onDeleted }: ReportContentProps) {
   const [sentTo, setSentTo] = useState<string[] | null>(null);
   const { kind, payload } = report;
   // `payload.type` tells TypeScript which of the payloads it is (a discriminated union)
-  const summary: ReportSummary | null =
+  const summary: Pick<ReportSummary, 'from' | 'to' | 'outcome'> | null =
     payload === null
       ? null
       : payload.type === 'BATTLE'

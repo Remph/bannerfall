@@ -36,6 +36,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public sealed interface ReportPayload
         permits BattleReport, SupportReport, ConquestReport, TradeReport {
 
-    /** The few fields the report list shows. */
-    ReportSummary summary();
+    /**
+     * The few fields the report list shows.
+     *
+     * @param kind the report's kind: a payload type can serve two kinds (a conquest is CONQUEST for
+     *     one player and VILLAGE_LOST for the other)
+     */
+    ReportSummary summary(ReportKind kind);
 }

@@ -123,6 +123,21 @@
   font-size: 0.9rem;
 }
 
+/* the banner chance against the target is used for the day (02 §21.7): quiet, the others stand out */
+.bannerRoll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
 .meta {
   margin: 0;
   color: var(--color-text-muted);

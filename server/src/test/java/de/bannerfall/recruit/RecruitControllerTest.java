@@ -65,11 +65,11 @@ class RecruitControllerTest {
                 .andExpect(jsonPath("$.startAt").value(now.toString()))
                 .andExpect(jsonPath("$.endAt").value(now.plusSeconds(4000).toString()));
 
-        // 4 × (50, 30, 10) paid, 4 population in use while they train, none at home yet
+        // 4 × (40, 35, 15) paid, 4 population in use while they train, none at home yet
         player.village()
-                .andExpect(jsonPath("$.resources.wood", closeTo(300, EPSILON)))
-                .andExpect(jsonPath("$.resources.clay", closeTo(380, EPSILON)))
-                .andExpect(jsonPath("$.resources.iron", closeTo(460, EPSILON)))
+                .andExpect(jsonPath("$.resources.wood", closeTo(340, EPSILON)))
+                .andExpect(jsonPath("$.resources.clay", closeTo(360, EPSILON)))
+                .andExpect(jsonPath("$.resources.iron", closeTo(440, EPSILON)))
                 .andExpect(jsonPath("$.population.used").value(41))
                 .andExpect(jsonPath("$.unitsHome").isEmpty());
     }
@@ -168,12 +168,12 @@ class RecruitControllerTest {
     @Test
     void theStockIsComparedRoundedDown() throws Exception {
         setLevel(BuildingType.BARRACKS, 1);
-        setStock(99.9, 500, 500);
-        player.recruit(UnitType.SPEARMAN, 2) // 100 wood
+        setStock(79.9, 500, 500);
+        player.recruit(UnitType.SPEARMAN, 2) // 80 wood
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_ENOUGH_RESOURCES"));
 
-        setStock(100, 500, 500);
+        setStock(80, 500, 500);
         player.recruit(UnitType.SPEARMAN, 2).andExpect(status().isCreated());
     }
 
@@ -210,7 +210,7 @@ class RecruitControllerTest {
         setLevel(BuildingType.SMITHY, 1);
         Instant now = clock.instant();
 
-        // spearman (50, 30, 10) × 6 + swordsman (30, 30, 70) × 4: barracks orders one after another
+        // spearman (40, 35, 15) × 6 + swordsman (30, 30, 70) × 4: barracks orders one after another
         player.recruitAll(UnitType.SPEARMAN, 6, UnitType.SWORDSMAN, 4)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -222,9 +222,9 @@ class RecruitControllerTest {
                 .andExpect(jsonPath("$[1].startAt").value(now.plusSeconds(6000).toString()));
 
         player.village()
-                .andExpect(jsonPath("$.resources.wood", closeTo(500 - 300 - 120, EPSILON)))
-                .andExpect(jsonPath("$.resources.clay", closeTo(500 - 180 - 120, EPSILON)))
-                .andExpect(jsonPath("$.resources.iron", closeTo(500 - 60 - 280, EPSILON)));
+                .andExpect(jsonPath("$.resources.wood", closeTo(500 - 240 - 120, EPSILON)))
+                .andExpect(jsonPath("$.resources.clay", closeTo(500 - 210 - 120, EPSILON)))
+                .andExpect(jsonPath("$.resources.iron", closeTo(500 - 90 - 280, EPSILON)));
         player.recruitment().andExpect(jsonPath("$[0].queue.length()").value(2));
     }
 
@@ -247,7 +247,7 @@ class RecruitControllerTest {
         setLevel(BuildingType.SMITHY, 1);
 
         // each order alone fits into 500 wood, together they need 400 + 120
-        player.recruitAll(UnitType.SPEARMAN, 8, UnitType.SWORDSMAN, 4)
+        player.recruitAll(UnitType.SPEARMAN, 10, UnitType.SWORDSMAN, 4)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NOT_ENOUGH_RESOURCES"))
                 .andExpect(jsonPath("$.unit").value("SWORDSMAN"));
@@ -439,9 +439,9 @@ class RecruitControllerTest {
         // without barracks: not available, the time is the one at level 1
         player.recruitment()
                 .andExpect(jsonPath("$[0].units[0].unit").value("SPEARMAN"))
-                .andExpect(jsonPath("$[0].units[0].cost.wood").value(50))
-                .andExpect(jsonPath("$[0].units[0].cost.clay").value(30))
-                .andExpect(jsonPath("$[0].units[0].cost.iron").value(10))
+                .andExpect(jsonPath("$[0].units[0].cost.wood").value(40))
+                .andExpect(jsonPath("$[0].units[0].cost.clay").value(35))
+                .andExpect(jsonPath("$[0].units[0].cost.iron").value(15))
                 .andExpect(jsonPath("$[0].units[0].pop").value(1))
                 .andExpect(jsonPath("$[0].units[0].secondsPerUnit").value(1000))
                 .andExpect(jsonPath("$[0].units[0].available").value(false))
@@ -468,8 +468,8 @@ class RecruitControllerTest {
     void theOverviewShowsHowManyThePlayerCanAfford() throws Exception {
         setLevel(BuildingType.BARRACKS, 1); // 203 of 240 population free
         player.recruitment()
-                // 500 wood / 50
-                .andExpect(jsonPath("$[0].units[0].maxAffordable").value(10))
+                // 500 wood / 40
+                .andExpect(jsonPath("$[0].units[0].maxAffordable").value(12))
                 // swordsman: 500 iron / 70
                 .andExpect(jsonPath("$[0].units[1].maxAffordable").value(7))
                 // a noble costs far more than 500

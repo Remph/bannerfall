@@ -1,8 +1,10 @@
 package de.bannerfall.report;
 
 import de.bannerfall.gamedata.BannerType;
+import de.bannerfall.report.BattleReport.ScoutedBanner;
 import de.bannerfall.village.VillageRefDto;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 
 /**
  * A village changed owner (kinds CONQUEST for the new owner, VILLAGE_LOST for the previous one;
@@ -36,7 +38,12 @@ public record ConquestReport(
     public record ConqueredBanner(BannerType type, int tier, boolean toStash) {}
 
     @Override
-    public ReportSummary summary() {
-        return new ReportSummary(from, village, null);
+    public ReportSummary summary(ReportKind kind) {
+        boolean gained = kind == ReportKind.CONQUEST && banner != null && banner.toStash();
+        return new ReportSummary(
+                from,
+                village,
+                null,
+                gained ? List.of(new ScoutedBanner(banner.type(), banner.tier())) : List.of());
     }
 }

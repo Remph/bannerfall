@@ -116,8 +116,16 @@ class NpcIntel {
                 if (old != null && old.until().isAfter(until)) {
                     until = old.until();
                 }
+                // the scouts that went home are waiting there for the lord's own scouts
+                long source = battle.attacker().id();
+                int scouts =
+                        battle.attackerUnits().getOrDefault(UnitType.SCOUT, 0)
+                                - battle.attackerLosses().getOrDefault(UnitType.SCOUT, 0);
+                if (old != null && old.sourceVillageId() == source) {
+                    scouts = Math.max(scouts, old.scouts());
+                }
                 // a new attack renews the grudge, and with it the wish to retaliate
-                memory.grudges.put(attacker, new Grudge(until, battle.attacker().id(), false));
+                memory.grudges.put(attacker, new Grudge(until, source, false, Math.max(0, scouts)));
             }
             default -> {}
         }

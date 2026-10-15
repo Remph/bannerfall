@@ -6,7 +6,7 @@ import { useFarmTargets, useSendAllFarm } from '../../api/queries/farm';
 import { useVillage } from '../../api/queries/villages';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { FARM_LIST_MAX, farmSendEndsProtection, sendAllNotes } from '../../game/farm';
+import { FARM_LIST_MAX, bannerRollBackAt, farmSendEndsProtection, sendAllNotes } from '../../game/farm';
 import { serverNow } from '../../game/serverTime';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -103,6 +103,9 @@ function Farm({ villageId }: { villageId: number }) {
             </ul>
             <div className={styles.body}>
               <p className={styles.hint}>{t.farm.count(targets.data.length, FARM_LIST_MAX)}</p>
+              {targets.data.some((target) => bannerRollBackAt(target.nextBannerRollAt, serverNow()) !== undefined) && (
+                <p className={styles.hint}>{t.farm.bannerRollHint}</p>
+              )}
             </div>
           </>
         )}

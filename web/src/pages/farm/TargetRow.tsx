@@ -5,10 +5,25 @@ import { useCurrentAccount } from '../../api/queries/auth';
 import { useChangeFarmUnits, useRemoveFarmTarget, useSendFarm, type FarmTarget } from '../../api/queries/farm';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { Icon } from '../../components/Icon';
 import { Sheet } from '../../components/Sheet';
 import { UnitSummary } from '../../components/UnitSummary';
-import { farmSendEndsProtection, fitsHome, hasUnits, templateOf, type SendAllNote } from '../../game/farm';
-import { formatCoords, formatDecimal, formatDuration, formatRecent, formatWhenExact } from '../../game/format';
+import {
+  bannerRollBackAt,
+  farmSendEndsProtection,
+  fitsHome,
+  hasUnits,
+  templateOf,
+  type SendAllNote,
+} from '../../game/farm';
+import {
+  formatCoords,
+  formatDecimal,
+  formatDuration,
+  formatRecent,
+  formatWhen,
+  formatWhenExact,
+} from '../../game/format';
 import { serverNow } from '../../game/serverTime';
 import type { UnitMap } from '../../game/troops';
 import { useI18n } from '../../i18n';
@@ -34,7 +49,8 @@ interface TargetRowProps {
  * While the sender's beginner protection lasts, an attack on a player's village ends it (02 §6, D9):
  * the row says so like the rally point's confirmation, and Send takes two taps – the first turns it
  * into "Send anyway?", without a second it turns back after a few seconds. Barbarian villages stay
- * one tap.
+ * one tap. A small tag says when the player's banner chance against the target is used for the day
+ * (02 §21.7): the targets without it are the ones worth a try for a banner.
  */
 export function TargetRow({ villageId, target, home, note, sendingAll = false }: TargetRowProps) {
   const { t, language } = useI18n();
@@ -54,6 +70,8 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
   // serverNow(), not the ticking useServerNow(): up to 50 rows shouldn't re-render every second for a
   // protection that ends days later. A row rendered just before the end asks once too often at worst.
   const endsProtection = farmSendEndsProtection(Date.parse(me.protectedUntil), village.playerId, serverNow());
+  // the same for the banner roll: the list is fetched again after every send
+  const bannerRollBack = bannerRollBackAt(target.nextBannerRollAt, serverNow());
 
   useEffect(() => {
     if (!armed) {
@@ -81,6 +99,11 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
           {formatCoords(village.x, village.y)}
         </Link>
         {village.playerName != null && <span className={styles.owner}>{village.playerName}</span>}
+        {bannerRollBack !== undefined && (
+          <span className={styles.bannerRoll}>
+            <Icon name="BANNER_HALL" /> {t.farm.bannerRollUsed(formatWhen(bannerRollBack, serverNow(), language))}
+          </span>
+        )}
       </div>
       <UnitSummary units={template} />
       <p className={styles.meta}>

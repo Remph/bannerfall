@@ -504,10 +504,7 @@ public class BattleService {
         Player defender = target.getPlayer();
         if (result.attackerWon()) {
             Player attacker = attack.getHomeVillage().getPlayer();
-            BannerBattleService.Loser loser =
-                    defender == null
-                            ? BannerBattleService.Loser.barbarianVillage(target.getId())
-                            : BannerBattleService.Loser.player(defender.getId());
+            BannerBattleService.Loser loser = BannerBattleService.Loser.defenderOf(target);
             int loserPop =
                     defender == null
                             ? attackerPop
