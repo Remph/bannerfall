@@ -13,7 +13,7 @@ export type BlockedPlayer = components['schemas']['BlockedPlayerDto'];
  * the prefix refreshes what is on screen – on a MESSAGE_RECEIVED notification, after a reconnect.
  */
 export const messagesQueryKey = ['messages'] as const;
-const inboxQueryKey = [...messagesQueryKey, 'inbox'] as const;
+export const inboxQueryKey = [...messagesQueryKey, 'inbox'] as const;
 const unreadQueryKey = [...messagesQueryKey, 'unread'] as const;
 export const blocksQueryKey = ['blocks'] as const;
 

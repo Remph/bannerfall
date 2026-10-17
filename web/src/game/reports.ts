@@ -259,6 +259,24 @@ export function addShareName(input: string, name: string): string {
 }
 
 /**
+ * The quick picks of "Send report" (1.3.1): the players last sent a report to first, then those of
+ * the inbox, each once ignoring case, at most `max`.
+ */
+export function sharePicks(recentRecipients: string[], inbox: string[], max: number): string[] {
+  const seen = new Set<string>();
+  return [...recentRecipients, ...inbox]
+    .filter((name) => {
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .slice(0, max);
+}
+
+/**
  * The player a report's "you" means (M40): for a copy someone sent, the player whose report it was
  * first; else the reader. Texts that depend on whose units they are (a support sent back) use it.
  */

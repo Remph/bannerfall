@@ -12,6 +12,7 @@ import {
   pageCount,
   resultFor,
   shareNames,
+  sharePicks,
   unitRows,
   viewerOf,
   wasSentBack,
@@ -189,6 +190,18 @@ describe('addShareName (M40)', () => {
 
   it('leaves the field alone when the name is in it', () => {
     expect(addShareName('anna, Ben', 'Anna')).toBe('anna, Ben');
+  });
+});
+
+describe('sharePicks (1.3.1)', () => {
+  it('puts the players last sent a report to before the inbox, each once', () => {
+    expect(sharePicks(['Cleo', 'Ben'], ['ben', 'Dora', 'Emil'], 6)).toEqual(['Cleo', 'Ben', 'Dora', 'Emil']);
+  });
+
+  it('stops at the maximum and works with either list empty', () => {
+    expect(sharePicks(['Ben'], ['Cleo', 'Dora', 'Emil'], 3)).toEqual(['Ben', 'Cleo', 'Dora']);
+    expect(sharePicks([], ['Cleo'], 6)).toEqual(['Cleo']);
+    expect(sharePicks(['Ben'], [], 6)).toEqual(['Ben']);
   });
 });
 

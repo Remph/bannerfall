@@ -976,7 +976,7 @@ export const de: Dictionary = {
     sendText: 'Jeder Spieler bekommt eine Kopie in seine Berichte, auf der steht, dass du sie geschickt hast.',
     sendNames: 'Spieler',
     sendNamesHint: 'Namen mit Komma getrennt, höchstens 10.',
-    sendRecent: 'Zuletzt geschrieben',
+    sendRecent: 'Zuletzt kontaktiert',
     sendTooMany: (max: number) => `Höchstens ${max} Spieler auf einmal.`,
     sendGuild: 'An die Gilde senden',
     sendGuildText: (tag: string, others: number) =>

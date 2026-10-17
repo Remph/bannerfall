@@ -6,9 +6,12 @@ import {
   chunkArea,
   chunksFor,
   clampCamera,
+  clipSegment,
   dragViewRect,
   fieldAt,
+  growRect,
   hitRadius,
+  intersectRect,
   mediumLabels,
   middleField,
   moveOverview,
@@ -394,5 +397,41 @@ describe('overview map', () => {
     expect(overviewLabelStep(5)).toBe(10);
     expect(overviewLabelStep(3)).toBe(20);
     expect(overviewLabelStep(1.5)).toBe(30);
+  });
+
+  it('cuts a segment to a rectangle, keeping how far along it the cut part starts', () => {
+    const rect = { left: 0, top: 0, width: 100, height: 50 };
+    expect(clipSegment({ x: -100, y: 25 }, { x: 300, y: 25 }, rect)).toEqual({
+      from: { x: 0, y: 25 },
+      to: { x: 100, y: 25 },
+      skipped: 100,
+    });
+    // inside: unchanged
+    expect(clipSegment({ x: 10, y: 10 }, { x: 20, y: 30 }, rect)).toEqual({
+      from: { x: 10, y: 10 },
+      to: { x: 20, y: 30 },
+      skipped: 0,
+    });
+    // a diagonal from far away
+    const part = clipSegment({ x: -3000, y: -3000 }, { x: 25, y: 25 }, rect);
+    expect(part?.from.x).toBeCloseTo(0);
+    expect(part?.from.y).toBeCloseTo(0);
+    expect(part?.skipped).toBeCloseTo(3000 * Math.SQRT2);
+    // beside the rectangle, and parallel to a side outside it
+    expect(clipSegment({ x: -50, y: 60 }, { x: 60, y: 200 }, rect)).toBeUndefined();
+    expect(clipSegment({ x: -10, y: 60 }, { x: 200, y: 60 }, rect)).toBeUndefined();
+  });
+
+  it('grows a rectangle and cuts it to another', () => {
+    const canvas = growRect({ left: 0, top: 0, width: 400, height: 800 }, 64);
+    expect(canvas).toEqual({ left: -64, top: -64, width: 528, height: 928 });
+    // the map's edge far off the canvas lands just outside it
+    expect(intersectRect({ left: -5000, top: 100, width: 9000, height: 9000 }, canvas)).toEqual({
+      left: -64,
+      top: 100,
+      width: 528,
+      height: 764,
+    });
+    expect(intersectRect({ left: 900, top: 0, width: 10, height: 10 }, canvas).width).toBe(0);
   });
 });

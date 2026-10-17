@@ -104,6 +104,16 @@ class ReportController {
         reportService.deleteBarbarian(playerService.idOf(me.accountId()), upTo);
     }
 
+    /**
+     * The players the caller last sent a report to by name (1.3.1, 02-game-rules §14): the send
+     * sheet offers them first.
+     */
+    @GetMapping("/recent-recipients")
+    RecentRecipientsDto recentRecipients(@AuthenticationPrincipal AccountPrincipal me) {
+        return new RecentRecipientsDto(
+                shareService.recentRecipients(playerService.idOf(me.accountId())));
+    }
+
     /** Sends a copy of the report to other players by name (M40, 02-game-rules §14). */
     @PostMapping("/{reportId}/share")
     ReportShareDto share(

@@ -1102,8 +1102,8 @@ export const en = {
     sendText: 'Each player gets a copy in their reports that says you sent it.',
     sendNames: 'Players',
     sendNamesHint: 'Names separated by commas, at most 10.',
-    /** Quick picks above the field: the players of the player's inbox. */
-    sendRecent: 'You recently wrote to',
+    /** Quick picks above the field: the players last sent a report to, then those of the inbox. */
+    sendRecent: 'Recently contacted',
     sendTooMany: (max: number) => `At most ${max} players at once.`,
     /** One button that sends to every other member of the player's guild, so no name is needed. */
     sendGuild: 'Send to guild',

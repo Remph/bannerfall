@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: docker build --build-arg VERSION=ci -t bannerfall:ci .
       - name: The image starts its own CLI
         run: docker run --rm --entrypoint bannerfall-admin bannerfall:ci --help

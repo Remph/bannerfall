@@ -1364,6 +1364,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/recent-recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recentRecipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ranking": {
         parameters: {
             query?: never;
@@ -3431,6 +3447,9 @@ export interface components {
         UnreadReportsDto: {
             /** Format: int64 */
             unread: number;
+        };
+        RecentRecipientsDto: {
+            names: string[];
         };
         RankingEntryDto: {
             /** Format: int64 */
@@ -6135,6 +6154,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UnreadReportsDto"];
+                };
+            };
+        };
+    };
+    recentRecipients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecentRecipientsDto"];
                 };
             };
         };

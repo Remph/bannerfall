@@ -2,19 +2,19 @@ import { useState, type FormEvent } from 'react';
 import { errorMessage } from '../../api/errors';
 import { useMyGuild } from '../../api/queries/guilds';
 import { useConversations } from '../../api/queries/messages';
-import { useShareReport, useShareReportWithGuild } from '../../api/queries/reports';
+import { useRecentReportRecipients, useShareReport, useShareReportWithGuild } from '../../api/queries/reports';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { Sheet } from '../../components/Sheet';
 import { TextField } from '../../components/TextField';
-import { addShareName, MAX_SHARE_RECIPIENTS, shareNames } from '../../game/reports';
+import { addShareName, MAX_SHARE_RECIPIENTS, shareNames, sharePicks } from '../../game/reports';
 import { useT } from '../../i18n';
 import styles from './ReportsPage.module.css';
 import { sendError } from './reportText';
 
-/** How many players of the inbox are offered as quick picks. */
+/** How many players are offered as quick picks. */
 const QUICK_PICKS = 6;
 
 interface SendReportButtonProps {
@@ -27,9 +27,9 @@ interface SendReportButtonProps {
 
 /**
  * "Send" on a report (M40): a sheet where the player names one or more players; each gets a copy
- * of the report in their list that says who sent it. The players of the inbox are offered as quick
- * picks, so on a phone a name is often one tap. A member of a guild can also send it to the whole
- * guild with one button, without knowing any name.
+ * of the report in their list that says who sent it. The players last sent a report to (1.3.1) and
+ * those of the inbox are offered as quick picks, so on a phone a name is often one tap. A member
+ * of a guild can also send it to the whole guild with one button, without knowing any name.
  */
 export function SendReportButton({ reportId, title, onSent }: SendReportButtonProps) {
   const t = useT();
@@ -67,13 +67,21 @@ function SendForm({ reportId, onSent }: { reportId: number; onSent: (names: stri
   const share = useShareReport(reportId);
   const shareWithGuild = useShareReportWithGuild(reportId);
   const conversations = useConversations();
+  const recentRecipients = useRecentReportRecipients();
   const guildsEnabled = useWorld().data?.guildsEnabled === true;
   const guild = useMyGuild().data?.guild ?? null;
   // the other members: the button only shows when there is someone to send to
   const guildOthers = guild === null ? 0 : guild.members.length - 1;
   const names = shareNames(input);
   const tooMany = names.length > MAX_SHARE_RECIPIENTS;
-  const picks = (conversations.data ?? []).slice(0, QUICK_PICKS).map((conversation) => conversation.playerName);
+  // the picks wait for the recent recipients, so they don't reorder under the player's thumb
+  const picks = recentRecipients.isPending
+    ? []
+    : sharePicks(
+        recentRecipients.data?.names ?? [],
+        (conversations.data ?? []).map((conversation) => conversation.playerName),
+        QUICK_PICKS,
+      );
   const pending = share.isPending || shareWithGuild.isPending;
 
   function onSubmit(event: FormEvent) {

@@ -2772,6 +2772,24 @@
         }
       }
     },
+    "/api/reports/recent-recipients" : {
+      "get" : {
+        "tags" : [ "report-controller" ],
+        "operationId" : "recentRecipients",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RecentRecipientsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ranking" : {
       "get" : {
         "tags" : [ "ranking-controller" ],
@@ -7570,6 +7588,18 @@
           }
         },
         "required" : [ "unread" ]
+      },
+      "RecentRecipientsDto" : {
+        "type" : "object",
+        "properties" : {
+          "names" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "names" ]
       },
       "RankingEntryDto" : {
         "type" : "object",

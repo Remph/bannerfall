@@ -108,6 +108,12 @@ class ReportShareGuildTest {
     }
 
     @Test
+    void aSendToTheGuildIsNotRememberedAsRecent() throws Exception {
+        shareWithGuild(anna, create(anna)).andExpect(status().isOk());
+        anna.browser.get("/api/reports/recent-recipients").andExpect(jsonPath("$.names", empty()));
+    }
+
+    @Test
     void membersANamedSendWouldRefuseAreSkipped() throws Exception {
         TestPlayer dora = TestPlayer.register(mockMvc);
         TestPlayer emil = TestPlayer.register(mockMvc);

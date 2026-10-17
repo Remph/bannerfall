@@ -425,3 +425,65 @@ function pointDistance([a, b]: readonly [Point, Point]): number {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
+
+/**
+ * The part of the segment `from`–`to` that lies on `rect`, and how far along the segment it starts
+ * (px, so a dashed line keeps its pattern), or undefined when none does (Liang–Barsky).
+ */
+export function clipSegment(
+  from: Point,
+  to: Point,
+  rect: Rect,
+): { from: Point; to: Point; skipped: number } | undefined {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  let start = 0;
+  let end = 1;
+  const sides = [
+    [-dx, from.x - rect.left],
+    [dx, rect.left + rect.width - from.x],
+    [-dy, from.y - rect.top],
+    [dy, rect.top + rect.height - from.y],
+  ] as const;
+  for (const [p, q] of sides) {
+    if (p === 0) {
+      if (q < 0) {
+        return undefined; // parallel to this side and outside it
+      }
+      continue;
+    }
+    const t = q / p;
+    if (p < 0) {
+      start = Math.max(start, t);
+    } else {
+      end = Math.min(end, t);
+    }
+  }
+  if (start > end) {
+    return undefined;
+  }
+  return {
+    from: { x: from.x + dx * start, y: from.y + dy * start },
+    to: { x: from.x + dx * end, y: from.y + dy * end },
+    skipped: Math.hypot(dx, dy) * start,
+  };
+}
+
+/** `rect` grown by `margin` on every side. */
+export function growRect(rect: Rect, margin: number): Rect {
+  return {
+    left: rect.left - margin,
+    top: rect.top - margin,
+    width: rect.width + 2 * margin,
+    height: rect.height + 2 * margin,
+  };
+}
+
+/** The part of `rect` that lies on `bounds` (a width or height of 0 when they don't meet). */
+export function intersectRect(rect: Rect, bounds: Rect): Rect {
+  const left = Math.max(rect.left, bounds.left);
+  const top = Math.max(rect.top, bounds.top);
+  const right = Math.min(rect.left + rect.width, bounds.left + bounds.width);
+  const bottom = Math.min(rect.top + rect.height, bounds.top + bounds.height);
+  return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}

@@ -181,9 +181,24 @@ export function useDeleteAllReports() {
  * nothing: an error names the player the send stopped at (`ApiError.playerName`).
  */
 export function useShareReport(reportId: number) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (names: string[]) =>
       expectData(api.POST('/api/reports/{reportId}/share', { params: { path: { reportId } }, body: { names } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: recentRecipientsQueryKey }),
+  });
+}
+
+export const recentRecipientsQueryKey = ['reportRecipients'] as const;
+
+/**
+ * GET /api/reports/recent-recipients: the players the player last sent a report to by name, newest
+ * first, at most 3 (1.3.1). "Send report" offers them first.
+ */
+export function useRecentReportRecipients() {
+  return useQuery({
+    queryKey: recentRecipientsQueryKey,
+    queryFn: () => expectData(api.GET('/api/reports/recent-recipients')),
   });
 }
 

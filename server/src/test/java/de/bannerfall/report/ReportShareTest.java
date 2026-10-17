@@ -4,6 +4,7 @@ import static de.bannerfall.TestPlayer.body;
 import static de.bannerfall.TestPlayer.number;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -280,9 +281,49 @@ class ReportShareTest {
     }
 
     @Test
+    void theLastThreePlayersSentToByNameAreRemembered() throws Exception {
+        TestPlayer dora = TestPlayer.register(mockMvc);
+        TestPlayer emil = TestPlayer.register(mockMvc);
+        recent(anna).andExpect(status().isOk()).andExpect(jsonPath("$.names", empty()));
+        long reportId = create(ReportKind.ATTACK, clock.instant(), anna);
+
+        for (TestPlayer recipient : new TestPlayer[] {ben, cleo, dora, emil}) {
+            tick();
+            share(anna, reportId, name(recipient)).andExpect(status().isOk());
+        }
+        recent(anna).andExpect(jsonPath("$.names", contains(name(emil), name(dora), name(cleo))));
+
+        // a new send moves a player back to the front; the recipients don't remember the sender
+        tick();
+        share(anna, reportId, name(ben)).andExpect(status().isOk());
+        recent(anna).andExpect(jsonPath("$.names", contains(name(ben), name(emil), name(dora))));
+        recent(ben).andExpect(jsonPath("$.names", empty()));
+
+        // a recipient deleting the copy or blocking the sender changes nothing for him
+        ben.browser.delete("/api/reports/" + newestId(ben)).andExpect(status().isNoContent());
+        ben.browser.put("/api/blocks/" + anna.playerId, "").andExpect(status().isNoContent());
+        recent(anna).andExpect(jsonPath("$.names", contains(name(ben), name(emil), name(dora))));
+
+        // a player the sender blocked is left out, and the next one moves up
+        anna.browser.put("/api/blocks/" + emil.playerId, "").andExpect(status().isNoContent());
+        recent(anna).andExpect(jsonPath("$.names", contains(name(ben), name(dora), name(cleo))));
+    }
+
+    @Test
+    void aSendThatFailsIsNotRemembered() throws Exception {
+        long reportId = create(ReportKind.ATTACK, clock.instant(), anna);
+        share(anna, reportId, name(ben), "nobody-" + System.nanoTime())
+                .andExpect(jsonPath("$.code").value("PLAYER_NOT_FOUND"));
+        recent(anna).andExpect(jsonPath("$.names", empty()));
+    }
+
+    @Test
     void sendingNeedsALogin() throws Exception {
         Browser.open(mockMvc)
                 .post("/api/reports/1/share", "{\"names\":[\"x\"]}")
+                .andExpect(status().isUnauthorized());
+        Browser.open(mockMvc)
+                .get("/api/reports/recent-recipients")
                 .andExpect(status().isUnauthorized());
     }
 
@@ -295,6 +336,10 @@ class ReportShareTest {
                         .map(name -> "\"" + name + "\"")
                         .collect(Collectors.joining(",", "{\"names\":[", "]}"));
         return from.browser.post("/api/reports/" + reportId + "/share", json);
+    }
+
+    private static ResultActions recent(TestPlayer player) throws Exception {
+        return player.browser.get("/api/reports/recent-recipients");
     }
 
     /** Two seconds later, so the next send passes the one-per-second limit. */

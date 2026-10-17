@@ -22,7 +22,10 @@ import {
 import {
   AXIS_STEP,
   axisValues,
+  clipSegment,
+  growRect,
   HOUSES_MIN_TILE,
+  intersectRect,
   mediumLabels,
   toScreen,
   villageKind,
@@ -31,6 +34,7 @@ import {
   type Camera,
   type FieldRange,
   type Point,
+  type Rect,
   type Size,
   type VillageKind,
 } from '../../game/mapView';
@@ -41,6 +45,14 @@ import { landOf, riverFields, riversOf, type Land, type Mound } from '../../game
  * drawMap() after every change of the camera, the data or the theme. Sizes are CSS pixels; the
  * caller has already scaled the context for the device pixel ratio.
  */
+
+/**
+ * Long shapes (the rivers, the map edge, movement lines) are cut to the canvas and this much around
+ * it (CSS px, more than any line is wide) before they are drawn, so the GPU never gets points
+ * thousands of px off the canvas (1.3.1: the likely cause of streaks flashing across the map on a
+ * phone while it moved). Nothing on the canvas changes.
+ */
+const DRAW_MARGIN = 64;
 
 /** Height of the axis band at the top and width of the one on the left (CSS px); overlays keep clear of them. */
 export const AXIS_TOP = 20;
@@ -271,9 +283,14 @@ function drawGround(ctx: CanvasRenderingContext2D, scene: MapScene, range: Field
   ctx.strokeStyle = colors.gridStrong;
   ctx.stroke(strong);
 
+  // a side far off the canvas is moved to just outside it
+  const edge = intersectRect(
+    { left: left(0), top: top(0), width: mapSize * tile, height: mapSize * tile },
+    drawArea(size),
+  );
   ctx.lineWidth = 2;
   ctx.strokeStyle = colors.edge;
-  ctx.strokeRect(left(0), top(0), mapSize * tile, mapSize * tile);
+  ctx.strokeRect(edge.left, edge.top, edge.width, edge.height);
 }
 
 /** Far out, fields with at least this much forest or hill are tinted. */
@@ -351,9 +368,11 @@ function drawTerrain(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fiel
     water = { rivers, fields: riverFields(mapSize, rivers) };
     waterCache.set(mapSize, water);
   }
+  const area = drawArea(size);
+  const onMap = intersectRect({ left: corner.x, top: corner.y, width: mapSize * tile, height: mapSize * tile }, area);
   ctx.save();
   ctx.beginPath();
-  ctx.rect(corner.x, corner.y, mapSize * tile, mapSize * tile);
+  ctx.rect(onMap.left, onMap.top, onMap.width, onMap.height);
   ctx.clip();
 
   const pieces = { minX: Math.floor(range.minX / LAND_PIECE), maxX: Math.floor(range.maxX / LAND_PIECE) };
@@ -445,17 +464,25 @@ function drawTerrain(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fiel
     }
   }
 
-  // rivers: the water on a darker bank, which is left out far away
+  // rivers: the water on a darker bank, which is left out far away; only the stretches near the
+  // canvas (a step of a river is less than a field)
   const riverPath = new Path2D();
   for (const river of water.rivers) {
-    river.forEach((point, index) => {
+    let previous: Point | undefined;
+    let drawing = false;
+    for (const point of river) {
       const at = toScreen(camera, size, point);
-      if (index === 0) {
-        riverPath.moveTo(at.x, at.y);
-      } else {
+      if (previous !== undefined && boxesMeet(previous, at, area)) {
+        if (!drawing) {
+          riverPath.moveTo(previous.x, previous.y);
+          drawing = true;
+        }
         riverPath.lineTo(at.x, at.y);
+      } else {
+        drawing = false;
       }
-    });
+      previous = at;
+    }
   }
   const width = Math.max(far ? 1.5 : 3, tile * 0.26);
   ctx.lineCap = 'round';
@@ -1126,6 +1153,7 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
     return;
   }
   const { camera, size, colors } = scene;
+  const area = drawArea(size);
   const width = Math.min(LINE_MAX_WIDTH, Math.max(LINE_MIN_WIDTH, camera.tile * LINE_SHARE));
   const dotted = new Set<string>();
   const arrows: Arrows[] = [];
@@ -1139,7 +1167,7 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
     const ends = lineEnds(line);
     const from = toScreen(camera, size, ends.from);
     const to = toScreen(camera, size, ends.to);
-    if (!segmentMayShow(from, to, size)) {
+    if (clipSegment(from, to, area) === undefined) {
       continue;
     }
     const alpha = lineAlpha(line, scene);
@@ -1157,7 +1185,7 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
       }
       ctx.globalAlpha = alpha * (hostile ? HOSTILE_EDGE_ALPHA : LINE_EDGE_ALPHA);
       ctx.lineWidth = wayWidth + (hostile ? HOSTILE_EDGE : LINE_EDGE);
-      strokeSegment(ctx, from, to);
+      strokeSegment(ctx, from, to, area);
       arrows.push({ from, to, color, alpha, width: wayWidth, badge: at });
     }
     strokes.push({ from, to, at, alpha, color, hostile, wayWidth });
@@ -1170,7 +1198,7 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
       ctx.strokeStyle = color;
       ctx.lineWidth = wayWidth;
       ctx.setLineDash(hostile ? HOSTILE_DASH.map((share) => share * wayWidth) : [0.1, width * 2.8]);
-      strokeSegment(ctx, from, to);
+      strokeSegment(ctx, from, to, area);
     }
     if (at === undefined) {
       continue;
@@ -1179,14 +1207,14 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
     ctx.globalAlpha = alpha * 0.55;
     ctx.strokeStyle = colors.outline;
     ctx.lineWidth = width + 2;
-    strokeSegment(ctx, from, at);
+    strokeSegment(ctx, from, at, area);
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
-    strokeSegment(ctx, from, at);
+    strokeSegment(ctx, from, at, area);
   }
   ctx.setLineDash([]);
-  drawArrows(ctx, arrows, camera.tile, colors);
+  drawArrows(ctx, arrows, camera.tile, colors, area);
   ctx.restore();
 }
 
@@ -1203,11 +1231,18 @@ interface LineStroke {
   wayWidth: number | undefined;
 }
 
-function strokeSegment(ctx: CanvasRenderingContext2D, from: Point, to: Point): void {
+/** The part of a line near the canvas; its dashes stay where they would be on the whole line. */
+function strokeSegment(ctx: CanvasRenderingContext2D, from: Point, to: Point, area: Rect): void {
+  const part = clipSegment(from, to, area);
+  if (part === undefined) {
+    return;
+  }
+  ctx.lineDashOffset = part.skipped;
   ctx.beginPath();
-  ctx.moveTo(from.x, from.y);
-  ctx.lineTo(to.x, to.y);
+  ctx.moveTo(part.from.x, part.from.y);
+  ctx.lineTo(part.to.x, part.to.y);
   ctx.stroke();
+  ctx.lineDashOffset = 0;
 }
 
 /** The arrows of one way, on screen. */
@@ -1223,7 +1258,13 @@ interface Arrows {
 }
 
 /** Small open arrows along each way, pointing at the target, on the same pale edge as the line. */
-function drawArrows(ctx: CanvasRenderingContext2D, arrows: readonly Arrows[], tile: number, colors: MapColors): void {
+function drawArrows(
+  ctx: CanvasRenderingContext2D,
+  arrows: readonly Arrows[],
+  tile: number,
+  colors: MapColors,
+  area: Rect,
+): void {
   const margin = Math.max(ARROW_MIN_MARGIN, tile * ARROW_MARGIN_SHARE);
   const spacing = Math.max(ARROW_MIN_SPACING, tile * ARROW_SPACING_SHARE);
   const badgeGap = badgeRadius(tile) * ARROW_BADGE_GAP;
@@ -1237,6 +1278,9 @@ function drawArrows(ctx: CanvasRenderingContext2D, arrows: readonly Arrows[], ti
     for (const along of chevronOffsets(length, margin, spacing, ARROW_MIN_LENGTH)) {
       const x = arrow.from.x + (dx * along) / length;
       const y = arrow.from.y + (dy * along) / length;
+      if (!boxesMeet({ x, y }, { x, y }, area)) {
+        continue;
+      }
       if (arrow.badge !== undefined && Math.hypot(arrow.badge.x - x, arrow.badge.y - y) < badgeGap) {
         continue;
       }
@@ -1333,13 +1377,18 @@ function drawLineBadge(
   drawCountBubble(ctx, text, at, countBubbleHalf(ctx, text, radius), radius, colors);
 }
 
-/** False when the line's box is clear of the canvas: then it can't cross it. */
-function segmentMayShow(from: Point, to: Point, size: Size): boolean {
+/** The canvas and DRAW_MARGIN around it. */
+function drawArea(size: Size): Rect {
+  return growRect({ left: 0, top: 0, width: size.width, height: size.height }, DRAW_MARGIN);
+}
+
+/** False when the box around `from` and `to` is clear of `area`: then the segment between them is too. */
+function boxesMeet(from: Point, to: Point, area: Rect): boolean {
   return (
-    Math.max(from.x, to.x) >= 0 &&
-    Math.min(from.x, to.x) <= size.width &&
-    Math.max(from.y, to.y) >= 0 &&
-    Math.min(from.y, to.y) <= size.height
+    Math.max(from.x, to.x) >= area.left &&
+    Math.min(from.x, to.x) <= area.left + area.width &&
+    Math.max(from.y, to.y) >= area.top &&
+    Math.min(from.y, to.y) <= area.top + area.height
   );
 }
 

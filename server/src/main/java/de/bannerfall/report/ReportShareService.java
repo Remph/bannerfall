@@ -11,14 +11,17 @@ import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.world.WorldService;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
  * message), at most 30 unread copies from one sender with one recipient. A recipient who blocked
  * the sender is told nothing and the sender can't tell: the copy is stored as read, hidden from the
  * recipient's list while the block lasts, and the limit counts the copies since the block. Since
- * v1.2.3 a report can also go to the whole guild in one go ({@link #shareWithGuild}).
+ * v1.2.3 a report can also go to the whole guild in one go ({@link #shareWithGuild}). Since 1.3.1
+ * the players last sent a report to by name are remembered ({@link #recentRecipients}), so the send
+ * sheet can offer them first.
  */
 @Service
 public class ReportShareService {
@@ -40,12 +45,16 @@ public class ReportShareService {
     /** Unread copies from one sender a recipient can have (like private messages). */
     static final int MAX_UNREAD_FROM_ONE = 30;
 
+    /** Players {@link #recentRecipients} names at most. */
+    static final int RECENT_RECIPIENTS = 3;
+
     private final ReportRepository reports;
     private final MessageService messages;
     private final PlayerRepository players;
     private final GuildMemberRepository guildMembers;
     private final WorldService worldService;
     private final ApplicationEventPublisher events;
+    private final JdbcClient jdbc;
     private final Clock clock;
 
     ReportShareService(
@@ -55,6 +64,7 @@ public class ReportShareService {
             GuildMemberRepository guildMembers,
             WorldService worldService,
             ApplicationEventPublisher events,
+            JdbcClient jdbc,
             Clock clock) {
         this.reports = reports;
         this.messages = messages;
@@ -62,6 +72,7 @@ public class ReportShareService {
         this.guildMembers = guildMembers;
         this.worldService = worldService;
         this.events = events;
+        this.jdbc = jdbc;
         this.clock = clock;
     }
 
@@ -103,7 +114,54 @@ public class ReportShareService {
             }
             hidden.put(recipient, blockedSince != null);
         }
-        return store(original, senderId, hidden);
+        List<String> sentTo = store(original, senderId, hidden);
+        remember(senderId, recipients.keySet());
+        return sentTo;
+    }
+
+    /**
+     * The players the sender last sent a report to by name (1.3.1), newest first, at most {@link
+     * #RECENT_RECIPIENTS}: the send sheet offers them first. A send to the whole guild doesn't
+     * count (it has its own button). Left out: players he can't send to any more (blocked by him,
+     * deleted or for good banned accounts); a recipient who blocked him stays, as he can't tell.
+     *
+     * @return their names as they are spelled now
+     */
+    @Transactional(readOnly = true)
+    public List<String> recentRecipients(long senderId) {
+        return jdbc.sql(
+                        """
+                        select p.name from report_share_recipient r
+                        join player p on p.id = r.recipient_id
+                        join account a on a.id = p.account_id
+                        where r.sender_id = :me and not p.npc and not a.disabled
+                          and not exists (select 1 from player_block b
+                                          where b.blocker_id = :me
+                                            and b.blocked_id = r.recipient_id)
+                        order by r.sent_at desc, lower(p.name), p.id
+                        limit :limit
+                        """)
+                .param("me", senderId)
+                .param("limit", RECENT_RECIPIENTS)
+                .query(String.class)
+                .list();
+    }
+
+    /** Notes the time of this send for each recipient ({@link #recentRecipients}). */
+    private void remember(long senderId, Collection<Long> recipientIds) {
+        Instant now = clock.instant();
+        for (long recipientId : recipientIds) {
+            jdbc.sql(
+                            """
+                            insert into report_share_recipient (sender_id, recipient_id, sent_at)
+                            values (:sender, :recipient, :now)
+                            on conflict (sender_id, recipient_id) do update set sent_at = :now
+                            """)
+                    .param("sender", senderId)
+                    .param("recipient", recipientId)
+                    .param("now", Timestamp.from(now))
+                    .update();
+        }
     }
 
     /**
