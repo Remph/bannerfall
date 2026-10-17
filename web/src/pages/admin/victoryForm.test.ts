@@ -27,6 +27,8 @@ const settings: AdminWorldSettings = {
   npcThinkMinutes: 20,
   guildsEnabled: false,
   guildMaxMembers: 10,
+  npcGuildsEnabled: false,
+  npcGuildMaxMembers: 3,
   unitLevelsEnabled: false,
   paladinVillagesPerSlot: 4,
   paladinMaxSlots: 5,

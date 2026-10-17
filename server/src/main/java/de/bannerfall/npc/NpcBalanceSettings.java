@@ -25,6 +25,7 @@ public record NpcBalanceSettings(Balance balance) {
     /**
      * @param thinkJitter a round's interval varies by ±this share
      * @param ledgerDecay the spending ledger is multiplied by this each round
+     * @param guildRadius in fields: lords this close form guilds (09 §13.1)
      * @param difficulties EASY, NORMAL and HARD (CUSTOM lives in {@code world_settings.npc_custom})
      */
     public record Balance(
@@ -39,6 +40,7 @@ public record NpcBalanceSettings(Balance balance) {
             double nobleTroopShare,
             double supportHorizonHours,
             double grudgeHours,
+            double guildRadius,
             String quietFrom,
             String quietTo,
             String quietZone,
@@ -61,6 +63,7 @@ public record NpcBalanceSettings(Balance balance) {
             positive(problems, "farm-cooldown-minutes", farmCooldownMinutes);
             positive(problems, "support-horizon-hours", supportHorizonHours);
             positive(problems, "grudge-hours", grudgeHours);
+            positive(problems, "guild-radius", guildRadius);
             if (farmsPerRound < 1) {
                 problems.add("farms-per-round must be >= 1");
             }

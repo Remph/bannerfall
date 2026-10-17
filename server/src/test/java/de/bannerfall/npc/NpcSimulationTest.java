@@ -83,6 +83,7 @@ class NpcSimulationTest {
     private final String farmShare = System.getProperty("simulation.farmShare");
     private final String farmRest = System.getProperty("simulation.farmRest");
     private final String label = System.getProperty("simulation.label", "");
+    private final boolean lordGuilds = Boolean.getBoolean("simulation.lordGuilds");
 
     /** The days (at speed 3) at which the lords' points are noted. */
     private static final int[] CHECKPOINTS = {5, 10, 20, 30, 40};
@@ -108,7 +109,8 @@ class NpcSimulationTest {
                         "update world_settings set speed = 1.0, npc_lord_count = 0,"
                                 + " npc_think_minutes = 20, npc_difficulty = 'NORMAL',"
                                 + " npc_custom = null, initialized_at = null,"
-                                + " barbarians_per_new_player = 0, barbarian_walls_enabled = false")
+                                + " barbarians_per_new_player = 0, barbarian_walls_enabled = false,"
+                                + " guilds_enabled = false, npc_guilds_enabled = false")
                 .update();
         worldService.reload();
     }
@@ -193,7 +195,7 @@ class NpcSimulationTest {
                         (int) orders[1],
                         sends,
                         pointsByDay);
-        String text = result.render();
+        String text = result.render() + lordGuildLines();
         System.out.println(text);
         Path dir = Path.of("build", "simulation");
         Files.createDirectories(dir);
@@ -596,24 +598,40 @@ class NpcSimulationTest {
         List<String> playerConquests = new ArrayList<>();
         jdbc.sql(
                         "select r.happened_at, p.name as winner,"
-                                + " r.payload->'village'->>'playerName' as loser from report r join"
+                                + " r.payload->'village'->>'playerName' as loser, (select"
+                                + " max(e.happened_at) from report e where e.kind = 'CONQUEST' and"
+                                + " e.payload->'village'->>'id' = r.payload->'village'->>'id' and"
+                                + " e.happened_at < r.happened_at) as held_since from report r join"
                                 + " player p on p.id = r.player_id where r.kind = 'CONQUEST' and"
                                 + " r.payload->'village'->>'playerId' is not null order by"
                                 + " r.happened_at, r.id")
                 .query(
                         (rs, row) -> {
+                            Timestamp since = rs.getTimestamp("held_since");
                             playerConquests.add(
                                     String.format(
-                                            Locale.ROOT,
-                                            "day %.1f: %s took a village of %s",
-                                            Duration.between(
-                                                                    start,
-                                                                    rs.getTimestamp("happened_at")
-                                                                            .toInstant())
-                                                            .toMinutes()
-                                                    / 1440.0,
-                                            rs.getString("winner"),
-                                            rs.getString("loser")));
+                                                    Locale.ROOT,
+                                                    "day %.1f: %s took a village of %s",
+                                                    Duration.between(
+                                                                            start,
+                                                                            rs.getTimestamp(
+                                                                                            "happened_at")
+                                                                                    .toInstant())
+                                                                    .toMinutes()
+                                                            / 1440.0,
+                                                    rs.getString("winner"),
+                                                    rs.getString("loser"))
+                                            + (since == null
+                                                    ? ""
+                                                    : String.format(
+                                                            Locale.ROOT,
+                                                            " (conquered by them on day %.1f)",
+                                                            Duration.between(
+                                                                                    start,
+                                                                                    since
+                                                                                            .toInstant())
+                                                                            .toMinutes()
+                                                                    / 1440.0)));
                             return null;
                         })
                 .list();
@@ -984,6 +1002,11 @@ class NpcSimulationTest {
     /** The balance variant of this run (Gradle properties, see the class comment). */
     private void applyVariant() {
         jdbc.sql("update world_settings set barbarian_walls_enabled = ?").param(walls).update();
+        // lord guilds (09 §13): -PsimLordGuilds=true
+        jdbc.sql("update world_settings set guilds_enabled = ?, npc_guilds_enabled = ?")
+                .param(lordGuilds)
+                .param(lordGuilds)
+                .update();
         if (farmShare != null || farmRest != null) {
             NpcBalanceSettings.Difficulty normal =
                     balance.general().difficulties().get(NpcDifficulty.NORMAL);
@@ -1012,9 +1035,10 @@ class NpcSimulationTest {
         worldService.reload();
         System.out.printf(
                 Locale.ROOT,
-                "variant: walls %s, difficulty %s (farm share %s, farm rest %s), farm cooldown %s"
-                        + " min%n",
+                "variant: walls %s, lord guilds %s, difficulty %s (farm share %s, farm rest %s),"
+                        + " farm cooldown %s min%n",
                 walls,
+                lordGuilds,
                 worldService.settings().npcDifficulty(),
                 balance.difficulty().farmLootShare(),
                 balance.difficulty().farmRest(),
@@ -1024,8 +1048,8 @@ class NpcSimulationTest {
     private void resetWorld() {
         jdbc.sql(
                         "truncate table report, movement, unit_stack, build_order, recruit_order,"
-                                + " game_event, npc_brain, chat_message, village, player, account"
-                                + " restart identity cascade")
+                                + " game_event, npc_brain, chat_message, village, player, account,"
+                                + " guild restart identity cascade")
                 .update();
         jdbc.sql(
                         "update world_settings set speed = ?, npc_lord_count = ?, npc_think_minutes"
@@ -1037,6 +1061,65 @@ class NpcSimulationTest {
                 .param(thinkMinutes)
                 .update();
         worldService.reload();
+    }
+
+    /**
+     * Lords against lords and the lord guilds at the end (09 §13.9): attacks and scoutings of a
+     * lord on another lord's village, supports one lord sent another, and each guild with its
+     * members and points.
+     */
+    private String lordGuildLines() {
+        String lords = "(select id from player where npc)";
+        int fights =
+                jdbc.sql(
+                                "select count(*) from report r where r.kind in ('ATTACK', 'SCOUT')"
+                                        + " and r.player_id in "
+                                        + lords
+                                        + " and (r.payload -> 'defender' ->> 'playerId')::bigint in"
+                                        + " "
+                                        + lords)
+                        .query(Integer.class)
+                        .single();
+        int supports =
+                jdbc.sql(
+                                "select count(*) from report r where r.kind = 'SUPPORT_ARRIVED' and"
+                                    + " r.player_id = (r.payload -> 'from' ->> 'playerId')::bigint"
+                                    + " and r.player_id in "
+                                        + lords
+                                        + " and (r.payload -> 'to' ->> 'playerId')::bigint in "
+                                        + lords
+                                        + " and (r.payload -> 'to' ->> 'playerId')::bigint <>"
+                                        + " r.player_id")
+                        .query(Integer.class)
+                        .single();
+        StringBuilder out =
+                new StringBuilder(
+                        String.format(
+                                Locale.ROOT,
+                                "lords against lords: %d attacks and scoutings, %d supports to"
+                                        + " another lord%n",
+                                fights,
+                                supports));
+        jdbc.sql(
+                        "select g.name, g.tag, string_agg(p.name || ' (day ' ||"
+                            + " to_char(extract(epoch from m.joined_at - w.started_at) / 86400,"
+                            + " 'FM990.0') || ')', ', ' order by m.joined_at) as members,"
+                            + " sum(p.points) as points from guild g join guild_member m on"
+                            + " m.guild_id = g.id join player p on p.id = m.player_id cross join"
+                            + " (select min(created_at) as started_at from player) w group by g.id"
+                            + " order by g.id")
+                .query(
+                        (rs, n) ->
+                                out.append(
+                                        String.format(
+                                                Locale.ROOT,
+                                                "guild %s [%s] %d points: %s (joined)%n",
+                                                rs.getString("name"),
+                                                rs.getString("tag"),
+                                                rs.getLong("points"),
+                                                rs.getString("members"))))
+                .list();
+        return out.toString();
     }
 
     private List<Long> ids(String sql) {

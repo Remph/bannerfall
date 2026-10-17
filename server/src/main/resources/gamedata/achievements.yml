@@ -1,6 +1,6 @@
 # Levels of the achievements that have them: docs/plan/02-game-rules.md §19 (the rulebook wins if
 # they ever disagree). Bronze, silver, gold = the value that earns level 1, 2, 3. Draft numbers, to
-# be tuned with the playtest; changing them needs a new image but no migration (levels already
+# be tuned with play data; changing them needs a new image but no migration (levels already
 # earned stay earned).
 achievements:
   levels:

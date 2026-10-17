@@ -41,6 +41,17 @@ export function isFull(amount: number, capacity: number): boolean {
   return Math.floor(amount) >= capacity;
 }
 
+/** The farm counts as almost full while less than this share of it is free (balancing round 2). */
+export const FARM_ALMOST_FULL_FREE_SHARE = 0.1;
+
+/**
+ * Whether the farm is almost full: less than 10 % of it free, but not full yet. The resource bar
+ * shows it in amber, so a player builds the farm before recruiting and building stop.
+ */
+export function isFarmAlmostFull(used: number, farm: number): boolean {
+  return used < farm && farm - used < FARM_ALMOST_FULL_FREE_SHARE * farm;
+}
+
 /**
  * When the stock covers a cost. A tagged union: `kind` says which case it is, and TypeScript only
  * allows `atMs` after checking `kind === 'later'`.

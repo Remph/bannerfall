@@ -1,0 +1,49 @@
+/* The privacy page: one column of short sections, in the login frame for guests and in the game for players. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+
+.title {
+  margin: 0;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--color-title);
+}
+
+.text {
+  margin: 0;
+}
+
+/* The host's name and contact stand out a little: it is what a player looks for first. */
+.operator {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.address {
+  display: grid;
+  gap: var(--space-1);
+  font-style: normal;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.address a {
+  color: var(--color-accent);
+  /* a comfortable tap target for the mail link */
+  display: inline-block;
+  justify-self: start;
+  padding-block: var(--space-2);
+}

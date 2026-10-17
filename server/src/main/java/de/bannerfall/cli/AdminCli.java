@@ -92,6 +92,8 @@ public class AdminCli implements Callable<Integer> {
                     "npcThinkMinutes",
                     "guildsEnabled",
                     "guildMaxMembers",
+                    "npcGuildsEnabled",
+                    "npcGuildMaxMembers",
                     "barbarianWallsEnabled",
                     "barbarianWallStartDays",
                     "barbarianWallMaxLevel",
@@ -1154,7 +1156,7 @@ public class AdminCli implements Callable<Integer> {
         }
     }
 
-    // ---- npc list | spawn <personality> | difficulty [<level>] ----
+    // ---- npc list | spawn <personality> | difficulty [<level>] | guild <lord> <action> ----
 
     @Command(
             name = "npc",
@@ -1162,7 +1164,8 @@ public class AdminCli implements Callable<Integer> {
             subcommands = {
                 NpcCommand.ListLords.class,
                 NpcCommand.Spawn.class,
-                NpcCommand.Level.class
+                NpcCommand.Level.class,
+                NpcCommand.GuildPlace.class
             })
     static class NpcCommand implements Callable<Integer> {
 
@@ -1200,13 +1203,23 @@ public class AdminCli implements Callable<Integer> {
                 if (cli.printedJson(lords)) {
                     return EXIT_OK;
                 }
-                Table table = new Table("Name", "Personality", "Points", "Villages", "Next round");
+                Table table =
+                        new Table(
+                                "Name", "Personality", "Points", "Villages", "Guild", "Next round");
                 for (JsonNode lord : lords) {
+                    String guild =
+                            lord.path("guildTag").isString()
+                                    ? lord.path("guildTag").asString()
+                                            + (lord.path("guildByAdmin").asBoolean()
+                                                    ? " (placed)"
+                                                    : "")
+                                    : lord.path("guildByAdmin").asBoolean() ? "- (placed)" : "-";
                     table.row(
                             Json.show(lord, "name"),
                             Json.show(lord, "personality"),
                             lord.path("points").asInt(),
                             lord.path("villageCount").asInt(),
+                            guild,
                             Json.time(lord, "nextThinkAt"));
                 }
                 table.print(cli.out());
@@ -1260,6 +1273,83 @@ public class AdminCli implements Callable<Integer> {
                                                 Map.of("difficulty", difficulty));
                 if (!cli.printedJson(answer)) {
                     cli.out().println("NPC difficulty: " + Json.show(answer, "difficulty"));
+                }
+                return EXIT_OK;
+            }
+        }
+
+        enum GuildAction {
+            JOIN,
+            LEAVE,
+            FOUND,
+            AUTO
+        }
+
+        @Command(
+                name = "guild",
+                description =
+                        "Place an NPC lord: join <tag> (into that lord guild), leave, found (a new"
+                                + " lord guild), auto (let it choose again)")
+        static class GuildPlace implements Callable<Integer> {
+
+            @ParentCommand NpcCommand npc;
+
+            @Parameters(index = "0", paramLabel = "<lord>", description = "Name or player id")
+            String lord;
+
+            @Parameters(index = "1", paramLabel = "join|leave|found|auto")
+            GuildAction action;
+
+            @Parameters(index = "2", arity = "0..1", paramLabel = "<tag>")
+            String tag;
+
+            @Override
+            public Integer call() {
+                AdminCli cli = npc.cli;
+                JsonNode lords = cli.client().get("/api/admin/npc-lords");
+                JsonNode found = null;
+                Long guildId = null;
+                for (JsonNode l : lords) {
+                    if (Json.show(l, "name").equalsIgnoreCase(lord)
+                            || Long.toString(l.path("playerId").asLong()).equals(lord)) {
+                        found = l;
+                    }
+                    if (tag != null
+                            && l.path("guildTag").isString()
+                            && l.path("guildTag").asString().equalsIgnoreCase(tag)) {
+                        guildId = l.path("guildId").asLong();
+                    }
+                }
+                if (found == null) {
+                    throw new CliException("No NPC lord called " + lord);
+                }
+                if (action == GuildAction.JOIN && guildId == null) {
+                    throw new CliException(
+                            tag == null
+                                    ? "join needs the tag of a lord guild"
+                                    : "No lord guild " + tag);
+                }
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("action", action);
+                body.put("guildId", guildId);
+                JsonNode answer =
+                        cli.client()
+                                .put(
+                                        "/api/admin/npc-lords/"
+                                                + found.path("playerId").asLong()
+                                                + "/guild",
+                                        body);
+                if (!cli.printedJson(answer)) {
+                    cli.out()
+                            .println(
+                                    Json.show(answer, "name")
+                                            + ": "
+                                            + (answer.path("guildName").isString()
+                                                    ? answer.path("guildName").asString()
+                                                    : "no guild")
+                                            + (answer.path("guildByAdmin").asBoolean()
+                                                    ? " (placed)"
+                                                    : " (chooses on its own)"));
                 }
                 return EXIT_OK;
             }

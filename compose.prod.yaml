@@ -5,10 +5,19 @@
 # proxy (TrueNAS: nginx proxy manager) points to the app's port.
 name: bannerfall
 
+# Docker keeps every container's console output; without a limit it grows until the container is
+# replaced (the next update). Three files of 10 MB per container at most.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   app:
     image: ${BANNERFALL_IMAGE:-bannerfall:latest}
     restart: unless-stopped
+    logging: *logging
     mem_limit: 768m
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -19,6 +28,9 @@ services:
       BANNERFALL_ADMIN_TOKEN: ${BANNERFALL_ADMIN_TOKEN:?set BANNERFALL_ADMIN_TOKEN in .env}
       # Sites that may read the player counts (GET /api/world/status) from another origin: the landing page.
       BANNERFALL_STATUS_ORIGINS: ${BANNERFALL_STATUS_ORIGINS:-https://bannerfall.de,https://www.bannerfall.de}
+      # Who runs this world, for the privacy page (/privacy); empty = the page shows only the data part.
+      BANNERFALL_OPERATOR_NAME: ${BANNERFALL_OPERATOR_NAME:-}
+      BANNERFALL_OPERATOR_CONTACT: ${BANNERFALL_OPERATOR_CONTACT:-}
       # BANNERFALL_CHEATS_ENABLED is deliberately not passed on: no host cheats in production.
       TZ: ${TZ:-Europe/Berlin}
     depends_on:
@@ -37,6 +49,7 @@ services:
   db:
     image: postgres:18.6
     restart: unless-stopped
+    logging: *logging
     mem_limit: 512m
     environment:
       POSTGRES_DB: bannerfall
@@ -56,6 +69,7 @@ services:
     image: caddy:2.11.7
     profiles: ["caddy"]
     restart: unless-stopped
+    logging: *logging
     mem_limit: 128m
     depends_on:
       - app

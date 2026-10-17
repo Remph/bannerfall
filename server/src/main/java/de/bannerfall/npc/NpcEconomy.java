@@ -12,6 +12,7 @@ import de.bannerfall.market.ExchangeRequest;
 import de.bannerfall.market.MarketExchangeService;
 import de.bannerfall.npc.NpcPlanning.Kind;
 import de.bannerfall.npc.NpcPlanning.Next;
+import de.bannerfall.paladin.PaladinService;
 import de.bannerfall.recruit.RecruitOrder;
 import de.bannerfall.recruit.RecruitService;
 import de.bannerfall.rules.BuildRules;
@@ -52,6 +53,7 @@ class NpcEconomy {
     private final WorldService worldService;
     private final NpcBalance balance;
     private final MarketExchangeService exchanges;
+    private final PaladinService paladins;
 
     NpcEconomy(
             VillageStateService stateService,
@@ -61,7 +63,8 @@ class NpcEconomy {
             GameData gameData,
             WorldService worldService,
             NpcBalance balance,
-            MarketExchangeService exchanges) {
+            MarketExchangeService exchanges,
+            PaladinService paladins) {
         this.stateService = stateService;
         this.buildService = buildService;
         this.recruitService = recruitService;
@@ -70,6 +73,7 @@ class NpcEconomy {
         this.worldService = worldService;
         this.balance = balance;
         this.exchanges = exchanges;
+        this.paladins = paladins;
     }
 
     /**
@@ -350,6 +354,11 @@ class NpcEconomy {
                 return;
             }
             Map<UnitType, Integer> havePop = populationOf(s.all);
+            if (recruitPaladin(s, reserve, popReserve, budgetLeft)) {
+                double paladinCost = gameData.unit(UnitType.PALADIN).cost().total();
+                troops += paladinCost;
+                budgetLeft -= paladinCost;
+            }
             while (true) {
                 s = snap();
                 Set<UnitType> excluded = EnumSet.copyOf(ordered);
@@ -390,6 +399,39 @@ class NpcEconomy {
                 budgetLeft -= (double) unitCost * count;
                 havePop.merge(pick, count * def.pop(), Integer::sum);
             }
+        }
+
+        /**
+         * §5.3 (balancing round 2): from the template's second stage on, the village recruits one
+         * paladin while the world has paladins and the lord has a free slot (02 §5.5). Where he is
+         * recruited and what he needs come from the game data. He stays at home as a defender: no
+         * template lists him among its farm, attack or support units.
+         *
+         * @return whether a paladin was ordered (the caller books his cost as troops)
+         */
+        boolean recruitPaladin(Snap s, ResourceAmounts reserve, int popReserve, double budgetLeft) {
+            if (stage.equals(template.stages().get(0))
+                    || world.paladinMaxSlots() < 1
+                    || ordered.contains(UnitType.PALADIN)) {
+                return false;
+            }
+            UnitDef def = gameData.unit(UnitType.PALADIN);
+            long inQueue = s.orders.stream().filter(o -> o.getBuilding() == def.building()).count();
+            if (def.cost().total() > budgetLeft
+                    || inQueue >= world.recruitQueueSize()
+                    || !BuildRules.missingRequirements(def.requires(), s.current).isEmpty()
+                    || RecruitRules.maxAffordable(
+                                    def,
+                                    NpcPlanning.minusReserve(s.stock, reserve),
+                                    s.freePop - popReserve)
+                            < 1
+                    || paladins.free(playerId) < 1) {
+                return false;
+            }
+            recruitService.enqueue(village.getId(), playerId, UnitType.PALADIN, 1);
+            changed();
+            ordered.add(UnitType.PALADIN);
+            return true;
         }
 
         /** The stage's mix limited to the units the village can recruit now, requirements met. */

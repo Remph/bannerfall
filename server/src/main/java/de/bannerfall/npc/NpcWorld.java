@@ -85,7 +85,8 @@ class NpcWorld {
             from movement m
             join village t on t.id = m.target_village_id
             join village s on s.id = m.source_village_id
-            where t.player_id = :playerId and m.kind = 'ATTACK' and m.owner_player_id <> :playerId
+            where t.player_id in (:playerIds) and m.kind = 'ATTACK'
+              and m.owner_player_id not in (:playerIds)
             order by m.arrive_at, m.id
             """;
 
@@ -129,10 +130,14 @@ class NpcWorld {
                 .collect(Collectors.toMap(MapVillage::id, Function.identity()));
     }
 
-    /** The foreign attacks on the way to the lord's villages, next first. */
-    List<Incoming> incomingAttacks(long playerId) {
+    /**
+     * The foreign attacks on the way to the villages of these players, next first: the lord and its
+     * guild mates (09 §13.3, the guild tells each other what is coming); attacks among them left
+     * out.
+     */
+    List<Incoming> incomingAttacks(Collection<Long> playerIds) {
         return jdbc.sql(INCOMING)
-                .param("playerId", playerId)
+                .param("playerIds", playerIds)
                 .query(
                         (rs, n) ->
                                 new Incoming(
@@ -155,6 +160,17 @@ class NpcWorld {
                                 "select target_village_id from movement where owner_player_id ="
                                         + " :playerId and kind = 'ATTACK'")
                         .param("playerId", playerId)
+                        .query(Long.class)
+                        .list());
+    }
+
+    /** The villages these players' nobles are on the way to (09 §13.2). */
+    Set<Long> trainTargets(Collection<Long> playerIds) {
+        return new HashSet<>(
+                jdbc.sql(
+                                "select target_village_id from movement where owner_player_id in"
+                                        + " (:playerIds) and kind = 'ATTACK' and u_noble > 0")
+                        .param("playerIds", playerIds)
                         .query(Long.class)
                         .list());
     }

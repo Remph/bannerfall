@@ -17,18 +17,21 @@ class WorldController {
     private final PlayerConnections connections;
     private final RegisteredPlayersCount registeredPlayers;
     private final AppVersion appVersion;
+    private final WorldOperator operator;
 
     WorldController(
             WorldService worldService,
             PlayerRepository players,
             PlayerConnections connections,
             RegisteredPlayersCount registeredPlayers,
-            AppVersion appVersion) {
+            AppVersion appVersion,
+            WorldOperator operator) {
         this.worldService = worldService;
         this.players = players;
         this.connections = connections;
         this.registeredPlayers = registeredPlayers;
         this.appVersion = appVersion;
+        this.operator = operator;
     }
 
     @GetMapping("/world")
@@ -56,6 +59,7 @@ class WorldController {
                 settings.npcDifficulty(),
                 settings.guildsEnabled(),
                 settings.guildMaxMembers(),
+                Math.min(settings.npcGuildMaxMembers(), settings.guildMaxMembers()),
                 settings.barbarianWallsEnabled(),
                 settings.barbarianWallStartDays(),
                 settings.barbarianWallMaxLevel(),
@@ -94,5 +98,14 @@ class WorldController {
                 registeredPlayers.get(),
                 connections.onlinePlayers(),
                 appVersion.get());
+    }
+
+    /**
+     * Public like the status: who runs this world, for the privacy page that guests open from the
+     * login and register pages. Settings only, no database.
+     */
+    @GetMapping("/world/operator")
+    OperatorDto operator() {
+        return operator.get();
     }
 }

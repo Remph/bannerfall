@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { lazyPage as page } from './game/staleChunks';
 import { AppLayout } from './layout/AppLayout';
 import { AuthLayout } from './layout/AuthLayout';
-import { RequireAdmin, RequireGuest, RequireLogin } from './layout/guards';
+import { GuestOrPlayerLayout, RequireAdmin, RequireGuest, RequireLogin } from './layout/guards';
 import { PageLoading, RouteError } from './layout/RouteStates';
 import { HomePage } from './pages/home/HomePage';
 import { LoginPage } from './pages/login/LoginPage';
@@ -107,6 +107,11 @@ export const router = createBrowserRouter([
             ],
           },
         ],
+      },
+      {
+        // what the world stores: linked under the login and register forms and from the settings menu
+        element: <GuestOrPlayerLayout />,
+        children: [{ path: '/privacy', lazy: page(() => import('./pages/privacy/PrivacyPage'), 'PrivacyPage') }],
       },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

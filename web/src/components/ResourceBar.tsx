@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import type { Village } from '../api/queries/villages';
 import { formatNumber } from '../game/format';
-import { isFull, projectResources, resourceTypes } from '../game/resources';
+import { isFarmAlmostFull, isFull, projectResources, resourceTypes } from '../game/resources';
 import { useGameNow } from '../game/serverTime';
 import { useI18n, useT } from '../i18n';
 import { warehousePath } from '../pages/warehouse/warehousePaths';
@@ -13,10 +13,10 @@ import { useCountedValue } from './useCountedValue';
 /**
  * Wood, clay, iron and population of a village, ticking once per second (05-frontend §5). Each value
  * shows its maximum ("812/1,000": warehouse or farm). Phone: four compact columns, or with `compact`
- * only the amounts in one slim row (red when full). Desktop: always a row with maximum, production
- * and a fill bar per resource (`compact` is ignored there). Wood, clay and iron open the warehouse page
- * (M35); population stays plain text, as the warehouse page doesn't cover the farm. A jump (loot, a
- * trade, a payment) counts to the new amount, a gain glowing gold for a moment (UI review 1.3).
+ * only the amounts in one slim row (red when full, the farm amber when almost full). Desktop: always a row
+ * with maximum, production and a fill bar per resource (`compact` is ignored there). Wood, clay and iron open
+ * the warehouse page (M35); population stays plain text, as the warehouse page doesn't cover the farm. A jump
+ * (loot, a trade, a payment) counts to the new amount, a gain glowing gold for a moment (UI review 1.3).
  */
 export function ResourceBar({ village, compact = false }: { village: Village; compact?: boolean }) {
   const { t, language } = useI18n();
@@ -25,6 +25,7 @@ export function ResourceBar({ village, compact = false }: { village: Village; co
   const capacity = village.storageCapacity;
   const capacityShown = formatNumber(capacity, language);
   const { used, capacity: farm } = village.population;
+  const farmAlmostFull = isFarmAlmostFull(used, farm);
 
   const ended = useWorldEnded();
   return (
@@ -53,7 +54,11 @@ export function ResourceBar({ village, compact = false }: { village: Village; co
           </li>
         );
       })}
-      <li className={[styles.item, styles.plain, used >= farm && styles.full].filter(Boolean).join(' ')}>
+      <li
+        className={[styles.item, styles.plain, used >= farm && styles.full, farmAlmostFull && styles.almostFull]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <Icon name="population" className={styles.icon} />
         <span className={styles.text}>
           <span className="sr-only">{t.resources.population}: </span>
@@ -62,6 +67,7 @@ export function ResourceBar({ village, compact = false }: { village: Village; co
             {t.resources.population}
           </span>
           {used >= farm && <span className="sr-only">, {t.resources.populationFull}</span>}
+          {farmAlmostFull && <span className="sr-only">, {t.resources.populationAlmostFull}</span>}
           <Fill fraction={used / farm} />
         </span>
       </li>

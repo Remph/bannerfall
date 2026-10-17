@@ -1,5 +1,6 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
@@ -15,6 +16,7 @@ import de.bannerfall.report.ReportRepository;
 import de.bannerfall.rules.Loot;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
@@ -92,6 +94,7 @@ class NpcIntel {
         if (battle == null) {
             return;
         }
+        countLosses(memory, lordId, kind, battle, data);
         switch (kind) {
             case ATTACK, SCOUT -> {
                 long villageId = battle.defender().id();
@@ -128,6 +131,111 @@ class NpcIntel {
                 memory.grudges.put(attacker, new Grudge(until, source, false, Math.max(0, scouts)));
             }
             default -> {}
+        }
+    }
+
+    /**
+     * The grudges of the lord's guild mates (09 §13.4): the lord takes over every active one it
+     * doesn't hold itself, against a player outside its guild, if one of its villages is within
+     * {@code radius} (its template's {@code conquest-radius}) of the grudge's source village and
+     * that village still belongs to the attacker. The copy is marked shared, so it isn't passed on
+     * again; a renewal at the guild mate doesn't renew it. Grudges against guild mates are dropped.
+     *
+     * @param mateGrudges the grudges of each guild mate
+     * @param ownVillages where the lord's villages are
+     */
+    static void shareGrudges(
+            NpcMemory.Draft memory,
+            long lordId,
+            Set<Long> mates,
+            Collection<Map<Long, Grudge>> mateGrudges,
+            Collection<Coordinates> ownVillages,
+            Map<Long, MapVillage> villages,
+            double radius,
+            Instant now) {
+        memory.grudges.keySet().removeAll(mates);
+        for (Map<Long, Grudge> grudges : mateGrudges) {
+            grudges.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(
+                            e -> {
+                                long attacker = e.getKey();
+                                Grudge grudge = e.getValue();
+                                Grudge own = memory.grudges.get(attacker);
+                                if (grudge.shared()
+                                        || !grudge.until().isAfter(now)
+                                        || attacker == lordId
+                                        || mates.contains(attacker)
+                                        || (own != null && own.until().isAfter(now))) {
+                                    return;
+                                }
+                                MapVillage source = villages.get(grudge.sourceVillageId());
+                                if (source == null
+                                        || !Objects.equals(source.playerId(), attacker)
+                                        || ownVillages.stream()
+                                                .noneMatch(
+                                                        v ->
+                                                                v.distanceTo(source.coordinates())
+                                                                        <= radius)) {
+                                    return;
+                                }
+                                memory.grudges.put(
+                                        attacker,
+                                        new Grudge(
+                                                grudge.until(),
+                                                grudge.sourceVillageId(),
+                                                false,
+                                                grudge.scouts(),
+                                                true));
+                            });
+        }
+    }
+
+    /**
+     * Units the lord lost come off the troop spending of their home village (09 §5.2, balancing
+     * round 2): the ledger counts what the army is worth, not what it once cost, so a village that
+     * lost its army has a troop debt and recruits back to its troop share before it builds on.
+     * Nobles count as building in the ledger and are left out.
+     */
+    static void countLosses(
+            NpcMemory.Draft memory,
+            long lordId,
+            ReportKind kind,
+            BattleReport battle,
+            GameData data) {
+        switch (kind) {
+            case ATTACK, SCOUT ->
+                    lose(memory, battle.attacker().id(), battle.attackerLosses(), data);
+            case DEFENSE -> {
+                if (battle.defenderSide() == null) {
+                    return;
+                }
+                for (BattleReport.DefenderStack stack : battle.defenderSide().stacks()) {
+                    if (Objects.equals(stack.home().playerId(), lordId)) {
+                        lose(memory, stack.home().id(), stack.losses(), data);
+                    }
+                }
+            }
+            default -> {}
+        }
+    }
+
+    private static void lose(
+            NpcMemory.Draft memory, long villageId, Map<UnitType, Integer> losses, GameData data) {
+        NpcMemory.Ledger ledger = memory.ledger.get(villageId);
+        if (ledger == null) {
+            return; // not (or no longer) one of the lord's villages with a ledger
+        }
+        double value = 0;
+        for (Map.Entry<UnitType, Integer> lost : losses.entrySet()) {
+            if (lost.getKey() != UnitType.NOBLE) {
+                value += (double) lost.getValue() * data.unit(lost.getKey()).cost().total();
+            }
+        }
+        if (value > 0) {
+            memory.ledger.put(
+                    villageId,
+                    new NpcMemory.Ledger(ledger.build(), Math.max(0, ledger.troops() - value)));
         }
     }
 

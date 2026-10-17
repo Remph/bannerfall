@@ -101,4 +101,18 @@ class LoginRateLimiterTest {
         assertThat(limiter.isBlocked("ben", HOME)).isFalse();
         assertThat(limiter.isBlocked("anna", HOME)).isTrue();
     }
+
+    @Test
+    void forgetsTheAddressOnceTheBlockHasRunOut() {
+        fail("ben", 5);
+        fail("ada", "203.0.113.4", 1);
+
+        clock.advance(Duration.ofSeconds(59));
+        limiter.forgetExpired();
+        assertThat(limiter.entries()).isEqualTo(2);
+
+        clock.advance(Duration.ofSeconds(1));
+        limiter.forgetExpired();
+        assertThat(limiter.entries()).isZero();
+    }
 }

@@ -199,6 +199,11 @@ public class BattleService {
                         trip.attack(),
                         targetBanner.bulwark());
         BattleResult result = Combat.fight(gameData, input);
+        // what good scouts see outside the village (§7.1), as it was when they arrived
+        Map<UnitType, Integer> away =
+                result.scouting() != null && BattleReports.seesAway(result.scouting())
+                        ? unitsAway(target)
+                        : Map.of();
 
         applyLosses(defenders, result.defenderLosses());
         ResourceAmounts loot = ResourceAmounts.ZERO;
@@ -261,7 +266,8 @@ public class BattleService {
                                 found.attacker(),
                                 found.defender(),
                                 theft),
-                        haulCapacity),
+                        haulCapacity,
+                        away),
                 defenderPlayerId,
                 supporters);
         if (conquered) {
@@ -272,6 +278,24 @@ public class BattleService {
             PlayerNotification.toOwnerOf(
                     village, new GameNotification.VillageUpdated(village.getId()), events);
         }
+    }
+
+    /**
+     * The village owner's own units away from {@code village} (02-game-rules §7.1, balancing round
+     * 2): its support stacks in other villages and every movement whose home it is (attacks and
+     * supports on the way, units walking home).
+     */
+    private Map<UnitType, Integer> unitsAway(Village village) {
+        UnitCounts away = new UnitCounts();
+        for (UnitStack stack : stacks.findByHomeVillageId(village.getId())) {
+            if (!stack.isHome()) {
+                away = away.plus(stack.getUnits());
+            }
+        }
+        for (Movement movement : movements.findByHomeVillageId(village.getId())) {
+            away = away.plus(movement.getUnits());
+        }
+        return away.toMap();
     }
 
     /**

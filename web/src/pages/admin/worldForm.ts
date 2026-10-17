@@ -31,6 +31,9 @@ export interface WorldForm {
   /** Guilds (M15a): can be founded and joined; the most members one may have. */
   guildsEnabled: boolean;
   guildMaxMembers: string;
+  /** Lord guilds (09-npc-lords §13): NPC lords form guilds; the most lords one may have. */
+  npcGuildsEnabled: boolean;
+  npcGuildMaxMembers: string;
   /** Unit levels (M30): the smithy can raise units; off = every unit has its base values. */
   unitLevelsEnabled: boolean;
   /** Paladin (M31): villages for each further slot, and the most slots (0 = no paladin). */
@@ -69,6 +72,8 @@ export function worldToForm(settings: AdminWorldSettings): WorldForm {
     barbarianGrowthEnabled: settings.barbarianGrowthEnabled,
     guildsEnabled: settings.guildsEnabled,
     guildMaxMembers: String(settings.guildMaxMembers),
+    npcGuildsEnabled: settings.npcGuildsEnabled,
+    npcGuildMaxMembers: String(settings.npcGuildMaxMembers),
     unitLevelsEnabled: settings.unitLevelsEnabled,
     paladinVillagesPerSlot: String(settings.paladinVillagesPerSlot),
     paladinMaxSlots: String(settings.paladinMaxSlots),
@@ -124,6 +129,7 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
   const barbarianInitialCount = number(form.barbarianInitialCount, 0, 5000, true);
   const npcLordCount = number(form.npcLordCount, 0, 50, true);
   const guildMaxMembers = number(form.guildMaxMembers, 2, 50, true);
+  const npcGuildMaxMembers = number(form.npcGuildMaxMembers, 2, 50, true);
   const paladinVillagesPerSlot = number(form.paladinVillagesPerSlot, 1, 100, true);
   const paladinMaxSlots = number(form.paladinMaxSlots, 0, 20, true);
   const bannerDropFactor = number(form.bannerDropFactor, 0, 3);
@@ -149,6 +155,7 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     tradeMaxRatio === null ||
     npcThinkMinutes === null ||
     guildMaxMembers === null ||
+    npcGuildMaxMembers === null ||
     paladinVillagesPerSlot === null ||
     paladinMaxSlots === null ||
     bannerDropFactor === null ||
@@ -178,6 +185,8 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     barbarianGrowthEnabled: form.barbarianGrowthEnabled,
     guildsEnabled: form.guildsEnabled,
     guildMaxMembers,
+    npcGuildsEnabled: form.npcGuildsEnabled,
+    npcGuildMaxMembers,
     unitLevelsEnabled: form.unitLevelsEnabled,
     paladinVillagesPerSlot,
     paladinMaxSlots,

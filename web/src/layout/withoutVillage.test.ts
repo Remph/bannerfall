@@ -3,7 +3,7 @@ import { isOpenWithoutVillage } from './withoutVillage';
 
 describe('isOpenWithoutVillage', () => {
   it('opens the respawn screen, the reports and the world-wide pages', () => {
-    for (const path of ['/', '/reports', '/reports/12', '/ranking', '/players/3', '/about']) {
+    for (const path of ['/', '/reports', '/reports/12', '/ranking', '/players/3', '/about', '/privacy']) {
       expect(isOpenWithoutVillage(path), path).toBe(true);
     }
   });

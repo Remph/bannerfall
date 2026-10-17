@@ -94,6 +94,7 @@ public class PregameGateFilter extends OncePerRequestFilter {
                 || path.equals("/api/me/password")
                 || path.equals("/api/world")
                 || path.equals("/api/world/status")
-                || path.equals("/api/world/victory"));
+                || path.equals("/api/world/victory")
+                || path.equals("/api/world/operator"));
     }
 }

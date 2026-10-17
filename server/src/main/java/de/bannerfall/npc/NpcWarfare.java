@@ -102,8 +102,9 @@ class NpcWarfare {
     }
 
     private boolean conquestEligible(NpcTurn turn, MapVillage target) {
-        if (Objects.equals(target.playerId(), turn.lordId())) {
-            return false;
+        if (turn.ownOrMate(target.playerId())
+                || turn.view.mateTrainTargets().contains(target.id())) {
+            return false; // a guild mate's train is on the way there (09 §13.2)
         }
         int radius =
                 Math.min(turn.template().conquestRadius(), turn.view.world().nobleMaxDistance());
@@ -345,7 +346,12 @@ class NpcWarfare {
         Grudge grudge = turn.memory.grudges.get(playerId);
         turn.memory.grudges.put(
                 playerId,
-                new Grudge(grudge.until(), grudge.sourceVillageId(), true, grudge.scouts()));
+                new Grudge(
+                        grudge.until(),
+                        grudge.sourceVillageId(),
+                        true,
+                        grudge.scouts(),
+                        grudge.shared()));
     }
 
     /**
@@ -569,14 +575,14 @@ class NpcWarfare {
     }
 
     /**
-     * Villages within {@code farm-radius} that aren't the lord's, nearest first; for OFFENSIVE the
-     * grudge holders' villages come first (§6.7).
+     * Villages within {@code farm-radius} that are neither the lord's nor a guild mate's (§13.2),
+     * nearest first; for OFFENSIVE the grudge holders' villages come first (§6.7).
      */
     private List<MapVillage> farmCandidates(NpcTurn turn) {
         int radius = turn.template().farmRadius();
         boolean grudgeFirst = turn.view.personality() == NpcPersonality.OFFENSIVE;
         return turn.view.villages().values().stream()
-                .filter(v -> !Objects.equals(v.playerId(), turn.lordId()))
+                .filter(v -> !turn.ownOrMate(v.playerId()))
                 .filter(v -> turn.distanceTo(v) <= radius)
                 .sorted(
                         Comparator.comparing(

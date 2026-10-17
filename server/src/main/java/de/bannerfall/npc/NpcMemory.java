@@ -144,8 +144,17 @@ public record NpcMemory(
      * @param scouts the most scouts the attacks from {@code sourceVillageId} brought home (sent
      *     minus lost): at least that many stand there, so the lord's own scouting has to beat them
      *     (09 §6.3). 0 in memory written before this was kept
+     * @param shared taken over from a guild mate (09 §13.4): not passed on again; false in memory
+     *     written before lord guilds
      */
-    public record Grudge(Instant until, long sourceVillageId, boolean retaliated, int scouts) {}
+    public record Grudge(
+            Instant until, long sourceVillageId, boolean retaliated, int scouts, boolean shared) {
+
+        /** The lord's own grudge (an attack on itself). */
+        public Grudge(Instant until, long sourceVillageId, boolean retaliated, int scouts) {
+            this(until, sourceVillageId, retaliated, scouts, false);
+        }
+    }
 
     /** A command towards a player village (a conquest train counts once). */
     public record SentAttack(long targetPlayerId, Instant at) {}

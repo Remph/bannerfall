@@ -160,6 +160,7 @@ describe('reportToForm with banners (M32c)', () => {
           resources: null,
           buildings: { WALL: 3, BANNER_HALL: 1 },
           banner: { type: 'BULWARK', tier: 3 },
+          away: null,
         },
       }),
       effects,
@@ -170,7 +171,13 @@ describe('reportToForm with banners (M32c)', () => {
   it('a successful scouting without a Bulwark means none; the defenders copy names the one that worked', () => {
     const scouted = reportToForm(
       battle({
-        scouting: { succeeded: true, resources: null, buildings: { BANNER_HALL: 2 }, banner: { type: 'WAR', tier: 1 } },
+        scouting: {
+          succeeded: true,
+          resources: null,
+          buildings: { BANNER_HALL: 2 },
+          banner: { type: 'WAR', tier: 1 },
+          away: null,
+        },
       }),
       effects,
     );
@@ -190,6 +197,7 @@ describe('reportToForm with banners (M32c)', () => {
           resources: null,
           buildings: { BANNER_HALL: 3 },
           banner: { type: 'OATH', tier: 2 },
+          away: null,
         },
       }),
       effects,
@@ -299,7 +307,13 @@ describe('reportToForm', () => {
         outcome: 'SCOUTS_ONLY',
         luck: null,
         attackerUnits: { SCOUT: 3 },
-        scouting: { succeeded: true, resources: null, buildings: { WALL: 8, HEADQUARTERS: 12 }, banner: null },
+        scouting: {
+          succeeded: true,
+          resources: null,
+          buildings: { WALL: 8, HEADQUARTERS: 12 },
+          banner: null,
+          away: null,
+        },
       }),
     );
     expect(form.attacker).toBeUndefined();

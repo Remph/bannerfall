@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -73,6 +74,20 @@ class LoginRateLimiter {
 
     void recordSuccess(String usernameKey, String address) {
         failuresByKey.remove(new Key(usernameKey, address));
+    }
+
+    /**
+     * Every minute: drops the failures whose block has run out, so a client's address stays in
+     * memory only for a few minutes (the privacy page, {@code /privacy}).
+     */
+    @Scheduled(fixedDelay = 60_000)
+    void forgetExpired() {
+        failuresByKey.values().removeIf(this::isExpired);
+    }
+
+    /** How many name and address pairs are held (tests). */
+    int entries() {
+        return failuresByKey.size();
     }
 
     /** Lifts every block of the username (the host set a new password). */

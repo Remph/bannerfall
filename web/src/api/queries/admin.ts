@@ -32,6 +32,27 @@ export function useNpcLords() {
   });
 }
 
+/** What the admin does with a lord's guild (09-npc-lords §13.7). */
+export type NpcGuildAction = components['schemas']['NpcGuildRequest']['action'];
+
+/**
+ * PUT /api/admin/npc-lords/{playerId}/guild: moves a lord into a lord guild (JOIN), takes it out
+ * (LEAVE), founds a new lord guild with it (FOUND) or lets it choose on its own again (AUTO).
+ */
+export function useSetNpcLordGuild() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ playerId, action, guildId }: { playerId: number; action: NpcGuildAction; guildId?: number }) =>
+      expectData(
+        api.PUT('/api/admin/npc-lords/{playerId}/guild', {
+          params: { path: { playerId } },
+          body: { action, guildId: guildId ?? null },
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: npcLordsKey }),
+  });
+}
+
 /** POST /api/admin/npc-lords: spawns one lord of this personality (WORLD_FULL if there's no room). */
 export function useSpawnNpcLord() {
   const queryClient = useQueryClient();

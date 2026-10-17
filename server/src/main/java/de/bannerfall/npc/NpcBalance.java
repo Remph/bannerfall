@@ -91,12 +91,32 @@ public class NpcBalance {
      * @param humanPoints the points of every human who owns a village
      */
     public static NpcMemory.Stance stance(int lordPoints, List<Integer> humanPoints, Difficulty d) {
+        return stance(lordPoints, null, 0, humanPoints, d);
+    }
+
+    /**
+     * The rubber band with the brake per guild (09 §13.5): a lord in a lord guild is braked also
+     * while its guild's points are above {@code leadMargin} × the strongest human side.
+     *
+     * @param guildPoints the points of the lord's guild, null without one
+     * @param strongestHumanSide the points of the strongest human side (a guild of humans or a
+     *     human without one)
+     */
+    public static NpcMemory.Stance stance(
+            int lordPoints,
+            Long guildPoints,
+            long strongestHumanSide,
+            List<Integer> humanPoints,
+            Difficulty d) {
         if (humanPoints.isEmpty()) {
             return NpcMemory.Stance.NONE;
         }
         int strongest = humanPoints.stream().mapToInt(Integer::intValue).max().orElse(0);
         double average = humanPoints.stream().mapToInt(Integer::intValue).average().orElse(0);
-        boolean braked = lordPoints > d.leadMargin() * strongest;
+        boolean braked =
+                lordPoints > d.leadMargin() * strongest
+                        || (guildPoints != null
+                                && guildPoints > d.leadMargin() * strongestHumanSide);
         boolean boosted = d.boostBelow() > 0 && lordPoints < d.boostBelow() * average;
         return new NpcMemory.Stance(boosted, braked);
     }
@@ -112,16 +132,54 @@ public class NpcBalance {
     public static final Duration FARM_BUDGET_WINDOW = Duration.ofHours(24);
 
     /**
-     * Whether the lord has farmed enough for now: its loot of the last 24 real hours is at least
-     * the difficulty's {@code farmLootShare} of what its villages produce in 24 hours. A share of 0
-     * is no budget.
+     * The pace window (balancing round 2): within any 2 real hours a lord takes at most its share
+     * of the day's budget, so the farm runs spread over the day instead of one burst.
+     */
+    public static final Duration FARM_PACE_WINDOW = Duration.ofHours(2);
+
+    /**
+     * Whether the lord has farmed enough for now (09 §6.2): its loot of the last 24 real hours plus
+     * the loot on the way is at least the day's budget, the difficulty's {@code farmLootShare} of
+     * what its villages produce in 24 hours; or its loot of the last 2 hours plus the loot on the
+     * way is at least the pace window's part of that budget (the budget spread over the hours the
+     * lord may farm). A share of 0 is no budget.
      *
+     * @param loot the loot of the lord's own ATTACK reports in the last 24 real hours
+     * @param recentLoot the same for the last {@link #FARM_PACE_WINDOW}
+     * @param underWay what the lord's attacks on the way can carry (an upper bound of their loot)
      * @param productionPerHour the lord's production per real hour, all villages and resources
      *     (world speed and production factor included)
+     * @param farmHours the real hours a day the lord may farm: 24, or 24 minus the build quiet
+     *     hours with {@code farm-rest}
      */
-    public static boolean farmBudgetSpent(Difficulty d, long loot, double productionPerHour) {
+    public static boolean farmBudgetSpent(
+            Difficulty d,
+            long loot,
+            long recentLoot,
+            long underWay,
+            double productionPerHour,
+            double farmHours) {
         double share = d.farmLootShare();
-        return share > 0 && loot >= share * productionPerHour * FARM_BUDGET_WINDOW.toHours();
+        if (share <= 0) {
+            return false;
+        }
+        double budget = share * productionPerHour * FARM_BUDGET_WINDOW.toHours();
+        double pace = budget * FARM_PACE_WINDOW.toHours() / Math.max(farmHours, 1);
+        return loot + underWay >= budget || recentLoot + underWay >= pace;
+    }
+
+    /**
+     * The real hours a day the lords may farm (09 §6.2): 24, less the build quiet hours with rest.
+     */
+    public static double farmHours(Difficulty d) {
+        if (!d.farmRest()) {
+            return 24;
+        }
+        long quiet = Duration.between(d.buildQuietFromTime(), d.buildQuietToTime()).toMinutes();
+        if (quiet < 0) {
+            quiet += 24 * 60; // the window passes midnight, 23:00–07:00
+        }
+        return 24 - quiet / 60.0;
     }
 
     // ---- limits towards players (§7) ----

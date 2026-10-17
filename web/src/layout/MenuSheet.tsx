@@ -95,6 +95,13 @@ function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onO
             <Icon name="chevronRight" className={styles.rowChevron} />
           </Link>
         </li>
+        <li>
+          <Link className={styles.row} to="/privacy" onClick={onNavigate}>
+            <Icon name="lock" className={styles.rowIcon} />
+            <span>{t.privacy.link}</span>
+            <Icon name="chevronRight" className={styles.rowChevron} />
+          </Link>
+        </li>
         {me.role === 'ADMIN' && (
           <li>
             <Link className={styles.row} to="/admin" onClick={onNavigate}>

@@ -1,6 +1,22 @@
 # Bannerfall reverse proxy (docs/plan/01-architecture.md §8). Caddy gets and renews the
 # certificate for BANNERFALL_DOMAIN by itself; the DNS A/AAAA records must point to this server and
 # ports 80 and 443 must be open. WebSockets (/ws) pass through without extra settings.
+
+# No access log (Caddy writes none unless a site asks for one). Its own log notes failed requests,
+# e.g. a 502 while the app restarts for an update; the filter drops the client's address and the
+# request headers from those lines, so no visitor's address ends up in a log (the privacy page,
+# /privacy, says so).
+{
+	log default {
+		format filter {
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			request>headers delete
+		}
+	}
+}
+
 {$BANNERFALL_DOMAIN} {
 	encode zstd gzip
 

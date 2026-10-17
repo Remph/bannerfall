@@ -263,6 +263,16 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
             </ul>
           </div>
         )}
+        {scouting.away != null && (
+          <div className={styles.group}>
+            <h3 className={styles.groupTitle}>{t.reports.scoutedAway}</h3>
+            {presentUnits(scouting.away).length > 0 ? (
+              <UnitSummary units={scouting.away} />
+            ) : (
+              <p className={styles.muted}>{t.reports.scoutedAwayNone}</p>
+            )}
+          </div>
+        )}
         <p className={styles.muted}>{t.reports.scoutedTroops}</p>
       </>
     );

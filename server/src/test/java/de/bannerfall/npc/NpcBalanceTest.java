@@ -34,6 +34,21 @@ class NpcBalanceTest {
     }
 
     @Test
+    void aLordGuildFarAheadOfTheStrongestHumanSideIsBraked() {
+        // 09 §13.5: three lords (10,765) against the strongest human guild (11,347)
+        List<Integer> humans = List.of(5000, 4000, 2347, 900);
+        assertThat(NpcBalance.stance(4000, 10_765L, 11_347, humans, NORMAL).braked()).isFalse();
+        assertThat(NpcBalance.stance(4000, 14_183L, 11_347, humans, NORMAL).braked()).isFalse();
+        assertThat(NpcBalance.stance(4000, 14_184L, 11_347, humans, NORMAL).braked()).isTrue();
+        // a lord on its own is braked as before, whatever its guild
+        assertThat(NpcBalance.stance(6251, 6251L, 11_347, humans, NORMAL).braked()).isTrue();
+        assertThat(NpcBalance.stance(4000, null, 900, humans, NORMAL).braked()).isFalse();
+        // with no human owning a village the rubber band stays off
+        assertThat(NpcBalance.stance(4000, 99_999L, 0, List.of(), NORMAL))
+                .isEqualTo(NpcMemory.Stance.NONE);
+    }
+
+    @Test
     void aLordFarBehindTheAverageIsBoosted() {
         // NORMAL: boost below 0.5 × the average (here 600 → 300), factor 1.25
         NpcMemory.Stance behind = NpcBalance.stance(299, List.of(1000, 200), NORMAL);
@@ -83,12 +98,44 @@ class NpcBalanceTest {
     void theFarmBudgetIsAShareOfTheLordsDailyProduction() {
         // NORMAL: 50 % of a day's production; 1000 per hour make 24 000 a day, so 12 000 of loot
         assertThat(NORMAL.farmLootShare()).isEqualTo(0.5);
-        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 11_999, 1000)).isFalse();
-        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 12_000, 1000)).isTrue();
-        // a share of 0 is no budget
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 11_999, 0, 0, 1000, 24)).isFalse();
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 12_000, 0, 0, 1000, 24)).isTrue();
+        // a share of 0 is no budget, and no pace either
         Difficulty unlimited =
                 new Difficulty(0.9, 0, 1, 1.25, 4, 8, true, true, "23:00", "07:00", 0, false);
-        assertThat(NpcBalance.farmBudgetSpent(unlimited, 1_000_000, 1)).isFalse();
+        assertThat(NpcBalance.farmBudgetSpent(unlimited, 1_000_000, 1_000_000, 0, 1, 16)).isFalse();
+    }
+
+    @Test
+    void theFarmBudgetIsSpreadOverTheHoursTheLordMayFarm() {
+        // 12 000 a day over 16 farm hours: at most 1 500 within 2 hours
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 1_499, 1_499, 0, 1000, 16)).isFalse();
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 1_500, 1_500, 0, 1000, 16)).isTrue();
+        // without rest the day has 24 farm hours: 1 000 within 2 hours
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 1_000, 1_000, 0, 1000, 24)).isTrue();
+        // the loot of earlier hours only counts towards the day
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 9_000, 0, 0, 1000, 16)).isFalse();
+    }
+
+    @Test
+    void theLootOnTheWayCountsTowardsTheDayAndThePace() {
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 0, 0, 1_500, 1000, 16)).isTrue();
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 0, 0, 1_499, 1000, 16)).isFalse();
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 11_000, 0, 1_000, 1000, 16)).isTrue();
+    }
+
+    @Test
+    void theFarmHoursLeaveOutTheBuildQuietHoursOnlyWithRest() {
+        Difficulty rest =
+                new Difficulty(0.9, 0, 1, 1.25, 4, 8, true, true, "23:00", "07:00", 0.5, true);
+        Difficulty noRest =
+                new Difficulty(0.9, 0, 1, 1.25, 4, 8, true, true, "23:00", "07:00", 0.5, false);
+        Difficulty sameDay =
+                new Difficulty(0.9, 0, 1, 1.25, 4, 8, true, true, "01:00", "05:30", 0.5, true);
+
+        assertThat(NpcBalance.farmHours(rest)).isEqualTo(16);
+        assertThat(NpcBalance.farmHours(noRest)).isEqualTo(24);
+        assertThat(NpcBalance.farmHours(sameDay)).isEqualTo(19.5);
     }
 
     @Test

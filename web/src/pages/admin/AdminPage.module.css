@@ -62,6 +62,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  align-items: center;
   gap: var(--space-1) var(--space-3);
 }
 
@@ -256,4 +257,23 @@
   color: var(--color-text-muted);
   font-size: 0.85rem;
   overflow-wrap: anywhere;
+}
+
+/* a heading inside a card (the lord guilds above the lords, 09-npc-lords §13.7) */
+.subtitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* the personality and the lord's "…" at the right of its line */
+.lordSide {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* a part of a card under its own heading, flush with the card's other content */
+.section {
+  display: grid;
+  gap: var(--space-2);
 }

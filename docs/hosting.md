@@ -120,6 +120,9 @@ Check in `nano` that these are filled:
 | `BANNERFALL_DOMAIN` | your realm's name |
 | `BANNERFALL_IMAGE` | the image you build next, same version as the tag |
 | `TZ` | your time zone |
+| `BANNERFALL_OPERATOR_NAME`, `BANNERFALL_OPERATOR_CONTACT` | who runs the realm and how players reach you (usually an email address); shown on the privacy page (`/privacy`), linked under the login and register forms. Empty, the page only explains what the game stores |
+
+The privacy page describes what Bannerfall itself stores; it is a starting point, not legal advice. Whether your realm needs more (an imprint, a longer privacy notice, details about your hosting provider) depends on your country and on who plays. It tells players that neither the game nor Caddy logs their address; if you put another proxy in front, switch its access log off.
 
 Leave the port lines commented out unless you need them (README, *Ports*), and do **not** add `BANNERFALL_CHEATS_ENABLED`. Copy the two secrets into your password manager (`grep -E '^(POSTGRES_PASSWORD|BANNERFALL_ADMIN_TOKEN)=' .env`) and never put `.env` anywhere public.
 

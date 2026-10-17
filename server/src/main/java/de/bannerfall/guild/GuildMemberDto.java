@@ -9,4 +9,5 @@ public record GuildMemberDto(
         GuildRole role,
         int points,
         int villageCount,
-        Instant joinedAt) {}
+        Instant joinedAt,
+        boolean npc) {}

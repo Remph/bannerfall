@@ -436,6 +436,8 @@ class BattleFlowTest {
         assertThat(units(report, "$.payload.defenderSide.losses")).isEmpty();
         assertThat(JsonPath.<List<?>>read(report, "$.payload.defenderSide.stacks")).isEmpty();
         assertThat(number(report, "$.payload.defenderSide.wallAfter").intValue()).isEqualTo(3);
+        // three of ten lost: more than a quarter, so nothing about the troops away
+        assertThat((Object) JsonPath.read(report, "$.payload.scouting.away")).isNull();
 
         String defense = defender.newestReport("DEFENSE");
         assertThat(JsonPath.<String>read(defense, "$.payload.outcome")).isEqualTo("SCOUTS_ONLY");
@@ -453,6 +455,40 @@ class BattleFlowTest {
         Instant backHome = arrival.plus(Duration.between(sentAt, arrival));
         arriveAt(backHome);
         attacker.village().andExpect(jsonPath("$.unitsHome.SCOUT").value(7));
+    }
+
+    @Test
+    void scoutsWhoMostlySurviveSeeTheTroopsAwayFromTheVillage() throws Exception {
+        TestPlayer friend = TestPlayer.register(mockMvc);
+        setUnits(attacker, Map.of(UnitType.SCOUT, 10));
+        setUnits(defender, Map.of(UnitType.SCOUT, 2, UnitType.SPEARMAN, 30));
+        addSupport(defender, friend, Map.of(UnitType.AXEMAN, 20));
+        Instant arrival = attack("{\"SCOUT\":10}");
+        // spearmen of the defender on their way to support the attacker's village (slower than
+        // the scouts, so still walking when they arrive)
+        Coordinates attackerAt = coordinates(attacker);
+        defender.browser
+                .post(
+                        defender.villagePath() + "/commands",
+                        "{\"kind\":\"SUPPORT\",\"target\":{\"x\":"
+                                + attackerAt.x()
+                                + ",\"y\":"
+                                + attackerAt.y()
+                                + "},\"units\":{\"SPEARMAN\":12}}")
+                .andExpect(status().isCreated());
+
+        arriveAt(arrival);
+
+        // 10 > 2 scouts: the attacker loses round(10 × 0.2^1.5) = 1, nine in ten survive
+        String report = attacker.newestReport("SCOUT");
+        assertThat(units(report, "$.payload.attackerLosses")).isEqualTo(Map.of("SCOUT", 1));
+        assertThat(units(report, "$.payload.scouting.away"))
+                .isEqualTo(Map.of("AXEMAN", 20, "SPEARMAN", 12));
+        assertThat(units(report, "$.payload.defenderSide.units"))
+                .isEqualTo(Map.of("SCOUT", 2, "SPEARMAN", 18));
+        // the defenders know where their troops are
+        String defense = defender.newestReport("DEFENSE");
+        assertThat((Object) JsonPath.read(defense, "$.payload.scouting.away")).isNull();
     }
 
     @Test

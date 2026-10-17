@@ -1,11 +1,17 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BuildingType;
+import de.bannerfall.gamedata.GameData;
+import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.movement.Movement;
+import de.bannerfall.movement.MovementRepository;
 import de.bannerfall.npc.NpcBalanceSettings.Difficulty;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.report.ReportRepository;
 import de.bannerfall.rules.Production;
+import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageLocker;
@@ -56,6 +62,9 @@ public class NpcRound {
     private final WorldService worldService;
     private final VillageStateService stateService;
     private final ReportRepository reports;
+    private final MovementRepository movements;
+    private final GameData gameData;
+    private final NpcGuilds guilds;
 
     NpcRound(
             PlatformTransactionManager transactionManager,
@@ -73,7 +82,10 @@ public class NpcRound {
             NpcWorld world,
             WorldService worldService,
             VillageStateService stateService,
-            ReportRepository reports) {
+            ReportRepository reports,
+            MovementRepository movements,
+            GameData gameData,
+            NpcGuilds guilds) {
         this.tx = new TransactionTemplate(transactionManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.brains = brains;
@@ -91,6 +103,9 @@ public class NpcRound {
         this.worldService = worldService;
         this.stateService = stateService;
         this.reports = reports;
+        this.movements = movements;
+        this.gameData = gameData;
+        this.guilds = guilds;
     }
 
     /**
@@ -118,6 +133,7 @@ public class NpcRound {
             }
         }
         step(playerId, "the finish step", () -> finish(playerId, now));
+        step(playerId, "the guild step", () -> guilds.form(playerId));
     }
 
     /** One step in a transaction of its own; a failure is rolled back and logged at WARN. */
@@ -138,17 +154,31 @@ public class NpcRound {
         double speed = worldService.settings().speed();
         NpcMemory.Draft memory = brain.getMemory().draft();
         intel.read(playerId, memory, speed, balance.general());
+        Map<Long, NpcWorld.MapVillage> map = world.villages(now);
+        Set<Long> mates = guilds.mates(playerId);
+        if (!mates.isEmpty() || !memory.grudges.isEmpty()) {
+            List<Map<Long, NpcMemory.Grudge>> mateGrudges =
+                    brains.findAllById(mates).stream().map(b -> b.getMemory().grudges()).toList();
+            List<Coordinates> own =
+                    map.values().stream()
+                            .filter(v -> v.playerId() != null && v.playerId() == playerId)
+                            .map(NpcWorld.MapVillage::coordinates)
+                            .toList();
+            NpcIntel.shareGrudges(
+                    memory,
+                    playerId,
+                    mates,
+                    mateGrudges,
+                    own,
+                    map,
+                    templates.of(brain.getPersonality()).conquestRadius(),
+                    now);
+        }
         Set<Long> answered =
                 memory.supported.stream()
                         .map(NpcMemory.Supported::attackId)
                         .collect(Collectors.toSet());
-        NpcIntel.prune(
-                memory,
-                playerId,
-                now,
-                speed,
-                world.villages(now),
-                world.existingMovements(answered));
+        NpcIntel.prune(memory, playerId, now, speed, map, world.existingMovements(answered));
         NpcMemory updated = memory.build();
         if (!updated.equals(brain.getMemory())) {
             brain.setMemory(updated);
@@ -173,13 +203,20 @@ public class NpcRound {
             }
         }
         Difficulty difficulty = balance.difficulty();
+        Set<Long> mates = guilds.mates(playerId);
+        Set<Long> side = new HashSet<>(mates);
+        side.add(playerId);
         boolean farmBudgetSpent =
                 difficulty.farmLootShare() > 0
                         && NpcBalance.farmBudgetSpent(
                                 difficulty,
                                 reports.sumLootSince(
                                         playerId, now.minus(NpcBalance.FARM_BUDGET_WINDOW)),
-                                productionPerHour(lord, settings));
+                                reports.sumLootSince(
+                                        playerId, now.minus(NpcBalance.FARM_PACE_WINDOW)),
+                                carryUnderWay(playerId),
+                                productionPerHour(lord, settings),
+                                NpcBalance.farmHours(difficulty));
         return new NpcTurn.View(
                 playerId,
                 brain.getPersonality(),
@@ -188,11 +225,28 @@ public class NpcRound {
                 balance.general(),
                 settings,
                 world.villages(now),
-                world.incomingAttacks(playerId),
+                world.incomingAttacks(side),
                 toHumans,
                 lord.getPoints(),
                 brain.getMemory().stance().braked(),
-                farmBudgetSpent);
+                farmBudgetSpent,
+                Set.copyOf(mates),
+                mates.isEmpty() ? Set.of() : world.trainTargets(mates));
+    }
+
+    /**
+     * What the lord's attacks on the way can carry (09 §6.2): their loot isn't in a report yet, so
+     * the farm budget counts it at most, and a round doesn't send more farms on top of a full
+     * budget.
+     */
+    private long carryUnderWay(long playerId) {
+        long carry = 0;
+        for (Movement attack : movements.findAttacksUnderWay(playerId)) {
+            for (UnitType type : UnitType.values()) {
+                carry += (long) attack.getUnits().get(type) * gameData.unit(type).carry();
+            }
+        }
+        return carry;
     }
 
     /** What the lord's villages produce per real hour, all three resources (09 §6.2). */
@@ -224,6 +278,13 @@ public class NpcRound {
         List<Long> ids = new ArrayList<>();
         ids.add(villageId);
         ids.addAll(stacks.findOwnSupportHomeIds(villageId, playerId));
+        // and the villages where this village's supports stand with others (09 §13.3), so the
+        // withdraw step can send them home without locking out of order
+        for (UnitStack away : stacks.findByHomeVillageId(villageId)) {
+            if (!away.isHome()) {
+                ids.add(away.getLocationVillage().getId());
+            }
+        }
         List<Village> locked = locker.lock(ids.toArray(Long[]::new));
         Village village =
                 locked.stream().filter(v -> v.getId() == villageId).findFirst().orElse(null);
@@ -234,9 +295,7 @@ public class NpcRound {
         }
         Set<Long> lockedIds = new HashSet<>();
         for (Village v : locked) {
-            if (v.getPlayer() != null && v.getPlayer().getId() == playerId) {
-                lockedIds.add(v.getId());
-            }
+            lockedIds.add(v.getId());
         }
         // caught up first: the defence step counts the units at home (recruits finished meanwhile)
         stateService.catchUp(village, now);
@@ -272,7 +331,13 @@ public class NpcRound {
         Difficulty difficulty = balance.difficulty();
         List<Integer> humanPoints =
                 players.findHumansWithVillages().stream().map(Player::getPoints).toList();
-        NpcMemory.Stance stance = NpcBalance.stance(player.getPoints(), humanPoints, difficulty);
+        NpcMemory.Stance stance =
+                NpcBalance.stance(
+                        player.getPoints(),
+                        guilds.guildPoints(playerId).orElse(null),
+                        guilds.strongestHumanSide(),
+                        humanPoints,
+                        difficulty);
         double factor = NpcBalance.productionFactor(difficulty, stance);
         if (player.getProductionFactor() != factor) {
             player.setProductionFactor(factor);

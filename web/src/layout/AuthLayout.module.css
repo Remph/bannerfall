@@ -18,6 +18,10 @@
   padding: var(--space-3);
 }
 
+.mainWide {
+  max-width: 40rem;
+}
+
 .brand {
   margin: var(--space-3) 0 var(--space-4);
   text-align: center;
@@ -32,4 +36,16 @@
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
+}
+
+/* Under the forms: the privacy page, quiet but easy to tap. */
+.legal {
+  margin: var(--space-3) 0 0;
+  text-align: center;
+}
+
+.legal a {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-muted);
 }

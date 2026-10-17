@@ -58,3 +58,14 @@ export function useVictory(enabled = true) {
     refetchInterval: (query) => (query.state.data?.phase === 'OPEN' ? VICTORY_REFRESH_MS : false),
   });
 }
+
+export type WorldOperator = components['schemas']['OperatorDto'];
+
+/** GET /api/world/operator: who runs this world, for the privacy page (no login needed). Settings of the host: they don't change while the page is open. */
+export function useWorldOperator() {
+  return useQuery({
+    queryKey: ['world', 'operator'] as const,
+    queryFn: () => expectData(api.GET('/api/world/operator')),
+    staleTime: Infinity,
+  });
+}

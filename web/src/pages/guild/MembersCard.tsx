@@ -44,6 +44,7 @@ export function MembersCard({ guild, ownPlayerId, isLeader }: MembersCardProps) 
     <>
       {member.name}
       {member.playerId === ownPlayerId && <span className={styles.pill}>{t.map.youTag}</span>}
+      {member.npc && <span className={styles.pill}>{t.map.npcTag}</span>}
       {member.role === 'LEADER' && <span className={styles.pill}>{t.guild.roles.LEADER}</span>}
     </>
   );

@@ -49,6 +49,12 @@ bannerfall:
     # The host token for the CLI bannerfall-admin (docs/plan/08-host-console.md §4): env
     # BANNERFALL_ADMIN_TOKEN, at least 32 characters (`openssl rand -base64 32`). Empty = no token door.
     token: ${BANNERFALL_ADMIN_TOKEN:}
+  operator:
+    # Who runs this world, shown on the privacy page (/privacy, GET /api/world/operator): env
+    # BANNERFALL_OPERATOR_NAME (a name, possibly with a postal address) and BANNERFALL_OPERATOR_CONTACT
+    # (usually an email address). Empty = the page shows only what the game stores.
+    name: ${BANNERFALL_OPERATOR_NAME:}
+    contact: ${BANNERFALL_OPERATOR_CONTACT:}
   abuse:
     # Abuse protection (docs/plan/01-architecture.md §4.12). Every number is a default; the host may change it here.
     write-limit:

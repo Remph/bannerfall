@@ -66,6 +66,7 @@ class NpcDefence {
         }
         help(turn);
         withdraw(turn);
+        withdrawFromOthers(turn);
     }
 
     /**
@@ -123,8 +124,8 @@ class NpcDefence {
                 continue;
             }
             MapVillage target = turn.view.villages().get(attack.targetVillageId());
-            if (target == null || target.playerId() == null || target.playerId() != turn.lordId()) {
-                continue;
+            if (target == null || !turn.ownOrMate(target.playerId())) {
+                continue; // the lord's own villages and its guild mates' (09 §13.3)
             }
             Map<UnitType, Integer> home = unitService.homeUnits(turn.villageId()).toMap();
             Map<UnitType, Integer> units =
@@ -193,6 +194,41 @@ class NpcDefence {
                     }
                 });
         return result;
+    }
+
+    /**
+     * The supports of this village standing in other players' villages (09 §13.3): in a guild
+     * mate's village they go home once no foreign attack is due there within the horizon and its
+     * loyalty is at least {@link #SETTLED_LOYALTY}; anywhere else (a lord that is no guild mate any
+     * more) at once. The villages they stand in were locked with this one at the start of the turn
+     * ({@code NpcRound}).
+     */
+    private void withdrawFromOthers(NpcTurn turn) {
+        double maxHaste = maxHaste(turn);
+        for (UnitStack stack : stacks.findByHomeVillageId(turn.villageId())) {
+            Village location = stack.getLocationVillage();
+            if (stack.isHome()
+                    || stack.getUnits().isEmpty()
+                    || !turn.locked.contains(location.getId())
+                    || (location.getPlayer() != null
+                            && location.getPlayer().getId() == turn.lordId())) {
+                continue;
+            }
+            Long owner = location.getPlayer() == null ? null : location.getPlayer().getId();
+            if (owner != null && turn.view.guildMates().contains(owner)) {
+                MapVillage there = turn.view.villages().get(location.getId());
+                boolean due =
+                        turn.view.incoming().stream()
+                                .anyMatch(
+                                        a ->
+                                                a.targetVillageId() == location.getId()
+                                                        && isThreat(turn, a, maxHaste));
+                if (due || there == null || there.loyalty() < SETTLED_LOYALTY) {
+                    continue;
+                }
+            }
+            commands.returnStack(stack.getId(), turn.lordId(), stack.getUnits().toMap());
+        }
     }
 
     /**

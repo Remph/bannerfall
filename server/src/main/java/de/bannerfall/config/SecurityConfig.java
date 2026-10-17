@@ -80,6 +80,7 @@ class SecurityConfig {
                                                 "/api/ping",
                                                 "/api/auth/**",
                                                 "/api/world/status",
+                                                "/api/world/operator",
                                                 "/actuator/health/**",
                                                 "/error")
                                         .permitAll()

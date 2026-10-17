@@ -295,15 +295,30 @@ public record BattleReport(
      * @param buildings every building's level before the battle; like {@code resources}
      * @param banner the banner flying in the village (M32, 02-game-rules §21.7: besides its owner
      *     only a successful scout sees it); like {@code resources}, and null if none flies there
+     * @param away the village owner's own units away from the village, per unit type: in support
+     *     elsewhere and on the way (balancing round 2, 02-game-rules §7.1); only in the attacker's
+     *     copy, only if scouting succeeded and at least 75 % of the scouts survived the scouting
+     *     phase, else null (empty: nothing away)
      */
     public record ScoutingReport(
             boolean succeeded,
             @Schema(nullable = true) ResourceAmounts resources,
             @Schema(nullable = true) Map<BuildingType, Integer> buildings,
-            @Schema(nullable = true) ScoutedBanner banner) {
+            @Schema(nullable = true) ScoutedBanner banner,
+            @Schema(nullable = true) Map<UnitType, Integer> away) {
 
         public ScoutingReport {
             buildings = buildings == null ? null : ReportMaps.buildings(buildings);
+            away = away == null ? null : ReportMaps.units(away);
+        }
+
+        /** A scouting report without the units away. */
+        public ScoutingReport(
+                boolean succeeded,
+                ResourceAmounts resources,
+                Map<BuildingType, Integer> buildings,
+                ScoutedBanner banner) {
+            this(succeeded, resources, buildings, banner, null);
         }
     }
 

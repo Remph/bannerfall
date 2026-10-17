@@ -148,9 +148,56 @@ class BattleReportsTest {
         assertThat(report.loyalty()).isEqualTo(SEEN_LOYALTY);
         assertThat(BattleReports.forDefenders(battle).loyalty()).isNull();
         assertThat(report.scouting())
-                .isEqualTo(new BattleReport.ScoutingReport(true, STOCK, BUILDINGS, BANNER));
+                .isEqualTo(
+                        new BattleReport.ScoutingReport(true, STOCK, BUILDINGS, BANNER, Map.of()));
         assertThat(report.defenderSide().units()).isEqualTo(Map.of(UnitType.SPEARMAN, 60));
         assertThat(report.defenderSide().losses()).isEqualTo(Map.of(UnitType.SPEARMAN, 60));
+    }
+
+    @Test
+    void scoutsSeeTheUnitsAwayOnlyWhenThreeInFourSurvive() {
+        assertThat(BattleReports.seesAway(new BattleResult.Scouting(8, 1, 2, true))).isTrue();
+        assertThat(BattleReports.seesAway(new BattleResult.Scouting(8, 2, 3, true))).isFalse();
+        assertThat(BattleReports.seesAway(new BattleResult.Scouting(8, 9, 8, false))).isFalse();
+
+        Map<UnitType, Integer> away = Map.of(UnitType.AXEMAN, 300, UnitType.LIGHT_CAVALRY, 40);
+        // 20 scouts against 8 lose round(20 × 0.4^1.5) = 5: exactly a quarter, they see it
+        var enough = withAway(battle(Map.of(UnitType.SCOUT, 20), List.of(scouts(8))), away);
+        assertThat(enough.result().scouting().lost()).isEqualTo(5);
+        assertThat(BattleReports.forAttacker(enough).scouting().away()).isEqualTo(away);
+        // the defenders' copy never has it (it's their own village)
+        assertThat(BattleReports.forDefenders(enough).scouting().away()).isNull();
+
+        // against 9 they lose 6: scouting succeeds, but the units away stay unseen
+        var tooFew = withAway(battle(Map.of(UnitType.SCOUT, 20), List.of(scouts(9))), away);
+        assertThat(tooFew.result().scouting().lost()).isEqualTo(6);
+        BattleReport.ScoutingReport seen = BattleReports.forAttacker(tooFew).scouting();
+        assertThat(seen.succeeded()).isTrue();
+        assertThat(seen.buildings()).isNotNull();
+        assertThat(seen.away()).isNull();
+    }
+
+    private static Map<UnitType, Integer> scouts(int count) {
+        return Map.of(UnitType.SCOUT, count);
+    }
+
+    private static BattleReports.Battle withAway(
+            BattleReports.Battle plain, Map<UnitType, Integer> away) {
+        return new BattleReports.Battle(
+                plain.attacker(),
+                plain.defender(),
+                plain.input(),
+                plain.result(),
+                plain.stackHomes(),
+                plain.stockBefore(),
+                plain.buildingsBefore(),
+                plain.bannerBefore(),
+                plain.loot(),
+                plain.loyalty(),
+                plain.loyaltySeen(),
+                plain.banners(),
+                plain.haulCapacity(),
+                away);
     }
 
     @Test

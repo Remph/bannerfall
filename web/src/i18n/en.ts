@@ -224,6 +224,7 @@ export const en = {
     capacity: (amount: string) => `max. ${amount}`,
     full: 'warehouse full',
     populationFull: 'farm full',
+    populationAlmostFull: 'farm almost full',
     showDetails: 'Show resource details',
     hideDetails: 'Hide resource details',
     /** Tooltip on wood, clay and iron in the top bar: they link to the warehouse page. */
@@ -1208,6 +1209,9 @@ export const en = {
     scoutedResources: 'Resources (before the loot)',
     scoutedBuildings: 'Buildings',
     scoutedBanner: 'Banner',
+    /** Balancing round 2: the owner's own units in support elsewhere or on the way; only when at least 3 in 4 scouts survived. */
+    scoutedAway: 'Away from the village',
+    scoutedAwayNone: 'None of the owner’s troops are away from the village.',
     /** The scouted troops are the defender's table; this says so. */
     scoutedTroops: 'The troops they saw are in the defender’s table.',
     scoutsFailed: 'Your scouts were caught and saw nothing.',
@@ -1651,6 +1655,39 @@ export const en = {
       },
     },
   },
+  /** /privacy: what the world stores, for guests and players alike. The host's name comes from GET /api/world/operator. */
+  privacy: {
+    link: 'Privacy',
+    title: 'Privacy',
+    intro:
+      'What this world stores about you, and why. Bannerfall is open-source software: every world is run by its own host, who is responsible for the data on it.',
+    operatorTitle: 'Who runs this world',
+    operatorText: 'For anything about your data, write to the host of this world:',
+    accountTitle: 'Your account',
+    account:
+      'Your player name and your password, which is stored only as a hash: it can’t be turned back into your password, not even by the host. Also when you registered and last logged in, your role, and a ban with its reason. No email address, no real name, no payment details.',
+    gameTitle: 'Your game',
+    game: 'Villages, troops, buildings, reports, farm list, achievements and guild: everything the game needs to run. Your name, villages, points and guild are visible to the other players of this world (map, ranking, profile).',
+    messagesTitle: 'Messages and chat',
+    messages:
+      'Private messages, the guild chat and the world chat are stored on the server, so they are still there next time. They are not encrypted there: the host can read them and can hide chat messages that break the rules.',
+    addressTitle: 'Your IP address',
+    address:
+      'For a few minutes the server uses your address to limit logins, registrations and password changes (against password guessing and mass sign-ups). It stays in memory only and never goes into the database. Neither the game nor the web server it comes with keeps an access log or writes your address into a log (only wrong attempts at the host’s admin key are noted with their address).',
+    logsTitle: 'Logs',
+    logs: 'The server log notes events such as failed logins and locked accounts with the player name. The log files are deleted after 14 days; the server’s console output is limited in size and starts afresh with every update. Requests the game’s own page never sends (signs of cheating) are noted per account for 30 days. What the host does (bans, password resets, deleted players) stays in the host’s log.',
+    cookiesTitle: 'Cookies and browser storage',
+    cookies:
+      'Two cookies, both needed to play: one keeps you logged in (up to 30 days), the other protects against forged requests. Your browser also remembers settings such as language, theme and map view. No tracking, no ads, no outside services: fonts and pictures come from this server.',
+    purposeTitle: 'Why and for how long',
+    purpose:
+      'The data is needed to play (your account and game) and to protect the world against abuse (address limits and logs); in the terms of the GDPR, Art. 6(1)(b) and (f). It is kept as long as the world runs; the backups of the database are kept for 14 days unless the host keeps them longer.',
+    rightsTitle: 'Your rights',
+    rights:
+      'You may ask the host what is stored about you, and have it corrected or deleted. In the game, deleting means the host deletes your player: you can no longer log in and your villages become barbarian villages. Your account entry, your name and what you wrote stay, because old reports, messages and chat lines point to them. You may also complain to a data protection authority.',
+    backToLogin: 'Log in',
+    backToGame: 'Back to the game',
+  },
   about: {
     link: 'About and credits',
     title: 'About Bannerfall',
@@ -1889,6 +1926,11 @@ export const en = {
       villageNameLanguageHint:
         "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
       guildMaxMembers: 'Most members per guild',
+      npcGuildsEnabled: 'NPC lords form guilds',
+      npcGuildsHint:
+        'Lords from 850 points team up with a lord within 15 fields: they never attack each other, help defend each other and avenge each other. You can rearrange them in the NPC lords tab.',
+      npcGuildsOff: 'Saving this ends every lord guild and clears your placements.',
+      npcGuildMaxMembers: 'Most lords per lord guild',
       saved: 'Saved.',
       mapSize: 'Map size (fields per side)',
       barbarianInitialCount: 'Barbarian villages at the start',
@@ -1964,6 +2006,19 @@ export const en = {
       outOfTheGame: 'Out of the game',
       nextRound: (when: string) => `next round ${when}`,
       lastRound: (when: string) => `last ${when}`,
+      /** Lord guilds (09-npc-lords §13.7). */
+      guilds: 'Lord guilds',
+      guildsEmpty: 'No lord guilds yet. Lords form them from 850 points with a neighbour within 15 fields.',
+      guildsOff: 'Lord guilds are off (world settings).',
+      guildLine: (members: number, max: number, points: string) => `${members}/${max} lords · ${points} points`,
+      guild: (name: string, tag: string) => `Guild ${name} [${tag}]`,
+      noGuild: 'No guild',
+      placed: 'placed by the admin',
+      more: (name: string) => `Guild for ${name}`,
+      moveTo: (name: string, tag: string) => `Move to ${name} [${tag}]`,
+      takeOut: 'Take out of the guild',
+      found: 'Found a new lord guild',
+      letChoose: 'Let it choose',
     },
   },
   dev: {

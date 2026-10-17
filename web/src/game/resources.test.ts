@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isFull, projectResources, whenAffordable, whenFull, type ResourceSnapshot } from './resources';
+import {
+  isFarmAlmostFull,
+  isFull,
+  projectResources,
+  whenAffordable,
+  whenFull,
+  type ResourceSnapshot,
+} from './resources';
 
 const at = '2026-10-03T12:00:00Z';
 const atMs = Date.parse(at);
@@ -37,6 +44,19 @@ describe('projectResources', () => {
 
   it('does not go backwards when the clock is behind the snapshot', () => {
     expect(projectResources(snapshot(), atMs - hour)).toEqual({ wood: 500, clay: 400, iron: 300 });
+  });
+});
+
+describe('isFarmAlmostFull', () => {
+  it('is true while less than a tenth of the farm is free', () => {
+    expect(isFarmAlmostFull(900, 1000)).toBe(false);
+    expect(isFarmAlmostFull(901, 1000)).toBe(true);
+    expect(isFarmAlmostFull(999, 1000)).toBe(true);
+  });
+
+  it('is false when the farm is full (that is red)', () => {
+    expect(isFarmAlmostFull(1000, 1000)).toBe(false);
+    expect(isFarmAlmostFull(1010, 1000)).toBe(false);
   });
 });
 

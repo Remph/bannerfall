@@ -7,6 +7,7 @@ import de.bannerfall.cheat.SpawnBarbarianRequest;
 import de.bannerfall.common.Coordinates;
 import de.bannerfall.event.EventAdminService;
 import de.bannerfall.event.FailedEventDto;
+import de.bannerfall.npc.NpcAdminService;
 import de.bannerfall.victory.VictoryService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageRefDto;
@@ -52,6 +53,7 @@ class AdminController {
     private final EventAdminService eventAdmin;
     private final BarbarianService barbarians;
     private final AdminAuditService audit;
+    private final NpcAdminService npcAdmin;
 
     AdminController(
             AdminStatusService status,
@@ -61,7 +63,8 @@ class AdminController {
             ChatService chat,
             EventAdminService eventAdmin,
             BarbarianService barbarians,
-            AdminAuditService audit) {
+            AdminAuditService audit,
+            NpcAdminService npcAdmin) {
         this.status = status;
         this.world = world;
         this.opening = opening;
@@ -70,6 +73,7 @@ class AdminController {
         this.eventAdmin = eventAdmin;
         this.barbarians = barbarians;
         this.audit = audit;
+        this.npcAdmin = npcAdmin;
     }
 
     @GetMapping("/status")
@@ -88,6 +92,9 @@ class AdminController {
                 () -> {
                     AdminWorldSettingsDto before = world.adminSettings();
                     AdminWorldSettingsDto after = world.updateSettings(body);
+                    if (before.npcGuildsEnabled() && !after.npcGuildsEnabled()) {
+                        npcAdmin.disbandLordGuilds(); // 09-npc-lords §13: off ends them
+                    }
                     audit.record(
                             "WORLD_SETTINGS",
                             "world",

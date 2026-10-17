@@ -55,11 +55,11 @@ npc:
         - { STABLE: 10, SMITHY: 15 }                    # heavy cavalry
         - { WALL: 10, MARKET: 5 }
         - { HEADQUARTERS: 20 }
+        - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }   # before the long Smithy 20 / Academy stretch (balancing round 2)
         - { SMITHY: 20 }
         - { MARKET: 10 }
         - { WAREHOUSE: 20 }
         - { ACADEMY: 1 }
-        - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
         - { FARM: 20, WAREHOUSE: 20 }
         - { BARRACKS: 15, STABLE: 12, WORKSHOP: 5, WALL: 15 }
         - { HEADQUARTERS: 25 }

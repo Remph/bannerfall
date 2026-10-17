@@ -33,7 +33,12 @@ export function WorldSettingsCard() {
 
 type FieldName = Exclude<
   keyof WorldForm,
-  'barbarianGrowthEnabled' | 'guildsEnabled' | 'unitLevelsEnabled' | 'bannersEnabled' | 'villageNameLanguage'
+  | 'barbarianGrowthEnabled'
+  | 'guildsEnabled'
+  | 'npcGuildsEnabled'
+  | 'unitLevelsEnabled'
+  | 'bannersEnabled'
+  | 'villageNameLanguage'
 >;
 
 function SettingsForm({
@@ -103,6 +108,7 @@ function SettingsForm({
         <TextField {...field('tradeMaxRatio', { type: 'number', step: '0.5', min: '1', max: '10' })} />
         <TextField {...field('npcThinkMinutes', { type: 'number', step: '1', min: '1', max: '1440' })} />
         <TextField {...field('guildMaxMembers', { type: 'number', step: '1', min: '2', max: '50' })} />
+        <TextField {...field('npcGuildMaxMembers', { type: 'number', step: '1', min: '2', max: '50' })} />
         <TextField {...field('paladinVillagesPerSlot', { type: 'number', step: '1', min: '1', max: '100' })} />
         <TextField {...field('paladinMaxSlots', { type: 'number', step: '1', min: '0', max: '20' })} />
         <TextField {...field('bannerDropFactor', { type: 'number', step: '0.1', min: '0', max: '3' })} />
@@ -146,6 +152,22 @@ function SettingsForm({
         />
         {labels.guildsEnabled}
       </label>
+      <div>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={form.npcGuildsEnabled}
+            onChange={(event) => {
+              setForm({ ...form, npcGuildsEnabled: event.target.checked });
+              save.reset();
+            }}
+          />
+          {labels.npcGuildsEnabled}
+        </label>
+        <p className={styles.hint}>
+          {settings.npcGuildsEnabled && !form.npcGuildsEnabled ? labels.npcGuildsOff : labels.npcGuildsHint}
+        </p>
+      </div>
       <label className={styles.check}>
         <input
           type="checkbox"

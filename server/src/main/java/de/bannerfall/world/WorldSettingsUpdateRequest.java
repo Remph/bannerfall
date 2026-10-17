@@ -37,6 +37,8 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @Min(0) @Max(50) Integer npcLordCount,
         @Schema(nullable = true) Boolean guildsEnabled,
         @Schema(nullable = true) @Min(2) @Max(50) Integer guildMaxMembers,
+        @Schema(nullable = true) Boolean npcGuildsEnabled,
+        @Schema(nullable = true) @Min(2) @Max(50) Integer npcGuildMaxMembers,
         @Schema(nullable = true) Boolean barbarianWallsEnabled,
         @Schema(nullable = true) @Min(0) @Max(365) Integer barbarianWallStartDays,
         @Schema(nullable = true) @Min(0) @Max(20) Integer barbarianWallMaxLevel,

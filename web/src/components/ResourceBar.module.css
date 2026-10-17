@@ -88,6 +88,12 @@
   color: var(--color-on-bar-warn);
 }
 
+/* the farm with less than a tenth free (balancing round 2): build the farm before it stops you */
+.almostFull .amount,
+.almostFull .max {
+  color: var(--color-on-bar-caution);
+}
+
 /* Phones, slim row: icon and amount side by side, no maximum or production. */
 @media (max-width: 1023.98px) {
   .compact .item {
@@ -172,6 +178,10 @@
 
   .full .fill > span {
     background: var(--color-on-bar-warn);
+  }
+
+  .almostFull .fill > span {
+    background: var(--color-on-bar-caution);
   }
 }
 

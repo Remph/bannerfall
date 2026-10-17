@@ -321,6 +321,43 @@
         }
       }
     },
+    "/api/admin/npc-lords/{playerId}/guild" : {
+      "put" : {
+        "tags" : [ "npc-admin-controller" ],
+        "operationId" : "setGuild",
+        "parameters" : [ {
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NpcGuildRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NpcLordDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/npc-balance/custom" : {
       "get" : {
         "tags" : [ "npc-admin-controller" ],
@@ -2519,6 +2556,24 @@
         }
       }
     },
+    "/api/world/operator" : {
+      "get" : {
+        "tags" : [ "world-controller" ],
+        "operationId" : "operator",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OperatorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/villages/{villageId}/troops" : {
       "get" : {
         "tags" : [ "command-controller" ],
@@ -3983,9 +4038,12 @@
           "joinedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "npc" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "joinedAt", "name", "playerId", "points", "role", "villageCount" ]
+        "required" : [ "joinedAt", "name", "npc", "playerId", "points", "role", "villageCount" ]
       },
       "MyGuildDto" : {
         "type" : "object",
@@ -4137,6 +4195,15 @@
             "maximum" : 50,
             "minimum" : 2
           },
+          "npcGuildsEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "npcGuildMaxMembers" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 2
+          },
           "barbarianWallsEnabled" : {
             "type" : [ "boolean", "null" ]
           },
@@ -4218,7 +4285,7 @@
             "enum" : [ "EN", "DE" ]
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcLordCount", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "AdminWorldSettingsDto" : {
         "type" : "object",
@@ -4311,6 +4378,13 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "npcGuildsEnabled" : {
+            "type" : "boolean"
+          },
+          "npcGuildMaxMembers" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "barbarianWallsEnabled" : {
             "type" : "boolean"
           },
@@ -4388,7 +4462,7 @@
             "format" : "date-time"
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcLordCount", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "WorldOpeningRequest" : {
         "type" : "object",
@@ -4419,6 +4493,79 @@
           }
         },
         "required" : [ "difficulty" ]
+      },
+      "NpcGuildRequest" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string",
+            "enum" : [ "JOIN", "LEAVE", "FOUND", "AUTO" ]
+          },
+          "guildId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          }
+        },
+        "required" : [ "action", "guildId" ]
+      },
+      "NpcLordDto" : {
+        "type" : "object",
+        "properties" : {
+          "playerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "personality" : {
+            "type" : "string",
+            "enum" : [ "DEFENSIVE", "OFFENSIVE", "BALANCED" ]
+          },
+          "template" : {
+            "type" : "string"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "villageCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lastThinkAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "nextThinkAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "braked" : {
+            "type" : "boolean"
+          },
+          "boosted" : {
+            "type" : "boolean"
+          },
+          "productionFactor" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "guildId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "guildName" : {
+            "type" : [ "string", "null" ]
+          },
+          "guildTag" : {
+            "type" : [ "string", "null" ]
+          },
+          "guildByAdmin" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "boosted", "braked", "guildByAdmin", "guildId", "guildName", "guildTag", "lastThinkAt", "name", "nextThinkAt", "personality", "playerId", "points", "productionFactor", "template", "villageCount" ]
       },
       "Difficulty" : {
         "type" : "object",
@@ -6073,52 +6220,6 @@
         },
         "required" : [ "personality" ]
       },
-      "NpcLordDto" : {
-        "type" : "object",
-        "properties" : {
-          "playerId" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "personality" : {
-            "type" : "string",
-            "enum" : [ "DEFENSIVE", "OFFENSIVE", "BALANCED" ]
-          },
-          "template" : {
-            "type" : "string"
-          },
-          "points" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "villageCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "lastThinkAt" : {
-            "type" : [ "string", "null" ],
-            "format" : "date-time"
-          },
-          "nextThinkAt" : {
-            "type" : [ "string", "null" ],
-            "format" : "date-time"
-          },
-          "braked" : {
-            "type" : "boolean"
-          },
-          "boosted" : {
-            "type" : "boolean"
-          },
-          "productionFactor" : {
-            "type" : "number",
-            "format" : "double"
-          }
-        },
-        "required" : [ "boosted", "braked", "lastThinkAt", "name", "nextThinkAt", "personality", "playerId", "points", "productionFactor", "template", "villageCount" ]
-      },
       "InvariantProblemDto" : {
         "type" : "object",
         "properties" : {
@@ -6291,6 +6392,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "npcGuildMaxMembers" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "barbarianWallsEnabled" : {
             "type" : "boolean"
           },
@@ -6371,7 +6476,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "registeredPlayers", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcGuildMaxMembers", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "registeredPlayers", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
       },
       "VictoryDto" : {
         "type" : "object",
@@ -6532,6 +6637,18 @@
           }
         },
         "required" : [ "name", "onlinePlayers", "opensAt", "phase", "registeredPlayers", "version" ]
+      },
+      "OperatorDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "contact" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "contact", "name" ]
       },
       "IncomingDto" : {
         "type" : "object",
@@ -7501,9 +7618,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "away" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         },
-        "required" : [ "banner", "buildings", "resources", "succeeded" ]
+        "required" : [ "away", "banner", "buildings", "resources", "succeeded" ]
       },
       "SupportReport" : {
         "allOf" : [ {

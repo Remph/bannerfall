@@ -53,6 +53,8 @@ final class BattleReports {
      * @param banners what banners did (M32b)
      * @param haulCapacity what the surviving attackers could carry when they took loot (1.3); null
      *     when they took none (lost, or conquered the village)
+     * @param away the target owner's own units away from the village (in support elsewhere and on
+     *     the way) when the attack arrived; the attacker's copy shows them only after good scouting
      */
     record Battle(
             VillageRefDto attacker,
@@ -67,7 +69,40 @@ final class BattleReports {
             BattleReport.LoyaltyReport loyalty,
             BattleReport.LoyaltyReport loyaltySeen,
             Banners banners,
-            Integer haulCapacity) {
+            Integer haulCapacity,
+            Map<UnitType, Integer> away) {
+
+        /** A battle without the units away. */
+        Battle(
+                VillageRefDto attacker,
+                VillageRefDto defender,
+                BattleInput input,
+                BattleResult result,
+                List<VillageRefDto> stackHomes,
+                ResourceAmounts stockBefore,
+                Map<BuildingType, Integer> buildingsBefore,
+                BattleReport.ScoutedBanner bannerBefore,
+                ResourceAmounts loot,
+                BattleReport.LoyaltyReport loyalty,
+                BattleReport.LoyaltyReport loyaltySeen,
+                Banners banners,
+                Integer haulCapacity) {
+            this(
+                    attacker,
+                    defender,
+                    input,
+                    result,
+                    stackHomes,
+                    stockBefore,
+                    buildingsBefore,
+                    bannerBefore,
+                    loot,
+                    loyalty,
+                    loyaltySeen,
+                    banners,
+                    haulCapacity,
+                    Map.of());
+        }
 
         /** A battle without the haul capacity. */
         Battle(
@@ -128,6 +163,7 @@ final class BattleReports {
         }
 
         Battle {
+            away = away == null ? Map.of() : away;
             if (stackHomes.size() != input.defenderStacks().size()) {
                 throw new IllegalArgumentException(
                         "one home village per defending stack: "
@@ -186,7 +222,8 @@ final class BattleReports {
                             succeeded,
                             succeeded ? battle.stockBefore() : null,
                             succeeded ? battle.buildingsBefore() : null,
-                            succeeded ? battle.bannerBefore() : null);
+                            succeeded ? battle.bannerBefore() : null,
+                            seesAway(result.scouting()) ? battle.away() : null);
         }
         Banners banners = battle.banners();
         // the Bulwark is part of what a successful scout saw (the banner itself is)
@@ -203,6 +240,18 @@ final class BattleReports {
                         banners.theft(),
                         null),
                 battle.haulCapacity());
+    }
+
+    /**
+     * The share of the scouts that must survive the scouting phase for the report to show the units
+     * away from the village (balancing round 2, 02-game-rules §7.1).
+     */
+    static final double AWAY_SURVIVORS = 0.75;
+
+    /** Whether the scouts see the units away: scouting succeeded and enough of them survived. */
+    static boolean seesAway(BattleResult.Scouting scouting) {
+        return scouting.succeeded()
+                && scouting.sent() - scouting.lost() >= AWAY_SURVIVORS * scouting.sent();
     }
 
     /** The copy for the village owner (kind DEFENSE); supporters get {@link #forSupporters}. */

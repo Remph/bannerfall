@@ -18,6 +18,7 @@ export const openWithoutVillage: readonly string[] = [
   '/guild',
   '/guilds/:guildId',
   '/about',
+  '/privacy',
   '/password',
   // RequireAdmin still guards it for everybody else
   '/admin',

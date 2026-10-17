@@ -1,5 +1,5 @@
 # Banner numbers: docs/plan/02-game-rules.md §21 (the rulebook wins if they ever disagree). First
-# drafts, tuned with playtest data; changing them needs a new image but no migration.
+# drafts, tuned with play data; changing them needs a new image but no migration.
 banners:
   # Effect per tier I / II / III as a fraction (0.05 = 5 %). What the effect is: 02 §21.2.
   effects:

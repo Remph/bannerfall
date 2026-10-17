@@ -2,6 +2,7 @@ package de.bannerfall.abuse;
 
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -39,6 +40,21 @@ public class AuthAddressLimiter {
     /** False if this address has used up its registrations for now. */
     public boolean tryRegister(String address) {
         return registrations.tryTake(address);
+    }
+
+    /**
+     * Every minute: drops the addresses whose buckets are full again (no attempt for up to a
+     * minute), so they stay in memory only for a few minutes (the privacy page, {@code /privacy}).
+     */
+    @Scheduled(fixedDelay = 60_000)
+    public void forgetOldAddresses() {
+        logins.forgetFull();
+        registrations.forgetFull();
+    }
+
+    /** How many addresses are held (tests). */
+    int addressesHeld() {
+        return logins.size() + registrations.size();
     }
 
     /** Other numbers for a test; the buckets start full again. */

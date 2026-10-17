@@ -636,6 +636,8 @@ class AdminFlowTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 s.barbarianWallsEnabled(),
                 s.barbarianWallStartDays(),
                 s.barbarianWallMaxLevel(),

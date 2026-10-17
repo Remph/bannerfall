@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -196,6 +197,78 @@ class AdminCliEndToEndTest {
     }
 
     @Test
+    void lordsArePlacedInLordGuildsFromTheCommandLine() {
+        boolean guildsWereOn = worldService.settings().guildsEnabled();
+        try {
+            assertThat(cli("npc", "spawn", "balanced")).isZero();
+            assertThat(cli("npc", "spawn", "defensive")).isZero();
+            List<String> lords =
+                    jdbc.sql("select name from player where npc order by id desc limit 2")
+                            .query(String.class)
+                            .list();
+            String first = lords.get(1);
+            String second = lords.get(0);
+            assertThat(cli("npc", "guild", first, "found")).isEqualTo(AdminCli.EXIT_REFUSED);
+            assertThat(err.toString()).contains("GUILDS_DISABLED");
+
+            jdbc.sql("update world_settings set guilds_enabled = true, npc_guilds_enabled = true")
+                    .update();
+            worldService.reload();
+            assertThat(cli("npc", "guild", first, "found")).isZero();
+            assertThat(out.toString()).startsWith(first + ": Ordo ").contains("(placed)");
+            String tag =
+                    jdbc.sql(
+                                    """
+                                    select g.tag from guild g
+                                    join guild_member m on m.guild_id = g.id
+                                    join player p on p.id = m.player_id where p.name = ?
+                                    """)
+                            .param(first)
+                            .query(String.class)
+                            .single();
+
+            assertThat(cli("npc", "guild", second, "join")).isEqualTo(AdminCli.EXIT_REFUSED);
+            assertThat(err.toString()).contains("join needs the tag of a lord guild");
+            assertThat(cli("npc", "guild", second, "join", "nope"))
+                    .isEqualTo(AdminCli.EXIT_REFUSED);
+            assertThat(err.toString()).contains("No lord guild nope");
+            assertThat(cli("npc", "guild", second, "join", tag.toLowerCase())).isZero();
+            assertThat(cli("npc", "list")).isZero();
+            assertThat(out.toString()).contains(tag + " (placed)");
+
+            assertThat(cli("npc", "guild", second, "auto")).isZero();
+            assertThat(out.toString()).contains("(chooses on its own)");
+            assertThat(cli("npc", "guild", first, "leave")).isZero();
+            assertThat(out.toString()).contains(first + ": no guild (placed)");
+            assertThat(cli("npc", "guild", "Nobody Like This", "leave"))
+                    .isEqualTo(AdminCli.EXIT_REFUSED);
+            assertThat(err.toString()).contains("No NPC lord called Nobody Like This");
+        } finally {
+            jdbc.sql("delete from game_event").update();
+            String lordVillages =
+                    "select id from village where player_id in (select id from player where npc)";
+            jdbc.sql(
+                            "delete from unit_stack where home_village_id in ("
+                                    + lordVillages
+                                    + ") or location_village_id in ("
+                                    + lordVillages
+                                    + ")")
+                    .update();
+            jdbc.sql("delete from village where player_id in (select id from player where npc)")
+                    .update();
+            jdbc.sql(
+                            "delete from guild where id in (select guild_id from guild_member"
+                                    + " where player_id in (select id from player where npc))")
+                    .update();
+            jdbc.sql("delete from player where npc").update();
+            jdbc.sql("update world_settings set npc_guilds_enabled = false, guilds_enabled = ?")
+                    .param(guildsWereOn)
+                    .update();
+            worldService.reload();
+        }
+    }
+
+    @Test
     void aRefusalPrintsTheServersCodeAndIsExitCode1() {
         assertThat(cli("world", "set", "luck-range", "2")).isEqualTo(AdminCli.EXIT_REFUSED);
         assertThat(err.toString())
@@ -303,6 +376,8 @@ class AdminCliEndToEndTest {
                 s.tradeMaxRatio(),
                 s.inviteCode(),
                 s.npcThinkMinutes(),
+                null,
+                null,
                 null,
                 null,
                 null,

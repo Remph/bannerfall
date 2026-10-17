@@ -13,6 +13,7 @@ npc:
     noble-troop-share: 0.2
     support-horizon-hours: 3      # ÷ speed
     grudge-hours: 48              # ÷ speed
+    guild-radius: 15              # fields: lords this close form guilds (09 §13.1)
     quiet-from: "23:00"
     quiet-to: "07:00"
     quiet-zone: Europe/Berlin

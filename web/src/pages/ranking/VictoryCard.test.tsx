@@ -40,6 +40,7 @@ const world: World = {
   npcDifficulty: 'NORMAL',
   guildsEnabled: true,
   guildMaxMembers: 10,
+  npcGuildMaxMembers: 3,
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
   barbarianWallMaxLevel: 5,

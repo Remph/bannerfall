@@ -54,6 +54,11 @@ public class WorldSettingsEntity {
 
     private int guildMaxMembers;
 
+    /** NPC lords form guilds (09-npc-lords §13). */
+    private boolean npcGuildsEnabled;
+
+    private int npcGuildMaxMembers;
+
     /** Barbarian walls (M29, 02-game-rules §11): see {@code Barbarians}. */
     private boolean barbarianWallsEnabled;
 
@@ -148,6 +153,8 @@ public class WorldSettingsEntity {
                 .npcCustom(npcCustom)
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
+                .npcGuildsEnabled(npcGuildsEnabled)
+                .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
                 .barbarianWallStartDays(barbarianWallStartDays)
                 .barbarianWallMaxLevel(barbarianWallMaxLevel)
@@ -268,6 +275,12 @@ public class WorldSettingsEntity {
         }
         if (u.guildMaxMembers() != null) {
             guildMaxMembers = u.guildMaxMembers();
+        }
+        if (u.npcGuildsEnabled() != null) {
+            npcGuildsEnabled = u.npcGuildsEnabled();
+        }
+        if (u.npcGuildMaxMembers() != null) {
+            npcGuildMaxMembers = u.npcGuildMaxMembers();
         }
         if (u.barbarianWallsEnabled() != null) {
             barbarianWallsEnabled = u.barbarianWallsEnabled();

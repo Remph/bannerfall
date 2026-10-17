@@ -3,6 +3,7 @@ package de.bannerfall.npc;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import de.bannerfall.TestGameData;
+import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
@@ -281,6 +282,91 @@ class NpcIntelTest {
                         });
     }
 
+    @Test
+    void aLordTakesOverTheActiveGrudgesOfItsGuildMatesNearby() {
+        long mate = 11;
+        long otherHuman = 21;
+        long farHuman = 22;
+        var source = new MapVillage(2, 10, 0, HUMAN, false, 300, 100, 900, 2, null);
+        var far = new MapVillage(3, 40, 0, farHuman, false, 300, 100, 900, 1, null);
+        var moved = new MapVillage(4, 5, 0, otherHuman, false, 300, 100, 900, 1, null);
+        Map<Long, MapVillage> villages = Map.of(2L, source, 3L, far, 4L, moved);
+        var until = AT.plus(Duration.ofHours(10));
+        Map<Long, NpcMemory.Grudge> mates =
+                Map.of(
+                        HUMAN,
+                        new NpcMemory.Grudge(until, 2, true, 7),
+                        farHuman,
+                        new NpcMemory.Grudge(until, 3, false, 0),
+                        // its source village belongs to someone else now
+                        otherHuman,
+                        new NpcMemory.Grudge(until, 2, false, 0),
+                        // a grudge against me or another mate is never taken over
+                        LORD,
+                        new NpcMemory.Grudge(until, 1, false, 0),
+                        12L,
+                        new NpcMemory.Grudge(until, 1, false, 0));
+        var memory = NpcMemory.empty().draft();
+
+        NpcIntel.shareGrudges(
+                memory,
+                LORD,
+                Set.of(mate, 12L),
+                List.of(mates),
+                List.of(new Coordinates(0, 0)),
+                villages,
+                20,
+                AT);
+
+        // the same end, source and scouts; not yet retaliated, marked shared
+        assertThat(memory.grudges)
+                .containsOnlyKeys(HUMAN)
+                .containsEntry(HUMAN, new NpcMemory.Grudge(until, 2, false, 7, true));
+    }
+
+    @Test
+    void aSharedGrudgeIsNeitherPassedOnNorRenewedAndMatesAreForgiven() {
+        var source = new MapVillage(2, 10, 0, HUMAN, false, 300, 100, 900, 2, null);
+        Map<Long, MapVillage> villages = Map.of(2L, source);
+        var memory = NpcMemory.empty().draft();
+        var own = new NpcMemory.Grudge(AT.plus(Duration.ofHours(2)), 2, true, 0);
+        memory.grudges.put(HUMAN, own);
+        memory.grudges.put(11L, new NpcMemory.Grudge(AT.plus(Duration.ofHours(2)), 9, false, 0));
+        var newer = new NpcMemory.Grudge(AT.plus(Duration.ofHours(20)), 2, false, 0);
+
+        NpcIntel.shareGrudges(
+                memory,
+                LORD,
+                Set.of(11L),
+                List.of(Map.of(HUMAN, newer)),
+                List.of(new Coordinates(0, 0)),
+                villages,
+                20,
+                AT);
+
+        // my own grudge stays as it is; the one against my new guild mate is dropped
+        assertThat(memory.grudges).containsOnlyKeys(HUMAN).containsEntry(HUMAN, own);
+
+        // a copy is not copied on, and an expired grudge is not taken over
+        var other = NpcMemory.empty().draft();
+        NpcIntel.shareGrudges(
+                other,
+                LORD,
+                Set.of(11L),
+                List.of(
+                        Map.of(
+                                HUMAN,
+                                new NpcMemory.Grudge(
+                                        AT.plus(Duration.ofHours(5)), 2, false, 0, true),
+                                77L,
+                                new NpcMemory.Grudge(AT, 2, false, 0))),
+                List.of(new Coordinates(0, 0)),
+                villages,
+                20,
+                AT);
+        assertThat(other.grudges).isEmpty();
+    }
+
     private static BattleReport scoutsOnTheLord(VillageRefDto from, int sent, int lost) {
         return new BattleReport(
                 from,
@@ -353,6 +439,116 @@ class NpcIntelTest {
     }
 
     // ---- helpers ----
+
+    // ---- losses against the ledger (09 §5.2, balancing round 2) ----
+
+    @Test
+    void theLordsAttackLossesComeOffItsTroopSpending() {
+        var memory = NpcMemory.empty().draft();
+        memory.ledger.put(1L, new NpcMemory.Ledger(100_000, 50_000));
+        double axe = DATA.unit(UnitType.AXEMAN).cost().total();
+        var report =
+                battle(
+                        Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 1),
+                        Map.of(UnitType.AXEMAN, 40, UnitType.NOBLE, 1),
+                        null,
+                        null,
+                        ResourceAmounts.ZERO,
+                        BattleOutcome.DEFENDER_WON);
+
+        NpcIntel.learn(memory, LORD, ReportKind.ATTACK, AT, report, DATA, 1, 48);
+
+        // the noble isn't troop spending, so only the axemen count; building stays
+        assertThat(memory.ledger.get(1L))
+                .isEqualTo(new NpcMemory.Ledger(100_000, 50_000 - 40 * axe));
+    }
+
+    @Test
+    void troopSpendingNeverGoesBelowZero() {
+        var memory = NpcMemory.empty().draft();
+        memory.ledger.put(1L, new NpcMemory.Ledger(100_000, 1_000));
+        var report =
+                battle(
+                        Map.of(UnitType.AXEMAN, 100),
+                        Map.of(UnitType.AXEMAN, 100),
+                        null,
+                        null,
+                        ResourceAmounts.ZERO,
+                        BattleOutcome.DEFENDER_WON);
+
+        NpcIntel.countLosses(memory, LORD, ReportKind.ATTACK, report, DATA);
+
+        assertThat(memory.ledger.get(1L)).isEqualTo(new NpcMemory.Ledger(100_000, 0));
+    }
+
+    @Test
+    void defenceLossesCountForEachOfTheLordsOwnStacksOnly() {
+        var memory = NpcMemory.empty().draft();
+        memory.ledger.put(2L, new NpcMemory.Ledger(80_000, 40_000));
+        memory.ledger.put(3L, new NpcMemory.Ledger(60_000, 30_000));
+        double spear = DATA.unit(UnitType.SPEARMAN).cost().total();
+        var attacked = new VillageRefDto(2, "L2", 3, 0, LORD, "L");
+        var ownSupport = new VillageRefDto(3, "L3", 5, 0, LORD, "L");
+        var humanSupport = new VillageRefDto(4, "H2", 6, 0, HUMAN, "H");
+        var side =
+                new BattleReport.DefenderSide(
+                        Map.of(UnitType.SPEARMAN, 70),
+                        Map.of(UnitType.SPEARMAN, 70),
+                        List.of(
+                                new BattleReport.DefenderStack(
+                                        attacked,
+                                        Map.of(UnitType.SPEARMAN, 50),
+                                        Map.of(UnitType.SPEARMAN, 50)),
+                                new BattleReport.DefenderStack(
+                                        ownSupport,
+                                        Map.of(UnitType.SPEARMAN, 10),
+                                        Map.of(UnitType.SPEARMAN, 10)),
+                                new BattleReport.DefenderStack(
+                                        humanSupport,
+                                        Map.of(UnitType.SPEARMAN, 10),
+                                        Map.of(UnitType.SPEARMAN, 10))),
+                        2,
+                        2,
+                        null,
+                        null);
+        var report =
+                new BattleReport(
+                        new VillageRefDto(9, "H", 9, 9, HUMAN, "H"),
+                        attacked,
+                        BattleOutcome.ATTACKER_WON,
+                        0.0,
+                        Map.of(UnitType.AXEMAN, 500),
+                        Map.of(UnitType.AXEMAN, 20),
+                        null,
+                        side,
+                        null,
+                        ResourceAmounts.ZERO,
+                        null);
+
+        NpcIntel.countLosses(memory, LORD, ReportKind.DEFENSE, report, DATA);
+
+        assertThat(memory.ledger.get(2L).troops()).isEqualTo(40_000 - 50 * spear);
+        assertThat(memory.ledger.get(3L).troops()).isEqualTo(30_000 - 10 * spear);
+        // the human's support and the attacker's losses are none of the lord's spending
+        assertThat(memory.ledger).doesNotContainKeys(4L, 9L);
+    }
+
+    @Test
+    void aVillageWithoutALedgerIsLeftAlone() {
+        var memory = NpcMemory.empty().draft();
+        var report =
+                battle(
+                        Map.of(UnitType.AXEMAN, 10),
+                        Map.of(UnitType.AXEMAN, 10),
+                        null,
+                        null,
+                        ResourceAmounts.ZERO,
+                        BattleOutcome.DEFENDER_WON);
+
+        NpcIntel.countLosses(memory, LORD, ReportKind.ATTACK, report, DATA);
+
+        assertThat(memory.ledger).isEmpty();
+    }
 
     private static BattleReport battle(
             Map<UnitType, Integer> units,

@@ -206,6 +206,7 @@ export const de: Dictionary = {
     capacity: (amount: string) => `max. ${amount}`,
     full: 'Speicher voll',
     populationFull: 'Bauernhof voll',
+    populationAlmostFull: 'Bauernhof fast voll',
     showDetails: 'Rohstoff-Details anzeigen',
     hideDetails: 'Rohstoff-Details ausblenden',
     toWarehouse: 'Speicher öffnen',
@@ -1074,6 +1075,8 @@ export const de: Dictionary = {
     scoutedResources: 'Rohstoffe (vor der Plünderung)',
     scoutedBuildings: 'Gebäude',
     scoutedBanner: 'Banner',
+    scoutedAway: 'Außerhalb des Dorfes',
+    scoutedAwayNone: 'Keine Truppen des Besitzers sind außerhalb des Dorfes.',
     scoutedTroops: 'Die gesehenen Truppen stehen in der Tabelle des Verteidigers.',
     scoutsFailed: 'Deine Späher wurden gefasst und haben nichts gesehen.',
     loyalty: 'Zustimmung',
@@ -1510,6 +1513,38 @@ export const de: Dictionary = {
       },
     },
   },
+  privacy: {
+    link: 'Datenschutz',
+    title: 'Datenschutz',
+    intro:
+      'Was diese Welt über dich speichert und warum. Bannerfall ist Open-Source-Software: Jede Welt wird von ihrem eigenen Betreiber geführt, der für die Daten darauf verantwortlich ist.',
+    operatorTitle: 'Wer diese Welt betreibt',
+    operatorText: 'Für alle Fragen zu deinen Daten schreib dem Betreiber dieser Welt:',
+    accountTitle: 'Dein Konto',
+    account:
+      'Dein Spielername und dein Passwort, das nur als Hash gespeichert ist: Daraus lässt sich dein Passwort nicht zurückgewinnen, auch nicht vom Betreiber. Außerdem, wann du dich registriert und zuletzt angemeldet hast, deine Rolle und eine Sperre mit ihrem Grund. Keine E-Mail-Adresse, kein echter Name, keine Zahlungsdaten.',
+    gameTitle: 'Dein Spiel',
+    game: 'Dörfer, Truppen, Gebäude, Berichte, Farmliste, Erfolge und Gilde: alles, was das Spiel zum Laufen braucht. Dein Name, deine Dörfer, Punkte und Gilde sind für die anderen Spieler dieser Welt sichtbar (Karte, Rangliste, Profil).',
+    messagesTitle: 'Nachrichten und Chat',
+    messages:
+      'Private Nachrichten, der Gilden-Chat und der Welt-Chat werden auf dem Server gespeichert, damit sie beim nächsten Mal noch da sind. Dort sind sie nicht verschlüsselt: Der Betreiber kann sie lesen und Chat-Nachrichten ausblenden, die gegen die Regeln verstoßen.',
+    addressTitle: 'Deine IP-Adresse',
+    address:
+      'Für einige Minuten nutzt der Server deine Adresse, um Anmeldungen, Registrierungen und Passwortänderungen zu begrenzen (gegen Passwort-Raten und Massen-Registrierungen). Sie bleibt nur im Arbeitsspeicher und kommt nie in die Datenbank. Weder das Spiel noch der mitgelieferte Webserver führen ein Zugriffsprotokoll oder schreiben deine Adresse in ein Protokoll (nur Fehlversuche mit dem Admin-Schlüssel des Betreibers werden mit ihrer Adresse vermerkt).',
+    logsTitle: 'Protokolle',
+    logs: 'Das Server-Protokoll vermerkt Ereignisse wie fehlgeschlagene Anmeldungen und gesperrte Konten mit dem Spielernamen. Die Protokolldateien werden nach 14 Tagen gelöscht; die Konsolenausgabe des Servers ist in der Größe begrenzt und beginnt bei jedem Update neu. Anfragen, die die Seite des Spiels selbst nie schickt (Hinweise auf Schummeln), werden pro Konto 30 Tage vermerkt. Was der Betreiber tut (Sperren, neue Passwörter, gelöschte Spieler), bleibt in seinem Protokoll.',
+    cookiesTitle: 'Cookies und Browser-Speicher',
+    cookies:
+      'Zwei Cookies, beide zum Spielen nötig: eines hält dich angemeldet (bis zu 30 Tage), das andere schützt vor gefälschten Anfragen. Dein Browser merkt sich außerdem Einstellungen wie Sprache, Farbschema und Kartenansicht. Kein Tracking, keine Werbung, keine fremden Dienste: Schriften und Bilder kommen von diesem Server.',
+    purposeTitle: 'Wofür und wie lange',
+    purpose:
+      'Die Daten sind zum Spielen nötig (dein Konto und dein Spiel) und um die Welt vor Missbrauch zu schützen (Adress-Grenzen und Protokolle); im Sinne der DSGVO Art. 6 Abs. 1 lit. b und f. Sie bleiben, solange die Welt läuft; die Sicherungen der Datenbank werden 14 Tage aufbewahrt, sofern der Betreiber sie nicht länger behält.',
+    rightsTitle: 'Deine Rechte',
+    rights:
+      'Du kannst den Betreiber fragen, was über dich gespeichert ist, und es berichtigen oder löschen lassen. Im Spiel heißt Löschen: Der Betreiber löscht deinen Spieler, du kannst dich nicht mehr anmelden und deine Dörfer werden zu Barbarendörfern. Dein Kontoeintrag, dein Name und was du geschrieben hast bleiben, weil alte Berichte, Nachrichten und Chat-Zeilen darauf verweisen. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.',
+    backToLogin: 'Anmelden',
+    backToGame: 'Zurück zum Spiel',
+  },
   about: {
     link: 'Über Bannerfall und Danksagung',
     title: 'Über Bannerfall',
@@ -1738,6 +1773,11 @@ export const de: Dictionary = {
       guildsEnabled: 'Gilden dürfen gegründet werden und Mitglieder aufnehmen',
       unitLevelsEnabled: 'Einheiten können in der Schmiede höhere Stufen erreichen',
       guildMaxMembers: 'Höchstens so viele Mitglieder je Gilde',
+      npcGuildsEnabled: 'NPC-Fürsten gründen Gilden',
+      npcGuildsHint:
+        'Fürsten ab 850 Punkten tun sich mit einem Fürsten im Umkreis von 15 Feldern zusammen: Sie greifen einander nie an, verteidigen einander und rächen einander. Umstellen kannst du sie im Reiter NPC-Fürsten.',
+      npcGuildsOff: 'Beim Speichern enden alle Fürstengilden, und deine Zuordnungen werden gelöscht.',
+      npcGuildMaxMembers: 'Höchstens so viele Fürsten je Fürstengilde',
       paladinVillagesPerSlot: 'Dörfer je zusätzlichem Paladin-Platz',
       paladinMaxSlots: 'Höchstens so viele Paladin-Plätze (0 = kein Paladin)',
       bannersEnabled: 'Banner wirken (Bannerhalle, Hissen)',
@@ -1822,6 +1862,20 @@ export const de: Dictionary = {
       outOfTheGame: 'Aus dem Spiel',
       nextRound: (when: string) => `nächste Runde ${when}`,
       lastRound: (when: string) => `zuletzt ${when}`,
+      /** Fürstengilden (09-npc-lords §13.7). */
+      guilds: 'Fürstengilden',
+      guildsEmpty:
+        'Noch keine Fürstengilden. Fürsten gründen sie ab 850 Punkten mit einem Nachbarn im Umkreis von 15 Feldern.',
+      guildsOff: 'Fürstengilden sind aus (Welteinstellungen).',
+      guildLine: (members: number, max: number, points: string) => `${members}/${max} Fürsten · ${points} Punkte`,
+      guild: (name: string, tag: string) => `Gilde ${name} [${tag}]`,
+      noGuild: 'Keine Gilde',
+      placed: 'vom Admin zugeordnet',
+      more: (name: string) => `Gilde für ${name}`,
+      moveTo: (name: string, tag: string) => `In ${name} [${tag}] verschieben`,
+      takeOut: 'Aus der Gilde nehmen',
+      found: 'Neue Fürstengilde gründen',
+      letChoose: 'Selbst wählen lassen',
     },
   },
   dev: {

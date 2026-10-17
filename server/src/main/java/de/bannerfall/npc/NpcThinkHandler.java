@@ -30,6 +30,7 @@ class NpcThinkHandler implements GameEventHandler {
 
     private final PlayerRepository players;
     private final NpcRound round;
+    private final NpcGuilds guilds;
     private final NpcBalance balance;
     private final EventScheduler scheduler;
     private final WorldService worldService;
@@ -39,6 +40,7 @@ class NpcThinkHandler implements GameEventHandler {
     NpcThinkHandler(
             PlayerRepository players,
             NpcRound round,
+            NpcGuilds guilds,
             NpcBalance balance,
             EventScheduler scheduler,
             WorldService worldService,
@@ -46,6 +48,7 @@ class NpcThinkHandler implements GameEventHandler {
             Clock clock) {
         this.players = players;
         this.round = round;
+        this.guilds = guilds;
         this.balance = balance;
         this.scheduler = scheduler;
         this.worldService = worldService;
@@ -68,6 +71,7 @@ class NpcThinkHandler implements GameEventHandler {
         }
         if (villageCount.get() == 0) {
             log.info("NPC lord {} has no villages and is out of the game", playerId);
+            guilds.leave(playerId); // its guild mates go on without it (09 §13.1)
             return;
         }
         Instant now = clock.instant();

@@ -200,6 +200,8 @@ class PregameFlowTest {
                 .andExpect(jsonPath("$.phase").value("PREGAME"))
                 .andExpect(jsonPath("$.name").value("Bannerfall 1"))
                 .andExpect(jsonPath("$.inviteCode").doesNotExist());
+        // the privacy page under the login form, too
+        visitor.get("/api/world/operator").andExpect(status().isOk());
 
         Instant opensAt = clock.instant().plus(Duration.ofDays(3));
         setOpening(opensAt).andExpect(status().isOk());

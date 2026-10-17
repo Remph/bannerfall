@@ -52,11 +52,11 @@ npc:
         - { FARM: 15, WAREHOUSE: 15 }
         - { MARKET: 5, WALL: 5 }
         - { HEADQUARTERS: 20 }
+        - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }   # before the long Smithy 20 / Academy stretch (balancing round 2)
         - { SMITHY: 20 }
         - { MARKET: 10 }
         - { WAREHOUSE: 20 }                             # a noble costs 50,000 clay
         - { ACADEMY: 1 }
-        - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
         - { FARM: 20, WAREHOUSE: 20 }
         - { BARRACKS: 15, STABLE: 12, WORKSHOP: 5, WALL: 10 }
         - { HEADQUARTERS: 25 }

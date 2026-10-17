@@ -15,6 +15,8 @@ import java.time.Instant;
  * @param tradeMaxRatio the widest ratio of a market offer (the market form checks it, M13b)
  * @param guildsEnabled whether guilds can be created and joined (M15a)
  * @param guildMaxMembers the most members a guild may have
+ * @param npcGuildMaxMembers the most lords a guild of NPC lords may have (09-npc-lords §13), never
+ *     above {@code guildMaxMembers}
  * @param barbarianWallsEnabled whether barbarian villages build walls (M29)
  * @param barbarianWallStartDays days after the opening before they start
  * @param barbarianWallMaxLevel the highest wall level they build
@@ -62,6 +64,7 @@ public record WorldDto(
         NpcDifficulty npcDifficulty,
         boolean guildsEnabled,
         int guildMaxMembers,
+        int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
         int barbarianWallStartDays,
         int barbarianWallMaxLevel,

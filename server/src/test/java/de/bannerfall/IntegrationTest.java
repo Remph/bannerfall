@@ -40,6 +40,9 @@ import org.springframework.context.annotation.Import;
             "bannerfall.events.scheduler-enabled=false",
             "bannerfall.world.initializer-enabled=false",
             "bannerfall.admin.token=" + IntegrationTest.ADMIN_TOKEN,
+            // the privacy page's host (WorldOperatorTest)
+            "bannerfall.operator.name=" + IntegrationTest.OPERATOR_NAME,
+            "bannerfall.operator.contact=" + IntegrationTest.OPERATOR_CONTACT,
             // The clock stands still in tests, so the write buckets would never refill and many
             // suspicious requests (hostile tests) would lock their players. The tests of both
             // set their own numbers (WriteRateLimitTest, AutoLockTest).
@@ -64,4 +67,9 @@ public @interface IntegrationTest {
 
     /** The host token of the test server (08-host-console §4). */
     String ADMIN_TOKEN = "test-host-token-0123456789abcdefghij";
+
+    /** Who runs the test world ({@code WorldOperator}). */
+    String OPERATOR_NAME = "Test Host";
+
+    String OPERATOR_CONTACT = "host@example.com";
 }

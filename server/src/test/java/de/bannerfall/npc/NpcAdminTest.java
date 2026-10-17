@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 /**
  * The admin side of NPC lords (M12d, 04-api *Admin*): who may call it, the lord list, spawning, the
@@ -35,6 +36,7 @@ class NpcAdminTest {
     @Autowired MutableClock clock;
 
     private Browser admin;
+    private boolean guildsWereOn;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -44,6 +46,7 @@ class NpcAdminTest {
         admin.register(name);
         jdbc.sql("update account set role = 'ADMIN' where username = ?").param(name).update();
         admin.login(name, Browser.PASSWORD).andExpect(status().isOk());
+        guildsWereOn = worldService.settings().guildsEnabled();
     }
 
     @AfterEach
@@ -60,8 +63,17 @@ class NpcAdminTest {
                 .update();
         jdbc.sql("delete from village where player_id in (select id from player where npc)")
                 .update();
+        jdbc.sql(
+                        "delete from guild where id in (select guild_id from guild_member where"
+                                + " player_id in (select id from player where npc))")
+                .update();
         jdbc.sql("delete from player where npc").update();
-        jdbc.sql("update world_settings set npc_difficulty = 'NORMAL', npc_custom = null").update();
+        jdbc.sql(
+                        "update world_settings set npc_difficulty = 'NORMAL', npc_custom = null,"
+                                + " npc_guilds_enabled = false, npc_guild_max_members = 3,"
+                                + " guilds_enabled = ?")
+                .param(guildsWereOn)
+                .update();
         worldService.reload();
     }
 
@@ -121,6 +133,120 @@ class NpcAdminTest {
         admin.post("/api/admin/npc-lords", "{}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+
+    // ---- lord guilds (09 §13.7) ----
+
+    @Test
+    void theAdminPlacesLordsInLordGuildsAndLetsThemChooseAgain() throws Exception {
+        List<Long> lords = spawn(3);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        long c = lords.get(2);
+        guildPlace(a, "{\"action\":\"FOUND\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("GUILDS_DISABLED"));
+
+        lordGuilds(true, 2);
+        guildPlace(a, "{\"action\":\"FOUND\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guildName").isNotEmpty())
+                .andExpect(jsonPath("$.guildByAdmin").value(true));
+        long guild = guildOf(a);
+        guildPlace(b, "{\"action\":\"JOIN\",\"guildId\":" + guild + "}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guildId").value(guild));
+        // npcGuildMaxMembers 2: full
+        guildPlace(c, "{\"action\":\"JOIN\",\"guildId\":" + guild + "}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("GUILD_FULL"));
+        guildPlace(c, "{\"action\":\"JOIN\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+
+        // splitting: c founds a new guild and b moves there; a stays the leader of its own
+        guildPlace(c, "{\"action\":\"FOUND\"}").andExpect(status().isOk());
+        long second = guildOf(c);
+        assertThat(second).isNotEqualTo(guild);
+        guildPlace(b, "{\"action\":\"JOIN\",\"guildId\":" + second + "}")
+                .andExpect(status().isOk());
+        assertThat(members(guild)).containsExactly(a);
+        assertThat(members(second)).containsExactlyInAnyOrder(b, c);
+        assertThat(roleOf(a)).isEqualTo("LEADER");
+
+        // taking the last lord out ends its guild; AUTO clears the mark and keeps the guild
+        guildPlace(a, "{\"action\":\"LEAVE\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guildId").doesNotExist())
+                .andExpect(jsonPath("$.guildByAdmin").value(true));
+        assertThat(
+                        jdbc.sql("select count(*) from guild where id = ?")
+                                .param(guild)
+                                .query(Integer.class)
+                                .single())
+                .isZero();
+        guildPlace(b, "{\"action\":\"AUTO\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guildId").value(second))
+                .andExpect(jsonPath("$.guildByAdmin").value(false));
+
+        admin.get("/api/admin/npc-lords")
+                .andExpect(jsonPath("$[?(@.playerId == " + c + ")].guildTag").isNotEmpty());
+        assertThat(
+                        jdbc.sql(
+                                        "select count(*) from admin_action where action ="
+                                                + " 'NPC_GUILD'")
+                                .query(Integer.class)
+                                .single())
+                .isGreaterThanOrEqualTo(6);
+    }
+
+    @Test
+    void lordsCannotBePlacedInAGuildOfPlayers() throws Exception {
+        long lord = spawn(1).getFirst();
+        lordGuilds(true, 3);
+        TestPlayer player = TestPlayer.register(mockMvc);
+        player.browser
+                .post("/api/guilds", "{\"name\":\"Humans Only\",\"tag\":\"HUMO\"}")
+                .andExpect(status().isCreated());
+        long humans = guildOf(player.playerId);
+        try {
+            guildPlace(lord, "{\"action\":\"JOIN\",\"guildId\":" + humans + "}")
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("GUILD_NOT_FOUND"));
+            guildPlace(player.playerId, "{\"action\":\"FOUND\"}")
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("PLAYER_NOT_FOUND"));
+        } finally {
+            jdbc.sql("delete from guild where id = ?").param(humans).update();
+        }
+    }
+
+    @Test
+    void switchingLordGuildsOffDisbandsThemAndClearsThePlacements() throws Exception {
+        List<Long> lords = spawn(2);
+        lordGuilds(true, 3);
+        guildPlace(lords.get(0), "{\"action\":\"FOUND\"}").andExpect(status().isOk());
+        guildPlace(lords.get(1), "{\"action\":\"LEAVE\"}").andExpect(status().isOk());
+
+        String settings =
+                admin.get("/api/admin/world-settings")
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        assertThat(settings).contains("\"npcGuildsEnabled\":true");
+        admin.put(
+                        "/api/admin/world-settings",
+                        settings.replace("\"npcGuildsEnabled\":true", "\"npcGuildsEnabled\":false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.npcGuildsEnabled").value(false));
+
+        assertThat(guildOfOrNull(lords.get(0))).isNull();
+        assertThat(
+                        jdbc.sql("select count(*) from npc_brain where guild_by_admin")
+                                .query(Integer.class)
+                                .single())
+                .isZero();
     }
 
     @Test
@@ -256,5 +382,57 @@ class NpcAdminTest {
         "farmLootShare":0.25,"farmRest":false}\
         """
                 .formatted(productionFactor);
+    }
+
+    // ---- helpers: lord guilds ----
+
+    private List<Long> spawn(int count) throws Exception {
+        for (int i = 0; i < count; i++) {
+            admin.post("/api/admin/npc-lords", "{\"personality\":\"BALANCED\"}")
+                    .andExpect(status().isCreated());
+        }
+        return players.findNpcLords().stream().map(Player::getId).sorted().toList();
+    }
+
+    private void lordGuilds(boolean on, int maxMembers) {
+        jdbc.sql(
+                        "update world_settings set guilds_enabled = true, npc_guilds_enabled = ?,"
+                                + " npc_guild_max_members = ?")
+                .param(on)
+                .param(maxMembers)
+                .update();
+        worldService.reload();
+    }
+
+    private ResultActions guildPlace(long lord, String json) throws Exception {
+        return admin.put("/api/admin/npc-lords/" + lord + "/guild", json);
+    }
+
+    private Long guildOfOrNull(long playerId) {
+        return jdbc.sql("select guild_id from guild_member where player_id = ?")
+                .param(playerId)
+                .query(Long.class)
+                .optional()
+                .orElse(null);
+    }
+
+    private long guildOf(long playerId) {
+        Long guild = guildOfOrNull(playerId);
+        assertThat(guild).isNotNull();
+        return guild;
+    }
+
+    private List<Long> members(long guildId) {
+        return jdbc.sql("select player_id from guild_member where guild_id = ?")
+                .param(guildId)
+                .query(Long.class)
+                .list();
+    }
+
+    private String roleOf(long playerId) {
+        return jdbc.sql("select role from guild_member where player_id = ?")
+                .param(playerId)
+                .query(String.class)
+                .single();
     }
 }

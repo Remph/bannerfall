@@ -35,6 +35,7 @@
   --color-on-bar: #f3ecdc;
   --color-on-bar-muted: #b0c2b5;
   --color-on-bar-warn: #ffb27a; /* full warehouse */
+  --color-on-bar-caution: #ffd166; /* farm almost full */
   --color-highlight: #e9c46a; /* active item and fills on the bars */
   --color-bar-hover: rgba(255, 255, 255, 0.12);
   --color-track: rgba(0, 0, 0, 0.3);
@@ -180,6 +181,7 @@
     --color-on-bar: #e6dfcd;
     --color-on-bar-muted: #8ea596;
     --color-on-bar-warn: #ffa366;
+    --color-on-bar-caution: #f2c75c;
     --color-highlight: #e9c46a;
     --color-bar-hover: rgba(255, 255, 255, 0.08);
     --color-track: rgba(255, 255, 255, 0.15);
@@ -301,6 +303,7 @@
   --color-on-bar: #e6dfcd;
   --color-on-bar-muted: #8ea596;
   --color-on-bar-warn: #ffa366;
+  --color-on-bar-caution: #f2c75c;
   --color-highlight: #e9c46a;
   --color-bar-hover: rgba(255, 255, 255, 0.08);
   --color-track: rgba(255, 255, 255, 0.15);

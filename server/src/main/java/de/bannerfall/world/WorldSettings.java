@@ -51,6 +51,8 @@ public record WorldSettings(
         NpcBalanceSettings.Difficulty npcCustom,
         boolean guildsEnabled,
         int guildMaxMembers,
+        boolean npcGuildsEnabled,
+        int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
         int barbarianWallStartDays,
         int barbarianWallMaxLevel,
@@ -108,6 +110,8 @@ public record WorldSettings(
                 .npcCustom(npcCustom)
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
+                .npcGuildsEnabled(npcGuildsEnabled)
+                .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
                 .barbarianWallStartDays(barbarianWallStartDays)
                 .barbarianWallMaxLevel(barbarianWallMaxLevel)
@@ -196,6 +200,8 @@ public record WorldSettings(
         private NpcBalanceSettings.Difficulty npcCustom = null;
         private boolean guildsEnabled = false;
         private int guildMaxMembers = 10;
+        private boolean npcGuildsEnabled = false;
+        private int npcGuildMaxMembers = 3;
         private boolean barbarianWallsEnabled = false;
         private int barbarianWallStartDays = 3;
         private int barbarianWallMaxLevel = 5;
@@ -335,6 +341,16 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder npcGuildsEnabled(boolean value) {
+            this.npcGuildsEnabled = value;
+            return this;
+        }
+
+        public Builder npcGuildMaxMembers(int value) {
+            this.npcGuildMaxMembers = value;
+            return this;
+        }
+
         public Builder barbarianWallsEnabled(boolean value) {
             this.barbarianWallsEnabled = value;
             return this;
@@ -441,6 +457,8 @@ public record WorldSettings(
                     npcCustom,
                     guildsEnabled,
                     guildMaxMembers,
+                    npcGuildsEnabled,
+                    npcGuildMaxMembers,
                     barbarianWallsEnabled,
                     barbarianWallStartDays,
                     barbarianWallMaxLevel,

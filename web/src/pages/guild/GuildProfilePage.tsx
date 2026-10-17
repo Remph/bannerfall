@@ -9,6 +9,7 @@ import { useI18n } from '../../i18n';
 import styles from './Guild.module.css';
 import { GuildView } from './GuildView';
 import { OWN_GUILD_PATH, parseGuildId } from './guildPaths';
+import { memberLimit } from './memberLimit';
 
 /** /guilds/:id – any guild, read-only; the viewer's own guild is the /guild page. */
 export function GuildProfilePage() {
@@ -34,7 +35,7 @@ function Profile({ guildId }: { guildId: number }) {
   if (guild.data.members.some((member) => member.playerId === me.playerId)) {
     return <Navigate to={OWN_GUILD_PATH} replace />;
   }
-  return <GuildView guild={guild.data} ownPlayerId={null} maxMembers={world.data.guildMaxMembers} back />;
+  return <GuildView guild={guild.data} ownPlayerId={null} maxMembers={memberLimit(guild.data, world.data)} back />;
 }
 
 function GuildError({ error }: { error: Error }) {

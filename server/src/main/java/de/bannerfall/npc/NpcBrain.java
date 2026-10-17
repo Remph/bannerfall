@@ -34,6 +34,9 @@ public class NpcBrain {
     @JdbcTypeCode(SqlTypes.JSON)
     private NpcMemory memory;
 
+    /** The admin put the lord into its guild or took it out (09 §13.7): the forming leaves it. */
+    private boolean guildByAdmin;
+
     @Version private long version;
 
     protected NpcBrain() {}
@@ -67,6 +70,14 @@ public class NpcBrain {
 
     public void setMemory(NpcMemory memory) {
         this.memory = memory;
+    }
+
+    public boolean isGuildByAdmin() {
+        return guildByAdmin;
+    }
+
+    public void setGuildByAdmin(boolean guildByAdmin) {
+        this.guildByAdmin = guildByAdmin;
     }
 
     public void thoughtAt(Instant at) {

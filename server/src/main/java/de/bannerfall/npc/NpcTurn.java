@@ -26,8 +26,13 @@ final class NpcTurn {
      *     cap window
      * @param lordPoints the lord's player points
      * @param braked the rubber band's brake (09 §8) from the last finish step
-     * @param farmBudgetSpent the lord's loot of the last 24 real hours has reached its farm budget
+     * @param farmBudgetSpent the lord's loot of the last 24 real hours, or of the last 2 hours (the
+     *     pace, balancing round 2), together with the loot on the way has reached its farm budget
      *     (09 §6.2, v1.3): no farms or raids this round
+     * @param guildMates the lords of the lord's guild, itself left out (09 §13); empty without a
+     *     guild or while lord guilds are off
+     * @param mateTrainTargets the villages the guild mates' nobles are on the way to: no conquest
+     *     target for the lord, so two mates don't send trains at the same village (09 §13.2)
      */
     record View(
             long lordId,
@@ -41,14 +46,19 @@ final class NpcTurn {
             Map<Long, Integer> otherLordsToHuman,
             int lordPoints,
             boolean braked,
-            boolean farmBudgetSpent) {}
+            boolean farmBudgetSpent,
+            Set<Long> guildMates,
+            Set<Long> mateTrainTargets) {}
 
     final View view;
     final Village village;
     final Instant now;
     final NpcMemory.Draft memory;
 
-    /** The villages locked in this turn: this one and the homes of the lord's supports in it. */
+    /**
+     * The villages locked in this turn: this one, the homes of the lord's supports in it and the
+     * villages where this village's supports stand (09 §13.3).
+     */
     final Set<Long> locked;
 
     /** The targets of the lord's attacks on the way (filled as the turn sends more). */
@@ -98,6 +108,12 @@ final class NpcTurn {
 
     double speed() {
         return view.world().speed();
+    }
+
+    /** The village of {@code playerId} is the lord's own or a guild mate's (09 §13.2). */
+    boolean ownOrMate(Long playerId) {
+        return playerId != null
+                && (playerId == view.lordId() || view.guildMates().contains(playerId));
     }
 
     /** The grudge against {@code playerId} is active. */

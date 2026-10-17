@@ -6,6 +6,8 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { FullScreenMessage } from '../components/FullScreenMessage';
 import { useT } from '../i18n';
 import { ActionsStayOn } from './ActionsStayOn';
+import { AppLayout } from './AppLayout';
+import { AuthLayout } from './AuthLayout';
 
 /**
  * Route guards. They wrap other routes in router.tsx and either render them (<Outlet />) or
@@ -32,6 +34,18 @@ export function RequireGuest() {
     return <MeLoading />;
   }
   return me.data === null ? <Outlet /> : <Navigate to="/" replace />;
+}
+
+/**
+ * Pages for everybody (the privacy page): guests see them in the login frame, players in the game's
+ * frame, so nobody is sent away to log in or out first.
+ */
+export function GuestOrPlayerLayout() {
+  const me = useMe();
+  if (me.data === undefined) {
+    return <MeLoading />;
+  }
+  return me.data === null ? <AuthLayout /> : <AppLayout />;
 }
 
 function MeLoading() {

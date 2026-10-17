@@ -26,6 +26,8 @@ const settings: AdminWorldSettings = {
   npcThinkMinutes: 20,
   guildsEnabled: false,
   guildMaxMembers: 10,
+  npcGuildsEnabled: false,
+  npcGuildMaxMembers: 3,
   unitLevelsEnabled: false,
   paladinVillagesPerSlot: 4,
   paladinMaxSlots: 5,
@@ -71,6 +73,8 @@ describe('worldFromForm', () => {
       barbarianGrowthEnabled: true,
       guildsEnabled: false,
       guildMaxMembers: 10,
+      npcGuildsEnabled: false,
+      npcGuildMaxMembers: 3,
       unitLevelsEnabled: false,
       paladinVillagesPerSlot: 4,
       paladinMaxSlots: 5,
@@ -91,6 +95,17 @@ describe('worldFromForm', () => {
       barbarianInitialCount: null,
       npcLordCount: null,
     });
+  });
+
+  it('sends the lord guild switch and the most lords per guild (2–50)', () => {
+    const form = worldToForm({ ...settings, npcGuildsEnabled: true, npcGuildMaxMembers: 4 });
+    expect(form.npcGuildsEnabled).toBe(true);
+    expect(form.npcGuildMaxMembers).toBe('4');
+    expect(worldFromForm(form)).toMatchObject({ npcGuildsEnabled: true, npcGuildMaxMembers: 4 });
+    expect(worldFromForm({ ...form, npcGuildsEnabled: false })?.npcGuildsEnabled).toBe(false);
+    expect(worldFromForm({ ...form, npcGuildMaxMembers: '1' })).toBeNull();
+    expect(worldFromForm({ ...form, npcGuildMaxMembers: '51' })).toBeNull();
+    expect(worldFromForm({ ...form, npcGuildMaxMembers: '2.5' })).toBeNull();
   });
 
   it('sends the unit levels switch as it is in the form', () => {

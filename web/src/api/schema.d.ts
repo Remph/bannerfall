@@ -132,6 +132,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/npc-lords/{playerId}/guild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setGuild"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/npc-balance/custom": {
         parameters: {
             query?: never;
@@ -1236,6 +1252,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/world/operator": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["operator"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/villages/{villageId}/troops": {
         parameters: {
             query?: never;
@@ -2076,6 +2108,7 @@ export interface components {
             villageCount: number;
             /** Format: date-time */
             joinedAt: string;
+            npc: boolean;
         };
         MyGuildDto: {
             guild: components["schemas"]["GuildDto"] | null;
@@ -2124,6 +2157,9 @@ export interface components {
             guildsEnabled: boolean | null;
             /** Format: int32 */
             guildMaxMembers: number | null;
+            npcGuildsEnabled: boolean | null;
+            /** Format: int32 */
+            npcGuildMaxMembers: number | null;
             barbarianWallsEnabled: boolean | null;
             /** Format: int32 */
             barbarianWallStartDays: number | null;
@@ -2196,6 +2232,9 @@ export interface components {
             guildsEnabled: boolean;
             /** Format: int32 */
             guildMaxMembers: number;
+            npcGuildsEnabled: boolean;
+            /** Format: int32 */
+            npcGuildMaxMembers: number;
             barbarianWallsEnabled: boolean;
             /** Format: int32 */
             barbarianWallStartDays: number;
@@ -2244,6 +2283,37 @@ export interface components {
         NpcSettingsDto: {
             /** @enum {string} */
             difficulty: "EASY" | "NORMAL" | "HARD" | "CUSTOM";
+        };
+        NpcGuildRequest: {
+            /** @enum {string} */
+            action: "JOIN" | "LEAVE" | "FOUND" | "AUTO";
+            /** Format: int64 */
+            guildId: number | null;
+        };
+        NpcLordDto: {
+            /** Format: int64 */
+            playerId: number;
+            name: string;
+            /** @enum {string} */
+            personality: "DEFENSIVE" | "OFFENSIVE" | "BALANCED";
+            template: string;
+            /** Format: int32 */
+            points: number;
+            /** Format: int32 */
+            villageCount: number;
+            /** Format: date-time */
+            lastThinkAt: string | null;
+            /** Format: date-time */
+            nextThinkAt: string | null;
+            braked: boolean;
+            boosted: boolean;
+            /** Format: double */
+            productionFactor: number;
+            /** Format: int64 */
+            guildId: number | null;
+            guildName: string | null;
+            guildTag: string | null;
+            guildByAdmin: boolean;
         };
         Difficulty: {
             /** Format: double */
@@ -2880,26 +2950,6 @@ export interface components {
             /** @enum {string} */
             personality: "DEFENSIVE" | "OFFENSIVE" | "BALANCED";
         };
-        NpcLordDto: {
-            /** Format: int64 */
-            playerId: number;
-            name: string;
-            /** @enum {string} */
-            personality: "DEFENSIVE" | "OFFENSIVE" | "BALANCED";
-            template: string;
-            /** Format: int32 */
-            points: number;
-            /** Format: int32 */
-            villageCount: number;
-            /** Format: date-time */
-            lastThinkAt: string | null;
-            /** Format: date-time */
-            nextThinkAt: string | null;
-            braked: boolean;
-            boosted: boolean;
-            /** Format: double */
-            productionFactor: number;
-        };
         InvariantProblemDto: {
             kind: string;
             /** Format: int64 */
@@ -2968,6 +3018,8 @@ export interface components {
             guildsEnabled: boolean;
             /** Format: int32 */
             guildMaxMembers: number;
+            /** Format: int32 */
+            npcGuildMaxMembers: number;
             barbarianWallsEnabled: boolean;
             /** Format: int32 */
             barbarianWallStartDays: number;
@@ -3067,6 +3119,10 @@ export interface components {
             /** Format: int32 */
             onlinePlayers: number;
             version: string;
+        };
+        OperatorDto: {
+            name: string | null;
+            contact: string | null;
         };
         IncomingDto: {
             /** Format: int64 */
@@ -3407,6 +3463,9 @@ export interface components {
                 [key: string]: number;
             } | null;
             banner: components["schemas"]["ScoutedBanner"] | null;
+            away: {
+                [key: string]: number;
+            } | null;
         };
         SupportReport: Omit<components["schemas"]["ReportPayload"], "type"> & {
             from: components["schemas"]["VillageRefDto"];
@@ -4187,6 +4246,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["NpcSettingsDto"];
+                };
+            };
+        };
+    };
+    setGuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                playerId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NpcGuildRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NpcLordDto"];
                 };
             };
         };
@@ -5958,6 +6043,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PublicWorldDto"];
+                };
+            };
+        };
+    };
+    operator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OperatorDto"];
                 };
             };
         };

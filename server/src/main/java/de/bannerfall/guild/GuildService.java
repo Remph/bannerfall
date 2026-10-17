@@ -377,6 +377,110 @@ public class GuildService {
         drop(locked);
     }
 
+    // ---- guilds of NPC lords (09-npc-lords §13) ----
+
+    /**
+     * Founds a guild of two NPC lords (09 §13.1); the first one leads. Lords never invite or
+     * accept, so there are no invitations to drop. Lords earn no achievements.
+     *
+     * @return the new guild's id
+     * @throws GameRuleException {@code ALREADY_IN_GUILD}, {@code GUILD_NAME_TAKEN}, {@code
+     *     GUILD_TAG_TAKEN}
+     */
+    @Transactional
+    public long foundForLords(long leaderId, long otherId, String rawName, String rawTag) {
+        requireLord(leaderId);
+        if (otherId != leaderId) {
+            requireLord(otherId);
+        }
+        String name = GuildText.name(rawName);
+        String tag = GuildText.tag(rawTag);
+        if (members.findGuildIdOf(leaderId).isPresent()
+                || members.findGuildIdOf(otherId).isPresent()) {
+            throw new GameRuleException(ErrorCode.ALREADY_IN_GUILD, "Already in a guild");
+        }
+        if (guilds.existsByNameIgnoreCase(name)) {
+            throw new GameRuleException(ErrorCode.GUILD_NAME_TAKEN, "That guild name is taken");
+        }
+        if (guilds.existsByTagIgnoreCase(tag)) {
+            throw new GameRuleException(ErrorCode.GUILD_TAG_TAKEN, "That guild tag is taken");
+        }
+        try {
+            Guild guild = guilds.saveAndFlush(new Guild(name, tag, clock.instant()));
+            members.saveAndFlush(
+                    new GuildMember(leaderId, guild.getId(), GuildRole.LEADER, clock.instant()));
+            if (otherId != leaderId) {
+                members.saveAndFlush(
+                        new GuildMember(otherId, guild.getId(), GuildRole.MEMBER, clock.instant()));
+            }
+            return guild.getId();
+        } catch (DataIntegrityViolationException e) {
+            throw conflictOf(e);
+        }
+    }
+
+    /**
+     * Puts an NPC lord without a guild into a guild of NPC lords that has room ({@code
+     * npcGuildMaxMembers}, and never above {@code guildMaxMembers}).
+     *
+     * @throws GameRuleException {@code ALREADY_IN_GUILD}, {@code GUILD_FULL}
+     * @throws NotFoundException {@code GUILD_NOT_FOUND} also for a guild with human members
+     */
+    @Transactional
+    public void addLord(long guildId, long lordId) {
+        requireLord(lordId);
+        Guild guild = lockGuild(guildId);
+        if (members.countHumansOf(guildId) > 0) {
+            throw new NotFoundException(ErrorCode.GUILD_NOT_FOUND);
+        }
+        if (members.findGuildIdOf(lordId).isPresent()) {
+            throw new GameRuleException(ErrorCode.ALREADY_IN_GUILD, "Already in a guild");
+        }
+        if (members.countByGuildId(guildId) >= lordGuildMax()) {
+            throw new GameRuleException(ErrorCode.GUILD_FULL, "The guild is full");
+        }
+        members.saveAndFlush(
+                new GuildMember(lordId, guild.getId(), GuildRole.MEMBER, clock.instant()));
+    }
+
+    /**
+     * Takes an NPC lord out of its guild: a leader's guild passes to its longest member, the last
+     * one ends it (like {@link #removeBecauseGone}). Nothing happens for a lord in no guild.
+     */
+    @Transactional
+    public void removeLord(long lordId) {
+        requireLord(lordId);
+        removeBecauseGone(lordId);
+    }
+
+    /** Ends every guild of NPC lords (the host switched lord guilds off, 09 §13). */
+    @Transactional
+    public int disbandLordGuilds() {
+        List<Long> ids = members.lordGuildIds();
+        for (long id : ids) {
+            deleteGuild(lockGuild(id));
+        }
+        return ids.size();
+    }
+
+    /** Whether the guild exists and all its members are NPC lords. */
+    @Transactional(readOnly = true)
+    public boolean isLordGuild(long guildId) {
+        return guilds.existsById(guildId) && members.countHumansOf(guildId) == 0;
+    }
+
+    /** The most lords a guild of NPC lords may have. */
+    public int lordGuildMax() {
+        WorldSettings world = worldService.settings();
+        return Math.min(world.npcGuildMaxMembers(), world.guildMaxMembers());
+    }
+
+    private void requireLord(long playerId) {
+        if (players.findById(playerId).filter(Player::isNpc).isEmpty()) {
+            throw new NotFoundException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+    }
+
     /** Another interval (tests; zero switches the limit off). */
     public void setInviteInterval(Duration interval) {
         this.inviteInterval = interval;

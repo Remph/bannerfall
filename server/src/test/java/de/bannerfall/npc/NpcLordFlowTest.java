@@ -456,6 +456,70 @@ class NpcLordFlowTest {
         assertThat(all.get(UnitType.NOBLE)).isZero(); // nobles only with M12c's "wants nobles"
     }
 
+    // ---- the paladin (09 §5.3, balancing round 2) ----
+
+    @Test
+    void fromTheSecondStageALordRecruitsOnePaladinForItsSlot() {
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+
+        midStageRound(lordId, villageId, 1000);
+        assertThat(recruitOrders(villageId, UnitType.PALADIN)).isEqualTo(1);
+
+        // his one slot is taken: the next round orders no second paladin
+        clock.advance(Duration.ofMinutes(30));
+        midStageRound(lordId, villageId, 1000);
+        assertThat(recruitOrders(villageId, UnitType.PALADIN)).isEqualTo(1);
+    }
+
+    @Test
+    void inTheFirstStageALordRecruitsNoPaladin() {
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+
+        midStageRound(lordId, villageId, 800);
+
+        assertThat(recruitOrders(villageId, UnitType.PALADIN)).isZero();
+        assertThat(recruitOrders(villageId, null)).isPositive(); // the template's units it does
+    }
+
+    /**
+     * One round of a rich lord with Barracks 5, the given village points and a ledger far behind on
+     * troops, so the round recruits.
+     */
+    private void midStageRound(long lordId, long villageId, int points) {
+        makeRichAndEmptyTheQueue(villageId);
+        jdbc.sql("update village set b_barracks = 5, points = ? where id = ?")
+                .params(points, villageId)
+                .update();
+        transaction.executeWithoutResult(
+                status -> {
+                    NpcBrain brain = brains.findById(lordId).orElseThrow();
+                    NpcMemory.Draft memory = brain.getMemory().draft();
+                    memory.ledger.put(villageId, new NpcMemory.Ledger(200_000, 0));
+                    brain.setMemory(memory.build());
+                    brains.save(brain);
+                });
+        jdbc.sql("delete from game_event").update();
+        schedule(lordId, clock.instant());
+        processor.processDue(clock.instant());
+    }
+
+    /** Recruit orders of one unit in a village; all units for null. */
+    private int recruitOrders(long villageId, UnitType unit) {
+        return jdbc.sql(
+                        "select count(*) from recruit_order where village_id = ?"
+                                + " and (cast(? as varchar) is null or unit = ?)")
+                .params(
+                        villageId,
+                        unit == null ? null : unit.name(),
+                        unit == null ? null : unit.name())
+                .query(Integer.class)
+                .single();
+    }
+
     // ---- build quiet hours (09 §5.1) ----
 
     @Test

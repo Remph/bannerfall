@@ -14,6 +14,7 @@ import de.bannerfall.event.GameEventKind;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.guild.GuildService;
 import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
@@ -72,6 +73,7 @@ class NpcWarfareFlowTest {
     @Autowired GameData gameData;
     @Autowired TestRandomSource random;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired GuildService guildService;
 
     private TransactionTemplate transaction;
     private int baseX;
@@ -79,6 +81,8 @@ class NpcWarfareFlowTest {
 
     /** Human villages moved into the scene, with their old fields: put back afterwards. */
     private final List<long[]> movedHumans = new ArrayList<>();
+
+    private boolean guildsWereOn;
 
     @BeforeEach
     void setUp() {
@@ -91,6 +95,7 @@ class NpcWarfareFlowTest {
         worldService.reload();
         clock.set(nextBerlin(LocalTime.NOON));
         baseX = 2000 + 200 * AREA.getAndIncrement();
+        guildsWereOn = worldService.settings().guildsEnabled();
     }
 
     @AfterEach
@@ -132,6 +137,10 @@ class NpcWarfareFlowTest {
                 .update();
         jdbc.sql("delete from report where player_id in (select id from player where npc)")
                 .update();
+        jdbc.sql(
+                        "delete from guild where id in (select guild_id from guild_member where"
+                                + " player_id in (select id from player where npc))")
+                .update();
         jdbc.sql("delete from player where npc").update();
         // barbarian villages of the scene (and villages conquered by a lord, now barbarian-less)
         jdbc.sql("delete from unit_stack where home_village_id in (" + scene + ")").update();
@@ -139,7 +148,9 @@ class NpcWarfareFlowTest {
         jdbc.sql(
                         "update world_settings set npc_lord_count = 0, npc_difficulty = 'NORMAL',"
                                 + " npc_custom = null, speed = 1.0, barbarian_initial_count = 30,"
-                                + " barbarians_per_new_player = 0")
+                                + " barbarians_per_new_player = 0, npc_guilds_enabled = false,"
+                                + " guilds_enabled = ?")
+                .param(guildsWereOn)
                 .update();
         worldService.reload();
     }
@@ -875,6 +886,34 @@ class NpcWarfareFlowTest {
     }
 
     @Test
+    void whatTheFarmsOnTheWayCanCarryCountsTowardsThePace() {
+        long lord = lord(NpcPersonality.DEFENSIVE);
+        long village = villageOf(lord);
+        units(village, Map.of(UnitType.SPEARMAN, 100));
+        long first = barbarian(3, 0, 0);
+        long second = barbarian(0, 3, 0);
+        clock.set(nextBerlin(LocalTime.NOON));
+        knows(lord, first, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, first)).hasSize(1);
+
+        // fresh spearmen at home and a second target, but the raid on the way can carry far more
+        // than the 2 hours' share of a starting village's budget: no loot reported yet, no farm
+        units(village, Map.of(UnitType.SPEARMAN, 100));
+        clock.advance(Duration.ofMinutes(1));
+        knows(lord, second, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, second)).isEmpty();
+
+        // with the first raid gone, the same round farms the second target
+        deleteMovementsOf(lord);
+        clock.advance(Duration.ofMinutes(1));
+        knows(lord, second, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, second)).hasSize(1);
+    }
+
+    @Test
     void theNoblesAreCountedForTheLoyaltyAtTheirArrival() {
         long lord = lord(NpcPersonality.OFFENSIVE);
         long village = villageOf(lord);
@@ -918,6 +957,180 @@ class NpcWarfareFlowTest {
         clock.advance(Duration.ofMinutes(1));
         round(lord);
         assertThat(stacks.findByHomeVillageIdAndLocationVillageId(village, conquered)).isEmpty();
+    }
+
+    // ---- lord guilds (§13) ----
+
+    @Test
+    void neighbourLordsFoundAGuildInTheirRoundAndAFarOneJoinsOnceItIsNear() {
+        List<Long> lords = lords(3, NpcPersonality.BALANCED);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        long c = lords.get(2);
+        place(villageOf(b), 8, 0);
+        place(villageOf(c), 40, 0);
+        lords.forEach(id -> lordPoints(id, 900));
+        lordGuildsOn();
+
+        round(a);
+
+        Long guild = guildOf(a);
+        assertThat(guild).isNotNull();
+        assertThat(guildOf(b)).isEqualTo(guild);
+        assertThat(roleOf(a)).isEqualTo("LEADER");
+        assertThat(guildOf(c)).isNull();
+        round(c);
+        assertThat(guildOf(c)).isNull(); // 32 fields from b, nobody near: never alone
+
+        place(villageOf(c), 20, 0); // 12 from b
+        lordPoints(c, 900);
+        clock.advance(Duration.ofMinutes(1));
+        round(c);
+        assertThat(guildOf(c)).isEqualTo(guild);
+    }
+
+    @Test
+    void guildMatesNeverRaidEachOther() {
+        List<Long> lords = lords(2, NpcPersonality.OFFENSIVE);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        long target = villageOf(b);
+        place(target, 3, 0);
+        units(villageOf(a), Map.of(UnitType.AXEMAN, 50));
+        unprotect(b);
+        knows(a, target, emptyIntel(clock.instant(), b));
+        lordGuildsOn();
+        guildService.foundForLords(a, b, "Ordo Testium", "TEST");
+
+        round(a);
+        assertThat(attacksTo(a, target)).isEmpty();
+
+        // no guild mates any more: the same village is a raid target
+        guildService.removeLord(b);
+        clock.advance(Duration.ofMinutes(1));
+        knows(a, target, emptyIntel(clock.instant(), b));
+        round(a);
+        assertThat(attacksTo(a, target)).hasSize(1);
+    }
+
+    @Test
+    void aLordSupportsAGuildMatesVillageUnderAttackAndWithdrawsAfterwards() {
+        List<Long> lords = lords(2, NpcPersonality.DEFENSIVE);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        long helper = villageOf(a);
+        long attacked = villageOf(b);
+        place(attacked, 3, 0);
+        units(helper, Map.of(UnitType.SPEARMAN, 100));
+        TestPlayer human = human(3, 10, false);
+        lordGuildsOn();
+        guildService.foundForLords(a, b, "Ordo Testium", "TEST");
+        Instant now = clock.instant();
+        long attack =
+                incomingAttack(
+                        human, attacked, now.minusSeconds(120 * 60), now.plusSeconds(60 * 60));
+
+        round(a);
+
+        assertThat(supportsFrom(helper))
+                .singleElement()
+                .satisfies(
+                        s ->
+                                assertThat(s)
+                                        .containsEntry("u_spearman", 50)
+                                        .containsEntry("target_village_id", attacked));
+
+        // the attack is over, the village loyal: the support goes home
+        jdbc.sql("delete from movement where id = ?").param(attack).update();
+        deleteMovementsOf(a);
+        supportStack(helper, attacked, Map.of(UnitType.SPEARMAN, 50));
+        loyalty(attacked, 100);
+        clock.advance(Duration.ofMinutes(1));
+        round(a);
+        assertThat(stacks.findByHomeVillageIdAndLocationVillageId(helper, attacked)).isEmpty();
+
+        // while an attack is due it stays, unless the lord is no guild mate any more
+        deleteMovementsOf(a);
+        supportStack(helper, attacked, Map.of(UnitType.SPEARMAN, 50));
+        now = clock.instant();
+        incomingAttack(human, attacked, now.minusSeconds(60 * 60), now.plusSeconds(60 * 60));
+        clock.advance(Duration.ofMinutes(1));
+        round(a);
+        assertThat(stacks.findByHomeVillageIdAndLocationVillageId(helper, attacked)).isPresent();
+
+        guildService.removeLord(b);
+        clock.advance(Duration.ofMinutes(1));
+        round(a);
+        assertThat(stacks.findByHomeVillageIdAndLocationVillageId(helper, attacked)).isEmpty();
+    }
+
+    @Test
+    void aGuildMateTakesOverTheGrudgeAndRetaliates() {
+        List<Long> lords = lords(2, NpcPersonality.OFFENSIVE);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        place(villageOf(b), 45, 0);
+        units(villageOf(a), Map.of(UnitType.AXEMAN, 100));
+        // 20 fields from a: within its conquest radius (25)
+        TestPlayer human = human(20, 0, true);
+        Instant until = clock.instant().plus(Duration.ofHours(10));
+        remember(
+                b,
+                m ->
+                        m.grudges.put(
+                                human.playerId,
+                                new NpcMemory.Grudge(until, human.villageId, false, 0)));
+        knows(a, human.villageId, emptyIntel(clock.instant(), human.playerId));
+        lordGuildsOn();
+        guildService.foundForLords(a, b, "Ordo Testium", "TEST");
+
+        round(a);
+
+        assertThat(attacksTo(a, human.villageId)).hasSize(1);
+        assertThat(memory(a).grudges().get(human.playerId))
+                .satisfies(
+                        g -> {
+                            assertThat(g.shared()).isTrue();
+                            assertThat(g.retaliated()).isTrue();
+                            assertThat(g.until()).isEqualTo(until);
+                        });
+    }
+
+    @Test
+    void aLordSendsNoTrainWhereAGuildMatesNoblesAreOnTheWay() {
+        List<Long> lords = lords(2, NpcPersonality.OFFENSIVE);
+        long a = lords.get(0);
+        long b = lords.get(1);
+        long village = villageOf(a);
+        place(villageOf(b), 40, 0);
+        buildings(village, Map.of(BuildingType.ACADEMY, 1));
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 2));
+        long barbarian = barbarian(3, 0, 0);
+        knows(a, barbarian, barbarianIntel(clock.instant()));
+        loyalty(barbarian, 40);
+        lordGuildsOn();
+        guildService.foundForLords(a, b, "Ordo Testium", "TEST");
+        long train = nobleAttack(b, barbarian);
+
+        round(a);
+        assertThat(movementsTo(a, barbarian))
+                .allSatisfy(m -> assertThat(m).containsEntry("u_noble", 0));
+
+        // the mate's train is gone (it arrived): the village is a target again (unbraked: the
+        // humans of other tests may be weaker than the two lords together)
+        jdbc.sql("delete from movement where id = ?").param(train).update();
+        deleteMovementsOf(a);
+        remember(
+                a,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                    m.stance = NpcMemory.Stance.NONE;
+                });
+        clock.advance(Duration.ofMinutes(1));
+        round(a);
+        assertThat(movementsTo(a, barbarian))
+                .anySatisfy(m -> assertThat(m).containsEntry("u_noble", 2));
     }
 
     // ---- helpers: the scene ----
@@ -1320,5 +1533,68 @@ class NpcWarfareFlowTest {
         LocalDateTime candidate = clock.instant().atZone(BERLIN).toLocalDate().atTime(time);
         Instant at = candidate.atZone(BERLIN).toInstant();
         return at.isBefore(clock.instant()) ? candidate.plusDays(1).atZone(BERLIN).toInstant() : at;
+    }
+
+    // ---- helpers: lord guilds ----
+
+    private void lordGuildsOn() {
+        jdbc.sql("update world_settings set guilds_enabled = true, npc_guilds_enabled = true")
+                .update();
+        worldService.reload();
+    }
+
+    /** The lord's points and those of each of its villages. */
+    private void lordPoints(long lord, int points) {
+        jdbc.sql("update player set points = ? where id = ?").param(points).param(lord).update();
+        jdbc.sql("update village set points = ? where player_id = ?")
+                .param(points)
+                .param(lord)
+                .update();
+    }
+
+    private void unprotect(long playerId) {
+        jdbc.sql("update player set protected_until = ? where id = ?")
+                .param(Timestamp.from(clock.instant().minusSeconds(3600)))
+                .param(playerId)
+                .update();
+    }
+
+    /** A noble attack of the lord on the way to {@code villageId} (only the row). */
+    private long nobleAttack(long lord, long villageId) {
+        long from = villageOf(lord);
+        Timestamp now = Timestamp.from(clock.instant());
+        return jdbc.sql(
+                        """
+                        insert into movement (kind, home_village_id, source_village_id,
+                            target_village_id, owner_player_id, u_spearman, u_swordsman,
+                            u_axeman, u_scout, u_light_cavalry, u_heavy_cavalry, u_ram,
+                            u_catapult, u_noble, depart_at, arrive_at, created_at)
+                        values ('ATTACK', ?, ?, ?, ?, 0, 0, 10, 0, 0, 0, 0, 0, 1, ?, ?, ?)
+                        returning id
+                        """)
+                .param(from)
+                .param(from)
+                .param(villageId)
+                .param(lord)
+                .param(now)
+                .param(Timestamp.from(clock.instant().plus(Duration.ofHours(5))))
+                .param(now)
+                .query(Long.class)
+                .single();
+    }
+
+    private Long guildOf(long playerId) {
+        return jdbc.sql("select guild_id from guild_member where player_id = ?")
+                .param(playerId)
+                .query(Long.class)
+                .optional()
+                .orElse(null);
+    }
+
+    private String roleOf(long playerId) {
+        return jdbc.sql("select role from guild_member where player_id = ?")
+                .param(playerId)
+                .query(String.class)
+                .single();
     }
 }

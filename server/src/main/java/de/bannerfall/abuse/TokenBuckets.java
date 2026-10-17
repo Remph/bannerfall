@@ -47,9 +47,24 @@ class TokenBuckets<K> {
                     return new Bucket(tokens, now);
                 });
         if (buckets.size() > CLEANUP_THRESHOLD) {
-            buckets.values().removeIf(bucket -> refilled(bucket, now) >= burst);
+            forgetFull();
         }
         return taken[0];
+    }
+
+    /**
+     * Drops the buckets that are full again: their keys have not asked for a while and would start
+     * with a full bucket anyway. Keeps the keys (client addresses for the login limits) in memory
+     * only as long as they matter.
+     */
+    void forgetFull() {
+        Instant now = clock.instant();
+        buckets.values().removeIf(bucket -> refilled(bucket, now) >= burst);
+    }
+
+    /** How many keys are held (tests). */
+    int size() {
+        return buckets.size();
     }
 
     /** Other numbers (tests); every bucket starts full again. */
