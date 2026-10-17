@@ -292,32 +292,42 @@ class FarmFlowTest {
     }
 
     @Test
-    void sendAllWorksDownTheListAndStopsWhereTheUnitsRunOut() throws Exception {
+    void sendAllSkipsWhatTheUnitsDontCoverAndGoesOnDownTheList() throws Exception {
         setProtection(farmer, clock.instant().minusSeconds(1));
+        jdbc.sql("update unit_stack set u_light_cavalry = 10 where home_village_id = ?")
+                .params(farmer.villageId)
+                .update();
         Placed one = barbarianVillage();
         Placed two = barbarianVillage();
         Placed three = barbarianVillage();
+        Placed four = barbarianVillage();
         try {
+            // 20 axemen at home: the first two fit, the third doesn't any more
             long first = addOk(one.at(), "{\"AXEMAN\":8}");
-            long second = addOk(two.at(), "{\"AXEMAN\":15}");
-            // would still fit after the stop: the run doesn't look past it
-            addOk(three.at(), "{\"AXEMAN\":1}");
+            long second = addOk(two.at(), "{\"AXEMAN\":8}");
+            long third = addOk(three.at(), "{\"AXEMAN\":8}");
+            // other units below it still go out (1.3; the run used to stop at the third)
+            long cavalry = addOk(four.at(), "{\"LIGHT_CAVALRY\":5}");
             Instant now = clock.instant();
 
             String result = sendAll();
-            assertThat(JsonPath.<List<Integer>>read(result, "$.sent")).containsExactly((int) first);
-            assertThat(JsonPath.<List<Object>>read(result, "$.skipped")).isEmpty();
-            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("NOT_ENOUGH_UNITS");
-            assertThat(number(result, "$.stoppedAt").longValue()).isEqualTo(second);
+            assertThat(JsonPath.<List<Integer>>read(result, "$.sent"))
+                    .containsExactly((int) first, (int) second, (int) cavalry);
+            assertThat(number(result, "$.skipped[0].targetId").longValue()).isEqualTo(third);
+            assertThat(JsonPath.<String>read(result, "$.skipped[0].reason"))
+                    .isEqualTo("NOT_ENOUGH_UNITS");
+            assertThat(JsonPath.<List<Object>>read(result, "$.skipped")).hasSize(1);
 
-            assertThat(homeAxemen()).isEqualTo(12);
+            assertThat(homeAxemen()).isEqualTo(4);
+            farmer.village().andExpect(jsonPath("$.unitsHome.LIGHT_CAVALRY").value(5));
             farmer.browser
                     .get(path(farmer))
                     .andExpect(jsonPath("$[0].lastSentAt").value(now.toString()))
-                    .andExpect(jsonPath("$[1].lastSentAt").value(nullValue()))
-                    .andExpect(jsonPath("$[2].lastSentAt").value(nullValue()));
+                    .andExpect(jsonPath("$[1].lastSentAt").value(now.toString()))
+                    .andExpect(jsonPath("$[2].lastSentAt").value(nullValue()))
+                    .andExpect(jsonPath("$[3].lastSentAt").value(now.toString()));
         } finally {
-            removeBarbarians(one, two, three);
+            removeBarbarians(one, two, three, four);
         }
     }
 
@@ -349,8 +359,6 @@ class FarmFlowTest {
             assertThat(number(result, "$.skipped[1].targetId").longValue()).isEqualTo(conquered);
             assertThat(JsonPath.<String>read(result, "$.skipped[1].reason"))
                     .isEqualTo("OWN_VILLAGE");
-            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
-            assertThat(JsonPath.<Object>read(result, "$.stoppedAt")).isNull();
             assertThat(homeAxemen()).isEqualTo(10);
             victim.village().andExpect(jsonPath("$.incomingAttacks").value(0));
         } finally {
@@ -372,7 +380,6 @@ class FarmFlowTest {
             assertThat(number(result, "$.skipped[0].targetId").longValue()).isEqualTo(player);
             assertThat(JsonPath.<String>read(result, "$.skipped[0].reason"))
                     .isEqualTo("ENDS_OWN_PROTECTION");
-            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
             // one tap for the whole list never ends the protection
             assertThat(protectedUntil(farmer)).isEqualTo(until);
             victim.village().andExpect(jsonPath("$.incomingAttacks").value(0));
@@ -426,7 +433,6 @@ class FarmFlowTest {
             assertThat(JsonPath.<List<Integer>>read(result, "$.sent"))
                     .containsExactly((int) openEntry);
             assertThat(JsonPath.<List<Object>>read(result, "$.skipped")).isEmpty();
-            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
             assertThat(homeAxemen()).isEqualTo(70);
         } finally {
             jdbc.sql("delete from banner_roll where winner_id = ?").param(farmer.playerId).update();
@@ -472,7 +478,6 @@ class FarmFlowTest {
                                     .andExpect(status().isOk()));
             assertThat(JsonPath.<List<Integer>>read(result, "$.sent"))
                     .containsExactly((int) firstEntry, (int) victimEntry, (int) scoutedEntry);
-            assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
             // every pair has its attack on the way now
             farmer.browser
                     .get(path(farmer))
@@ -484,6 +489,37 @@ class FarmFlowTest {
                     .param(victim.villageId)
                     .update();
             removeBarbarians(first, secondOfVictim, attacked, scouted);
+        }
+    }
+
+    @Test
+    void sendBannerChancesGivesThePairsChanceToTheNextEntryWhenTheUnitsDontCoverTheFirst()
+            throws Exception {
+        setProtection(farmer, clock.instant().minusSeconds(1));
+        Placed secondOfVictim = barbarianVillage();
+        jdbc.sql("update village set player_id = ? where id = ?")
+                .params(victim.playerId, secondOfVictim.id())
+                .update();
+        try {
+            long tooBig = addOk(victimAt, "{\"AXEMAN\":50}");
+            long next = addOk(secondOfVictim.at(), "{\"AXEMAN\":10}");
+
+            String result =
+                    body(
+                            farmer.browser
+                                    .post(path(farmer) + "/send-all?bannerChanceOnly=true", "")
+                                    .andExpect(status().isOk()));
+            // the first entry of the pair couldn't go, so its chance is still free for the next
+            assertThat(JsonPath.<List<Integer>>read(result, "$.sent")).containsExactly((int) next);
+            assertThat(number(result, "$.skipped[0].targetId").longValue()).isEqualTo(tooBig);
+            assertThat(JsonPath.<String>read(result, "$.skipped[0].reason"))
+                    .isEqualTo("NOT_ENOUGH_UNITS");
+            assertThat(homeAxemen()).isEqualTo(10);
+        } finally {
+            jdbc.sql("delete from movement where target_village_id = ?")
+                    .param(victim.villageId)
+                    .update();
+            removeBarbarians(secondOfVictim);
         }
     }
 
@@ -518,7 +554,6 @@ class FarmFlowTest {
     void sendAllOnAnEmptyListSendsNothing() throws Exception {
         String result = sendAll();
         assertThat(JsonPath.<List<Object>>read(result, "$.sent")).isEmpty();
-        assertThat(JsonPath.<String>read(result, "$.stop")).isEqualTo("DONE");
         assertThat(homeAxemen()).isEqualTo(20);
     }
 

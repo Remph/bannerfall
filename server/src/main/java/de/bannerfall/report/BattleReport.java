@@ -32,6 +32,8 @@ import java.util.Map;
  *     reports from before M11)
  * @param banners what banners did in and after the battle (M32b, 02-game-rules §21.9); null if
  *     nothing (and in reports from before M32b)
+ * @param haulCapacity what the surviving attackers could carry, Plunder banner included (1.3), only
+ *     in the attacker's copy and only when they took loot; null otherwise and in older reports
  */
 public record BattleReport(
         VillageRefDto attacker,
@@ -46,8 +48,41 @@ public record BattleReport(
         @Schema(nullable = true) ScoutingReport scouting,
         ResourceAmounts loot,
         @Schema(nullable = true) LoyaltyReport loyalty,
-        @Schema(nullable = true) BannerReport banners)
+        @Schema(nullable = true) BannerReport banners,
+        @Schema(nullable = true) Integer haulCapacity)
         implements ReportPayload {
+
+    /** A battle report without the haul capacity (the defenders' copies, tests). */
+    public BattleReport(
+            VillageRefDto attacker,
+            VillageRefDto defender,
+            BattleOutcome outcome,
+            Double luck,
+            Map<UnitType, Integer> attackerUnits,
+            Map<UnitType, Integer> attackerLosses,
+            Map<UnitType, Integer> attackerLevels,
+            BuildingType catapultTarget,
+            DefenderSide defenderSide,
+            ScoutingReport scouting,
+            ResourceAmounts loot,
+            LoyaltyReport loyalty,
+            BannerReport banners) {
+        this(
+                attacker,
+                defender,
+                outcome,
+                luck,
+                attackerUnits,
+                attackerLosses,
+                attackerLevels,
+                catapultTarget,
+                defenderSide,
+                scouting,
+                loot,
+                loyalty,
+                banners,
+                null);
+    }
 
     /** A battle report without banners. */
     public BattleReport(
@@ -116,7 +151,29 @@ public record BattleReport(
 
     @Override
     public ReportSummary summary(ReportKind kind) {
-        return new ReportSummary(attacker, defender, outcome, bannersGained());
+        boolean mainBattle = outcome != BattleOutcome.SCOUTS_ONLY;
+        Map<UnitType, Integer> losses;
+        if (kind == ReportKind.DEFENSE) {
+            losses = defenderSide == null ? Map.of() : defenderSide.losses();
+        } else {
+            losses = attackerLosses;
+        }
+        return new ReportSummary(
+                attacker,
+                defender,
+                outcome,
+                bannersGained(),
+                mainBattle ? loot : null,
+                losses,
+                kind == ReportKind.ATTACK && fullHaul());
+    }
+
+    /**
+     * The survivors carried all they could (1.3): there was more to take. Only the attacker's copy
+     * knows the capacity; reports from before 1.3 never show it.
+     */
+    private boolean fullHaul() {
+        return haulCapacity != null && haulCapacity > 0 && loot.total() >= haulCapacity;
     }
 
     /**

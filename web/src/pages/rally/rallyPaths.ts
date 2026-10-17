@@ -1,3 +1,4 @@
+import type { IncomingMovement } from '../../api/queries/troops';
 import { parseCoords, type Coords } from '../../game/coords';
 
 /** `/v/1/rally?x=48&y=52`: the rally point, with a target to fill in (05-frontend §3). */
@@ -24,4 +25,29 @@ export function simulatorPath(villageId: number, reportId?: number): string {
   return reportId === undefined
     ? `/v/${villageId}/rally/simulator`
     : `/v/${villageId}/rally/simulator?report=${reportId}`;
+}
+
+/** The rally point's parts behind the switch on phones and tablets (1.3). */
+export type RallyPart = 'send' | 'moves' | 'troops';
+
+/** The addresses that open the movements: `#incoming` (the attack notice), `#outgoing` (the map's line panel). */
+export function opensMoves(hash: string): boolean {
+  return hash === '#incoming' || hash === '#outgoing';
+}
+
+/**
+ * Which part the rally point opens on: the form when the address names a target (map, farm list),
+ * the movements while a hostile attack is coming in or for `#incoming` and `#outgoing`, else the form.
+ */
+export function initialRallyPart(
+  incoming: readonly Pick<IncomingMovement, 'kind' | 'units'>[],
+  params: URLSearchParams,
+  hash: string,
+): RallyPart {
+  if (targetFromSearch(params) !== '') {
+    return 'send';
+  }
+  // own later waves on a village conquered meanwhile show their units: not a threat
+  const attacked = incoming.some((movement) => movement.kind === 'ATTACK' && movement.units === null);
+  return attacked || opensMoves(hash) ? 'moves' : 'send';
 }

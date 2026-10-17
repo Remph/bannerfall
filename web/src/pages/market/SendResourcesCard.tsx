@@ -12,7 +12,7 @@ import { isOnMap, parseCoords } from '../../game/coords';
 import { formatDuration, formatNumber, formatWhenExact } from '../../game/format';
 import { maxSendable, merchantsNeeded, totalOf, travelSeconds } from '../../game/market';
 import { projectResources, resourceTypes, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import { targetFromSearch } from '../rally/rallyPaths';
 import { useTargetVillage } from '../rally/useTargetVillage';
@@ -29,7 +29,7 @@ const NOTHING: ResourceAmounts = { wood: 0, clay: 0, iron: 0 };
  */
 export function SendResourcesCard({ village, market }: { village: Village; market: Market }) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const [searchParams] = useSearchParams();
   const [target, setTarget] = useState(() => targetFromSearch(searchParams));
   const [targetError, setTargetError] = useState<string | undefined>();

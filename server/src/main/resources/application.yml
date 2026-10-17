@@ -74,6 +74,10 @@ bannerfall:
     # The event worker (tick every 200 ms) and the nightly cleanup. Tests switch it off and call
     # EventProcessor.processDue by hand (docs/plan/01-architecture.md §4.6).
     scheduler-enabled: true
+  market:
+    # Trading with the market itself (docs/plan/02-game-rules.md §12.1): the daily amounts start again
+    # at midnight in this time zone.
+    day-zone: Europe/Berlin
   logging:
     # Where server.log and server.err go (logback-spring.xml). Relative to the working directory:
     # server/logs with bootRun. Production: /app/logs (application-prod.yml).

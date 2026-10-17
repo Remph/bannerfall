@@ -1,9 +1,27 @@
 .group {
+  position: relative;
   display: flex;
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--radius-pill);
   background: var(--color-well);
+}
+
+/* like the admin tabs: the options keep their width and the row scrolls (where they don't fit) */
+.scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* phones: the options share the width with less padding, so the market's five tabs fit a 360 px
+   screen; longer labels still scroll */
+@media (max-width: 639px) {
+  .scroll .option {
+    flex: 1 0 auto;
+    padding: 0 0.4rem;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
 }
 
 .option {
@@ -27,4 +45,47 @@
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: 700;
+}
+
+/* in a card's header: less padding around and beside the options, the same height to tap */
+.compact {
+  gap: 0;
+  padding: 2px;
+}
+
+.compact .option {
+  padding: 0 0.75rem;
+}
+
+.compact .pill {
+  top: 2px;
+  bottom: 2px;
+}
+
+/* the selected option's pill, measured from its button; it slides to the next choice */
+.pill {
+  position: absolute;
+  top: var(--space-1);
+  bottom: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  transition:
+    left 0.22s cubic-bezier(0.3, 0.7, 0.4, 1),
+    width 0.22s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.sliding .option {
+  position: relative;
+  transition: color 0.22s;
+}
+
+.sliding .option[aria-pressed='true'] {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill,
+  .sliding .option {
+    transition: none;
+  }
 }

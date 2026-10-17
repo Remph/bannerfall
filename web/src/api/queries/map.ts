@@ -1,6 +1,7 @@
 import { useQueries, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { refetchDelayMs } from '../../game/buildQueue';
+import { nextLineArrivalMs } from '../../game/mapLines';
 import { nextMovementArrivalMs } from '../../game/mapMovements';
 import { chunkArea, type Chunk } from '../../game/mapView';
 import { serverNow } from '../../game/serverTime';
@@ -15,6 +16,12 @@ export type MapVillage = components['schemas']['MapVillageDto'];
  * attacks and supports, and what other players send to his villages – with the counts per kind.
  */
 export type MapMovement = components['schemas']['MapMovementDto'];
+
+/**
+ * One entry of GET /api/map/movement-lines (v1.3): the same movements as {@link MapMovement}, one by
+ * one with both ends. `departAt` is null for other players' attacks: where they are stays hidden.
+ */
+export type MapMovementLine = components['schemas']['MapMovementLineDto'];
 
 /** Prefix of all map queries, e.g. to reload the map after a village was renamed. */
 export const mapQueryKey = ['mapChunk'] as const;
@@ -102,3 +109,41 @@ export function useMapMovements(enabled: boolean) {
 
 // One empty list for every render, so the map's drawing effect doesn't run again for a new [].
 const NO_MOVEMENTS: MapMovement[] = [];
+
+/**
+ * The lines of the map, under the markers' key: everything that reloads the markers (sending,
+ * cancelling, arrivals, the notifications) reloads the lines too.
+ */
+const mapMovementLinesQueryKey = [...mapMovementsQueryKey, 'lines'] as const;
+
+/**
+ * GET /api/map/movement-lines: the movement lines (v1.3), while they are switched on. Asked again
+ * like the markers: every minute, and at the next arrival.
+ */
+export function useMapMovementLines(enabled: boolean) {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: mapMovementLinesQueryKey,
+    queryFn: (): Promise<MapMovementLine[]> => expectData(api.GET('/api/map/movement-lines')),
+    enabled,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+  const nextArrival = query.data === undefined ? undefined : nextLineArrivalMs(query.data);
+  const { dataUpdatedAt, errorUpdatedAt } = query;
+
+  useEffect(() => {
+    if (!enabled || nextArrival === undefined) {
+      return;
+    }
+    const timer = setTimeout(
+      () => void queryClient.invalidateQueries({ queryKey: mapMovementLinesQueryKey }),
+      refetchDelayMs(nextArrival, serverNow()),
+    );
+    return () => clearTimeout(timer);
+  }, [queryClient, enabled, nextArrival, dataUpdatedAt, errorUpdatedAt]);
+
+  return enabled ? (query.data ?? NO_LINES) : NO_LINES;
+}
+
+const NO_LINES: MapMovementLine[] = [];

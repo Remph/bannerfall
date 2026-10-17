@@ -5,6 +5,7 @@ import { Button } from '../components/Button';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { FullScreenMessage } from '../components/FullScreenMessage';
 import { useT } from '../i18n';
+import { ActionsStayOn } from './ActionsStayOn';
 
 /**
  * Route guards. They wrap other routes in router.tsx and either render them (<Outlet />) or
@@ -40,9 +41,12 @@ function MeLoading() {
     return (
       <FullScreenMessage>
         <ErrorMessage>{errorMessage(t, me.error)}</ErrorMessage>
-        <Button type="button" onClick={() => void me.refetch()}>
-          {t.common.retry}
-        </Button>
+        {/* reading again changes nothing, so it stays on in an ended world (v1.3) */}
+        <ActionsStayOn>
+          <Button type="button" onClick={() => void me.refetch()}>
+            {t.common.retry}
+          </Button>
+        </ActionsStayOn>
       </FullScreenMessage>
     );
   }

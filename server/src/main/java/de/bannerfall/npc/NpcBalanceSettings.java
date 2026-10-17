@@ -115,6 +115,12 @@ public record NpcBalanceSettings(Balance balance) {
     /**
      * One difficulty (09 §8): also the shape of the CUSTOM values the admin edits. Times are in the
      * {@code quiet-zone}.
+     *
+     * @param farmLootShare the farm budget (09 §6.2, v1.3): a lord farms only while its loot of the
+     *     last 24 real hours is below this share of its own daily production; 0 = no budget (also
+     *     what CUSTOM values stored before v1.3 read as)
+     * @param farmRest the lords send no farms or raids during the build quiet hours either, like a
+     *     player who sleeps (09 §6.2, v1.3)
      */
     public record Difficulty(
             double productionFactor,
@@ -126,7 +132,9 @@ public record NpcBalanceSettings(Balance balance) {
             boolean quietHours,
             boolean spareLastVillage,
             String buildQuietFrom,
-            String buildQuietTo) {
+            String buildQuietTo,
+            double farmLootShare,
+            boolean farmRest) {
 
         /** All problems of these values (empty = valid), each prefixed with {@code name}. */
         public List<String> problems(String name) {
@@ -153,6 +161,9 @@ public record NpcBalanceSettings(Balance balance) {
             }
             if (attacksPerPlayerPerDay < 0 || attacksPerHumanPerDay < 0) {
                 own.add("attack caps must be >= 0");
+            }
+            if (!(farmLootShare >= 0)) {
+                own.add("farm-loot-share must be >= 0");
             }
             if (!isTime(buildQuietFrom) || !isTime(buildQuietTo)) {
                 own.add("build-quiet-from and build-quiet-to must be HH:mm");

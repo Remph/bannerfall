@@ -14,3 +14,18 @@
   font-size: 1.05rem;
   color: var(--color-text);
 }
+
+/* a title with a control at its right; the control wraps below on very narrow screens */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+  padding: 0 var(--space-3) var(--space-2) 0;
+}
+
+.action {
+  margin-left: auto;
+  padding-top: var(--space-1);
+}

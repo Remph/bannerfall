@@ -12,7 +12,7 @@ import {
   type Rect,
   type Size,
 } from '../../game/mapView';
-import type { MapColors } from './mapDraw';
+import { drawKeepMark, type MapColors } from './mapDraw';
 
 /*
  * Draws the overview map (M11b, 05-frontend §6): the map area with a light grid every 10 fields and
@@ -108,6 +108,12 @@ export function drawOverview(ctx: CanvasRenderingContext2D, scene: OverviewScene
       ctx.strokeRect(middle.x - side / 2, middle.y - side / 2, side, side);
     }
   }
+  // the banner keeps (1.3), a gold star each on top of the squares
+  visible
+    .filter((village) => village.keep)
+    .forEach((village) =>
+      drawKeepMark(ctx, toScreen(overview, size, { x: village.x + 0.5, y: village.y + 0.5 }), side, colors),
+    );
 
   // the current village: a gold ring with a dark edge
   const current = toScreen(overview, size, { x: scene.currentVillage.x + 0.5, y: scene.currentVillage.y + 0.5 });

@@ -21,9 +21,10 @@
   --color-title: #2b4537;
 
   /* accents */
-  --color-accent: #a8372a;
+  --color-accent: #2f5d45; /* main actions, active tabs, own things */
   --color-on-accent: #fffaf2;
-  --color-danger: #b42318;
+  --color-danger: #b42318; /* war only: attacks, losses, cancel, delete, unread counts */
+  --color-on-danger: #fffaf2;
   --color-danger-bg: #fbeae6;
   --color-success: #2f6b46; /* won battles (reports) */
   --color-success-bg: #e6f0e3;
@@ -55,6 +56,8 @@
   --radius-pill: 999px; /* buttons, badges, chips */
   --touch-target: 44px;
   --content-width: 72rem;
+  /* the chat as a column at the right edge, from 1600 px (1.3) */
+  --chat-column-width: 22rem;
 
   /* the map canvas (05-frontend §6), read by pages/map/mapDraw.ts */
   --map-grass: #c8d3a4;
@@ -63,7 +66,7 @@
   --map-grid-strong: rgba(43, 69, 55, 0.3);
   --map-outside: #e2d9c4; /* beyond the map edge */
   --map-edge: #2f4a3c;
-  --map-own: var(--color-accent);
+  --map-own: #a8372a; /* own villages keep their red, also with the green accent */
   --map-player: #2f5f8f;
   --map-npc: #7b4a93;
   --map-barbarian: #8b8579;
@@ -80,12 +83,76 @@
   --map-return: #2b78b8;
   --map-badge-ink: #fffaf0;
   --map-badge-ink-noble: #2a231b;
+  --map-banner-used: #8f8672; /* the faded banner on a village whose banner chance is used (v1.3) */
+  /* the landscape under the villages (v1.3) */
+  --map-tree: #7f9b5b;
+  --map-tree-shade: #4b6237;
+  --map-tree-light: #a2bd78;
+  --map-conifer: #5d7a46;
+  --map-hill: #dfe7bd;
+  --map-hill-shade: #98aa6c;
+  --map-water: #9cc2d2;
+  --map-water-bank: #6b91a3;
+  --map-forest-far: #7f9b5b;
 
   /* achievement badges (M16): the rim of a levelled badge, and of a one-time one */
   --badge-bronze: #a8683a;
   --badge-silver: #8f9aa5;
   --badge-gold: #c9951c;
   --badge-once: #2f6b46;
+
+  /* the village picture (1.3): ground, walls, roofs, trees; windows are lit at night */
+  --village-grass: #c8d3a4;
+  --village-yard: #d3dbac;
+  --village-path: #e6d9b5;
+  --village-plaster: #f1e6cc;
+  --village-plaster-side: #d6c7a4;
+  --village-stone: #c9c1b0;
+  --village-stone-side: #a99f8b;
+  --village-stone-top: #ddd6c6;
+  --village-wood: #a87b4f;
+  --village-wood-side: #86603c;
+  --village-wood-dark: #6f5034;
+  --village-wood-top: #bd9268;
+  --village-roof: #a8473a;
+  --village-roof-light: #c05b4b;
+  --village-roof-side: #83362c;
+  --village-barn: #a55a3f;
+  --village-barn-side: #82452f;
+  --village-slate: #56636b;
+  --village-slate-light: #6f7d86;
+  --village-slate-side: #424c53;
+  --village-thatch: #cfa75a;
+  --village-thatch-light: #dfbd74;
+  --village-thatch-side: #a8853f;
+  --village-green: #2f5d45;
+  --village-gold: #e0b544;
+  --village-red: #a8372a;
+  --village-dark: #3a2e22;
+  --village-window: #5a6f78;
+  --village-glow: #f2a23a;
+  --village-tree: #7f9b5b;
+  --village-tree-shade: #4b6237;
+  --village-tree-light: #a2bd78;
+  --village-clay: #c98d5c;
+  --village-clay-deep: #a46a3e;
+  --village-clay-deeper: #7f4f2c;
+  --village-brick: #b4553c;
+  --village-brick-side: #8d4130;
+  --village-rock: #9a9488;
+  --village-rock-light: #b9b3a6;
+  --village-rock-side: #78736a;
+  --village-ore: #5b5f66;
+  --village-field: #d9c27a;
+  --village-field-alt: #a9bf73;
+  --village-furrow: #b9a35f;
+  --village-hay: #d8b45a;
+  --village-hay-shade: #b38f3e;
+  --village-paving: #ddd2b6;
+  --village-paving-edge: #c2b593;
+  --village-plot: #8a8170;
+  --village-shadow: rgba(40, 30, 15, 0.2);
+  --village-smoke: rgba(110, 105, 100, 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -101,9 +168,10 @@
     --color-text: #eee6d6;
     --color-text-muted: #aaa08f;
     --color-title: #e9c46a;
-    --color-accent: #e39a63;
+    --color-accent: #e9c46a;
     --color-on-accent: #1a1713;
     --color-danger: #f97066;
+    --color-on-danger: #1a1713;
     --color-danger-bg: #2a1a19;
     --color-success: #7fc79b;
     --color-success-bg: #1a2a20;
@@ -122,6 +190,7 @@
     --map-grid: rgba(255, 255, 255, 0.06);
     --map-grid-strong: rgba(255, 255, 255, 0.14);
     --map-outside: #1d1a15;
+    --map-own: #e39a63;
     --map-edge: #8ea596;
     --map-player: #79a9dc;
     --map-npc: #c497dc;
@@ -135,12 +204,76 @@
     --map-noble: #f0c64a;
     --map-support: #3fa564;
     --map-return: #4a97d8;
+    --map-banner-used: #cfc6b3;
+    /* the landscape (v1.3) */
+    --map-tree: #4c6139;
+    --map-tree-shade: #1c2617;
+    --map-tree-light: #617a49;
+    --map-conifer: #3b5030;
+    --map-hill: #46553a;
+    --map-hill-shade: #29331f;
+    --map-water: #3f6474;
+    --map-water-bank: #1d323d;
+    --map-forest-far: #4c6139;
 
     /* achievement badges (M16) */
     --badge-bronze: #cf8a55;
     --badge-silver: #b9c3cc;
     --badge-gold: #e9c46a;
     --badge-once: #7fc79b;
+
+    /* the village picture (1.3): an evening village, windows lit */
+    --village-grass: #36432f;
+    --village-yard: #3d4a35;
+    --village-path: #575039;
+    --village-plaster: #c9bc9e;
+    --village-plaster-side: #a19479;
+    --village-stone: #9d968a;
+    --village-stone-side: #7b756b;
+    --village-stone-top: #b1aa9e;
+    --village-wood: #86603e;
+    --village-wood-side: #664830;
+    --village-wood-dark: #4f3824;
+    --village-wood-top: #9b7552;
+    --village-roof: #8f3d32;
+    --village-roof-light: #a44c3f;
+    --village-roof-side: #6c2c24;
+    --village-barn: #87492f;
+    --village-barn-side: #663623;
+    --village-slate: #4a565e;
+    --village-slate-light: #5d6a73;
+    --village-slate-side: #353e44;
+    --village-thatch: #a98945;
+    --village-thatch-light: #bb9b56;
+    --village-thatch-side: #866b33;
+    --village-green: #3d7a5a;
+    --village-gold: #d6a93a;
+    --village-red: #b54a3c;
+    --village-dark: #17130e;
+    --village-window: #e9c46a;
+    --village-glow: #f2a23a;
+    --village-tree: #4c6139;
+    --village-tree-shade: #1c2617;
+    --village-tree-light: #617a49;
+    --village-clay: #8f6343;
+    --village-clay-deep: #6d4a31;
+    --village-clay-deeper: #4f3420;
+    --village-brick: #8f4532;
+    --village-brick-side: #6b3326;
+    --village-rock: #6b665d;
+    --village-rock-light: #827c71;
+    --village-rock-side: #514d46;
+    --village-ore: #3c4046;
+    --village-field: #7d6f42;
+    --village-field-alt: #556b3c;
+    --village-furrow: #665a35;
+    --village-hay: #a98a45;
+    --village-hay-shade: #86692f;
+    --village-paving: #5a5340;
+    --village-paving-edge: #4a4435;
+    --village-plot: #9a907f;
+    --village-shadow: rgba(0, 0, 0, 0.3);
+    --village-smoke: rgba(200, 195, 185, 0.35);
   }
 }
 
@@ -156,9 +289,10 @@
   --color-text: #eee6d6;
   --color-text-muted: #aaa08f;
   --color-title: #e9c46a;
-  --color-accent: #e39a63;
+  --color-accent: #e9c46a;
   --color-on-accent: #1a1713;
   --color-danger: #f97066;
+  --color-on-danger: #1a1713;
   --color-danger-bg: #2a1a19;
   --color-success: #7fc79b;
   --color-success-bg: #1a2a20;
@@ -177,6 +311,7 @@
   --map-grid: rgba(255, 255, 255, 0.06);
   --map-grid-strong: rgba(255, 255, 255, 0.14);
   --map-outside: #1d1a15;
+  --map-own: #e39a63;
   --map-edge: #8ea596;
   --map-player: #79a9dc;
   --map-npc: #c497dc;
@@ -190,10 +325,74 @@
   --map-noble: #f0c64a;
   --map-support: #3fa564;
   --map-return: #4a97d8;
+  --map-banner-used: #cfc6b3;
+  /* the landscape (v1.3) */
+  --map-tree: #4c6139;
+  --map-tree-shade: #1c2617;
+  --map-tree-light: #617a49;
+  --map-conifer: #3b5030;
+  --map-hill: #46553a;
+  --map-hill-shade: #29331f;
+  --map-water: #3f6474;
+  --map-water-bank: #1d323d;
+  --map-forest-far: #4c6139;
 
   /* achievement badges (M16) */
   --badge-bronze: #cf8a55;
   --badge-silver: #b9c3cc;
   --badge-gold: #e9c46a;
   --badge-once: #7fc79b;
+
+  /* the village picture (1.3): an evening village, windows lit */
+  --village-grass: #36432f;
+  --village-yard: #3d4a35;
+  --village-path: #575039;
+  --village-plaster: #c9bc9e;
+  --village-plaster-side: #a19479;
+  --village-stone: #9d968a;
+  --village-stone-side: #7b756b;
+  --village-stone-top: #b1aa9e;
+  --village-wood: #86603e;
+  --village-wood-side: #664830;
+  --village-wood-dark: #4f3824;
+  --village-wood-top: #9b7552;
+  --village-roof: #8f3d32;
+  --village-roof-light: #a44c3f;
+  --village-roof-side: #6c2c24;
+  --village-barn: #87492f;
+  --village-barn-side: #663623;
+  --village-slate: #4a565e;
+  --village-slate-light: #5d6a73;
+  --village-slate-side: #353e44;
+  --village-thatch: #a98945;
+  --village-thatch-light: #bb9b56;
+  --village-thatch-side: #866b33;
+  --village-green: #3d7a5a;
+  --village-gold: #d6a93a;
+  --village-red: #b54a3c;
+  --village-dark: #17130e;
+  --village-window: #e9c46a;
+  --village-glow: #f2a23a;
+  --village-tree: #4c6139;
+  --village-tree-shade: #1c2617;
+  --village-tree-light: #617a49;
+  --village-clay: #8f6343;
+  --village-clay-deep: #6d4a31;
+  --village-clay-deeper: #4f3420;
+  --village-brick: #8f4532;
+  --village-brick-side: #6b3326;
+  --village-rock: #6b665d;
+  --village-rock-light: #827c71;
+  --village-rock-side: #514d46;
+  --village-ore: #3c4046;
+  --village-field: #7d6f42;
+  --village-field-alt: #556b3c;
+  --village-furrow: #665a35;
+  --village-hay: #a98a45;
+  --village-hay-shade: #86692f;
+  --village-paving: #5a5340;
+  --village-paving-edge: #4a4435;
+  --village-plot: #9a907f;
+  --village-shadow: rgba(0, 0, 0, 0.3);
+  --village-smoke: rgba(200, 195, 185, 0.35);
 }

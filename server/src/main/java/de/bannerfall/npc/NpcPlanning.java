@@ -5,15 +5,20 @@ import de.bannerfall.gamedata.BuildingDef;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
+import de.bannerfall.gamedata.ResourceType;
 import de.bannerfall.gamedata.UnitDef;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.rules.BuildRules;
+import de.bannerfall.rules.MarketExchange;
 import de.bannerfall.rules.Population;
 import de.bannerfall.rules.Storage;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -330,5 +335,79 @@ public final class NpcPlanning {
     /** The population troops may not use: 5 % of the farm plus what the next building needs. */
     public static int troopPopReserve(int farmCapacity, int nextBuildingPop) {
         return (int) Math.ceil(TROOP_POP_RESERVE * farmCapacity) + nextBuildingPop;
+    }
+
+    /** One trade with the market itself: {@code amount} of {@code receive} for {@code give}. */
+    public record Exchange(ResourceType give, ResourceType receive, int amount) {}
+
+    /**
+     * The trades with the market (02-game-rules §12.1) that make {@code cost} payable from {@code
+     * stock} now (v1.3, 09-npc-lords §5.4): each missing resource, the largest gap first, is bought
+     * with the resource that has the most to spare beyond its own part of the cost. Empty if the
+     * stock pays already, or if trading can't close every gap today (ratio 0, the day's amounts
+     * used up, too little to spare, a part of the cost beyond the warehouse): then the lord keeps
+     * saving instead of paying the ratio for half of it.
+     *
+     * @param leftToday per resource, what the market still gives the village today
+     */
+    public static List<Exchange> exchangesFor(
+            ResourceAmounts cost,
+            ResourceAmounts stock,
+            int warehouseCapacity,
+            double ratio,
+            Map<ResourceType, Integer> leftToday) {
+        if (ratio <= 0 || cost.fitsInto(stock)) {
+            return List.of();
+        }
+        Map<ResourceType, Integer> spare = new EnumMap<>(ResourceType.class);
+        Map<ResourceType, Integer> missing = new EnumMap<>(ResourceType.class);
+        for (ResourceType type : ResourceType.values()) {
+            if (cost.get(type) > warehouseCapacity) {
+                return List.of();
+            }
+            int left = stock.get(type) - cost.get(type);
+            spare.put(type, Math.max(0, left));
+            if (left < 0) {
+                missing.put(type, -left);
+            }
+        }
+        List<Exchange> trades = new ArrayList<>();
+        List<ResourceType> gaps =
+                missing.keySet().stream()
+                        .sorted(Comparator.comparing((ResourceType t) -> -missing.get(t)))
+                        .toList();
+        for (ResourceType receive : gaps) {
+            int need = missing.get(receive);
+            if (need > leftToday.getOrDefault(receive, 0)) {
+                return List.of();
+            }
+            while (need > 0) {
+                ResourceType give =
+                        spare.keySet().stream()
+                                .filter(t -> !missing.containsKey(t))
+                                .max(Comparator.comparing(spare::get))
+                                .orElse(null);
+                int amount = give == null ? 0 : Math.min(need, affordable(spare.get(give), ratio));
+                if (amount <= 0) {
+                    return List.of();
+                }
+                spare.merge(give, -MarketExchange.cost(amount, ratio), Integer::sum);
+                need -= amount;
+                trades.add(new Exchange(give, receive, amount));
+            }
+        }
+        return trades;
+    }
+
+    /** The most the market gives for {@code spare} at {@code ratio}. */
+    private static int affordable(int spare, double ratio) {
+        int amount = (int) Math.floor(spare / ratio);
+        while (MarketExchange.cost(amount + 1, ratio) <= spare) {
+            amount++;
+        }
+        while (amount > 0 && MarketExchange.cost(amount, ratio) > spare) {
+            amount--;
+        }
+        return amount;
     }
 }

@@ -7,9 +7,10 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { IconButton } from '../../components/IconButton';
 import { RecruitOrderLine, RecruitOrderList } from '../../components/RecruitOrderLine';
 import { Sheet } from '../../components/Sheet';
+import { useFinishedOrders } from '../../components/useFinishedOrders';
 import { formatNumber } from '../../game/format';
 import { unitsDone } from '../../game/recruitment';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RecruitPage.module.css';
 
@@ -26,12 +27,13 @@ interface RecruitQueueCardProps {
  */
 export function RecruitQueueCard({ villageId, info, queueSize }: RecruitQueueCardProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const cancel = useCancelRecruit(villageId);
   const [confirming, setConfirming] = useState<RecruitOrder | null>(null);
   // The error itself, not its text: the message is translated while rendering (language switch).
   const [error, setError] = useState<Error | null>(null);
   const queue = info.queue;
+  const shown = useFinishedOrders(`${villageId}-${info.building}`, queue);
 
   function cancelOrder(order: RecruitOrder) {
     setError(null);
@@ -51,12 +53,12 @@ export function RecruitQueueCard({ villageId, info, queueSize }: RecruitQueueCar
   const title = queueSize === undefined ? t.recruitQueue.title : t.recruitQueue.titleCount(queue.length, queueSize);
   return (
     <Card title={title}>
-      {queue.length === 0 ? (
+      {shown.length === 0 ? (
         <p className={styles.empty}>{t.recruitQueue.empty}</p>
       ) : (
         <RecruitOrderList>
-          {queue.map((order) => (
-            <RecruitOrderLine key={order.id} order={order}>
+          {shown.map(({ order, finished, entering }) => (
+            <RecruitOrderLine key={order.id} order={order} finished={finished} entering={entering}>
               <IconButton
                 icon="close"
                 variant="danger"

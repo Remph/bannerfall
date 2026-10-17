@@ -64,7 +64,7 @@ function CustomValuesForm({ values }: { values: NpcDifficultyValues }) {
     };
   }
 
-  function toggle(field: 'quietHours' | 'spareLastVillage') {
+  function toggle(field: 'quietHours' | 'spareLastVillage' | 'farmRest') {
     return {
       checked: form[field],
       onChange: (event: ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +107,7 @@ function CustomValuesForm({ values }: { values: NpcDifficultyValues }) {
         />
         <TextField label={labels.buildQuietFrom} type="time" {...text('buildQuietFrom')} />
         <TextField label={labels.buildQuietTo} type="time" {...text('buildQuietTo')} />
+        <TextField label={labels.farmLootShare} type="number" step="0.05" min="0" {...text('farmLootShare')} />
       </div>
       <label className={styles.check}>
         <input type="checkbox" {...toggle('quietHours')} />
@@ -115,6 +116,10 @@ function CustomValuesForm({ values }: { values: NpcDifficultyValues }) {
       <label className={styles.check}>
         <input type="checkbox" {...toggle('spareLastVillage')} />
         {labels.spareLastVillage}
+      </label>
+      <label className={styles.check}>
+        <input type="checkbox" {...toggle('farmRest')} />
+        {labels.farmRest}
       </label>
       {save.isError && <ErrorMessage>{errorMessage(t, save.error)}</ErrorMessage>}
       {save.isSuccess && <p className={styles.saved}>{labels.saved}</p>}

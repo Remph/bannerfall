@@ -2,17 +2,36 @@ import { useEffect, useEffectEvent, useId, useRef } from 'react';
 import { Link } from 'react-router';
 import type { MapMovement, MapVillage } from '../../api/queries/map';
 import type { Village } from '../../api/queries/villages';
+import { Icon, type IconName } from '../../components/Icon';
 import { IconButton } from '../../components/IconButton';
 import { distance } from '../../game/coords';
-import { formatCoords, formatDecimal, formatDateTime, formatNumber, formatWhenExact } from '../../game/format';
+import { bannerRollBackAt } from '../../game/farm';
+import {
+  formatCoords,
+  formatDecimal,
+  formatDateTime,
+  formatNumber,
+  formatWhen,
+  formatWhenExact,
+} from '../../game/format';
 import { bracketTag } from '../../game/guilds';
 import type { Cover, VillageKind } from '../../game/mapView';
 import { useI18n } from '../../i18n';
 import { movementMarkers } from '../../game/mapMovements';
-import { serverNow } from '../../game/serverTime';
-import { mapActions, type MapAction } from './mapActions';
+import { gameTime, serverNow } from '../../game/serverTime';
+import { mapActions, rankActions, type MapAction, type MapActionKey } from './mapActions';
 import styles from './MapPage.module.css';
+import { KeepRow } from './KeepRow';
 import { MarkerIcon } from './MarkerIcon';
+
+const ACTION_ICONS: Record<MapActionKey, IconName> = {
+  open: 'village',
+  attack: 'troops',
+  support: 'shield',
+  farm: 'FARM',
+  sendResources: 'send',
+  profile: 'population',
+};
 
 interface VillagePanelProps {
   village: MapVillage;
@@ -49,6 +68,8 @@ export function VillagePanel({
   const actions = mapActions(village, kind, currentVillage.id);
   const ready = actions.filter((action): action is Required<MapAction> => action.to !== undefined);
   const later = actions.filter((action) => action.to === undefined);
+  // own villages never have one (the server sends null)
+  const bannerRollBack = bannerRollBackAt(village.nextBannerRollAt, gameTime(serverNow()));
 
   // useEffectEvent: always calls the latest onCover, without restarting the observer on every render.
   const reportCover = useEffectEvent((panel: HTMLElement) =>
@@ -80,7 +101,7 @@ export function VillagePanel({
       <header className={styles.panelHead}>
         <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
         <h2 id={titleId} className={styles.panelTitle}>
-          {village.name ?? t.map.barbarianVillage}{' '}
+          {village.name ?? (village.keep ? t.map.keep : t.map.barbarianVillage)}{' '}
           <span className={styles.coords}>{formatCoords(village.x, village.y)}</span>
         </h2>
         <IconButton icon="close" label={t.common.close} onClick={onClose} />
@@ -95,6 +116,7 @@ export function VillagePanel({
             {kind === 'npc' && <span className={styles.tag}>{t.map.npcTag}</span>}
           </dd>
         </div>
+        {village.keep && <KeepRow village={village} />}
         <div>
           <dt>{t.map.points}</dt>
           <dd>{formatNumber(village.points, language)}</dd>
@@ -118,6 +140,13 @@ export function VillagePanel({
             )}
           </dd>
         </div>
+        {bannerRollBack !== undefined && (
+          // the faded banner of the canvas in words (v1.3), like the farm list's tag
+          <div>
+            <dt>{t.map.bannerChance}</dt>
+            <dd>{t.map.bannerChanceUsed(formatWhen(bannerRollBack, gameTime(serverNow()), language))}</dd>
+          </div>
+        )}
         <div>
           <dt>{t.map.distance}</dt>
           <dd>
@@ -143,7 +172,9 @@ export function VillagePanel({
                 ))}
               </span>
               <span className={styles.tag}>
-                {t.map.movements.next(formatWhenExact(Date.parse(movement.nextArriveAt), serverNow(), language))}
+                {t.map.movements.next(
+                  formatWhenExact(Date.parse(movement.nextArriveAt), gameTime(serverNow()), language),
+                )}
               </span>
             </dd>
           </div>
@@ -160,7 +191,9 @@ export function VillagePanel({
                 </span>
               </span>
               <span className={styles.tag}>
-                {t.map.movements.nextHome(formatWhenExact(Date.parse(movement.nextReturnAt), serverNow(), language))}
+                {t.map.movements.nextHome(
+                  formatWhenExact(Date.parse(movement.nextReturnAt), gameTime(serverNow()), language),
+                )}
               </span>
             </dd>
           </div>
@@ -168,19 +201,48 @@ export function VillagePanel({
       </dl>
       {village.loyalty === null && <p className={styles.hint}>{t.map.loyaltyUnknownHint}</p>}
       {kind === 'barbarian' && <p className={styles.hint}>{t.map.barbarianHint}</p>}
-      {ready.length > 0 && (
-        <div className={styles.actions}>
-          {ready.map((action) => (
-            <Link key={action.key} to={action.to} className={styles.action}>
-              {t.map.actions[action.key]}
-            </Link>
-          ))}
-        </div>
-      )}
+      {ready.length > 0 && <PanelActions actions={ready} />}
       {later.length > 0 && (
         // actions whose screen is not there (a village without an owner id): named, not yet buttons
         <p className={styles.later}>{t.map.comingSoon(later.map((action) => t.map.actions[action.key]).join(' · '))}</p>
       )}
     </section>
+  );
+}
+
+/**
+ * The panel's links by weight (1.3): one solid lead (attack in red, or open an own village), an
+ * outlined second choice next to it, the rest as a quiet row of icon links.
+ */
+function PanelActions({ actions }: { actions: Required<MapAction>[] }) {
+  const { t } = useI18n();
+  const { lead, second, quiet } = rankActions(actions);
+  return (
+    <div className={styles.actions}>
+      {lead !== undefined && (
+        <div className={styles.leadRow}>
+          <Link to={lead.to} className={lead.key === 'attack' ? `${styles.lead} ${styles.attack}` : styles.lead}>
+            <Icon name={ACTION_ICONS[lead.key]} />
+            {t.map.actions[lead.key]}
+          </Link>
+          {second !== undefined && (
+            <Link to={second.to} className={styles.second}>
+              <Icon name={ACTION_ICONS[second.key]} />
+              {t.map.actions[second.key]}
+            </Link>
+          )}
+        </div>
+      )}
+      {quiet.length > 0 && (
+        <div className={styles.quietRow}>
+          {quiet.map((action) => (
+            <Link key={action.key} to={action.to} className={styles.quiet}>
+              <Icon name={ACTION_ICONS[action.key]} />
+              {t.map.actions[action.key]}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

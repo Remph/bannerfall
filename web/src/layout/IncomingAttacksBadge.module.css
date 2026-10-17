@@ -17,7 +17,7 @@
   border: 2px solid var(--color-on-bar);
   border-radius: var(--radius-pill);
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

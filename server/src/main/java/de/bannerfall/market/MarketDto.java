@@ -9,12 +9,14 @@ import java.util.List;
  *     coming back)
  * @param incoming transports on their way to the village, the next arrival first
  * @param offers the village's open offers, oldest first
+ * @param exchange trading with the market itself (v1.3)
  */
 public record MarketDto(
         MerchantsDto merchants,
         List<TransportDto> outgoing,
         List<TransportDto> incoming,
-        List<OfferDto> offers) {
+        List<OfferDto> offers,
+        ExchangeDto exchange) {
 
     /**
      * @param total merchants of the market level

@@ -202,6 +202,7 @@ public class BattleService {
 
         applyLosses(defenders, result.defenderLosses());
         ResourceAmounts loot = ResourceAmounts.ZERO;
+        Integer haulCapacity = null;
         BattleReport.LoyaltyReport loyalty = null;
         if (result.attackerWon()) {
             // 02-game-rules §9: the wall and the catapult target first (the hiding place may be
@@ -219,9 +220,10 @@ public class BattleService {
             // A conquering army stays in the village, so it takes no loot: the resources stay
             // there and belong to the conqueror with it.
             if (loyalty == null || !loyalty.conquered()) {
+                haulCapacity = Loot.capacity(gameData, result.attackerSurvivors(), trip.carry());
                 loot =
                         Loot.distribute(
-                                Loot.capacity(gameData, result.attackerSurvivors(), trip.carry()),
+                                haulCapacity,
                                 Loot.availableAbove(
                                         target.floorResources(),
                                         villageBanners.hidingCapacity(target)));
@@ -258,7 +260,8 @@ public class BattleService {
                                 targetBanner.bulwark(),
                                 found.attacker(),
                                 found.defender(),
-                                theft)),
+                                theft),
+                        haulCapacity),
                 defenderPlayerId,
                 supporters);
         if (conquered) {

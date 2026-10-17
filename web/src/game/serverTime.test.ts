@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  gameTime,
+  setFrozenAt,
   createServerClock,
   currentTick,
   median,
@@ -45,6 +47,20 @@ describe('serverClock', () => {
       clock.record(header, serverMs - offset);
     }
     expect(clock.offsetMs()).toBe(2000);
+  });
+});
+
+describe('gameTime', () => {
+  afterEach(() => setFrozenAt(null));
+
+  it('is the time itself while the world runs', () => {
+    expect(gameTime(5_000)).toBe(5_000);
+  });
+
+  it('stands still at the end once the world has ended', () => {
+    setFrozenAt(3_000);
+    expect(gameTime(5_000)).toBe(3_000);
+    expect(gameTime(2_000)).toBe(2_000);
   });
 });
 

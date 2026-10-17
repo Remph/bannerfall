@@ -4,6 +4,7 @@ import { errorMessage } from '../../api/errors';
 import { useBuildings, useEnqueueBuild, type BuildingInfo, type NextLevel } from '../../api/queries/buildings';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { CostList } from '../../components/CostList';
@@ -12,7 +13,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { byBuildingOrder } from '../../game/gameData';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { upgradeBlocker } from '../../game/upgradePreview';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -39,7 +40,7 @@ function TownHall({ villageId }: { villageId: number }) {
   const world = useWorld().data;
   const queueSize = world?.buildQueueSize;
   const queueMax = world?.buildQueueMax;
-  const now = useServerNow();
+  const now = useGameNow();
   useScrollToBuilding(buildings.isSuccess);
 
   if (village.isError) {
@@ -70,6 +71,7 @@ function TownHall({ villageId }: { villageId: number }) {
   return (
     <div className={styles.page}>
       <header className={styles.head}>
+        <BackLink to={`/v/${village.data.id}`}>{t.townHall.back}</BackLink>
         <h1>{t.townHall.title}</h1>
         <p className={styles.meta}>
           {village.data.name} · {t.village.level(hqLevel)}

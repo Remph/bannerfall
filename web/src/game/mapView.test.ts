@@ -9,6 +9,7 @@ import {
   dragViewRect,
   fieldAt,
   hitRadius,
+  mediumLabels,
   middleField,
   moveOverview,
   onRect,
@@ -213,6 +214,44 @@ describe('villageKind', () => {
     expect(villageKind({ playerId: 8, npc: false }, 7)).toBe('player');
     expect(villageKind({ playerId: 9, npc: true }, 7)).toBe('npc');
     expect(villageKind({ playerId: null, npc: false }, 7)).toBe('barbarian');
+  });
+});
+
+describe('mediumLabels', () => {
+  const village = (id: number, x: number, y: number, playerId: number | null, points = 100) => ({
+    id,
+    x,
+    y,
+    playerId,
+    playerName: playerId === null ? null : `P${playerId}`,
+    points,
+  });
+
+  it('labels own villages and one village per foreign player and 5 × 5 block, the biggest', () => {
+    const villages = [
+      village(1, 10, 10, 7),
+      village(2, 11, 10, 7),
+      village(3, 10, 11, 8, 50),
+      village(4, 12, 12, 8, 300),
+      village(5, 13, 13, 8, 300),
+      village(6, 15, 10, 8),
+      village(7, 11, 11, 9),
+      village(8, 12, 10, null),
+    ];
+    const labels = mediumLabels(villages, 7, new Set());
+    expect(labels.map((label) => [label.village.id, label.own])).toEqual([
+      [1, true],
+      [2, true],
+      [4, false], // the biggest of player 8 in block 2|2; on equal points the lower id
+      [6, false], // the next block
+      [7, false],
+    ]);
+  });
+
+  it('leaves out the skipped villages, which may let another one of that player take the label', () => {
+    const villages = [village(1, 10, 10, 8, 300), village(2, 11, 10, 8, 100), village(3, 12, 10, 7)];
+    const labels = mediumLabels(villages, 7, new Set([1, 3]));
+    expect(labels.map((label) => label.village.id)).toEqual([2]);
   });
 });
 

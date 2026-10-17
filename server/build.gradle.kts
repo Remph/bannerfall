@@ -51,6 +51,9 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // English messages whatever the machine's language: some tests compare the server's
+    // validation texts, which follow the JVM's default locale (a German Windows PC gave German)
+    jvmArgs("-Duser.language=en", "-Duser.country=US")
 }
 
 // The NPC simulation (docs/plan/09-npc-lords.md section 11) takes minutes: `test` skips it,
@@ -59,6 +62,11 @@ tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("simulation")
     }
+    // OpenApiSnapshotTest compares the API with the web's copy (and writes it with -PupdateOpenApi)
+    val updateOpenApi = project.hasProperty("updateOpenApi")
+    inputs.files("../web/src/api/openapi.json")
+    systemProperty("bannerfall.updateOpenApi", updateOpenApi)
+    outputs.upToDateWhen { !updateOpenApi }
 }
 
 tasks.register<Test>("simulationTest") {
@@ -84,6 +92,13 @@ tasks.register<Test>("simulationTest") {
         "simDays" to "simulation.days",
         "simThinkMinutes" to "simulation.thinkMinutes",
         "simSeed" to "simulation.seed",
+        // balance variants (v1.3): -PsimWalls=true -PsimFarmShare=0.5 -PsimFarmRest=true
+        // -PsimFarmCooldown=1440 -PsimLabel=name
+        "simWalls" to "simulation.walls",
+        "simFarmShare" to "simulation.farmShare",
+        "simFarmRest" to "simulation.farmRest",
+        "simLabel" to "simulation.label",
+        "simFarmCooldown" to "npc.balance.farm-cooldown-minutes",
     )) {
         findProperty(property)?.let { systemProperty(name, it.toString()) }
     }

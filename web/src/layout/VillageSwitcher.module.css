@@ -93,3 +93,15 @@
   font-weight: 700;
   color: var(--color-danger);
 }
+
+/* the village held longest, first in the list (1.3) */
+.main {
+  margin-left: 0.5rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: 0.1em;
+}

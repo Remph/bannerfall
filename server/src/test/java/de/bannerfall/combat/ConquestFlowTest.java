@@ -3,7 +3,10 @@ package de.bannerfall.combat;
 import static de.bannerfall.TestPlayer.body;
 import static de.bannerfall.TestPlayer.number;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -467,8 +470,13 @@ class ConquestFlowTest {
         setUnits(attacker, Map.of(UnitType.AXEMAN, 30, UnitType.NOBLE, 4));
         Instant first = attack(attacker, defender, "{\"AXEMAN\":10,\"NOBLE\":3}");
         clock.advance(Duration.ofMinutes(1));
+        Instant secondSent = clock.instant();
         // a noble too, so it is as slow as the first one and arrives a minute later
         Instant second = attack(attacker, defender, "{\"AXEMAN\":20,\"NOBLE\":1}");
+        // the defender sees neither attack's start: with the distance it would give away the nobles
+        defender.troops()
+                .andExpect(jsonPath("$.incoming", hasSize(2)))
+                .andExpect(jsonPath("$.incoming[*].departAt", everyItem(nullValue())));
         // the attacker sees his own attack coming, but it is no threat to him
         arriveAt(first);
         attacker.browser
@@ -480,6 +488,9 @@ class ConquestFlowTest {
         assertThat(JsonPath.<String>read(incoming, "$.incoming[0].kind")).isEqualTo("ATTACK");
         assertThat(JsonPath.<Map<String, Integer>>read(incoming, "$.incoming[0].units"))
                 .isEqualTo(Map.of("AXEMAN", 20, "NOBLE", 1));
+        // and when it set off, as for his other own movements
+        assertThat(Instant.parse(JsonPath.read(incoming, "$.incoming[0].departAt")))
+                .isEqualTo(secondSent);
         attacker.browser
                 .get("/api/me")
                 .andExpect(jsonPath("$.villages[1].incomingAttacks").value(0));
@@ -696,6 +707,23 @@ class ConquestFlowTest {
         arriveAt(attack(attacker, at, "{\"AXEMAN\":10}"));
 
         assertThat(loyaltyOnMap(attacker, at)).isEqualTo(100);
+    }
+
+    @Test
+    void aConqueredVillageComesAfterTheVillagesHeldLongerInTheList() throws Exception {
+        // the attacker registered first, so his village has the lower id
+        endProtection(attacker);
+        dice.use(FixedRandomSource.constant(HIGH_HIT));
+
+        Instant conquest = attack(defender, attacker, "{\"AXEMAN\":10,\"NOBLE\":3}");
+        arriveAt(conquest);
+
+        String me = body(defender.browser.get("/api/me"));
+        assertThat(JsonPath.<List<Number>>read(me, "$.villages[*].id"))
+                .map(Number::longValue)
+                .containsExactly(defender.villageId, attacker.villageId);
+        assertThat(villages.findById(attacker.villageId).orElseThrow().getOwnerSince())
+                .isEqualTo(conquest);
     }
 
     @Test

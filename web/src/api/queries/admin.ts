@@ -86,7 +86,7 @@ export type AdminWorldSettings = components['schemas']['AdminWorldSettingsDto'];
 export type WorldSettingsUpdate = components['schemas']['WorldSettingsUpdateRequest'];
 export type FailedEvent = components['schemas']['FailedEventDto'];
 
-const worldSettingsKey = ['admin', 'world-settings'] as const;
+export const worldSettingsKey = ['admin', 'world-settings'] as const;
 const failedEventsKey = ['admin', 'failed-events'] as const;
 
 /** GET /api/admin/world-settings: every setting including the invite code. */
@@ -126,6 +126,45 @@ export function useOpenWorldNow() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => expectData(api.POST('/api/admin/world-opening/now')),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(worldSettingsKey, settings);
+      return queryClient.invalidateQueries({ queryKey: ['world'] });
+    },
+  });
+}
+
+/**
+ * PUT /api/admin/world-end (v1.3): the end date, null takes it back; a time in the past ends the world
+ * at once (409 WORLD_ENDED once it has ended).
+ */
+export function useSetWorldEnd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (endsAt: string | null) => expectData(api.PUT('/api/admin/world-end', { body: { endsAt } })),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(worldSettingsKey, settings);
+      return queryClient.invalidateQueries({ queryKey: ['world'] });
+    },
+  });
+}
+
+/** POST /api/admin/world-end/now: ends the world within a moment; the most points win. */
+export function useEndWorldNow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => expectData(api.POST('/api/admin/world-end/now')),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(worldSettingsKey, settings);
+      return queryClient.invalidateQueries({ queryKey: ['world'] });
+    },
+  });
+}
+
+/** POST /api/admin/world-end/reopen: takes the end back (409 WORLD_NOT_ENDED while it runs). */
+export function useReopenWorld() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => expectData(api.POST('/api/admin/world-end/reopen')),
     onSuccess: (settings) => {
       queryClient.setQueryData(worldSettingsKey, settings);
       return queryClient.invalidateQueries({ queryKey: ['world'] });

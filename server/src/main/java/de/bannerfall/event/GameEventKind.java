@@ -21,6 +21,13 @@ public enum GameEventKind {
      */
     WORLD_OPEN,
     /**
+     * No {@code refId}: checks the victory condition every few minutes and schedules the next check
+     * (v1.3, 02-game-rules §22).
+     */
+    VICTORY_CHECK,
+    /** {@code refId} = 1 (the world): the end date the host set has come (v1.3, §22). */
+    WORLD_END,
+    /**
      * Only for the event engine's own tests, which register a handler for it. The game has none: a
      * pending TEST event in a real database stops the server at startup.
      */

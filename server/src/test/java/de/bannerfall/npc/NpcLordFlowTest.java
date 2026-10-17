@@ -529,6 +529,55 @@ class NpcLordFlowTest {
         assertThat(buildOrders(villageId)).isGreaterThan(queueSize);
     }
 
+    // ---- the market exchange (v1.3, 09 §5.4) ----
+
+    @Test
+    void aLordShortOfOneResourceBuysItFromTheMarketToBuild() {
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+        // plenty of wood and iron, no clay, a market: today it may get 1,000 clay
+        makeRichAndEmptyTheQueue(villageId);
+        jdbc.sql("update village set b_market = 1, clay = 0 where id = ?")
+                .param(villageId)
+                .update();
+        jdbc.sql("delete from game_event").update();
+        schedule(lordId, clock.instant());
+
+        processor.processDue(clock.instant());
+
+        assertThat(buildOrders(villageId)).isPositive();
+        List<Map<String, Object>> trades =
+                jdbc.sql(
+                                "select give_resource, receive_resource, receive_amount from"
+                                        + " market_exchange where village_id = ?")
+                        .param(villageId)
+                        .query()
+                        .listOfRows();
+        assertThat(trades)
+                .isNotEmpty()
+                .allSatisfy(t -> assertThat(t).containsEntry("receive_resource", "CLAY"));
+        assertThat(trades.stream().mapToInt(t -> (Integer) t.get("receive_amount")).sum())
+                .isBetween(1, 1000);
+
+        // without a market it saves instead
+        long before = trades.size();
+        jdbc.sql("delete from build_order where village_id = ?").param(villageId).update();
+        jdbc.sql("update village set b_market = 0, clay = 0 where id = ?")
+                .param(villageId)
+                .update();
+        clock.advance(Duration.ofMinutes(30));
+        jdbc.sql("delete from game_event").update();
+        schedule(lordId, clock.instant());
+        processor.processDue(clock.instant());
+        assertThat(
+                        jdbc.sql("select count(*) from market_exchange where village_id = ?")
+                                .param(villageId)
+                                .query(Long.class)
+                                .single())
+                .isEqualTo(before);
+    }
+
     /** Warehouse and farm 20, 40,000 of each resource, no build orders. */
     private void makeRichAndEmptyTheQueue(long villageId) {
         jdbc.sql("delete from build_order where village_id = ?").param(villageId).update();
@@ -547,7 +596,18 @@ class NpcLordFlowTest {
         var normal = TestNpcData.balance().balance().difficulties().get(NpcDifficulty.NORMAL);
         var noQuiet =
                 new NpcBalanceSettings.Difficulty(
-                        normal.productionFactor(), 0, 1, 99, 4, 8, true, true, "00:00", "00:00");
+                        normal.productionFactor(),
+                        0,
+                        1,
+                        99,
+                        4,
+                        8,
+                        true,
+                        true,
+                        "00:00",
+                        "00:00",
+                        0,
+                        false);
         jdbc.sql("update world_settings set npc_difficulty = 'CUSTOM'").update();
         worldService.reload();
         clock.set(nextBerlin(LocalTime.of(1, 0)));

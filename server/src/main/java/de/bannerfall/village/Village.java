@@ -55,10 +55,22 @@ public class Village {
     private Instant createdAt;
 
     /**
+     * When the owner got the village (v1.3): founded or conquered. His village list puts the one he
+     * has held the longest first. Null for barbarian villages.
+     */
+    private Instant ownerSince;
+
+    /**
      * A ram knocked this barbarian village's wall down (M29): without "barbarians rebuild walls" it
      * stays down. False for villages of players.
      */
     private boolean wallRazed;
+
+    /**
+     * A banner keep (v1.3, 02-game-rules §22): counts for the KEEPS victory. Stays a keep whoever
+     * owns it.
+     */
+    private boolean keep;
 
     @Version private long version;
 
@@ -90,6 +102,7 @@ public class Village {
         this.buildings = buildings;
         this.points = points;
         this.createdAt = now;
+        this.ownerSince = player == null ? null : now;
     }
 
     /**
@@ -99,7 +112,17 @@ public class Village {
     public void becomeBarbarian() {
         this.player = null;
         this.name = null;
+        this.ownerSince = null;
         this.wallRazed = false;
+    }
+
+    public boolean isKeep() {
+        return keep;
+    }
+
+    /** Makes this new barbarian village a banner keep (§22). */
+    public void markKeep() {
+        this.keep = true;
     }
 
     public boolean isWallRazed() {
@@ -118,6 +141,7 @@ public class Village {
      */
     public void conquer(Player newOwner, String nameIfNone, Instant at) {
         this.player = newOwner;
+        this.ownerSince = at;
         if (name == null) {
             this.name = nameIfNone;
         }
@@ -266,5 +290,9 @@ public class Village {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getOwnerSince() {
+        return ownerSince;
     }
 }

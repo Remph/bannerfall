@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ResearchService {
+
+    /** Postgres' name for {@code unique (player_id, unit, level)} of V25. */
+    private static final String UNIQUE_STEP = "research_order_player_id_unit_level_key";
 
     private final ResearchOrderRepository orders;
     private final VillageLocker locker;
@@ -130,6 +134,12 @@ public class ResearchService {
                             ResearchOrder.start(
                                     playerId, villageId, type, next, seconds, step.cost(), now)));
         } catch (DataIntegrityViolationException e) {
+            // only the unique key (player, unit, level) means "researched already"; anything
+            // else is a real error and stays one
+            if (!Objects.toString(e.getMostSpecificCause().getMessage(), "")
+                    .contains(UNIQUE_STEP)) {
+                throw e;
+            }
             throw new GameRuleException(
                     ErrorCode.RESEARCH_BUSY, type + " is being researched already");
         }
@@ -165,7 +175,8 @@ public class ResearchService {
     @Transactional
     public SmithyDto smithy(long villageId, long playerId) {
         Village village = locker.lockOwned(villageId, playerId);
-        Instant now = clock.instant();
+        // a frozen world (v1.3, §22) shows its researches as they were at the end
+        Instant now = worldService.gameTime(clock.instant());
         stateService.catchUp(village, now);
         WorldSettings world = worldService.settings();
         boolean enabled = world.unitLevelsEnabled();

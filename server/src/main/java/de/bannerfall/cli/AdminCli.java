@@ -100,7 +100,14 @@ public class AdminCli implements Callable<Integer> {
                     "paladinVillagesPerSlot",
                     "paladinMaxSlots",
                     "bannersEnabled",
-                    "bannerDropFactor");
+                    "bannerDropFactor",
+                    "marketExchangeRatio",
+                    "victoryMode",
+                    "dominationPercent",
+                    "victoryHoldHours",
+                    "keepCount",
+                    "keepPercent",
+                    "villageNameLanguage");
 
     /** Only in the pre-game (M14g): fixed once the world's content exists. */
     static final List<String> PREGAME_SETTINGS =
@@ -799,7 +806,12 @@ public class AdminCli implements Callable<Integer> {
     @Command(
             name = "world",
             description = "Show the world settings",
-            subcommands = {WorldCommand.Set.class, WorldCommand.Open.class})
+            subcommands = {
+                WorldCommand.Set.class,
+                WorldCommand.Open.class,
+                WorldCommand.End.class,
+                WorldCommand.Reopen.class
+            })
     static class WorldCommand implements Callable<Integer> {
 
         @ParentCommand AdminCli cli;
@@ -827,6 +839,9 @@ public class AdminCli implements Callable<Integer> {
             }
             if (PREGAME_SETTINGS.contains(key)) {
                 return "(before opening)";
+            }
+            if (key.equals("endsAt") || key.equals("endedAt")) {
+                return "(see `world end`)";
             }
             return key.equals("phase") || key.equals("opensAt") ? "(see `world open`)" : "(fixed)";
         }
@@ -905,6 +920,91 @@ public class AdminCli implements Callable<Integer> {
                                     + text
                                     + "'. Use e.g. \"2026-10-17 18:00\" (Berlin time)");
                 }
+            }
+        }
+
+        @Command(
+                name = "end",
+                description =
+                        "Set the end date (--at \"2026-11-07 20:00\", Berlin time; the side with"
+                                + " the most points wins then), take it back (--clear) or end the"
+                                + " world right away (--now)")
+        static class End implements Callable<Integer> {
+
+            @ParentCommand WorldCommand world;
+
+            @Option(
+                    names = "--at",
+                    description = "e.g. \"2026-11-07 20:00\" (Berlin time) or 2026-11-07T19:00:00Z")
+            String at;
+
+            @Option(names = "--now", description = "End the world right away")
+            boolean now;
+
+            @Option(
+                    names = "--clear",
+                    description = "No end date: the world runs until a side wins")
+            boolean clear;
+
+            @Option(names = "--yes", description = "Don't ask (--now)")
+            boolean yes;
+
+            @Override
+            public Integer call() {
+                AdminCli cli = world.cli;
+                if ((at != null ? 1 : 0) + (now ? 1 : 0) + (clear ? 1 : 0) != 1) {
+                    throw new UsageException("Give exactly one of --at, --now, --clear");
+                }
+                AdminClient client = cli.client();
+                JsonNode answer;
+                if (now) {
+                    cli.confirm(yes, "End the world now", "end");
+                    answer = client.post("/api/admin/world-end/now", null);
+                } else {
+                    ObjectNode body = MAPPER.createObjectNode();
+                    body.put("endsAt", clear ? null : Open.parseTime(at).toString());
+                    answer = client.put("/api/admin/world-end", body);
+                }
+                if (!cli.printedJson(answer)) {
+                    String endsAt = Json.text(answer, "endsAt");
+                    cli.out()
+                            .println(
+                                    now
+                                            ? "The world ends within a moment."
+                                            : endsAt == null
+                                                    ? "No end date: the world runs until a side"
+                                                            + " wins."
+                                                    : "The world ends at "
+                                                            + java.time.Instant.parse(endsAt)
+                                                                    .atZone(HOST_ZONE)
+                                                                    .toLocalDateTime()
+                                                                    .toString()
+                                                                    .replace('T', ' ')
+                                                            + " (Berlin time).");
+                }
+                return EXIT_OK;
+            }
+        }
+
+        @Command(
+                name = "reopen",
+                description = "Take the end of the world back: it runs again, without an end date")
+        static class Reopen implements Callable<Integer> {
+
+            @ParentCommand WorldCommand world;
+
+            @Option(names = "--yes", description = "Don't ask")
+            boolean yes;
+
+            @Override
+            public Integer call() {
+                AdminCli cli = world.cli;
+                cli.confirm(yes, "Take the end of the world back", "reopen");
+                JsonNode answer = cli.client().post("/api/admin/world-end/reopen", null);
+                if (!cli.printedJson(answer)) {
+                    cli.out().println("The world runs again.");
+                }
+                return EXIT_OK;
             }
         }
 

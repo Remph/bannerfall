@@ -47,7 +47,9 @@ export function BattleDetails({ kind, battle, villageId }: BattleDetailsProps) {
 
   return (
     <>
-      <p className={[styles.verdict, styles[result]].filter(Boolean).join(' ')}>{t.reports.verdicts[verdict]}</p>
+      <p className={[styles.verdict, styles.stamp, styles[result]].filter(Boolean).join(' ')}>
+        {t.reports.verdicts[verdict]}
+      </p>
       <div className={styles.columns}>
         <Card title={t.reports.attacker}>
           <div className={styles.cardBody}>
@@ -240,7 +242,7 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
           <div className={styles.group}>
             <h3 className={styles.groupTitle}>{t.reports.scoutedBanner}</h3>
             <p className={styles.scoutedBanner}>
-              <Banner type={scouting.banner.type} tier={scouting.banner.tier} size={20} />
+              <Banner type={scouting.banner.type} tier={scouting.banner.tier} size={20} decorative />
               {t.banners.types[scouting.banner.type]}, {t.banners.tier(scouting.banner.tier)}
             </p>
           </div>
@@ -279,7 +281,7 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
  */
 function BannersCard({ banners }: { banners: BannerReport }) {
   const { t, language } = useI18n();
-  const percent = (fraction: number) => t.reports.bonus(`${formatNumber(percentPoints(fraction), language)} %`);
+  const percent = (fraction: number) => t.reports.bonus(formatShare(percentPoints(fraction), language));
   const name = (banner: { type: BannerType; tier: number }) =>
     t.banners.label(t.banners.types[banner.type], banner.tier);
   const theft = banners.theft;
@@ -306,7 +308,7 @@ function BannersCard({ banners }: { banners: BannerReport }) {
           <div className={styles.group}>
             <h3 className={styles.groupTitle}>{t.reports.bannerFound}</h3>
             <p className={`${styles.scoutedBanner} ${styles.bannerWon}`}>
-              <Banner type={banners.found.type} tier={banners.found.tier} size={20} />
+              <Banner type={banners.found.type} tier={banners.found.tier} size={20} decorative />
               {name(banners.found)}
             </p>
           </div>
@@ -331,14 +333,22 @@ function BannersCard({ banners }: { banners: BannerReport }) {
             <p
               className={[styles.scoutedBanner, theft.result === 'STOLEN' ? styles.bannerWon : styles.muted].join(' ')}
             >
-              {theft.banner !== null && <Banner type={theft.banner.type} tier={theft.banner.tier} size={20} />}
+              {/* only "stolen" and "failed" write the banner's name next to it */}
+              {theft.banner !== null && (
+                <Banner
+                  type={theft.banner.type}
+                  tier={theft.banner.tier}
+                  size={20}
+                  decorative={theft.result === 'STOLEN' || theft.result === 'FAILED'}
+                />
+              )}
               {t.reports.theft[theft.result](theft.banner === null ? '' : name(theft.banner))}
             </p>
           </>
         )}
         {banners.stolen !== null && (
           <p className={`${styles.scoutedBanner} ${styles.bannerLost}`}>
-            <Banner type={banners.stolen.type} tier={banners.stolen.tier} size={20} />
+            <Banner type={banners.stolen.type} tier={banners.stolen.tier} size={20} decorative />
             {t.reports.bannerStolen(name(banners.stolen))}
           </p>
         )}

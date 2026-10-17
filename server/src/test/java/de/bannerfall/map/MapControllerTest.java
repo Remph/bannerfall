@@ -8,8 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import de.bannerfall.Browser;
 import de.bannerfall.IntegrationTest;
+import de.bannerfall.MutableClock;
 import de.bannerfall.TestPlayer;
 import de.bannerfall.TestWorldConfiguration;
+import de.bannerfall.world.WorldService;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +40,8 @@ class MapControllerTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired JdbcClient jdbc;
+    @Autowired MutableClock clock;
+    @Autowired WorldService worldService;
 
     private TestPlayer player;
     private final List<Long> villageIds = new ArrayList<>();
@@ -46,6 +54,9 @@ class MapControllerTest {
 
     @AfterEach
     void removeTestVillages() {
+        jdbc.sql("delete from banner_roll where winner_id = ?").param(player.playerId).update();
+        jdbc.sql("update world_settings set banners_enabled = true where id = 1").update();
+        worldService.reload();
         villageIds.forEach(id -> jdbc.sql("delete from village where id = ?").param(id).update());
         playerIds.forEach(id -> jdbc.sql("delete from player where id = ?").param(id).update());
     }
@@ -123,6 +134,44 @@ class MapControllerTest {
     }
 
     @Test
+    void usedBannerRollsAreMarkedLikeInTheFarmList() throws Exception {
+        Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
+        long used = barbarian(MAP_SIZE - 6, MAP_SIZE - 6);
+        long back = barbarian(MAP_SIZE - 5, MAP_SIZE - 6);
+        long free = barbarian(MAP_SIZE - 4, MAP_SIZE - 6);
+        long lord = npcPlayer("Lord " + Browser.uniqueUsername().substring(0, 8));
+        long lordVillage = village(lord, "Ashford", MAP_SIZE - 6, MAP_SIZE - 5, 100);
+        long lordOther = village(lord, "Brightmoor", MAP_SIZE - 5, MAP_SIZE - 5, 100);
+        roll("V" + used, now.minus(Duration.ofHours(2)));
+        roll("V" + back, now.minus(Duration.ofHours(25))); // the 24-hour window is over
+        roll("P" + lord, now.minus(Duration.ofHours(10)));
+
+        String body = TestPlayer.body(map(MAP_SIZE - 6, MAP_SIZE - 6, 3, 2));
+
+        assertThat(ids(body)).containsExactly(used, back, free, lordVillage, lordOther);
+        assertThat(rolls(body))
+                .containsExactly(
+                        now.plus(Duration.ofHours(22)).toString(),
+                        null,
+                        null,
+                        // the roll against a player covers all his villages
+                        now.plus(Duration.ofHours(14)).toString(),
+                        now.plus(Duration.ofHours(14)).toString());
+
+        // the player's own village: never, also with a roll stored against himself
+        String own = TestPlayer.body(player.village());
+        int x = JsonPath.read(own, "$.x");
+        int y = JsonPath.read(own, "$.y");
+        roll("P" + player.playerId, now);
+        map(x, y, 1, 1).andExpect(jsonPath("$[0].nextBannerRollAt").value(nullValue()));
+
+        jdbc.sql("update world_settings set banners_enabled = false where id = 1").update();
+        worldService.reload();
+        assertThat(rolls(TestPlayer.body(map(MAP_SIZE - 6, MAP_SIZE - 6, 3, 2))))
+                .containsOnlyNulls();
+    }
+
+    @Test
     void aRectangleOverTheMapEdgeOnlyHasTheFieldsOnTheMap() throws Exception {
         long corner = barbarian(MAP_SIZE - 1, MAP_SIZE - 1);
 
@@ -172,6 +221,16 @@ class MapControllerTest {
 
     private ResultActions map(int x, int y, int w, int h) throws Exception {
         return player.browser.get("/api/map?x=" + x + "&y=" + y + "&w=" + w + "&h=" + h);
+    }
+
+    private void roll(String loserKey, Instant at) {
+        jdbc.sql("insert into banner_roll (winner_id, loser_key, rolled_at) values (?, ?, ?)")
+                .params(player.playerId, loserKey, Timestamp.from(at))
+                .update();
+    }
+
+    private static List<String> rolls(String body) {
+        return JsonPath.read(body, "$[*].nextBannerRollAt");
     }
 
     private static List<Long> ids(String body) {

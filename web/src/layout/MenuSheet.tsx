@@ -4,6 +4,7 @@ import { errorMessage } from '../api/errors';
 import { useCurrentAccount, useLogout } from '../api/queries/auth';
 import { Button } from '../components/Button';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { Icon } from '../components/Icon';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { ServerClock } from '../components/ServerClock';
 import { Sheet } from '../components/Sheet';
@@ -70,22 +71,40 @@ function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onO
           onChange={changeTheme}
         />
       </div>
-      {onOpenWorldInfo !== undefined && (
-        <Button type="button" variant="secondary" onClick={onOpenWorldInfo}>
-          {t.settings.worldInfo}
-        </Button>
-      )}
-      {me.role === 'ADMIN' && (
-        <Link to="/admin" onClick={onNavigate}>
-          {t.admin.link}
-        </Link>
-      )}
-      <Link to="/password" onClick={onNavigate}>
-        {t.settings.changePassword}
-      </Link>
-      <Link to="/about" onClick={onNavigate}>
-        {t.about.link}
-      </Link>
+      <ul className={styles.rows}>
+        {onOpenWorldInfo !== undefined && (
+          <li>
+            <button type="button" className={styles.row} onClick={onOpenWorldInfo}>
+              <Icon name="overview" className={styles.rowIcon} />
+              <span>{t.settings.worldInfo}</span>
+              <Icon name="chevronRight" className={styles.rowChevron} />
+            </button>
+          </li>
+        )}
+        <li>
+          <Link className={styles.row} to="/password" onClick={onNavigate}>
+            <Icon name="settings" className={styles.rowIcon} />
+            <span>{t.settings.changePassword}</span>
+            <Icon name="chevronRight" className={styles.rowChevron} />
+          </Link>
+        </li>
+        <li>
+          <Link className={styles.row} to="/about" onClick={onNavigate}>
+            <Icon name="info" className={styles.rowIcon} />
+            <span>{t.about.link}</span>
+            <Icon name="chevronRight" className={styles.rowChevron} />
+          </Link>
+        </li>
+        {me.role === 'ADMIN' && (
+          <li>
+            <Link className={styles.row} to="/admin" onClick={onNavigate}>
+              <Icon name="shield" className={styles.rowIcon} />
+              <span>{t.admin.link}</span>
+              <Icon name="chevronRight" className={styles.rowChevron} />
+            </Link>
+          </li>
+        )}
+      </ul>
       <p className={styles.info}>
         {t.settings.serverTime}: <ServerClock /> <VersionTag />
       </p>

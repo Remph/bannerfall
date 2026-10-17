@@ -48,8 +48,9 @@ class ReportController {
     ReportPageDto list(
             @RequestParam(defaultValue = "0") @Min(0) @Max(MAX_PAGE) int page,
             @RequestParam(defaultValue = "25") @Min(1) @Max(MAX_PAGE_SIZE) int size,
+            @RequestParam(required = false) ReportFilter filter,
             @AuthenticationPrincipal AccountPrincipal me) {
-        return reportService.list(playerService.idOf(me.accountId()), page, size);
+        return reportService.list(playerService.idOf(me.accountId()), page, size, filter);
     }
 
     /** How many of the player's reports are unread (the counter in the navigation). */
@@ -68,6 +69,18 @@ class ReportController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void delete(@PathVariable long reportId, @AuthenticationPrincipal AccountPrincipal me) {
         reportService.delete(reportId, playerService.idOf(me.accountId()));
+    }
+
+    /**
+     * Deletes the reports the player chose in the list's select mode (1.3); ids that aren't his
+     * reports (any more) are skipped.
+     */
+    @PostMapping("/delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteSome(
+            @Valid @RequestBody ReportDeleteRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        reportService.deleteSome(playerService.idOf(me.accountId()), body.ids());
     }
 
     /**

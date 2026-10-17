@@ -130,6 +130,8 @@ class NpcWarfareFlowTest {
                 .update();
         jdbc.sql("delete from village where player_id in (select id from player where npc)")
                 .update();
+        jdbc.sql("delete from report where player_id in (select id from player where npc)")
+                .update();
         jdbc.sql("delete from player where npc").update();
         // barbarian villages of the scene (and villages conquered by a lord, now barbarian-less)
         jdbc.sql("delete from unit_stack where home_village_id in (" + scene + ")").update();
@@ -258,6 +260,18 @@ class NpcWarfareFlowTest {
         long village = villageOf(lord);
         TestPlayer human = human(3, 0, true);
         // 3 fields with axemen: 54 minutes
+        // NORMAL without the farm rest (§6.2), which would hold the 06:06 raid back: only the
+        // quiet hours are tested here
+        jdbc.sql(
+                        """
+                        update world_settings set npc_difficulty = 'CUSTOM', npc_custom =
+                          '{"productionFactor":0.9,"boostBelow":0.5,"boostFactor":1.25,
+                            "leadMargin":1.25,"attacksPerPlayerPerDay":4,"attacksPerHumanPerDay":8,
+                            "quietHours":true,"spareLastVillage":true,"buildQuietFrom":"23:00",
+                            "buildQuietTo":"07:00","farmLootShare":0.5,"farmRest":false}'::jsonb
+                        """)
+                .update();
+        worldService.reload();
 
         // arriving 22:59: sent
         clock.set(nextBerlin(LocalTime.of(22, 5)));
@@ -703,6 +717,209 @@ class NpcWarfareFlowTest {
         assertThat(intel.buildings()).containsEntry(BuildingType.WAREHOUSE, 5);
     }
 
+    // ---- v1.3: better NPC logic ----
+
+    @Test
+    void aRetaliationTooStrongForTheUnitsAtHomeWaitsForTheWholeArmyOrIsLetGo() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        long other = addVillage(lord, -10, 0); // farther from the attacker
+        units(village, Map.of(UnitType.AXEMAN, 10));
+        // 90 axemen of the village stand in support in the lord's other village
+        supportStack(village, other, Map.of(UnitType.AXEMAN, 90));
+        TestPlayer human = human(30, 0, true);
+        long barbarian = barbarian(3, 0, 0);
+        Instant now = clock.instant();
+        remember(
+                lord,
+                m -> {
+                    m.intel.put(human.villageId, spearmenIntel(now, human.playerId, 30));
+                    m.intel.put(barbarian, barbarianIntel(now));
+                    m.grudges.put(
+                            human.playerId,
+                            new NpcMemory.Grudge(
+                                    now.plus(Duration.ofHours(10)), human.villageId, false, 0));
+                });
+
+        // the 10 at home can't beat 30 spearmen, all 100 can: it waits, and gathers its axemen
+        // instead of sending them farming
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).isEmpty();
+        assertThat(memory(lord).grudges().get(human.playerId).retaliated()).isFalse();
+        assertThat(movementsTo(lord, barbarian)).isEmpty();
+
+        // (the support was sent home meanwhile: no attack is due in the other village)
+        // without those 90 the whole army is too weak: the lord lets it go and farms again
+        jdbc.sql("delete from unit_stack where home_village_id = ? and location_village_id = ?")
+                .param(village)
+                .param(other)
+                .update();
+        deleteMovementsOf(lord);
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).isEmpty();
+        assertThat(memory(lord).grudges().get(human.playerId).retaliated()).isTrue();
+        assertThat(movementsTo(lord, barbarian))
+                .singleElement()
+                .satisfies(m -> assertThat((Integer) m.get("u_axeman")).isPositive());
+    }
+
+    @Test
+    void aNearestVillageWithoutAttackUnitsLeavesTheRetaliationToTheOthers() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        long other = addVillage(lord, 0, 5); // farther from the attacker
+        units(village, Map.of(UnitType.SPEARMAN, 20)); // no attack units at all
+        units(other, Map.of(UnitType.AXEMAN, 100));
+        TestPlayer human = human(30, 0, true);
+        Instant now = clock.instant();
+        remember(
+                lord,
+                m -> {
+                    m.intel.put(human.villageId, spearmenIntel(now, human.playerId, 30));
+                    m.grudges.put(
+                            human.playerId,
+                            new NpcMemory.Grudge(
+                                    now.plus(Duration.ofHours(10)), human.villageId, false, 0));
+                });
+
+        // the nearest village has nothing to decide with: it doesn't let the grudge go, so the
+        // other village's 100 axemen retaliate
+        round(lord);
+
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+        assertThat(memory(lord).grudges().get(human.playerId).retaliated()).isTrue();
+    }
+
+    @Test
+    void aVillageUnderAttackKeepsItsSupportUnitsOffTheFarms() {
+        long lord = lord(NpcPersonality.DEFENSIVE);
+        long village = villageOf(lord);
+        units(village, Map.of(UnitType.SPEARMAN, 100));
+        long barbarian = barbarian(3, 0, 0);
+        TestPlayer human = human(0, 10, false);
+        Instant now = clock.instant();
+        knows(lord, barbarian, barbarianIntel(now));
+        // an army at 18 min/field, an hour away
+        long attack =
+                incomingAttack(
+                        human, village, now.minusSeconds(120 * 60), now.plusSeconds(60 * 60));
+
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian)).isEmpty();
+
+        // the attack is gone: the spearmen farm again
+        jdbc.sql("delete from movement where id = ?").param(attack).update();
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian))
+                .singleElement()
+                .satisfies(spearmen -> assertThat(spearmen).isPositive());
+    }
+
+    @Test
+    void aLordRestsFromFarmingAtNightAndOnceItsFarmBudgetIsSpent() {
+        long lord = lord(NpcPersonality.DEFENSIVE);
+        long village = villageOf(lord);
+        units(village, Map.of(UnitType.SPEARMAN, 100));
+        long barbarian = barbarian(3, 0, 0);
+
+        // NORMAL rests in its build quiet hours (23:00–07:00 Berlin)
+        clock.set(nextBerlin(LocalTime.of(1, 0)));
+        knows(lord, barbarian, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian)).isEmpty();
+
+        clock.set(nextBerlin(LocalTime.NOON));
+        knows(lord, barbarian, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian)).hasSize(1);
+
+        // far more than half a day's production looted in the last 24 hours: budget spent
+        deleteMovementsOf(lord);
+        units(village, Map.of(UnitType.SPEARMAN, 100));
+        clock.advance(Duration.ofMinutes(1));
+        Instant now = clock.instant();
+        lootReport(lord, now.minus(Duration.ofHours(23)), 30_000);
+        remember(
+                lord,
+                m -> {
+                    m.farmed.clear();
+                    m.intel.put(barbarian, barbarianIntel(now));
+                });
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian)).isEmpty();
+
+        // an hour later that loot is older than 24 hours
+        clock.advance(Duration.ofHours(1));
+        knows(lord, barbarian, barbarianIntel(clock.instant()));
+        round(lord);
+        assertThat(farmRaidsTo(lord, barbarian)).hasSize(1);
+    }
+
+    @Test
+    void noScoutingForARaidWhileTheFarmBudgetIsSpent() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        units(villageOf(lord), Map.of(UnitType.AXEMAN, 50, UnitType.SCOUT, 10));
+        TestPlayer human = human(3, 0, true);
+        knows(
+                lord,
+                human.villageId,
+                emptyIntel(clock.instant().minus(Duration.ofHours(7)), human.playerId));
+        lootReport(lord, clock.instant().minus(Duration.ofHours(1)), 30_000);
+
+        round(lord);
+
+        // the raid wouldn't be sent, so the scouting (which counts against the caps) isn't either
+        assertThat(movementsTo(lord, human.villageId)).isEmpty();
+    }
+
+    @Test
+    void theNoblesAreCountedForTheLoyaltyAtTheirArrival() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        buildings(village, Map.of(BuildingType.ACADEMY, 1));
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 2));
+        long barbarian = barbarian(3, 0, 0);
+        knows(lord, barbarian, barbarianIntel(clock.instant()));
+        // 3 fields at 35 min/field: 105 minutes, 1.75 loyalty on the way (1 an hour at speed 1)
+        loyalty(barbarian, 49); // 2 nobles now, 50.75 at arrival needs 3
+
+        round(lord);
+        assertThat(movementsTo(lord, barbarian))
+                .allSatisfy(m -> assertThat(m).containsEntry("u_noble", 0));
+
+        deleteMovementsOf(lord);
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                });
+        loyalty(barbarian, 47); // 48.75 at arrival: 2 are enough
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(movementsTo(lord, barbarian))
+                .anySatisfy(m -> assertThat(m).containsEntry("u_noble", 2));
+    }
+
+    @Test
+    void theSupportsInANewlyConqueredVillageStayUntilItsLoyaltyIsBackAtHalf() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        long conquered = addVillage(lord, 3, 0);
+        supportStack(village, conquered, Map.of(UnitType.AXEMAN, 40));
+        loyalty(conquered, 25); // just taken
+
+        round(lord);
+        assertThat(stacks.findByHomeVillageIdAndLocationVillageId(village, conquered)).isPresent();
+
+        loyalty(conquered, 50);
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(stacks.findByHomeVillageIdAndLocationVillageId(village, conquered)).isEmpty();
+    }
+
     // ---- helpers: the scene ----
 
     /** One lord of the personality, its village moved to the scene's origin. */
@@ -839,6 +1056,27 @@ class NpcWarfareFlowTest {
         jdbc.sql(sql.toString()).param(villageId).param(villageId).update();
     }
 
+    /** {@code units} of {@code homeId} standing in support in {@code locationId}. */
+    private void supportStack(long homeId, long locationId, Map<UnitType, Integer> units) {
+        transaction.executeWithoutResult(
+                status -> {
+                    UnitStack stack =
+                            new UnitStack(
+                                    villages.findById(homeId).orElseThrow(),
+                                    villages.findById(locationId).orElseThrow());
+                    units.forEach(stack.getUnits()::set);
+                    stacks.save(stack);
+                });
+    }
+
+    private void loyalty(long villageId, double loyalty) {
+        jdbc.sql("update village set loyalty = ?, loyalty_updated_at = ? where id = ?")
+                .param(loyalty)
+                .param(Timestamp.from(clock.instant()))
+                .param(villageId)
+                .update();
+    }
+
     private void buildings(long villageId, Map<BuildingType, Integer> levels) {
         levels.forEach(
                 (type, level) ->
@@ -934,6 +1172,39 @@ class NpcWarfareFlowTest {
                 null);
     }
 
+    private static Intel spearmenIntel(Instant at, long ownerId, int spearmen) {
+        return new Intel(
+                at,
+                ownerId,
+                Map.of(UnitType.SPEARMAN, spearmen),
+                0,
+                null,
+                null,
+                null,
+                false,
+                BattleOutcome.DEFENDER_WON,
+                0,
+                null,
+                null);
+    }
+
+    /** Fresh intel of a barbarian village that showed nobody at home. */
+    private static Intel barbarianIntel(Instant at) {
+        return new Intel(
+                at,
+                null,
+                Map.of(),
+                0,
+                null,
+                null,
+                null,
+                false,
+                BattleOutcome.ATTACKER_WON,
+                0,
+                null,
+                null);
+    }
+
     private static Intel withAt(Intel intel, Instant at) {
         return new Intel(
                 at,
@@ -973,6 +1244,19 @@ class NpcWarfareFlowTest {
                 .listOfRows();
     }
 
+    /** The spearmen of each of the lord's attacks on the village. */
+    private List<Integer> farmRaidsTo(long lord, long villageId) {
+        return jdbc.sql(
+                        """
+                        select u_spearman from movement
+                        where owner_player_id = ? and target_village_id = ? and kind = 'ATTACK'
+                        """)
+                .param(lord)
+                .param(villageId)
+                .query(Integer.class)
+                .list();
+    }
+
     private List<Instant> attacksTo(long lord, long villageId) {
         return movementsTo(lord, villageId).stream()
                 .map(m -> ((java.sql.Timestamp) m.get("arrive_at")).toInstant())
@@ -1002,6 +1286,21 @@ class NpcWarfareFlowTest {
                     .update();
             jdbc.sql("delete from movement where id = ?").param(id).update();
         }
+    }
+
+    /** An ATTACK report of the player with {@code each} wood, clay and iron as loot. */
+    private void lootReport(long playerId, Instant at, int each) {
+        jdbc.sql(
+                        """
+                        insert into report (player_id, kind, happened_at, payload, created_at)
+                        values (?, 'ATTACK', ?, ?::jsonb, ?)
+                        """)
+                .params(
+                        playerId,
+                        Timestamp.from(at),
+                        "{\"loot\":{\"wood\":%1$d,\"clay\":%1$d,\"iron\":%1$d}}".formatted(each),
+                        Timestamp.from(at))
+                .update();
     }
 
     private Long ownerOf(long villageId) {

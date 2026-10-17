@@ -4,6 +4,7 @@ import { useCurrentAccount } from '../../api/queries/auth';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { useT } from '../../i18n';
+import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import styles from './VillagePage.module.css';
 
 /**
@@ -25,9 +26,12 @@ export function VillageError({ error, onRetry }: { error: Error; onRetry: () => 
           </Link>
         )
       ) : (
-        <Button type="button" onClick={onRetry}>
-          {t.common.retry}
-        </Button>
+        // reading again changes nothing, so it stays on in an ended world (v1.3)
+        <ActionsStayOn>
+          <Button type="button" onClick={onRetry}>
+            {t.common.retry}
+          </Button>
+        </ActionsStayOn>
       )}
     </div>
   );

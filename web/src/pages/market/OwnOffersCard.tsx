@@ -22,7 +22,7 @@ import {
   type OfferResource,
 } from '../../game/market';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './MarketPage.module.css';
 import { OfferText } from './OfferText';
@@ -41,7 +41,7 @@ export function OwnOffersCard({ village, market }: { village: Village; market: M
 
 function CreateOfferCard({ village, free }: { village: Village; free: number }) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const create = useCreateOffer(village.id);
   const maxRatio = useWorld().data?.tradeMaxRatio ?? 3;
   const [give, setGive] = useState<OfferResource>('WOOD');

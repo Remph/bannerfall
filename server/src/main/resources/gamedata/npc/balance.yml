@@ -16,7 +16,9 @@ npc:
     quiet-from: "23:00"
     quiet-to: "07:00"
     quiet-zone: Europe/Berlin
+    # farm-loot-share (v1.3, 09 §6.2): farming stops while the loot of the last 24 real hours is at least this share
+    # of the lord's own daily production; 0 = no limit. farm-rest: no farms or raids in the build quiet hours either.
     difficulties:                 # CUSTOM is not here: it lives in world_settings.npc_custom (§8)
-      EASY:   { production-factor: 0.7, boost-below: 0.0, boost-factor: 1.0,  lead-margin: 1.0,  attacks-per-player-per-day: 2, attacks-per-human-per-day: 3,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "22:00", build-quiet-to: "08:00" }
-      NORMAL: { production-factor: 0.9, boost-below: 0.5, boost-factor: 1.25, lead-margin: 1.25, attacks-per-player-per-day: 4, attacks-per-human-per-day: 8,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "23:00", build-quiet-to: "07:00" }
-      HARD:   { production-factor: 1.1, boost-below: 0.6, boost-factor: 1.5,  lead-margin: 1.6,  attacks-per-player-per-day: 8, attacks-per-human-per-day: 16, quiet-hours: false, spare-last-village: false, build-quiet-from: "00:00", build-quiet-to: "06:00" }
+      EASY:   { production-factor: 0.7, boost-below: 0.0, boost-factor: 1.0,  lead-margin: 1.0,  attacks-per-player-per-day: 2, attacks-per-human-per-day: 3,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "22:00", build-quiet-to: "08:00", farm-loot-share: 0.25, farm-rest: true }
+      NORMAL: { production-factor: 0.9, boost-below: 0.5, boost-factor: 1.25, lead-margin: 1.25, attacks-per-player-per-day: 4, attacks-per-human-per-day: 8,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "23:00", build-quiet-to: "07:00", farm-loot-share: 0.5, farm-rest: true }
+      HARD:   { production-factor: 1.1, boost-below: 0.6, boost-factor: 1.5,  lead-margin: 1.6,  attacks-per-player-per-day: 8, attacks-per-human-per-day: 16, quiet-hours: false, spare-last-village: false, build-quiet-from: "00:00", build-quiet-to: "06:00", farm-loot-share: 1.0, farm-rest: false }

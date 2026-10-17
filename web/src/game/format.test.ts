@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { percentPoints } from './banners';
 import {
+  calendarDay,
   formatClock,
   formatCoords,
   formatDateTime,
   formatDateTimeExact,
+  formatDay,
   formatDecimal,
+  formatRatio,
   formatDuration,
   formatNumber,
   formatPercent,
   formatRecent,
   formatShare,
+  formatTime,
   formatUpcoming,
   formatWhen,
   formatWhenExact,
@@ -31,6 +35,15 @@ describe('formatDecimal', () => {
     expect(formatDecimal(12.345, 'de')).toBe('12,3');
     expect(formatDecimal(5, 'en')).toBe('5.0');
     expect(formatDecimal(1234.56, 'de')).toBe('1.234,6');
+  });
+});
+
+describe('formatRatio', () => {
+  it('shows up to two decimals, per language', () => {
+    expect(formatRatio(1.5, 'en')).toBe('1.5');
+    expect(formatRatio(1.5, 'de')).toBe('1,5');
+    expect(formatRatio(2, 'en')).toBe('2');
+    expect(formatRatio(1.25, 'de')).toBe('1,25');
   });
 });
 
@@ -166,5 +179,40 @@ describe('formatUpcoming', () => {
     const far = formatUpcoming(Date.parse('2026-10-13T20:00:00Z'), now, 'en', 'UTC');
     expect(far).toContain('13');
     expect(far).toContain('20:00');
+  });
+});
+
+describe('formatDay', () => {
+  const now = Date.parse('2026-10-16T08:00:00Z'); // a Friday
+
+  it('says today and yesterday, else the weekday and the date', () => {
+    expect(formatDay(Date.parse('2026-10-16T00:10:00Z'), now, 'en', 'UTC')).toBe('today');
+    expect(formatDay(Date.parse('2026-10-15T23:59:00Z'), now, 'en', 'UTC')).toBe('yesterday');
+    expect(formatDay(Date.parse('2026-10-14T12:00:00Z'), now, 'en', 'UTC')).toEqual({ date: 'Wednesday 14 October' });
+    expect(formatDay(Date.parse('2026-10-14T12:00:00Z'), now, 'de', 'UTC')).toEqual({ date: 'Mittwoch, 14. Oktober' });
+  });
+
+  it('counts yesterday on the calendar, also across a month and a summer time change', () => {
+    // Berlin goes from summer to winter time on 25 October 2026: that day has 25 hours
+    const morning = Date.parse('2026-10-26T00:30:00+01:00');
+    expect(formatDay(Date.parse('2026-10-25T00:30:00+02:00'), morning, 'en', 'Europe/Berlin')).toBe('yesterday');
+    expect(formatDay(Date.parse('2026-09-30T20:00:00Z'), Date.parse('2026-10-01T06:00:00Z'), 'en', 'UTC')).toBe(
+      'yesterday',
+    );
+  });
+
+  it('decides the day in the given time zone', () => {
+    // 23:30 UTC on Thursday is already Friday in Berlin
+    const late = Date.parse('2026-10-15T23:30:00Z');
+    expect(formatDay(late, now, 'en', 'UTC')).toBe('yesterday');
+    expect(formatDay(late, now, 'en', 'Europe/Berlin')).toBe('today');
+    expect(calendarDay(late, 'Europe/Berlin')).toBe('2026-10-16');
+  });
+});
+
+describe('formatTime', () => {
+  it('is the clock time without seconds', () => {
+    expect(formatTime(Date.parse('2026-10-16T07:05:09Z'), 'en', 'UTC')).toBe('07:05');
+    expect(formatTime(Date.parse('2026-10-16T21:14:59Z'), 'de', 'UTC')).toBe('21:14');
   });
 });

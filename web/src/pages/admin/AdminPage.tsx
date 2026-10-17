@@ -15,6 +15,8 @@ import { OpeningCard } from './OpeningCard';
 import { SuspiciousCard } from './SuspiciousCard';
 import { PlayersCard } from './PlayersCard';
 import { StatusCard } from './StatusCard';
+import { VictoryCard } from './VictoryCard';
+import { WorldEndCard } from './WorldEndCard';
 import { WorldSettingsCard } from './WorldSettingsCard';
 
 /**
@@ -71,6 +73,8 @@ function TabContent({ tab }: { tab: (typeof adminTabs)[number] }) {
         <>
           <OpeningCard />
           <WorldSettingsCard />
+          <VictoryCard />
+          <WorldEndCard />
           <BarbarianWallsCard />
           <BarbarianCard />
         </>

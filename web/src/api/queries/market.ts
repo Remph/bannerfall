@@ -13,6 +13,8 @@ export type Transport = components['schemas']['TransportDto'];
 export type Offer = components['schemas']['OfferDto'];
 export type OfferRequest = components['schemas']['OfferRequest'];
 export type TransportRequest = components['schemas']['TransportRequest'];
+export type Exchange = components['schemas']['ExchangeDto'];
+export type ExchangeRequest = components['schemas']['ExchangeRequest'];
 
 export function marketQueryKey(villageId: number) {
   return ['market', villageId] as const;
@@ -75,6 +77,18 @@ export function useCreateOffer(villageId: number) {
   });
 }
 
+/** POST …/market/exchange: trading with the market itself, paid and received at once. */
+export function useExchange(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: ExchangeRequest) =>
+      expectData(
+        api.POST('/api/villages/{villageId}/market/exchange', { params: { path: { villageId } }, body: request }),
+      ),
+    onSettled: () => refreshMarket(queryClient, villageId),
+  });
+}
+
 /** DELETE /api/offers/{id}: what is left of the offer comes back (as far as the warehouse has room). */
 export function useCancelOffer(villageId: number) {
   const queryClient = useQueryClient();
@@ -101,7 +115,8 @@ export function useAcceptOffer(villageId: number) {
 
 /**
  * Reloads the market (and the village's stock) shortly after the next transport arrives or comes
- * home, so deliveries and free merchants show up by themselves while the screen is open. Works like
+ * home, or a new day of trading with the market starts (v1.3), so deliveries, free merchants and the
+ * day's amounts show up by themselves while the screen is open. Works like
  * the rally point's refresh: one timer, set anew by every answer. Arrivals add a report.
  */
 export function useRefreshWhenTransportsChange(
@@ -111,7 +126,13 @@ export function useRefreshWhenTransportsChange(
   errorUpdatedAt: number,
 ) {
   const queryClient = useQueryClient();
-  const next = market === undefined ? undefined : nextMarketChangeMs([...market.outgoing, ...market.incoming]);
+  const next =
+    market === undefined
+      ? undefined
+      : nextMarketChangeMs(
+          [...market.outgoing, ...market.incoming],
+          market.exchange.ratio > 0 ? market.exchange.resetsAt : undefined,
+        );
 
   useEffect(() => {
     if (next === undefined) {

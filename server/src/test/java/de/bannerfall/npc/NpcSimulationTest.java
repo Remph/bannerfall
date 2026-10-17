@@ -51,7 +51,10 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>Tagged {@code simulation}: {@code ./gradlew test} skips it, {@code ./gradlew simulationTest}
  * runs it (and only it). The dice are seeded, so a run can be repeated. Knobs (Gradle properties
  * {@code -PsimDays=…}, {@code -PsimThinkMinutes=…}, {@code -PsimSeed=…}); the tables are also
- * written to {@code build/simulation/}.
+ * written to {@code build/simulation/}. Balance variants (v1.3): {@code -PsimWalls=true} (barbarian
+ * walls with the default settings), {@code -PsimFarmShare=…} and {@code -PsimFarmRest=…} (a CUSTOM
+ * difficulty: NORMAL with these farm values), {@code -PsimFarmCooldown=…} (minutes, overrides
+ * {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file name).
  */
 @Tag("simulation")
 @IntegrationTest
@@ -76,6 +79,13 @@ class NpcSimulationTest {
     private final int days = Integer.getInteger("simulation.days", 50);
     private final int thinkMinutes = Integer.getInteger("simulation.thinkMinutes", 60);
     private final long seed = Long.getLong("simulation.seed", 20261007L);
+    private final boolean walls = Boolean.getBoolean("simulation.walls");
+    private final String farmShare = System.getProperty("simulation.farmShare");
+    private final String farmRest = System.getProperty("simulation.farmRest");
+    private final String label = System.getProperty("simulation.label", "");
+
+    /** The days (at speed 3) at which the lords' points are noted. */
+    private static final int[] CHECKPOINTS = {5, 10, 20, 30, 40};
 
     private ListAppender<ILoggingEvent> warnings;
 
@@ -98,7 +108,7 @@ class NpcSimulationTest {
                         "update world_settings set speed = 1.0, npc_lord_count = 0,"
                                 + " npc_think_minutes = 20, npc_difficulty = 'NORMAL',"
                                 + " npc_custom = null, initialized_at = null,"
-                                + " barbarians_per_new_player = 0")
+                                + " barbarians_per_new_player = 0, barbarian_walls_enabled = false")
                 .update();
         worldService.reload();
     }
@@ -117,7 +127,11 @@ class NpcSimulationTest {
 
     private void run(String title, int sleepers) throws Exception {
         long wallStart = System.nanoTime();
+        if (!label.isEmpty()) {
+            title = title + " " + label;
+        }
         resetWorld();
+        applyVariant();
         dice.use(new SeededRandomSource(seed));
         Instant start = clock.instant();
         if (start.isBefore(Instant.parse("2026-03-02T11:00:00Z"))) {
@@ -139,6 +153,8 @@ class NpcSimulationTest {
         Map<Long, double[]> wasteByLord = new HashMap<>();
         long[] lastMovement = {0};
         List<Send> sends = new ArrayList<>();
+        Map<Long, int[]> pointsByDay = new HashMap<>();
+        int[] checkpoint = {0};
         while (clock.instant().isBefore(end)) {
             Instant now = clock.instant();
             Instant next =
@@ -159,6 +175,7 @@ class NpcSimulationTest {
                 nextSample = clock.instant().plus(SAMPLE);
                 sampleAcademies(start, academyDay);
                 sampleWaste(wasteByLord, waste);
+                samplePoints(start, checkpoint, pointsByDay);
             }
         }
         sampleAcademies(start, academyDay);
@@ -174,7 +191,8 @@ class NpcSimulationTest {
                         academyDay,
                         wasteByLord,
                         (int) orders[1],
-                        sends);
+                        sends,
+                        pointsByDay);
         String text = result.render();
         System.out.println(text);
         Path dir = Path.of("build", "simulation");
@@ -341,7 +359,9 @@ class NpcSimulationTest {
             Double firstConquestDay,
             int rounds,
             long warns,
-            double wastePercent) {}
+            double wastePercent,
+            double produced,
+            int[] pointsByDay) {}
 
     private Result collect(
             String title,
@@ -352,7 +372,8 @@ class NpcSimulationTest {
             Map<Long, Double> academyDay,
             Map<Long, double[]> wasteByLord,
             int quietBuildOrders,
-            List<Send> sends) {
+            List<Send> sends,
+            Map<Long, int[]> pointsByDay) {
         String popExpr = popExpression("");
         Map<Long, Integer> army = new HashMap<>();
         jdbc.sql(
@@ -472,7 +493,10 @@ class NpcSimulationTest {
                                             firstConquest.get(id),
                                             rounds.getOrDefault(id, 0),
                                             warnsByLord.getOrDefault(id, 0L),
-                                            w[1] == 0 ? 0 : 100.0 * w[0] / w[1]));
+                                            w[1] == 0 ? 0 : 100.0 * w[0] / w[1],
+                                            w[1],
+                                            pointsByDay.getOrDefault(
+                                                    id, new int[CHECKPOINTS.length])));
                             return null;
                         })
                 .list();
@@ -711,6 +735,42 @@ class NpcSimulationTest {
                                 l.wastePercent()));
             }
             out.append("(loot in thousands; days at speed 3)\n");
+            out.append("points by day (speed 3) and loot as a share of the own production:\n");
+            StringBuilder head = new StringBuilder("lord                 pers");
+            for (int d : CHECKPOINTS) {
+                head.append(String.format(Locale.ROOT, " %6s", "d" + d));
+            }
+            out.append(head).append("    end  loot/prod\n");
+            for (LordRow l : lords) {
+                StringBuilder line =
+                        new StringBuilder(
+                                String.format(
+                                        Locale.ROOT,
+                                        "%-20s %-4s",
+                                        l.name(),
+                                        l.personality().name().substring(0, 3)));
+                for (int v : l.pointsByDay()) {
+                    line.append(String.format(Locale.ROOT, " %6d", v));
+                }
+                line.append(
+                        String.format(
+                                Locale.ROOT,
+                                " %6d %8.0f %%%n",
+                                l.points(),
+                                l.produced() == 0 ? 0 : 100.0 * l.loot() / l.produced()));
+                out.append(line);
+            }
+            double loot = lords.stream().mapToLong(LordRow::loot).sum();
+            double produced = lords.stream().mapToDouble(LordRow::produced).sum();
+            out.append(
+                    String.format(
+                            Locale.ROOT,
+                            "all lords: loot %.0f k, own production %.0f k, loot/prod %.0f %%,"
+                                    + " average points %.0f%n",
+                            loot / 1000,
+                            produced / 1000,
+                            produced == 0 ? 0 : 100 * loot / produced,
+                            avg(lords, LordRow::points)));
             out.append("per personality (averages):\n");
             for (NpcPersonality p : NpcPersonality.values()) {
                 List<LordRow> of = lords.stream().filter(l -> l.personality() == p).toList();
@@ -902,6 +962,64 @@ class NpcSimulationTest {
     }
 
     // ---- helpers ----
+
+    /** The lords' points at each checkpoint day the clock has passed (§11 summary, v1.3). */
+    private void samplePoints(Instant start, int[] next, Map<Long, int[]> byLord) {
+        double day = Duration.between(start, clock.instant()).toMinutes() / 1440.0;
+        while (next[0] < CHECKPOINTS.length && day >= CHECKPOINTS[next[0]]) {
+            int index = next[0]++;
+            jdbc.sql("select id, points from player where npc")
+                    .query(
+                            (rs, row) -> {
+                                byLord.computeIfAbsent(
+                                                        rs.getLong("id"),
+                                                        k -> new int[CHECKPOINTS.length])[index] =
+                                        rs.getInt("points");
+                                return null;
+                            })
+                    .list();
+        }
+    }
+
+    /** The balance variant of this run (Gradle properties, see the class comment). */
+    private void applyVariant() {
+        jdbc.sql("update world_settings set barbarian_walls_enabled = ?").param(walls).update();
+        if (farmShare != null || farmRest != null) {
+            NpcBalanceSettings.Difficulty normal =
+                    balance.general().difficulties().get(NpcDifficulty.NORMAL);
+            NpcBalanceSettings.Difficulty custom =
+                    new NpcBalanceSettings.Difficulty(
+                            normal.productionFactor(),
+                            normal.boostBelow(),
+                            normal.boostFactor(),
+                            normal.leadMargin(),
+                            normal.attacksPerPlayerPerDay(),
+                            normal.attacksPerHumanPerDay(),
+                            normal.quietHours(),
+                            normal.spareLastVillage(),
+                            normal.buildQuietFrom(),
+                            normal.buildQuietTo(),
+                            farmShare == null
+                                    ? normal.farmLootShare()
+                                    : Double.parseDouble(farmShare),
+                            farmRest == null ? normal.farmRest() : Boolean.parseBoolean(farmRest));
+            jdbc.sql(
+                            "update world_settings set npc_difficulty = 'CUSTOM', npc_custom ="
+                                    + " cast(? as jsonb)")
+                    .param(new NpcDifficultyConverter().convertToDatabaseColumn(custom))
+                    .update();
+        }
+        worldService.reload();
+        System.out.printf(
+                Locale.ROOT,
+                "variant: walls %s, difficulty %s (farm share %s, farm rest %s), farm cooldown %s"
+                        + " min%n",
+                walls,
+                worldService.settings().npcDifficulty(),
+                balance.difficulty().farmLootShare(),
+                balance.difficulty().farmRest(),
+                balance.general().farmCooldownMinutes());
+    }
 
     private void resetWorld() {
         jdbc.sql(

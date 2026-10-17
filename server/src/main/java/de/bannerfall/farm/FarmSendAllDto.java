@@ -4,30 +4,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * What "send all" did (M39, 04-api <i>Farm helper</i>): the list was worked through from the top
- * until it ended or the units ran out.
+ * What "send all" did (M39, 04-api <i>Farm helper</i>): the list was worked through from the top to
+ * the end (since 1.3 an entry the units don't cover no longer ends the run, it is skipped).
  *
  * @param sent the entries whose attack went out, in list order
- * @param skipped the entries passed over because their target can't be hit now, in list order
- * @param stop why the run ended
- * @param stoppedAt the entry the units didn't cover; null if the list was done
+ * @param skipped the entries passed over, with the reason, in list order
  */
-public record FarmSendAllDto(
-        List<Long> sent,
-        List<Skipped> skipped,
-        Stop stop,
-        @Schema(nullable = true) Long stoppedAt) {
-
-    /** Why the run ended. */
-    public enum Stop {
-        /** Every entry was sent or skipped. */
-        DONE,
-        /** The village doesn't have the units of the next entry's template at home. */
-        NOT_ENOUGH_UNITS
-    }
+public record FarmSendAllDto(List<Long> sent, List<Skipped> skipped) {
 
     /** Why an entry was passed over; the run goes on with the next one. */
     public enum SkipReason {
+        /**
+         * The village doesn't have the units of the entry's template at home (any more: the entries
+         * above may have taken them).
+         */
+        NOT_ENOUGH_UNITS,
         /** The target player is under beginner protection when the attack would arrive. */
         PROTECTED_TARGET,
         /** The target belongs to the player now (conquered since it was added). */

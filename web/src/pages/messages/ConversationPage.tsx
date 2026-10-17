@@ -13,11 +13,12 @@ import {
   type PrivateMessage,
 } from '../../api/queries/messages';
 import { usePlayerProfile } from '../../api/queries/ranking';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { Icon } from '../../components/Icon';
+import { useInListDetail } from '../../components/listDetailContext';
 import { CHAT_LENGTH_HINT_FROM, CHAT_MAX_LENGTH, chatLength, clampChatText } from '../../game/chat';
 import { formatRecent } from '../../game/format';
 import { newestIncomingId, olderMessagesBefore } from '../../game/messages';
@@ -27,7 +28,11 @@ import { playerPath } from '../ranking/rankingPaths';
 import { MESSAGES_PATH, parseConversationPlayerId } from './messagePaths';
 import styles from './Messages.module.css';
 
-/** /messages/:playerId – the conversation with one player (02-game-rules §17). */
+/**
+ * /messages/:playerId – the conversation with one player (02-game-rules §17), a child of the inbox's
+ * route: on desktop it is shown next to the inbox (1.3), as high as the window with its messages
+ * scrolling inside.
+ */
 export function ConversationPage() {
   const playerId = parseConversationPlayerId(useParams().playerId);
   if (playerId === undefined) {
@@ -36,20 +41,18 @@ export function ConversationPage() {
   return <Conversation playerId={playerId} />;
 }
 
-function BackLink() {
+function ToMessages() {
   const { t } = useI18n();
-  return (
-    <Link to={MESSAGES_PATH} className={styles.back}>
-      <Icon name="chevronLeft" /> {t.messages.back}
-    </Link>
-  );
+  // next to the inbox (desktop) the way back is right there
+  const inListDetail = useInListDetail();
+  return inListDetail ? null : <BackLink to={MESSAGES_PATH}>{t.messages.back}</BackLink>;
 }
 
 function ConversationError({ error }: { error: Error }) {
   const { t } = useI18n();
   return (
     <div className={styles.page}>
-      <BackLink />
+      <ToMessages />
       <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>
     </div>
   );
@@ -71,6 +74,8 @@ function Conversation({ playerId }: { playerId: number }) {
 
 function Thread({ playerId, name }: { playerId: number; name: string }) {
   const { t } = useI18n();
+  // desktop, next to the inbox: as high as the column, the messages scroll and the input stays put
+  const inListDetail = useInListDetail();
   const conversation = useConversation(playerId);
   const blocks = useBlocks();
   const blocked = blocks.data?.some((entry) => entry.playerId === playerId) === true;
@@ -91,15 +96,15 @@ function Thread({ playerId, name }: { playerId: number; name: string }) {
   }, [newestIncoming, blocked, markNow]);
 
   return (
-    <div className={styles.page}>
-      <BackLink />
+    <div className={inListDetail ? `${styles.page} ${styles.threadPage}` : styles.page}>
+      <ToMessages />
       <header className={styles.head}>
         <h1>{t.messages.withPlayer(name)}</h1>
         <div className={styles.tools}>
           <Link to={playerPath(playerId)}>{t.messages.profile}</Link>
         </div>
       </header>
-      <Card title={t.messages.list}>
+      <Card title={t.messages.list} className={styles.threadCard}>
         {conversation.isError ? (
           <div className={styles.body}>
             <ErrorMessage>{errorMessage(t, conversation.error)}</ErrorMessage>

@@ -11,9 +11,11 @@ import de.bannerfall.movement.MovementKind;
 import de.bannerfall.movement.MovementRepository;
 import de.bannerfall.npc.NpcWorld.Incoming;
 import de.bannerfall.npc.NpcWorld.MapVillage;
+import de.bannerfall.rules.Loyalty;
 import de.bannerfall.unit.UnitService;
 import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
+import de.bannerfall.village.Village;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumMap;
@@ -48,6 +50,9 @@ class NpcDefence {
         this.banners = banners;
     }
 
+    /** Below this loyalty the lord's supports stay in its own village (v1.3, {@link #withdraw}). */
+    static final double SETTLED_LOYALTY = 50;
+
     void run(NpcTurn turn) {
         boolean threatenedHere =
                 turn.view.incoming().stream()
@@ -55,6 +60,7 @@ class NpcDefence {
                                 a ->
                                         a.targetVillageId() == turn.villageId()
                                                 && isThreat(turn, a, maxHaste(turn)));
+        turn.threatened = threatenedHere;
         if (threatenedHere) {
             return; // a village under attack keeps its units and its supports
         }
@@ -189,8 +195,23 @@ class NpcDefence {
         return result;
     }
 
-    /** The lord's own support stacks standing here go home: no attack is due here (§6.5). */
+    /**
+     * The lord's own support stacks standing here go home: no attack is due here (§6.5). Not while
+     * the village's loyalty is below {@link #SETTLED_LOYALTY} (v1.3): after a conquest (loyalty 25)
+     * the survivors of the noble attack stay until it has grown back to 50, so the new village
+     * isn't left empty in its first quiet turn.
+     */
     private void withdraw(NpcTurn turn) {
+        Village village = turn.village;
+        double loyalty =
+                Loyalty.regen(
+                        village.getLoyalty(),
+                        Loyalty.regenPerHour(turn.view.world()),
+                        village.getLoyaltyUpdatedAt(),
+                        turn.now);
+        if (loyalty < SETTLED_LOYALTY) {
+            return;
+        }
         List<UnitStack> here = stacks.findByLocationVillageId(turn.villageId());
         for (UnitStack stack : here) {
             long homeId = stack.getHomeVillage().getId();

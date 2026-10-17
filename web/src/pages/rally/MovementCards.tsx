@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCancelMovement, type IncomingMovement, type Movement, type VillageRef } from '../../api/queries/troops';
 import { Button } from '../../components/Button';
@@ -9,10 +10,11 @@ import { Icon, type IconName } from '../../components/Icon';
 import { Sheet } from '../../components/Sheet';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatWhenExact } from '../../game/format';
-import { useServerNow } from '../../game/serverTime';
-import { canCancel, type MovementKind, type UnitMap } from '../../game/troops';
+import { useGameNow } from '../../game/serverTime';
+import { canCancel, travelProgress, type MovementKind, type UnitMap } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
 import styles from './RallyPage.module.css';
+import { mapPath } from './rallyPaths';
 import { villageLabel } from './villageLabel';
 import { VillageRefText } from './VillageRefText';
 
@@ -25,7 +27,7 @@ const movementIcons: Record<MovementKind, IconName> = { ATTACK: 'troops', SUPPOR
  */
 export function OutgoingCard({ villageId, movements }: { villageId: number; movements: readonly Movement[] }) {
   const t = useT();
-  const now = useServerNow();
+  const now = useGameNow();
   const cancel = useCancelMovement(villageId);
   const [confirming, setConfirming] = useState<Movement | null>(null);
   // The error itself, not its text: the message is translated while rendering (language switch).
@@ -43,7 +45,7 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
   }
 
   return (
-    <Card title={t.rally.outgoingTitle}>
+    <Card title={t.rally.outgoingTitle} id="outgoing">
       {movements.length === 0 ? (
         <p className={styles.empty}>{t.rally.noOutgoing}</p>
       ) : (
@@ -55,6 +57,7 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
               label={t.rally.outgoing[movement.kind]}
               village={movement.targetVillage}
               player={movement.targetVillage.playerName}
+              departAt={movement.departAt}
               arriveAt={movement.arriveAt}
               units={movement.units}
               currentVillageId={villageId}
@@ -113,10 +116,13 @@ interface CancelConfirmProps {
   onConfirm: () => void;
 }
 
-/** The cancel sheet's content: which command, when the troops would be back, how long it can still be cancelled. */
-function CancelConfirm({ movement, pending, onKeep, onConfirm }: CancelConfirmProps) {
+/**
+ * The cancel sheet's content: which command, when the troops would be back, how long it can still be
+ * cancelled. Also asked on the map, when a picked line is cancelled there.
+ */
+export function CancelConfirm({ movement, pending, onKeep, onConfirm }: CancelConfirmProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   // they walk back as long as they have been on the way (02-game-rules §6)
   const backAt = now + Math.max(0, now - Date.parse(movement.departAt));
   return (
@@ -145,12 +151,17 @@ function CancelConfirm({ movement, pending, onKeep, onConfirm }: CancelConfirmPr
 
 /**
  * Everything on its way to this village, next first: attacks (red, units hidden), supports, and
- * the village's own troops coming home.
+ * the village's own troops coming home. That another player's attack hides its troops and start is
+ * said once above the list (1.3); each such attack links to the attacker on the map instead.
  */
 export function IncomingCard({ villageId, incoming }: { villageId: number; incoming: readonly IncomingMovement[] }) {
   const t = useT();
+  // the server hides the units of every attack except the player's own (a later wave on a village
+  // he conquered meanwhile, it arrives like a support)
+  const hidden = (movement: IncomingMovement) => movement.kind === 'ATTACK' && movement.units === null;
   return (
     <Card title={t.rally.incomingTitle} id="incoming">
+      {incoming.some(hidden) && <p className={styles.incomingNote}>{t.rally.attacksHidden}</p>}
       {incoming.length === 0 ? (
         <p className={styles.empty}>{t.rally.noIncoming}</p>
       ) : (
@@ -162,12 +173,12 @@ export function IncomingCard({ villageId, incoming }: { villageId: number; incom
               label={t.rally.incoming[movement.kind]}
               village={movement.sourceVillage}
               player={movement.sourcePlayerName}
+              // for the player's own movements and every support; someone else's attack hides its start
+              departAt={movement.departAt ?? undefined}
               arriveAt={movement.arriveAt}
               units={movement.units}
               currentVillageId={villageId}
-              // the server hides the units of every attack except the player's own (a later wave
-              // on a village he conquered meanwhile, it arrives like a support)
-              hostile={movement.kind === 'ATTACK' && movement.units === null}
+              hostile={hidden(movement)}
             />
           ))}
         </ul>
@@ -182,19 +193,27 @@ interface MovementLineProps {
   label: string;
   village: VillageRef;
   player: string | null;
+  /** Given for the player's own movements: a bar shows how far they have come. */
+  departAt?: string;
   arriveAt: string;
-  /** null: hidden (incoming attacks). */
+  /** null: hidden (incoming attacks); a link to the other village on the map takes their place. */
   units: UnitMap | null;
   currentVillageId: number;
   hostile?: boolean;
   action?: ReactNode;
 }
 
-/** One movement: what and where, countdown and arrival time (to the second), the units. */
+const barStyles: Record<MovementKind, string | undefined> = {
+  ATTACK: styles.barAttack,
+  SUPPORT: styles.barSupport,
+  RETURN: styles.barReturn,
+};
+
+/** One movement: what and where, countdown and arrival time (to the second), progress, the units. */
 function MovementLine(props: MovementLineProps) {
-  const { kind, label, village, player, arriveAt, units, currentVillageId, hostile = false, action } = props;
+  const { kind, label, village, player, departAt, arriveAt, units, currentVillageId, hostile = false, action } = props;
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   return (
     <li className={hostile ? `${styles.move} ${styles.hostile}` : styles.move}>
       <span className={styles.moveIcon}>
@@ -210,8 +229,19 @@ function MovementLine(props: MovementLineProps) {
           {' · '}
           {t.rally.arrivesAt(formatWhenExact(Date.parse(arriveAt), now, language))}
         </span>
+        {departAt !== undefined && (
+          <span className={`${styles.moveBar} ${barStyles[kind] ?? ''}`} aria-hidden="true">
+            <span
+              className={styles.moveFill}
+              style={{ transform: `scaleX(${travelProgress({ departAt, arriveAt }, now)})` }}
+            />
+          </span>
+        )}
         {units === null ? (
-          <span className={styles.moveTime}>{t.rally.unitsUnknown}</span>
+          <Link className={styles.onMap} to={mapPath(currentVillageId, village)}>
+            {t.rally.onMap} <span className="sr-only">({villageLabel(t, village)})</span>
+            <span aria-hidden="true"> ›</span>
+          </Link>
         ) : (
           <UnitSummary units={units} className={styles.moveUnits} />
         )}

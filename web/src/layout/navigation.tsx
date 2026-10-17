@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, NavLink, useMatch } from 'react-router';
+import { Link, NavLink, useLocation, useMatch } from 'react-router';
 import { useUnreadMessages } from '../api/queries/messages';
 import { useUnreadReports } from '../api/queries/reports';
 import { useMyGuild } from '../api/queries/guilds';
@@ -35,7 +35,9 @@ interface SectionLinkProps {
 /**
  * A link to a section, or a dimmed "coming soon" entry while its screen doesn't exist yet (or, for
  * a per-village section, while the player has no village).
- * NavLink sets aria-current="page" on the active link; the CSS highlights that.
+ * NavLink sets aria-current="page" on the active link; the CSS highlights that. The bars' links
+ * cross-fade the page (View Transitions, 1.3), except to the page already open; the menu sheet's
+ * links don't, as the sheet closes.
  */
 function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = false, children }: SectionLinkProps) {
   const t = useT();
@@ -43,6 +45,7 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
   const onWarehouse = useMatch('/v/:villageId/warehouse') !== null;
   const onSmithy = useMatch('/v/:villageId/smithy') !== null;
   const onBanners = useMatch('/v/:villageId/banners') !== null;
+  const { pathname } = useLocation();
   const section = sections[sectionKey];
   const target =
     section.path !== undefined && (villageId !== undefined || section.global === true)
@@ -60,16 +63,23 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
       </span>
     );
   }
+  const viewTransition = onNavigate === undefined && pathname !== target;
   if (sectionKey === 'village' && (onWarehouse || onSmithy || onBanners)) {
     return (
-      <Link to={target} className={className} aria-current="page" onClick={onNavigate}>
+      <Link viewTransition={viewTransition} to={target} className={className} aria-current="page" onClick={onNavigate}>
         {children}
       </Link>
     );
   }
   // `end`: the village overview /v/1 is not "active" on /v/1/hq.
   return (
-    <NavLink to={target} end={sectionKey === 'village'} className={className} onClick={onNavigate}>
+    <NavLink
+      viewTransition={viewTransition}
+      to={target}
+      end={sectionKey === 'village'}
+      className={className}
+      onClick={onNavigate}
+    >
       {children}
     </NavLink>
   );
@@ -146,14 +156,24 @@ function MoreBadge({ className }: { className: string | undefined }) {
   );
 }
 
-/** Desktop (≥ 1024 px): the tab row under the top bar. */
+/**
+ * Desktop (≥ 1024 px): the tab row under the top bar. The village's pages on the left; the pages
+ * that are the same for every village (reports, messages …) on the right after a divider (1.3).
+ */
 export function DesktopNav({ villageId }: { villageId: number | undefined }) {
   const t = useT();
   const guildVisible = useGuildSectionVisible();
+  const keys = visibleSections(desktopSections, guildVisible);
+  const firstGlobal = keys.find((key) => sections[key].global === true);
   return (
     <nav className={styles.desktopNav} aria-label={t.nav.label}>
-      {visibleSections(desktopSections, guildVisible).map((key) => (
-        <SectionLink key={key} sectionKey={key} villageId={villageId} className={styles.navItem}>
+      {keys.map((key) => (
+        <SectionLink
+          key={key}
+          sectionKey={key}
+          villageId={villageId}
+          className={key === firstGlobal ? `${styles.navItem} ${styles.groupStart}` : styles.navItem}
+        >
           {t.nav[key]}
           {key === 'reports' && <UnreadBadge className={styles.badge} />}
           {key === 'messages' && <MessagesBadge className={styles.badge} />}

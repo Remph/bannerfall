@@ -1,6 +1,5 @@
-import { Link } from 'react-router';
+import { BackLink } from '../../components/BackLink';
 import { Card } from '../../components/Card';
-import { Icon } from '../../components/Icon';
 import { useI18n } from '../../i18n';
 import styles from './AboutPage.module.css';
 
@@ -10,9 +9,7 @@ export function AboutPage() {
   const about = t.about;
   return (
     <div className={styles.page}>
-      <Link to="/" className={styles.back}>
-        <Icon name="chevronLeft" /> {about.back}
-      </Link>
+      <BackLink to="/">{about.back}</BackLink>
       <h1>{about.title}</h1>
       <p className={styles.intro}>{about.intro}</p>
       <Card title={about.originalTitle}>

@@ -1,6 +1,7 @@
 package de.bannerfall.report;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,39 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             nativeQuery = true)
     Page<Report> findVisible(long playerId, Pageable pageable);
 
+    /** Like {@link #findVisible} with only the given kinds (the list's filter chips, 1.3). */
+    @Query(
+            value =
+                    "select r.* from report r where r.player_id = :playerId"
+                            + " and r.kind in (:kinds)"
+                            + NOT_FROM_BLOCKED
+                            + " order by"
+                            + " case when r.shared_by_id is null then r.happened_at"
+                            + " else r.created_at end desc, r.id desc",
+            countQuery =
+                    "select count(*) from report r where r.player_id = :playerId"
+                            + " and r.kind in (:kinds)"
+                            + NOT_FROM_BLOCKED,
+            nativeQuery = true)
+    Page<Report> findVisibleOfKinds(long playerId, Collection<String> kinds, Pageable pageable);
+
+    /** How many visible reports the player has per kind (the counts on the filter chips). */
+    @Query(
+            value =
+                    "select r.kind as kind, count(*) as count from report r"
+                            + " where r.player_id = :playerId"
+                            + NOT_FROM_BLOCKED
+                            + " group by r.kind",
+            nativeQuery = true)
+    List<KindCount> countVisibleByKind(long playerId);
+
+    /** One row of {@link #countVisibleByKind}. */
+    interface KindCount {
+        String getKind();
+
+        long getCount();
+    }
+
     Optional<Report> findByIdAndPlayerId(long id, long playerId);
 
     /** The player's unread reports, without the copies sent by players he blocked. */
@@ -55,6 +89,21 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     /** The id of the player's newest report (0 if there is none). */
     @Query("select coalesce(max(r.id), 0L) from Report r where r.playerId = :playerId")
     long maxIdOfPlayer(long playerId);
+
+    /**
+     * The loot of the player's own attacks that happened after {@code since} (resource sum of the
+     * ATTACK reports; copies other players sent are not counted): an NPC lord's farm budget (09
+     * §6.2).
+     */
+    @Query(
+            value =
+                    "select coalesce(sum(coalesce((r.payload -> 'loot' ->> 'wood')::bigint, 0)"
+                            + " + coalesce((r.payload -> 'loot' ->> 'clay')::bigint, 0)"
+                            + " + coalesce((r.payload -> 'loot' ->> 'iron')::bigint, 0)), 0)"
+                            + " from report r where r.player_id = :playerId and r.kind = 'ATTACK'"
+                            + " and r.shared_by_id is null and r.happened_at > :since",
+            nativeQuery = true)
+    long sumLootSince(long playerId, Instant since);
 
     /** A player's reports after {@code afterId}, oldest first (an NPC lord reads them, 09 §4). */
     List<Report> findByPlayerIdAndIdGreaterThanOrderByIdAsc(long playerId, long afterId);
@@ -85,6 +134,11 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @Modifying
     @Query("delete from Report r where r.id = :id and r.playerId = :playerId")
     int deleteOwned(long id, long playerId);
+
+    /** Deletes those of the reports that are the player's; the number of rows deleted. */
+    @Modifying
+    @Query("delete from Report r where r.playerId = :playerId and r.id in :ids")
+    int deleteOwnedIn(long playerId, Collection<Long> ids);
 
     /** Deletes the player's reports with an id up to {@code upToId}; the number of rows deleted. */
     @Modifying

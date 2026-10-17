@@ -57,14 +57,18 @@ public class VillageStateService {
     }
 
     /**
-     * Resources and loyalty up to {@code t}, and the units of recruit orders that are done by
-     * {@code t} into the home stack. Idempotent and never goes backwards.
+     * Resources and loyalty up to {@code now}, and the units of recruit orders that are done by
+     * {@code now} into the home stack; in a world that has ended only up to its end. Idempotent and
+     * never goes backwards.
      *
      * @return the village's recruit orders that are still open after the catch-up, each building's
      *     queue in running order (like {@code RecruitOrderRepository
      *     .findByVillageIdOrderByEndAtAscIdAsc}); pass them on instead of reading them again
      */
-    public List<RecruitOrder> catchUp(Village village, Instant t) {
+    public List<RecruitOrder> catchUp(Village village, Instant now) {
+        // A frozen world (v1.3, 02-game-rules §22) stands still at its end: reading a village then
+        // must not fill its warehouse or finish its units.
+        Instant t = worldService.gameTime(now);
         advance(village, t, worldService.settings(), villageBanners.effectOf(village));
         completeDismissals(village.getId(), t);
         return completeRecruitment(village, t);

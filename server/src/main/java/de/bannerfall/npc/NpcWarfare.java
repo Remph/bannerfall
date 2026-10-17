@@ -8,11 +8,13 @@ import de.bannerfall.movement.CommandKind;
 import de.bannerfall.movement.CommandPreviewDto;
 import de.bannerfall.movement.CommandRequest;
 import de.bannerfall.movement.CommandService;
+import de.bannerfall.npc.NpcBalanceSettings.Difficulty;
 import de.bannerfall.npc.NpcMemory.ConquestTarget;
 import de.bannerfall.npc.NpcMemory.Grudge;
 import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.npc.NpcTargeting.Estimate;
 import de.bannerfall.npc.NpcWorld.MapVillage;
+import de.bannerfall.rules.Loyalty;
 import de.bannerfall.unit.UnitService;
 import java.time.Duration;
 import java.time.Instant;
@@ -184,6 +186,10 @@ class NpcWarfare {
         if (intel == null || !capsAllow(turn, target, 1)) {
             return; // the scouting step gets the intel
         }
+        double oath = oathOf(turn, intel);
+        if (nobles < noblesWanted(turn, target.loyalty(), oath)) {
+            return;
+        }
         List<UnitType> order = clearingUnits(turn);
         Map<UnitType, Integer> pool = NpcTargeting.only(turn.available, order);
         int wall = intel.wall() == null ? 0 : intel.wall();
@@ -229,6 +235,16 @@ class NpcWarfare {
             }
             lastArrival = arrival;
         }
+        // the loyalty grows back while the nobles walk (v1.3): count it at their arrival
+        double atArrival =
+                NpcTargeting.loyaltyAtArrival(
+                        target.loyalty(),
+                        Loyalty.regenPerHour(turn.view.world()),
+                        turn.now,
+                        lastArrival);
+        if (nobles < noblesWanted(turn, atArrival, oath)) {
+            return;
+        }
         for (Map<UnitType, Integer> army : train) {
             send(turn, target, army, null);
         }
@@ -263,18 +279,38 @@ class NpcWarfare {
             }
             Map<UnitType, Integer> army =
                     NpcTargeting.only(turn.available, turn.template().attackUnits());
-            if (army.isEmpty()) {
-                continue;
-            }
             int wall = intel.wall() == null ? 0 : intel.wall();
             BuildingType catapultTarget = wall > 0 ? BuildingType.WALL : BuildingType.BARRACKS;
             int level =
                     intel.buildings() == null
                             ? 0
                             : intel.buildings().getOrDefault(catapultTarget, 0);
-            Estimate estimate = estimateAttack(turn, army, intel, catapultTarget, level);
-            if (!estimate.go()) {
-                retaliated(turn, playerId); // too strong: the lord lets it go
+            if (army.isEmpty() || !estimateAttack(turn, army, intel, catapultTarget, level).go()) {
+                // v1.3: too strong for what is at home now. The lord's village nearest the
+                // attacker decides: it lets the grudge go only if its whole army (home, out
+                // farming, in support; less the home guard) couldn't win either, else it gathers
+                // its units for a later turn. A nearest village without any attack units has
+                // nothing to decide with, so the others may still retaliate. The other villages
+                // just leave it.
+                if (nearestOwnVillage(turn, source)) {
+                    Map<UnitType, Integer> whole =
+                            NpcTargeting.only(
+                                    NpcTargeting.available(
+                                            unitService
+                                                    .unitsOf(turn.villageId(), List.of())
+                                                    .all()
+                                                    .toMap(),
+                                            turn.template().homeGuard()),
+                                    turn.template().attackUnits());
+                    if (whole.isEmpty()) {
+                        continue;
+                    }
+                    if (estimateAttack(turn, whole, intel, catapultTarget, level).go()) {
+                        turn.gathering = true;
+                    } else {
+                        retaliated(turn, playerId);
+                    }
+                }
                 continue;
             }
             if (!capsAllow(turn, source, 1)) {
@@ -290,6 +326,19 @@ class NpcWarfare {
             turn.memory.farmed.put(source.id(), arrival);
             retaliated(turn, playerId);
         }
+    }
+
+    /** Whether this village is the lord's nearest one to {@code target} (ties: the lower id). */
+    private static boolean nearestOwnVillage(NpcTurn turn, MapVillage target) {
+        return turn.view.villages().values().stream()
+                .filter(v -> Objects.equals(v.playerId(), turn.lordId()))
+                .min(
+                        Comparator.comparingDouble(
+                                        (MapVillage v) ->
+                                                v.coordinates().distanceTo(target.coordinates()))
+                                .thenComparingLong(MapVillage::id))
+                .map(v -> v.id() == turn.villageId())
+                .orElse(false);
     }
 
     private static void retaliated(NpcTurn turn, long playerId) {
@@ -379,6 +428,10 @@ class NpcWarfare {
                                 }
                             });
         }
+        if (!farmsThisRound(turn)) {
+            // no scouting for farms and raids that this round won't send (§6.2, v1.3)
+            return new ArrayList<>(wishes.values());
+        }
         for (MapVillage target : farmCandidates(turn)) {
             Intel intel = turn.memory.intel.get(target.id());
             if (target.barbarian()) {
@@ -399,10 +452,29 @@ class NpcWarfare {
     }
 
     /**
+     * Whether the lord farms this round (§6.2, v1.3): not while its farm budget is spent and, with
+     * {@code farm-rest}, not in the build quiet hours.
+     */
+    private static boolean farmsThisRound(NpcTurn turn) {
+        Difficulty difficulty = turn.view.difficulty();
+        return !turn.view.farmBudgetSpent()
+                && !(difficulty.farmRest()
+                        && NpcPlanning.inQuietWindow(
+                                turn.now,
+                                difficulty.buildQuietFromTime(),
+                                difficulty.buildQuietToTime(),
+                                turn.view.general().zone()));
+    }
+
+    /**
      * §6.2: farms (barbarian villages) and raids (player villages whose fresh intel shows no
-     * defenders), nearest first, at most {@code farms-per-round}.
+     * defenders), nearest first, at most {@code farms-per-round}; none while the lord's farm budget
+     * is spent or, with {@code farm-rest}, in the build quiet hours (v1.3).
      */
     private void farm(NpcTurn turn) {
+        if (!farmsThisRound(turn)) {
+            return;
+        }
         NpcBalanceSettings.Balance general = turn.view.general();
         Duration cooldown =
                 NpcTargeting.scaled(
@@ -455,8 +527,8 @@ class NpcWarfare {
             Map<UnitType, Integer> army =
                     NpcTargeting.farmArmy(
                             gameData,
-                            NpcTargeting.only(turn.available, turn.template().farmUnits()),
-                            turn.template().farmUnits(),
+                            NpcTargeting.only(turn.available, farmUnits(turn)),
+                            farmUnits(turn),
                             carry,
                             a ->
                                     NpcTargeting.estimate(
@@ -482,6 +554,18 @@ class NpcWarfare {
             turn.memory.farmed.put(target.id(), arrival);
             sent++;
         }
+    }
+
+    /**
+     * The units this village farms with (§6.2): the template's {@code farm-units}, without the
+     * attack units while it gathers them for a retaliation (v1.3) and without the support units
+     * while an attack is on its way here (v1.3: they defend instead of walking away).
+     */
+    private static List<UnitType> farmUnits(NpcTurn turn) {
+        return turn.template().farmUnits().stream()
+                .filter(u -> !(turn.gathering && turn.template().attackUnits().contains(u)))
+                .filter(u -> !(turn.threatened && turn.template().supportUnits().contains(u)))
+                .toList();
     }
 
     /**
@@ -553,6 +637,21 @@ class NpcWarfare {
                 turn.template().margin(),
                 turn.view.general().attackMaxLoss(),
                 bulwarkOf(turn, intel));
+    }
+
+    /**
+     * The nobles a train waits for (v1.3): enough for the loyalty with the scouted Oath, but never
+     * more than the template keeps. An Oath village at full loyalty can need one more than that;
+     * the lord then sends all it has and the next train finishes the village, as before.
+     */
+    private static int noblesWanted(NpcTurn turn, double loyalty, double oath) {
+        return Math.min(
+                NpcTargeting.noblesNeeded(loyalty, oath), Math.max(1, turn.template().nobles()));
+    }
+
+    /** The Oath the lord expects (v1.3, 02-game-rules §21.2); none while banners are off. */
+    private double oathOf(NpcTurn turn, Intel intel) {
+        return turn.view.world().bannersEnabled() ? NpcTargeting.oath(intel, banners) : 0;
     }
 
     /** The Bulwark the lord expects (02-game-rules §21.11); none while banners are off. */

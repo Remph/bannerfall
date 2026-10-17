@@ -183,8 +183,8 @@ class AchievementFlowTest {
 
         assertThat(earned(attacker)).containsEntry("FIRST_BLOOD", 1);
         assertThat(counter(attacker, "VICTOR")).isEqualTo(1);
-        // 20 axemen carry 200: that is the whole loot of the report
-        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(200);
+        // 20 axemen carry 300: that is the whole loot of the report
+        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(300);
         assertThat(sent.toPlayer(attacker.playerId))
                 .anySatisfy(
                         json ->
@@ -199,7 +199,7 @@ class AchievementFlowTest {
         setStock(defender, 300, 300, 300);
         arriveAt(attackWithAxemen(20));
         assertThat(counter(attacker, "VICTOR")).isEqualTo(1);
-        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(200);
+        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(300);
 
         // a day after the counted win it counts again
         clock.set(arrival.plus(Duration.ofHours(24)).plusSeconds(1));
@@ -207,7 +207,7 @@ class AchievementFlowTest {
         setStock(defender, 300, 300, 300);
         arriveAt(attackWithAxemen(20));
         assertThat(counter(attacker, "VICTOR")).isEqualTo(2);
-        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(400);
+        assertThat(counter(attacker, "PLUNDERER")).isEqualTo(600);
     }
 
     @Test

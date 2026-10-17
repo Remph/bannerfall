@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { REPORTS_PAGE_SIZE } from '../../game/reports';
+import { REPORTS_PAGE_SIZE, type ReportFilter } from '../../game/reports';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
 
@@ -29,8 +29,8 @@ export type ReportSharedBy = components['schemas']['ReportSharedBy'];
 export const reportsQueryKey = ['reports'] as const;
 const unreadQueryKey = [...reportsQueryKey, 'unread'] as const;
 
-export function reportPageQueryKey(page: number) {
-  return [...reportsQueryKey, page] as const;
+export function reportPageQueryKey(page: number, filter: ReportFilter | null = null) {
+  return [...reportsQueryKey, page, filter ?? 'all'] as const;
 }
 
 /** One report never changes (only its read flag, which the detail doesn't show). */
@@ -52,11 +52,19 @@ export function refreshReports(queryClient: QueryClient): Promise<unknown> {
   return queryClient.invalidateQueries({ queryKey: reportsQueryKey });
 }
 
-/** GET /api/reports?page=: a page of the player's reports, newest first (page is 0-based). */
-export function useReportPage(page: number) {
+/**
+ * GET /api/reports?page=&filter=: a page of the player's reports, newest first (page is 0-based),
+ * only the filter's kinds unless it is null (1.3). The counts per filter come with every page.
+ */
+export function useReportPage(page: number, filter: ReportFilter | null = null) {
   return useQuery({
-    queryKey: reportPageQueryKey(page),
-    queryFn: () => expectData(api.GET('/api/reports', { params: { query: { page, size: REPORTS_PAGE_SIZE } } })),
+    queryKey: reportPageQueryKey(page, filter),
+    queryFn: () =>
+      expectData(
+        api.GET('/api/reports', {
+          params: { query: { page, size: REPORTS_PAGE_SIZE, ...(filter === null ? {} : { filter }) } },
+        }),
+      ),
   });
 }
 
@@ -127,6 +135,25 @@ export function useDeleteReport() {
       queryClient.removeQueries({ queryKey: reportQueryKey(reportId), type: 'inactive' });
     },
     // also after an error: it may have been deleted already (REPORT_NOT_FOUND)
+    onSettled: () => refreshReports(queryClient),
+  });
+}
+
+/**
+ * POST /api/reports/delete: deletes the reports chosen in the list's select mode (1.3); the server
+ * skips those that are gone already.
+ */
+export function useDeleteReports() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: number[]) => {
+      await api.POST('/api/reports/delete', { body: { ids } });
+    },
+    onSuccess: (_, ids) => {
+      for (const id of ids) {
+        queryClient.removeQueries({ queryKey: reportQueryKey(id), type: 'inactive' });
+      }
+    },
     onSettled: () => refreshReports(queryClient),
   });
 }

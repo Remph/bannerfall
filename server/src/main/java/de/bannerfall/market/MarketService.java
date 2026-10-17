@@ -66,6 +66,7 @@ public class MarketService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final AchievementService achievements;
+    private final MarketExchangeService exchange;
 
     MarketService(
             TradeOfferRepository offers,
@@ -78,7 +79,8 @@ public class MarketService {
             WorldService worldService,
             ApplicationEventPublisher events,
             Clock clock,
-            AchievementService achievements) {
+            AchievementService achievements,
+            MarketExchangeService exchange) {
         this.offers = offers;
         this.transports = transports;
         this.villages = villages;
@@ -90,9 +92,10 @@ public class MarketService {
         this.events = events;
         this.clock = clock;
         this.achievements = achievements;
+        this.exchange = exchange;
     }
 
-    /** The village's merchants, transports and own offers. */
+    /** The village's merchants, transports, own offers and trading with the market. */
     @Transactional
     public MarketDto market(long villageId, long playerId) {
         Village village = locker.lockOwned(villageId, playerId);
@@ -103,7 +106,8 @@ public class MarketService {
                 new MarketDto.MerchantsDto(total, freeMerchants(village, own, now)),
                 transports.findOutgoing(villageId, now).stream().map(TransportDto::of).toList(),
                 transports.findIncoming(villageId).stream().map(TransportDto::of).toList(),
-                own.stream().map(OfferDto::own).toList());
+                own.stream().map(OfferDto::own).toList(),
+                exchange.status(village, now));
     }
 
     /**

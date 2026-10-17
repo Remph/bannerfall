@@ -77,7 +77,7 @@ class GameDataTest {
                     """
                     SPEARMAN      | BARRACKS | BARRACKS:1           |    40 |    35 |    15 |   1 |  10 |  15 |  40 | INFANTRY | 18 | 25 |  1000
                     SWORDSMAN     | BARRACKS | BARRACKS:1;SMITHY:1  |    30 |    30 |    70 |   1 |  20 |  50 |  20 | INFANTRY | 22 | 15 |  1450
-                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    50 |    35 |    45 |   1 |  40 |  10 |   5 | INFANTRY | 18 | 10 |  1300
+                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    50 |    35 |    45 |   1 |  40 |  10 |   5 | INFANTRY | 18 | 15 |  1300
                     SCOUT         | STABLE   | STABLE:1             |    50 |    50 |    20 |   2 |   0 |   2 |   1 | INFANTRY |  9 |  0 |   900
                     LIGHT_CAVALRY | STABLE   | STABLE:3             |   125 |   100 |   250 |   4 | 120 |  30 |  40 | CAVALRY  | 10 | 80 |  1800
                     HEAVY_CAVALRY | STABLE   | STABLE:10;SMITHY:15  |   200 |   150 |   600 |   6 | 150 | 200 |  80 | CAVALRY  | 11 | 50 |  3600

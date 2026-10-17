@@ -1,8 +1,11 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.npc.NpcBalanceSettings.Difficulty;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
+import de.bannerfall.report.ReportRepository;
+import de.bannerfall.rules.Production;
 import de.bannerfall.unit.UnitStackRepository;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageLocker;
@@ -52,6 +55,7 @@ public class NpcRound {
     private final NpcWorld world;
     private final WorldService worldService;
     private final VillageStateService stateService;
+    private final ReportRepository reports;
 
     NpcRound(
             PlatformTransactionManager transactionManager,
@@ -68,7 +72,8 @@ public class NpcRound {
             NpcWarfare warfare,
             NpcWorld world,
             WorldService worldService,
-            VillageStateService stateService) {
+            VillageStateService stateService,
+            ReportRepository reports) {
         this.tx = new TransactionTemplate(transactionManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.brains = brains;
@@ -85,6 +90,7 @@ public class NpcRound {
         this.world = world;
         this.worldService = worldService;
         this.stateService = stateService;
+        this.reports = reports;
     }
 
     /**
@@ -166,18 +172,45 @@ public class NpcRound {
                 }
             }
         }
+        Difficulty difficulty = balance.difficulty();
+        boolean farmBudgetSpent =
+                difficulty.farmLootShare() > 0
+                        && NpcBalance.farmBudgetSpent(
+                                difficulty,
+                                reports.sumLootSince(
+                                        playerId, now.minus(NpcBalance.FARM_BUDGET_WINDOW)),
+                                productionPerHour(lord, settings));
         return new NpcTurn.View(
                 playerId,
                 brain.getPersonality(),
                 templates.of(brain.getPersonality()),
-                balance.difficulty(),
+                difficulty,
                 balance.general(),
                 settings,
                 world.villages(now),
                 world.incomingAttacks(playerId),
                 toHumans,
                 lord.getPoints(),
-                brain.getMemory().stance().braked());
+                brain.getMemory().stance().braked(),
+                farmBudgetSpent);
+    }
+
+    /** What the lord's villages produce per real hour, all three resources (09 §6.2). */
+    private double productionPerHour(Player lord, WorldSettings settings) {
+        double sum = 0;
+        for (Village village : villages.findByPlayerIdOrderByIdAsc(lord.getId())) {
+            for (BuildingType mine :
+                    new BuildingType[] {
+                        BuildingType.WOODCUTTER, BuildingType.CLAY_PIT, BuildingType.IRON_MINE
+                    }) {
+                sum +=
+                        Production.perHour(
+                                village.getBuildings().get(mine),
+                                settings.speed(),
+                                lord.getProductionFactor());
+            }
+        }
+        return sum;
     }
 
     /**

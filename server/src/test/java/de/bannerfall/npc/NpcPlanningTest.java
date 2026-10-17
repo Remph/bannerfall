@@ -7,7 +7,9 @@ import de.bannerfall.TestGameData;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
+import de.bannerfall.gamedata.ResourceType;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.npc.NpcPlanning.Exchange;
 import de.bannerfall.npc.NpcPlanning.Kind;
 import de.bannerfall.npc.NpcPlanning.Next;
 import de.bannerfall.rules.BuildRules;
@@ -353,5 +355,79 @@ class NpcPlanningTest {
         // a farm at its max level doesn't stop it
         levels.put(BuildingType.FARM, DATA.building(BuildingType.FARM).maxLevel());
         assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 50).kind()).isEqualTo(Kind.NOBLE);
+    }
+
+    // ---- the market exchange (v1.3, §5.4) ----
+
+    private static final Map<ResourceType, Integer> PLENTY =
+            Map.of(ResourceType.WOOD, 5000, ResourceType.CLAY, 5000, ResourceType.IRON, 5000);
+
+    @Test
+    void theMarketClosesTheGapWithTheResourceThatHasTheMostToSpare() {
+        var cost = new ResourceAmounts(1000, 1000, 1000);
+        // clay is 500 short; wood has 1500 to spare, iron none
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                cost, new ResourceAmounts(2500, 500, 1000), 5000, 1.5, PLENTY))
+                .containsExactly(new Exchange(ResourceType.WOOD, ResourceType.CLAY, 500));
+        // 2,000 clay from two resources: wood's 1,800 buy 1,200, iron's 1,200 of 1,500 the rest
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                new ResourceAmounts(0, 2000, 0),
+                                new ResourceAmounts(1800, 0, 1500),
+                                5000,
+                                1.5,
+                                PLENTY))
+                .containsExactly(
+                        new Exchange(ResourceType.WOOD, ResourceType.CLAY, 1200),
+                        new Exchange(ResourceType.IRON, ResourceType.CLAY, 800));
+        // 1,100 buy 1,000 at 1.1 (counted in decimals)
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                new ResourceAmounts(0, 1000, 0),
+                                new ResourceAmounts(1100, 0, 0),
+                                5000,
+                                1.1,
+                                PLENTY))
+                .containsExactly(new Exchange(ResourceType.WOOD, ResourceType.CLAY, 1000));
+    }
+
+    @Test
+    void noTradeWhenTheStockPaysOrTheGapCannotBeClosedToday() {
+        var cost = new ResourceAmounts(1000, 1000, 1000);
+        var stock = new ResourceAmounts(2500, 500, 1000);
+        // pays already
+        assertThat(NpcPlanning.exchangesFor(cost, cost, 5000, 1.5, PLENTY)).isEmpty();
+        // trading off in this world
+        assertThat(NpcPlanning.exchangesFor(cost, stock, 5000, 0, PLENTY)).isEmpty();
+        // only 400 clay left today: half a trade doesn't pay the building
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                cost,
+                                stock,
+                                5000,
+                                1.5,
+                                Map.of(
+                                        ResourceType.WOOD,
+                                        5000,
+                                        ResourceType.CLAY,
+                                        400,
+                                        ResourceType.IRON,
+                                        5000)))
+                .isEmpty();
+        // too little to spare: 1,400 spare wood buy only 933
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                cost, new ResourceAmounts(2400, 0, 1000), 5000, 1.5, PLENTY))
+                .isEmpty();
+        // a part of the cost beyond the warehouse
+        assertThat(
+                        NpcPlanning.exchangesFor(
+                                new ResourceAmounts(0, 6000, 0),
+                                new ResourceAmounts(20000, 0, 0),
+                                5000,
+                                1.5,
+                                PLENTY))
+                .isEmpty();
     }
 }

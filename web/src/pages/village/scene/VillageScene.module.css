@@ -1,0 +1,482 @@
+/* The village picture (05-frontend, *Village picture*). Every colour is a --village-* token
+   (tokens.css), so the dark theme turns the scene into an evening village. */
+
+.scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-body);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+/* ---- fills ---- */
+
+.grass {
+  fill: var(--village-grass);
+}
+
+.yard {
+  fill: var(--village-yard);
+}
+
+.plaster {
+  fill: var(--village-plaster);
+}
+
+.plasterSide {
+  fill: var(--village-plaster-side);
+}
+
+.stone {
+  fill: var(--village-stone);
+}
+
+.stoneSide {
+  fill: var(--village-stone-side);
+}
+
+.stoneTop {
+  fill: var(--village-stone-top);
+}
+
+.wood {
+  fill: var(--village-wood);
+}
+
+.woodSide {
+  fill: var(--village-wood-side);
+}
+
+.woodDark {
+  fill: var(--village-wood-dark);
+}
+
+.woodTop {
+  fill: var(--village-wood-top);
+}
+
+.roof {
+  fill: var(--village-roof);
+}
+
+.roofLight {
+  fill: var(--village-roof-light);
+}
+
+.roofSide {
+  fill: var(--village-roof-side);
+}
+
+.barn {
+  fill: var(--village-barn);
+}
+
+.barnSide {
+  fill: var(--village-barn-side);
+}
+
+.slate {
+  fill: var(--village-slate);
+}
+
+.slateLight {
+  fill: var(--village-slate-light);
+}
+
+.slateSide {
+  fill: var(--village-slate-side);
+}
+
+.thatch {
+  fill: var(--village-thatch);
+}
+
+.thatchLight {
+  fill: var(--village-thatch-light);
+}
+
+.thatchSide {
+  fill: var(--village-thatch-side);
+}
+
+.green {
+  fill: var(--village-green);
+}
+
+.gold {
+  fill: var(--village-gold);
+}
+
+.red {
+  fill: var(--village-red);
+}
+
+.dark {
+  fill: var(--village-dark);
+}
+
+.window {
+  fill: var(--village-window);
+}
+
+.glow {
+  fill: var(--village-glow);
+}
+
+.tree {
+  fill: var(--village-tree);
+}
+
+.treeShade {
+  fill: var(--village-tree-shade);
+}
+
+.treeLight {
+  fill: var(--village-tree-light);
+}
+
+.clay {
+  fill: var(--village-clay);
+}
+
+.clayDeep {
+  fill: var(--village-clay-deep);
+}
+
+.clayDeeper {
+  fill: var(--village-clay-deeper);
+}
+
+.brick {
+  fill: var(--village-brick);
+}
+
+.brickSide {
+  fill: var(--village-brick-side);
+}
+
+.rock {
+  fill: var(--village-rock);
+}
+
+.rockLight {
+  fill: var(--village-rock-light);
+}
+
+.rockSide {
+  fill: var(--village-rock-side);
+}
+
+.ore {
+  fill: var(--village-ore);
+}
+
+.field {
+  fill: var(--village-field);
+}
+
+.fieldAlt {
+  fill: var(--village-field-alt);
+}
+
+.hay {
+  fill: var(--village-hay);
+}
+
+.hayShade {
+  fill: var(--village-hay-shade);
+}
+
+.paving {
+  fill: var(--village-paving);
+}
+
+.pavingEdge {
+  fill: var(--village-paving-edge);
+}
+
+.shadow {
+  fill: var(--village-shadow);
+}
+
+.smoke {
+  fill: var(--village-smoke);
+}
+
+/* ---- lines ---- */
+
+.path,
+.wallPlot,
+.wallShade,
+.line,
+.woodLine,
+.timber,
+.timberWide,
+.arm,
+.columns,
+.dome,
+.pole,
+.stripe,
+.thinWood,
+.planks,
+.scaffold,
+.goldStroke,
+.plotPlus,
+.furrow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.path {
+  stroke: var(--village-path);
+}
+
+.wallPlot {
+  stroke: var(--village-plot);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+}
+
+.wallShade {
+  stroke: var(--village-shadow);
+  stroke-width: 8;
+}
+
+.line {
+  stroke: var(--village-dark);
+  stroke-width: 1.5;
+}
+
+.woodLine {
+  stroke: var(--village-wood-dark);
+  stroke-width: 2;
+}
+
+.timber {
+  stroke: var(--village-wood-dark);
+  stroke-width: 2.5;
+}
+
+.timberWide {
+  stroke: var(--village-wood);
+  stroke-width: 3;
+}
+
+.arm {
+  stroke: var(--village-wood);
+  stroke-width: 4;
+}
+
+.columns {
+  stroke: var(--village-stone);
+  stroke-width: 5;
+}
+
+.dome {
+  stroke: var(--village-slate-light);
+  stroke-width: 4;
+}
+
+.pole {
+  stroke: var(--village-dark);
+  stroke-width: 2.2;
+}
+
+.stripe {
+  stroke: rgb(255 255 255 / 50%);
+  stroke-width: 3;
+}
+
+.thinWood {
+  stroke: var(--village-wood-dark);
+  stroke-width: 1.4;
+}
+
+.planks {
+  stroke: var(--village-wood-dark);
+  stroke-width: 1.2;
+  opacity: 0.6;
+}
+
+.scaffold {
+  stroke: var(--village-wood);
+  stroke-width: 2.6;
+}
+
+.goldStroke {
+  stroke: var(--village-gold);
+}
+
+.plotPlus {
+  stroke: var(--village-plot);
+  stroke-width: 2;
+}
+
+.furrow {
+  stroke: var(--village-furrow);
+  stroke-width: 1.4;
+}
+
+/* a building not built yet */
+.plot {
+  fill: rgb(255 255 255 / 25%);
+  stroke: var(--village-plot);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+}
+
+/* ---- the buildings as links ---- */
+
+.place {
+  cursor: pointer;
+  outline: none;
+}
+
+/* a small lift as feedback while pressed (and under the mouse); never needed to find a building */
+.lift {
+  transition: transform 0.15s ease-out;
+}
+
+.place:hover .lift,
+.place:active .lift,
+.place:focus-visible .lift {
+  transform: translateY(-2px);
+}
+
+/* ---- plates ---- */
+
+.plate {
+  cursor: pointer;
+  outline: none;
+}
+
+.plateBox {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.plateFaded {
+  opacity: 0.8;
+}
+
+.plateFaded .plateBox {
+  stroke-dasharray: 3 3;
+}
+
+.plateName,
+.plateLevel {
+  fill: var(--color-text);
+  font-weight: 600;
+  dominant-baseline: central;
+}
+
+.plateFaded .plateName {
+  fill: var(--color-text-muted);
+}
+
+.plateLevel {
+  text-anchor: middle;
+}
+
+.platePill {
+  fill: var(--color-well);
+}
+
+.plateTrack {
+  fill: var(--color-well);
+}
+
+.plateBar {
+  fill: var(--color-accent);
+  transition: width 1s linear;
+}
+
+/* keyboard focus: a ring around the plate of the focused building */
+.focusRing {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+/* ---- small touches: flags sway, the forge smokes, a hammer taps ---- */
+
+.wave {
+  animation: wave 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes wave {
+  from {
+    transform: skewY(-4deg) scaleX(0.94);
+  }
+  to {
+    transform: skewY(4deg) scaleX(1);
+  }
+}
+
+.puff1,
+.puff2,
+.puff3 {
+  animation: puff 3.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.puff2 {
+  animation-delay: -1.2s;
+}
+
+.puff3 {
+  animation-delay: -2.4s;
+}
+
+@keyframes puff {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translateY(2px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.08);
+  }
+}
+
+.hammer {
+  animation: hammer 0.9s ease-in infinite;
+}
+
+@keyframes hammer {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-28deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave,
+  .puff1,
+  .puff2,
+  .puff3,
+  .hammer {
+    animation: none;
+  }
+
+  .lift,
+  .plateBar {
+    transition: none;
+  }
+}
+
+/* the tap area of a building: invisible, but it takes taps */
+.hit {
+  fill: transparent;
+}

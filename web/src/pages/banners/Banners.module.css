@@ -16,14 +16,6 @@
   margin: 0;
 }
 
-.back {
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.back:hover,
-.back:focus-visible,
 .link:hover,
 .link:focus-visible {
   text-decoration: underline;
@@ -49,9 +41,25 @@
   margin: 0;
 }
 
-.warning {
+/* an attack is on its way: the slot is locked (1.3, instead of a red sentence and grey buttons) */
+.lockChip {
+  justify-self: start;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  /* not a pill: the sentence wraps on phones */
+  border-radius: var(--radius);
+  background: var(--color-danger-bg);
   color: var(--color-danger);
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.lockChip svg {
+  flex: none;
+  align-self: center;
 }
 
 .empty {
@@ -232,4 +240,112 @@ a.villageLink:focus-visible {
   align-items: center;
   gap: var(--space-1);
   cursor: pointer;
+}
+
+/* identical banners in one row: "× 3" after the name */
+.countPill {
+  margin-left: 0.5rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-title);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fusing (1.3, motion): the three banners fly together, a gold flash, and the new banner appears
+   with a glow; then the overlay fades and the card shows the result. FUSE_MS in BannersPage.tsx
+   is the whole length. */
+.fuseBody {
+  position: relative;
+}
+
+.fuseBody:has(.fuseAnimation) {
+  min-height: 12rem;
+}
+
+.fuseAnimation {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  animation: fuse-fade 0.35s ease 2.5s forwards;
+}
+
+.fuseFrom,
+.fuseFlash,
+.fuseTo {
+  grid-area: 1 / 1;
+}
+
+.fuseFrom {
+  animation: fuse-in 0.75s cubic-bezier(0.55, 0, 0.75, 0) 0.45s both;
+}
+
+.fuseFrom[data-place='0'] {
+  --from-x: -96px;
+  --turn: -12deg;
+}
+
+.fuseFrom[data-place='1'] {
+  --from-y: -46px;
+}
+
+.fuseFrom[data-place='2'] {
+  --from-x: 96px;
+  --turn: 12deg;
+}
+
+@keyframes fuse-in {
+  from {
+    transform: translate(var(--from-x, 0), var(--from-y, 0)) rotate(var(--turn, 0deg));
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.35) rotate(calc(var(--turn, 0deg) * -2));
+    opacity: 0;
+  }
+}
+
+.fuseFlash {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-highlight) 0%, transparent 70%);
+  animation: fuse-flash 0.7s ease-out 1.1s both;
+}
+
+@keyframes fuse-flash {
+  from {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  to {
+    transform: scale(7);
+    opacity: 0;
+  }
+}
+
+.fuseTo {
+  filter: drop-shadow(0 0 10px rgb(233 196 106 / 80%));
+  animation: fuse-pop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.45) 1.15s both;
+}
+
+@keyframes fuse-pop {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes fuse-fade {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }

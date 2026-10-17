@@ -1,5 +1,36 @@
-import { describe, expect, it } from 'vitest';
-import { buildingTypes, byBuildingOrder, recruitingBuildings, type BuildingType } from './gameData';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import type { components } from '../api/schema';
+import {
+  bannerTypes,
+  buildingTypes,
+  byBuildingOrder,
+  recruitingBuildings,
+  unitTypes,
+  type BannerType,
+  type BuildingType,
+  type UnitType,
+} from './gameData';
+
+type Schemas = components['schemas'];
+
+// The lists are kept by hand for their UI order; these checks fail `tsc` (pnpm build) as soon as the
+// server adds, renames or drops a building, unit or banner type and `pnpm gen:api` has run.
+describe('the lists match the server enums', () => {
+  it('buildings', () => {
+    expectTypeOf<BuildingType>().toEqualTypeOf<Schemas['BuildOrderRequest']['building']>();
+    expect(new Set(buildingTypes).size).toBe(buildingTypes.length);
+  });
+
+  it('units', () => {
+    expectTypeOf<UnitType>().toEqualTypeOf<Schemas['RecruitOrderRequest']['unit']>();
+    expect(new Set(unitTypes).size).toBe(unitTypes.length);
+  });
+
+  it('banners', () => {
+    expectTypeOf<BannerType>().toEqualTypeOf<Schemas['BannerDto']['type']>();
+    expect(new Set(bannerTypes).size).toBe(bannerTypes.length);
+  });
+});
 
 describe('building order', () => {
   it('shows the Banner Hall between the Workshop and the Academy', () => {

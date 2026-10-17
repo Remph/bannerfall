@@ -198,7 +198,9 @@ class NpcAdminTest {
                 .andExpect(jsonPath("$.quietHours").value(true))
                 .andExpect(jsonPath("$.spareLastVillage").value(true))
                 .andExpect(jsonPath("$.buildQuietFrom").value("23:00"))
-                .andExpect(jsonPath("$.buildQuietTo").value("07:00"));
+                .andExpect(jsonPath("$.buildQuietTo").value("07:00"))
+                .andExpect(jsonPath("$.farmLootShare").value(0.5))
+                .andExpect(jsonPath("$.farmRest").value(true));
         admin.put("/api/admin/npc-settings", "{\"difficulty\":\"CUSTOM\"}");
 
         admin.put("/api/admin/npc-balance/custom", customJson("1.3"))
@@ -207,7 +209,9 @@ class NpcAdminTest {
 
         admin.get("/api/admin/npc-balance/custom")
                 .andExpect(jsonPath("$.productionFactor").value(1.3))
-                .andExpect(jsonPath("$.attacksPerHumanPerDay").value(5));
+                .andExpect(jsonPath("$.attacksPerHumanPerDay").value(5))
+                .andExpect(jsonPath("$.farmLootShare").value(0.25))
+                .andExpect(jsonPath("$.farmRest").value(false));
         assertThat(worldService.settings().npcCustom().productionFactor()).isEqualTo(1.3);
         // the lords' next round uses it
         assertThat(balanceFactor()).isEqualTo(1.3);
@@ -230,6 +234,11 @@ class NpcAdminTest {
                                         "\"attacksPerPlayerPerDay\":2",
                                         "\"attacksPerPlayerPerDay\":-1"))
                 .andExpect(status().isBadRequest());
+        admin.put(
+                        "/api/admin/npc-balance/custom",
+                        customJson("1.0")
+                                .replace("\"farmLootShare\":0.25", "\"farmLootShare\":-0.25"))
+                .andExpect(status().isBadRequest());
         admin.put("/api/admin/npc-balance/custom", "null").andExpect(status().isBadRequest());
 
         assertThat(worldService.storedNpcCustom()).isNull();
@@ -243,7 +252,8 @@ class NpcAdminTest {
         return """
         {"productionFactor":%s,"boostBelow":0.5,"boostFactor":1.25,"leadMargin":1.25,\
         "attacksPerPlayerPerDay":2,"attacksPerHumanPerDay":5,"quietHours":true,\
-        "spareLastVillage":false,"buildQuietFrom":"23:00","buildQuietTo":"07:00"}\
+        "spareLastVillage":false,"buildQuietFrom":"23:00","buildQuietTo":"07:00",\
+        "farmLootShare":0.25,"farmRest":false}\
         """
                 .formatted(productionFactor);
     }

@@ -9,6 +9,7 @@ import de.bannerfall.gamedata.GameData;
 import de.bannerfall.player.Player;
 import de.bannerfall.rules.Barbarians;
 import de.bannerfall.rules.BuildRules;
+import de.bannerfall.rules.Keeps;
 import de.bannerfall.rules.MapPlacement;
 import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
@@ -128,6 +129,58 @@ public class BarbarianService {
                     ErrorCode.FIELD_NOT_FREE, "No room for a village on " + spot);
         }
         return create(spot);
+    }
+
+    /**
+     * Brings the banner keeps on the map up to {@code count} (v1.3, 02-game-rules §22): the missing
+     * ones go on the ring around the centre ({@link Keeps#ring}, the places of the ones that exist
+     * are skipped), each on the nearest free field. Keeps are never removed. Fewer if the centre
+     * has no room.
+     *
+     * @return the new keeps
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<Village> ensureKeeps(int count) {
+        worldService.lockMapForPlacement();
+        int existing = Math.toIntExact(villages.countByKeepTrue());
+        if (existing >= count) {
+            return List.of();
+        }
+        int mapSize = worldService.settings().mapSize();
+        Set<Coordinates> occupied = new HashSet<>(villages.findAllCoordinates());
+        List<Village> created = new ArrayList<>();
+        for (Coordinates ideal : Keeps.ring(mapSize, count).subList(existing, count)) {
+            Optional<Coordinates> spot = Keeps.spotNear(ideal, mapSize, occupied::contains);
+            if (spot.isEmpty()) {
+                log.warn("No free spot for a banner keep near {}", ideal);
+                continue;
+            }
+            occupied.add(spot.get());
+            created.add(createKeep(spot.get()));
+        }
+        return created;
+    }
+
+    /** A keep: the levels of {@link Keeps#startLevels}, half-full warehouse, the garrison. */
+    private Village createKeep(Coordinates spot) {
+        Map<BuildingType, Integer> start = Keeps.startLevels();
+        var levels = new BuildingLevels();
+        start.forEach(levels::set);
+        Village village =
+                new Village(
+                        null,
+                        null,
+                        spot,
+                        Barbarians.startResources(start.get(BuildingType.WAREHOUSE)),
+                        levels,
+                        BuildRules.villagePoints(gameData, start),
+                        clock.instant());
+        village.markKeep();
+        village = villages.save(village);
+        UnitStack home = UnitStack.homeOf(village);
+        Keeps.GARRISON.forEach(home.getUnits()::set);
+        stacks.save(home);
+        return village;
     }
 
     private List<Village> spawn(

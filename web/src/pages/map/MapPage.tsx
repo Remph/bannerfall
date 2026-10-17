@@ -1,14 +1,18 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useMapMovements, useMapVillages, type MapVillage } from '../../api/queries/map';
+import { useMapMovementLines, useMapMovements, useMapVillages, type MapVillage } from '../../api/queries/map';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
+import { Icon } from '../../components/Icon';
 import { IconButton } from '../../components/IconButton';
+import { Sheet } from '../../components/Sheet';
 import { isOnMap, parseCoords, type Coords } from '../../game/coords';
+import { nextBannerRollBackIn } from '../../game/farm';
 import { formatCoords, formatNumber } from '../../game/format';
 import { bracketTag } from '../../game/guilds';
+import { badgeWins, foldedBadges, lineAnchor, lineMarkerNear, lineNear, linePosition } from '../../game/mapLines';
 import { markerKinds } from '../../game/mapMovements';
 import {
   cameraAt,
@@ -39,18 +43,23 @@ import {
   type Size,
   type VillageKind,
 } from '../../game/mapView';
+import { gameTime, serverNow } from '../../game/serverTime';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
-import { DESKTOP_QUERY, THREE_COLUMNS_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
+import { DESKTOP_QUERY, PANEL_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { useEffectiveTheme } from '../../theme/useEffectiveTheme';
 import { VillageError } from '../village/VillageError';
 import { DevBarbarianSpawn } from './DevBarbarianSpawn';
-import { AXIS_TOP, drawMap, readMapColors } from './mapDraw';
+import { LineBubble } from './LineBubble';
+import { LinePanel } from './LinePanel';
+import { AXIS_TOP, badgeRadius, drawMap, readMapColors } from './mapDraw';
+import { loadLegendOpen, saveLegendOpen } from './mapLegendStorage';
 import styles from './MapPage.module.css';
-import { loadShowMovements, saveShowMovements } from './mapMovementsStorage';
-import { MarkerIcon } from './MarkerIcon';
+import { loadShowLines, loadShowMovements, saveShowLines, saveShowMovements } from './mapMovementsStorage';
+import { MarkerIcon, UsedBannerIcon } from './MarkerIcon';
 import { OverviewMap } from './OverviewMap';
 import { useDevicePixelRatio } from './useDevicePixelRatio';
+import { useCameraMotion } from './useCameraMotion';
 import { useMapGestures } from './useMapGestures';
 import { VillagePanel } from './VillagePanel';
 
@@ -59,6 +68,13 @@ const TILE_STORAGE_KEY = 'bannerfall.mapTile';
 /** The URL (?x=&y=) and the stored zoom follow the map once it has stood still this long. */
 const SETTLE_MS = 400;
 const legendKinds: readonly VillageKind[] = ['own', 'player', 'npc', 'barbarian'];
+/** The movement lines are drawn again this often while any are shown, so the troops move on. */
+const LINE_REDRAW_MS = 1000;
+/** How close a tap or the mouse must come to a troop badge or a line to pick it (CSS px). */
+const LINE_BADGE_REACH = { mouse: 12, touch: 22 } as const;
+/** Over a village a tap must hit the drawn troop badge: its radius plus this much (CSS px). */
+const LINE_BADGE_ON_VILLAGE = { mouse: 1, touch: 4 } as const;
+const LINE_REACH = { mouse: 6, touch: 12 } as const;
 
 /** A tapped village, or a field the player jumped to (its village, if any, is selected once loaded). */
 type Selection = { village: MapVillage } | { field: Coords } | null;
@@ -107,6 +123,9 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const [searchParams, setSearchParams] = useSearchParams();
   // The function form runs only on the first render: later changes of the URL don't move the map.
   const [camera, setCamera] = useState<Camera>(() => cameraOn(startField(searchParams, village, mapSize), loadTile()));
+  // glides, smooth zoom and the drift after a drag (1.3); every direct move stops them first
+  const cameraMotion = useCameraMotion(camera, setCamera, mapSize);
+  const stopMotion = cameraMotion.stop;
   const [size, setSize] = useState<Size | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
@@ -116,14 +135,16 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   // "go to", legend and village panel. Phones and tablets: the full-screen map, with a toolbar
   // button that switches to the overview (M11b; not remembered, the detailed map is the default).
   const desktop = useMediaQuery(DESKTOP_QUERY);
-  // Wide windows (≥ 1280 px, 1.1.2): the village panel gets a column of its own next to the overview
-  // column, so its actions are in view without scrolling the side column.
-  const threeColumns = useMediaQuery(THREE_COLUMNS_QUERY);
+  // Wide and high windows (≥ 1280 × 1000 px): the village panel sits at the top of the side column,
+  // above the overview (1.3; a column of its own since 1.1.2), so its actions are in view without
+  // scrolling. Narrower or lower desktops (v1.3) show it over the map like phones and tablets do:
+  // in the column it would push the overview and "go to" below the fold.
+  const panelColumn = useMediaQuery(PANEL_COLUMN_QUERY);
+  const panelOnMap = !desktop || !panelColumn;
   const [overviewOpen, setOverviewOpen] = useState(false);
   const showOverviewOnly = !desktop && overviewOpen;
   const [overviewCentre, setOverviewCentre] = useState<Point>(() => ({ x: village.x + 0.5, y: village.y + 0.5 }));
   const viewportRef = useRef<HTMLDivElement>(null);
-  const sideRef = useRef<HTMLElement>(null);
   const panelColumnRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -147,6 +168,43 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   // the movement markers (M26), on unless switched off on this device
   const [showMovements, setShowMovements] = useState(loadShowMovements);
   const movements = useMapMovements(showMovements);
+  // the movement lines (v1.3), off unless switched on on this device; a tapped line opens its panel
+  const [showLines, setShowLines] = useState(loadShowLines);
+  const lines = useMapMovementLines(showLines);
+  const [pickedLineId, setPickedLineId] = useState<number | null>(null);
+  const [hoveredLineId, setHoveredLineId] = useState<number | null>(null);
+  const pickedLine = lines.find((line) => line.id === pickedLineId);
+  const hoveredLine = lines.find((line) => line.id === hoveredLineId);
+  // the mouse over another line shows its bubble (desktop extra; the panel has all of it)
+  const bubbleLine = hoveredLine !== undefined && hoveredLine.id !== pickedLine?.id ? hoveredLine : undefined;
+  const highlightedLineId = pickedLine?.id ?? bubbleLine?.id ?? null;
+
+  // The troops on the lines move on: draw the map again every second while any of them shows its
+  // position (a hidden incoming attack alone doesn't move; its bubble counts down by itself).
+  const [lineTick, setLineTick] = useState(0);
+  const anyMoving = lines.some((line) => line.departAt !== null);
+  useEffect(() => {
+    if (!anyMoving) {
+      return;
+    }
+    const timer = setInterval(() => setLineTick((tick) => tick + 1), LINE_REDRAW_MS);
+    return () => clearInterval(timer);
+  }, [anyMoving]);
+
+  // A used banner chance goes when its time is up, also on a map nobody touches: one timer for the
+  // first that comes back draws the map (and the village panel) again then.
+  const [bannerTick, setBannerTick] = useState(0);
+  useEffect(() => {
+    const backIn = nextBannerRollBackIn(
+      villages.map((entry) => entry.nextBannerRollAt),
+      gameTime(serverNow()),
+    );
+    if (backIn === undefined) {
+      return;
+    }
+    const timer = setTimeout(() => setBannerTick((tick) => tick + 1), backIn + 100);
+    return () => clearTimeout(timer);
+  }, [villages, bannerTick]);
 
   const selected = selectedVillage(selection, villages);
   const marked = selection !== null && 'field' in selection && selected === undefined ? selection.field : null;
@@ -189,12 +247,15 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       mapSize,
       villages,
       movements,
+      lines,
+      selectedLineId: highlightedLineId,
       ownPlayerId: me.playerId,
       selectedId: selected?.id ?? null,
       hoveredId,
       marked,
       crosshair,
       colors: readMapColors(canvas),
+      nowMs: gameTime(serverNow()),
     });
   }, [
     camera,
@@ -203,12 +264,16 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     mapSize,
     villages,
     movements,
+    lines,
+    highlightedLineId,
     me.playerId,
     selected?.id,
     hoveredId,
     marked,
     crosshair,
     theme,
+    bannerTick,
+    lineTick,
   ]);
 
   // Mouse wheel and trackpad (wheelAction: zoom or pan). A native listener, because React's onWheel
@@ -224,6 +289,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       if (action === undefined) {
         return; // nothing changes: no re-render
       }
+      stopMotion();
       if (action.kind === 'pan') {
         setCamera((current) => panBy(current, action.dx, action.dy, mapSize));
         return;
@@ -234,7 +300,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     };
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', onWheel);
-  }, [size, mapSize]);
+  }, [size, mapSize, stopMotion]);
 
   // Once the map stands still: put the middle into the URL (a reload or "back" from another screen
   // returns here) and remember the zoom.
@@ -250,6 +316,8 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   }, [camera.tile, middle.x, middle.y, searchParams, setSearchParams]);
 
   const gestures = useMapGestures({
+    onDown: stopMotion,
+    onFling: cameraMotion.drift,
     onPan: (dx, dy) => setCamera((current) => panBy(current, dx, dy, mapSize)),
     onPinch: (from, to) => {
       if (size !== null) {
@@ -257,37 +325,77 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       }
     },
     onTap: (point, pointerType) => {
-      const hit = villageAt(point, pointerType);
-      setSelection(hit === undefined ? null : { village: hit });
+      const hit = thingAt(point, pointerType);
+      setSelection(hit?.village === undefined ? null : { village: hit.village });
+      setPickedLineId(hit?.lineId ?? null);
     },
-    onHover: (point) => setHoveredId(point === null ? null : (villageAt(point, 'mouse')?.id ?? null)),
+    onHover: (point) => {
+      const hit = point === null ? undefined : thingAt(point, 'mouse');
+      setHoveredId(hit?.village?.id ?? null);
+      setHoveredLineId(hit?.lineId ?? null);
+    },
   });
 
-  function villageAt(point: Point, pointerType: string): MapVillage | undefined {
+  /**
+   * What a tap or the mouse points at: a troop badge or a village (over a village only a tap on the
+   * drawn badge picks the troops, so troops just sent or almost home don't block it), then a line
+   * passing by. Troops folded into their village's badge have no badge of their own: a tap there
+   * picks the village, which shows each of them again.
+   */
+  function thingAt(point: Point, pointerType: string): { village?: MapVillage; lineId?: number } | undefined {
     if (size === null) {
       return undefined;
     }
-    return villageNear(villages, toMap(camera, size, point), hitRadius(camera.tile, pointerType));
+    const mapPoint = toMap(camera, size, point);
+    const reach = pointerType === 'mouse' ? 'mouse' : 'touch';
+    const now = gameTime(serverNow());
+    const folded = new Set(
+      foldedBadges(lines, now, { lineId: highlightedLineId, villageId: selected?.id ?? null }).flatMap((badge) =>
+        badge.lines.map((line) => line.id),
+      ),
+    );
+    const withBadge = lines.filter((line) => !folded.has(line.id));
+    const badge = lineMarkerNear(withBadge, mapPoint, now, LINE_BADGE_REACH[reach] / camera.tile);
+    const village = villageNear(villages, mapPoint, hitRadius(camera.tile, pointerType));
+    const badgeAt = badge === undefined ? undefined : linePosition(badge, now);
+    if (badge !== undefined && badgeAt !== undefined) {
+      const onBadge = (badgeRadius(camera.tile) + LINE_BADGE_ON_VILLAGE[reach]) / camera.tile;
+      return badgeWins(mapPoint, badgeAt, village, onBadge) ? { lineId: badge.id } : { village };
+    }
+    if (village !== undefined) {
+      return { village };
+    }
+    const line = lineNear(lines, mapPoint, LINE_REACH[reach] / camera.tile);
+    return line === undefined ? undefined : { lineId: line.id };
   }
 
   function closePanel() {
-    // keyboard users stay on the map instead of losing the focus together with the panel (on the
-    // desktop it is in a side column)
+    keepFocusOnMap();
+    setSelection(null);
+  }
+
+  function closeLinePanel() {
+    keepFocusOnMap();
+    setPickedLineId(null);
+  }
+
+  /**
+   * Keyboard users stay on the map instead of losing the focus together with a closing panel (on wide
+   * windows it is in a column of its own).
+   */
+  function keepFocusOnMap() {
     const focus = document.activeElement;
-    if (
-      viewportRef.current?.contains(focus) ||
-      sideRef.current?.contains(focus) ||
-      panelColumnRef.current?.contains(focus)
-    ) {
+    if (viewportRef.current?.contains(focus) || panelColumnRef.current?.contains(focus)) {
       canvasRef.current?.focus();
     }
-    setSelection(null);
   }
 
   function zoomBy(steps: number) {
     if (size !== null) {
       const centre = { x: size.width / 2, y: size.height / 2 };
-      setCamera((current) => zoomAt(current, size, centre, steppedTile(current.tile, steps), mapSize));
+      // from where a running zoom ends, so quick presses add up
+      const from = cameraMotion.target();
+      cameraMotion.zoomTo(zoomAt(from, size, centre, steppedTile(from.tile, steps), mapSize));
     }
   }
 
@@ -332,29 +440,32 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
         event.preventDefault();
         const hit = villageNear(villages, { x: camera.x, y: camera.y }, 1);
         setSelection(hit === undefined ? null : { village: hit });
+        setPickedLineId(null);
         setAnnouncement(describeMiddle(middleField(camera, mapSize)));
         return;
       }
       case 'Escape':
         setSelection(null);
+        setPickedLineId(null);
         return;
       default:
         return;
     }
     event.preventDefault(); // arrow keys would scroll, + and − would type
+    stopMotion();
     setCamera(next);
     setCrosshair(true);
     setAnnouncement(describeMiddle(middleField(next, mapSize)));
   }
 
   function goTo(field: Coords) {
-    setCamera((current) => cameraOn(field, current.tile));
+    cameraMotion.glideTo(cameraOn(field, cameraMotion.target().tile));
     setSelection({ field });
     setOverviewOpen(false); // the village (or the marked field) is shown on the detailed map
   }
 
   function centre() {
-    setCamera((current) => cameraOn(village, current.tile));
+    cameraMotion.glideTo(cameraOn(village, cameraMotion.target().tile));
     setOverviewCentre({ x: village.x + 0.5, y: village.y + 0.5 });
   }
 
@@ -368,10 +479,14 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       ownPlayerId={me.playerId}
       currentVillage={village}
       onPick={(point) => {
+        stopMotion();
         setCamera((current) => cameraAt(current, point, mapSize));
         setOverviewOpen(false); // phones: back to the detailed map, centred on that spot
       }}
-      onDragView={(dx, dy, tile) => setCamera((current) => dragViewRect(current, dx, dy, tile, mapSize))}
+      onDragView={(dx, dy, tile) => {
+        stopMotion();
+        setCamera((current) => dragViewRect(current, dx, dy, tile, mapSize));
+      }}
       variant={desktop ? 'side' : 'fill'}
     />
   );
@@ -384,6 +499,15 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     },
   };
 
+  const linesToggle = {
+    shown: showLines,
+    onToggle: () => {
+      setShowLines(!showLines);
+      saveShowLines(!showLines);
+      setPickedLineId(null);
+    },
+  };
+
   const panel = selected !== undefined && (
     <VillagePanel
       village={selected}
@@ -391,16 +515,39 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       kind={villageKind(selected, me.playerId)}
       currentVillage={village}
       onClose={closePanel}
-      docked={desktop}
+      docked={!panelOnMap}
       onCover={(cover) => {
-        if (size !== null && !desktop) {
-          setCamera((current) => revealField(current, size, selected, cover, mapSize));
+        if (size !== null && panelOnMap) {
+          // during a glide: where it ends
+          cameraMotion.adjust((current) => revealField(current, size, selected, cover, mapSize));
         }
       }}
     />
   );
 
-  const selectedPanel = panel || <p className={styles.sideHint}>{t.map.pickHint}</p>;
+  // a picked line takes the village panel's place, on the map or in the side column
+  const linePanel = !panel && pickedLine !== undefined && (
+    <LinePanel
+      key={pickedLine.id}
+      line={pickedLine}
+      docked={!panelOnMap}
+      onClose={closeLinePanel}
+      onCover={(cover) => {
+        if (size !== null && panelOnMap) {
+          // the troops (or the middle of a hidden attack's way) stay in sight above the panel
+          const anchor = lineAnchor(pickedLine, gameTime(serverNow()));
+          const field = { x: Math.floor(anchor.x), y: Math.floor(anchor.y) };
+          cameraMotion.adjust((current) => revealField(current, size, field, cover, mapSize));
+        }
+      }}
+      onShow={(end) => {
+        setPickedLineId(null);
+        goTo({ x: end.x, y: end.y });
+      }}
+    />
+  );
+
+  const selectedPanel = panel || linePanel || <p className={styles.sideHint}>{t.map.pickHint}</p>;
 
   // One element tree for both layouts (the parts of the other layout are `false`), so the canvas,
   // its observers and listeners stay when the window crosses 1024 px.
@@ -414,6 +561,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
           onCentre={centre}
           overview={{ open: overviewOpen, onToggle: () => setOverviewOpen(!overviewOpen) }}
           movements={movementsToggle}
+          lines={linesToggle}
         />
       )}
       <div ref={viewportRef} className={styles.viewport}>
@@ -424,7 +572,8 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
           aria-hidden={showOverviewOnly || undefined}
           role="application"
           aria-label={t.map.canvasLabel}
-          data-over-village={hovered !== undefined ? '' : undefined}
+          // a pointer over a village or a line: both can be clicked
+          data-over-village={hovered !== undefined || hoveredLine !== undefined ? '' : undefined}
           {...gestures}
           onPointerDown={(event) => {
             setCrosshair(false);
@@ -467,7 +616,15 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
         {hovered !== undefined && hovered.id !== selected?.id && size !== null && (
           <MapTooltip village={hovered} position={toScreen(camera, size, { x: hovered.x + 0.5, y: hovered.y + 0.1 })} />
         )}
-        {!desktop && !showOverviewOnly && panel}
+        {bubbleLine !== undefined && size !== null && !showOverviewOnly && (
+          <LineBubble
+            line={bubbleLine}
+            position={toScreen(camera, size, lineAnchor(bubbleLine, gameTime(serverNow())))}
+            mapSize={size}
+            offset={Math.min(12, Math.max(5, camera.tile * 0.2)) + 6}
+          />
+        )}
+        {panelOnMap && !showOverviewOnly && (panel || linePanel)}
         {import.meta.env.DEV && marked !== null && !map.isPending && !showOverviewOnly && (
           <DevBarbarianSpawn key={`${marked.x}|${marked.y}`} field={marked} />
         )}
@@ -477,21 +634,23 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
         </p>
       </div>
       {desktop && (
-        <aside ref={sideRef} className={styles.side}>
+        <aside className={styles.side}>
+          {!panelOnMap && (
+            <section ref={panelColumnRef} className={styles.sidePanel} aria-label={t.map.panelColumnLabel}>
+              {selectedPanel}
+            </section>
+          )}
           <section className={styles.sideCard} aria-label={t.map.overviewTitle}>
             {overviewMap}
           </section>
-          <MapToolbar mapSize={mapSize} onGoTo={goTo} onCentre={centre} movements={movementsToggle} side />
-          {!threeColumns && selectedPanel}
-        </aside>
-      )}
-      {desktop && threeColumns && (
-        <aside
-          ref={panelColumnRef}
-          className={`${styles.side} ${styles.sidePanel}`}
-          aria-label={t.map.panelColumnLabel}
-        >
-          {selectedPanel}
+          <MapToolbar
+            mapSize={mapSize}
+            onGoTo={goTo}
+            onCentre={centre}
+            movements={movementsToggle}
+            lines={linesToggle}
+            side
+          />
         </aside>
       )}
     </div>
@@ -505,6 +664,7 @@ function MapToolbar({
   onCentre,
   overview,
   movements,
+  lines,
   side = false,
 }: {
   mapSize: number;
@@ -514,16 +674,23 @@ function MapToolbar({
   overview?: { open: boolean; onToggle: () => void };
   /** The switch for the movement markers (M26). */
   movements: { shown: boolean; onToggle: () => void };
+  /** The switch for the movement lines (v1.3). */
+  lines: { shown: boolean; onToggle: () => void };
   /** In the desktop side column: stacked, with the legend as a list below. */
   side?: boolean;
 }) {
   const t = useT();
+  const world = useWorld().data;
+  // the faded banner only appears while banners can drop (the server sends no used chances otherwise)
+  const bannerDrops = world !== undefined && world.bannersEnabled && world.bannerDropFactor > 0;
   const inputId = useId();
   const messageId = useId();
   const [text, setText] = useState('');
   // The kind of error, not its text: the message is translated while rendering and follows a language switch.
   const [error, setError] = useState<'invalid' | 'offMap' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [legendOpen, setLegendOpen] = useState(loadLegendOpen);
+  const [layersOpen, setLayersOpen] = useState(false);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -538,6 +705,48 @@ function MapToolbar({
       onGoTo(field);
     }
   }
+
+  const legend = (
+    <ul className={styles.legend} aria-label={t.map.legend}>
+      {legendKinds.map((kind) => (
+        <li key={kind}>
+          <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
+          {t.map.legendKinds[kind]}
+        </li>
+      ))}
+      {movements.shown &&
+        markerKinds.map((kind) => (
+          <li key={kind}>
+            <MarkerIcon kind={kind} />
+            {t.map.movements.legend[kind]}
+          </li>
+        ))}
+      {lines.shown && (
+        <li>
+          <svg className={styles.lineSample} viewBox="0 0 26 12" aria-hidden="true">
+            <path d="M1 6 H12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M17 6 H25" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="0.1 4" />
+            <circle cx="13.5" cy="6" r="3" fill="currentColor" />
+          </svg>
+          {t.map.lines.legend}
+        </li>
+      )}
+      {lines.shown && (
+        <li>
+          <svg className={`${styles.lineSample} ${styles.lineSampleHostile}`} viewBox="0 0 26 12" aria-hidden="true">
+            <path d="M1 6 H25" stroke="currentColor" strokeWidth="3" strokeDasharray="6 3.5" />
+          </svg>
+          {t.map.lines.legendHostile}
+        </li>
+      )}
+      {bannerDrops && (
+        <li>
+          <UsedBannerIcon />
+          {t.map.bannerChanceLegend}
+        </li>
+      )}
+    </ul>
+  );
 
   return (
     <div className={side ? `${styles.toolbar} ${styles.toolbarSide}` : styles.toolbar}>
@@ -575,28 +784,69 @@ function MapToolbar({
           onClick={overview.onToggle}
         />
       )}
-      <IconButton
-        icon="troops"
-        label={t.map.movements.toggle}
-        aria-pressed={movements.shown}
-        className={styles.movementsToggle}
-        onClick={movements.onToggle}
-      />
-      <ul className={styles.legend} aria-label={t.map.legend}>
-        {legendKinds.map((kind) => (
-          <li key={kind}>
-            <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
-            {t.map.legendKinds[kind]}
-          </li>
-        ))}
-        {movements.shown &&
-          markerKinds.map((kind) => (
-            <li key={kind}>
-              <MarkerIcon kind={kind} />
-              {t.map.movements.legend[kind]}
-            </li>
-          ))}
-      </ul>
+      {side ? (
+        <>
+          <IconButton
+            icon="troops"
+            label={t.map.movements.toggle}
+            aria-pressed={movements.shown}
+            className={styles.movementsToggle}
+            onClick={movements.onToggle}
+          />
+          <IconButton
+            icon="route"
+            label={t.map.lines.toggle}
+            aria-pressed={lines.shown}
+            className={styles.movementsToggle}
+            onClick={lines.onToggle}
+          />
+        </>
+      ) : (
+        // phones and tablets: one layers button; its sheet has the two switches and the legend, which
+        // has no room in the toolbar on phones
+        <>
+          <IconButton icon="layers" label={t.map.lines.layers} onClick={() => setLayersOpen(true)} />
+          <Sheet open={layersOpen} onClose={() => setLayersOpen(false)} title={t.map.lines.layers}>
+            <div className={styles.layersSheet}>
+              <LayerRow
+                label={t.map.lines.markersRow}
+                hint={t.map.lines.markersHint}
+                on={movements.shown}
+                onToggle={movements.onToggle}
+              />
+              <LayerRow
+                label={t.map.lines.linesRow}
+                hint={t.map.lines.linesHint}
+                on={lines.shown}
+                onToggle={lines.onToggle}
+              />
+              <h3 className={styles.layersTitle}>{t.map.lines.legendTitle}</h3>
+              {legend}
+            </div>
+          </Sheet>
+        </>
+      )}
+      {side ? (
+        // the desktop side column: folded unless the player opened it (remembered), so the overview
+        // keeps its room on a low window (1.3)
+        <details
+          className={styles.legendFold}
+          open={legendOpen}
+          onToggle={(event) => {
+            const open = event.currentTarget.open;
+            setLegendOpen(open);
+            saveLegendOpen(open);
+          }}
+        >
+          <summary className={styles.legendSummary}>
+            {t.map.legendFold}
+            <Icon name="chevronDown" className={styles.legendChevron} />
+          </summary>
+          {legend}
+        </details>
+      ) : (
+        legend
+      )}
       {error === null ? (
         <span id={messageId} className="sr-only">
           {t.map.goToHint}
@@ -607,6 +857,19 @@ function MapToolbar({
         </p>
       )}
     </div>
+  );
+}
+
+/** One layer in the layers sheet: a switch, with what it shows. */
+function LayerRow({ label, hint, on, onToggle }: { label: string; hint: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} className={styles.layerRow} onClick={onToggle}>
+      <span className={styles.layerText}>
+        <strong>{label}</strong>
+        <span>{hint}</span>
+      </span>
+      <span className={styles.layerSwitch} aria-hidden="true" />
+    </button>
   );
 }
 

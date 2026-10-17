@@ -1,19 +1,46 @@
-import { Link } from 'react-router';
+import { Link, useMatch, useOutlet } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useBlocks, useConversations, useUnblockPlayer, type Conversation } from '../../api/queries/messages';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { ListDetail } from '../../components/ListDetail';
 import { formatRecent } from '../../game/format';
 import { serverNow } from '../../game/serverTime';
 import { bracketTag } from '../../game/guilds';
 import { useI18n } from '../../i18n';
+import { DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { playerPath } from '../ranking/rankingPaths';
-import { conversationPath } from './messagePaths';
+import { conversationPath, parseConversationPlayerId } from './messagePaths';
 import styles from './Messages.module.css';
 
-/** /messages – the inbox: the players you talked to, and the players you blocked (02-game-rules §17). */
+/**
+ * /messages and /messages/:playerId (the child route, `ConversationPage`). Phones: the inbox, or the
+ * conversation as a page of its own. Desktop (1.3): the inbox with the open conversation next to
+ * it, or a hint to pick one.
+ */
 export function MessagesPage() {
+  const { t } = useI18n();
+  const split = useMediaQuery(DESKTOP_QUERY);
+  const detail = useOutlet();
+  const openId = parseConversationPlayerId(useMatch('/messages/:playerId')?.params.playerId);
+  if (!split) {
+    return detail ?? <InboxPage openId={undefined} />;
+  }
+  return (
+    <ListDetail
+      list={<InboxPage openId={openId} />}
+      detail={detail}
+      empty={t.messages.pickConversation}
+      label={t.messages.openConversation}
+      openKey={openId}
+      fill
+    />
+  );
+}
+
+/** The inbox: the players you talked to, and the players you blocked (02-game-rules §17). */
+function InboxPage({ openId }: { openId: number | undefined }) {
   const { t } = useI18n();
   return (
     <div className={styles.page}>
@@ -21,13 +48,14 @@ export function MessagesPage() {
         <h1>{t.messages.title}</h1>
         <p className={styles.hint}>{t.messages.explainer}</p>
       </header>
-      <Inbox />
+      <Inbox openId={openId} />
       <BlockedPlayers />
     </div>
   );
 }
 
-function Inbox() {
+/** `openId`: the conversation open next to the inbox (desktop), marked in the list. */
+function Inbox({ openId }: { openId: number | undefined }) {
   const { t } = useI18n();
   const conversations = useConversations();
   return (
@@ -48,7 +76,7 @@ function Inbox() {
         <ul className={styles.list}>
           {conversations.data.map((conversation) => (
             <li key={conversation.playerId}>
-              <ConversationLine conversation={conversation} />
+              <ConversationLine conversation={conversation} open={conversation.playerId === openId} />
             </li>
           ))}
         </ul>
@@ -57,13 +85,14 @@ function Inbox() {
   );
 }
 
-function ConversationLine({ conversation }: { conversation: Conversation }) {
+function ConversationLine({ conversation, open }: { conversation: Conversation; open: boolean }) {
   const { t, language } = useI18n();
   const unread = conversation.unread;
   return (
     <Link
       to={conversationPath(conversation.playerId)}
-      className={unread > 0 ? `${styles.line} ${styles.unreadLine}` : styles.line}
+      className={[styles.line, unread > 0 && styles.unreadLine, open && styles.openLine].filter(Boolean).join(' ')}
+      aria-current={open ? 'page' : undefined}
     >
       <span className={styles.lineTop}>
         <span className={styles.name}>

@@ -250,6 +250,41 @@ export function villageKind(village: { playerId: number | null; npc: boolean }, 
   return village.npc ? 'npc' : 'player';
 }
 
+/**
+ * The villages that get a short label at medium zoom (v1.3): the player's own villages (their name)
+ * and foreign ones (their owner's name). A foreign player gets one label per 5 × 5 block, under his
+ * biggest village there, so a cluster of one player's villages isn't labelled over and over.
+ * Barbarians and the villages in `skip` (the picked ones, which get their full name) get none.
+ */
+export function mediumLabels<
+  T extends { id: number; x: number; y: number; playerId: number | null; playerName: string | null; points: number },
+>(villages: readonly T[], ownPlayerId: number, skip: ReadonlySet<number>): Array<{ village: T; own: boolean }> {
+  const own: T[] = [];
+  const biggest = new Map<string, T>();
+  for (const village of villages) {
+    if (village.playerId === null || village.playerName === null || skip.has(village.id)) {
+      continue;
+    }
+    if (village.playerId === ownPlayerId) {
+      own.push(village);
+      continue;
+    }
+    const key = `${village.playerId}:${Math.floor(village.x / AXIS_STEP)}:${Math.floor(village.y / AXIS_STEP)}`;
+    const best = biggest.get(key);
+    if (
+      best === undefined ||
+      village.points > best.points ||
+      (village.points === best.points && village.id < best.id)
+    ) {
+      biggest.set(key, village);
+    }
+  }
+  return [
+    ...own.map((village) => ({ village, own: true })),
+    ...[...biggest.values()].map((village) => ({ village, own: false })),
+  ];
+}
+
 /** 0 = small, 1 = medium, 2 = large. */
 export function villageSize(points: number): 0 | 1 | 2 {
   if (points < MEDIUM_VILLAGE_POINTS) {

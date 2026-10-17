@@ -13,3 +13,13 @@ export function MarkerIcon({ kind }: { kind: MarkerKind }) {
     </svg>
   );
 }
+
+/** The faded banner of a used banner chance as the canvas draws it (v1.3), for the legend. */
+export function UsedBannerIcon() {
+  return (
+    <svg className={styles.usedBanner} viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M11 15 V2 H5" />
+      <path d="M11 2 H5 V10 L8 8 L11 10 Z" />
+    </svg>
+  );
+}

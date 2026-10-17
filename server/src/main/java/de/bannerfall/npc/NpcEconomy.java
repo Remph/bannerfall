@@ -8,6 +8,8 @@ import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitDef;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.market.ExchangeRequest;
+import de.bannerfall.market.MarketExchangeService;
 import de.bannerfall.npc.NpcPlanning.Kind;
 import de.bannerfall.npc.NpcPlanning.Next;
 import de.bannerfall.recruit.RecruitOrder;
@@ -49,6 +51,7 @@ class NpcEconomy {
     private final GameData gameData;
     private final WorldService worldService;
     private final NpcBalance balance;
+    private final MarketExchangeService exchanges;
 
     NpcEconomy(
             VillageStateService stateService,
@@ -57,7 +60,8 @@ class NpcEconomy {
             UnitService unitService,
             GameData gameData,
             WorldService worldService,
-            NpcBalance balance) {
+            NpcBalance balance,
+            MarketExchangeService exchanges) {
         this.stateService = stateService;
         this.buildService = buildService;
         this.recruitService = recruitService;
@@ -65,6 +69,7 @@ class NpcEconomy {
         this.gameData = gameData;
         this.worldService = worldService;
         this.balance = balance;
+        this.exchanges = exchanges;
     }
 
     /**
@@ -234,9 +239,14 @@ class NpcEconomy {
                 BuildingDef def = gameData.building(type);
                 int level = s.levels.get(type) + 1;
                 ResourceAmounts cost = buildCost(s, def, level);
-                if (!cost.fitsInto(s.stock)
-                        || BuildRules.popDelta(def, level) > s.freePop
+                if (BuildRules.popDelta(def, level) > s.freePop
                         || !BuildRules.missingRequirements(def.requires(), s.levels).isEmpty()) {
+                    return;
+                }
+                if (!cost.fitsInto(s.stock)) {
+                    if (exchangeFor(s, cost)) {
+                        continue; // paid now: the next pass enqueues it
+                    }
                     return;
                 }
                 buildService.enqueue(village.getId(), playerId, type);
@@ -255,14 +265,50 @@ class NpcEconomy {
             if (ordered.contains(UnitType.NOBLE)
                     || inQueue >= world.recruitQueueSize()
                     || !BuildRules.missingRequirements(def.requires(), s.current).isEmpty()
-                    || !def.cost().fitsInto(s.stock)
                     || s.freePop < def.pop()) {
                 return;
+            }
+            if (!def.cost().fitsInto(s.stock)) {
+                if (!exchangeFor(s, def.cost())) {
+                    return;
+                }
+                s = snap();
             }
             recruitService.enqueue(village.getId(), playerId, UnitType.NOBLE, 1);
             changed();
             ordered.add(UnitType.NOBLE);
             build += def.cost().total();
+        }
+
+        /**
+         * v1.3 (§5.4): trades with the market itself so that the stock pays {@code cost} now, if
+         * the village has a market and today's amounts and its spare resources allow it. Checked
+         * with the same rules first, so the trades don't throw.
+         *
+         * @return whether it traded (the next {@link #snap()} reloads)
+         */
+        boolean exchangeFor(Snap s, ResourceAmounts cost) {
+            if (world.marketExchangeRatio() <= 0 || s.current.get(BuildingType.MARKET) == 0) {
+                return false;
+            }
+            List<NpcPlanning.Exchange> trades =
+                    NpcPlanning.exchangesFor(
+                            cost,
+                            s.stock,
+                            Storage.warehouseCapacity(s.current.get(BuildingType.WAREHOUSE)),
+                            world.marketExchangeRatio(),
+                            exchanges.leftToday(village));
+            if (trades.isEmpty()) {
+                return false;
+            }
+            for (NpcPlanning.Exchange trade : trades) {
+                exchanges.exchange(
+                        village.getId(),
+                        playerId,
+                        new ExchangeRequest(trade.give(), trade.receive(), trade.amount()));
+            }
+            changed();
+            return true;
         }
 
         /**

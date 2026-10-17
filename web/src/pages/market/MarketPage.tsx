@@ -8,18 +8,20 @@ import { formatCoords, formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { VillageError } from '../village/VillageError';
+import { ExchangeCard } from './ExchangeCard';
 import styles from './MarketPage.module.css';
 import { OffersCard } from './OffersCard';
 import { OwnOffersCard, OwnOffersList } from './OwnOffersCard';
 import { SendResourcesCard } from './SendResourcesCard';
 import { IncomingTransportsCard, OutgoingTransportsCard } from './TransportCards';
 
-type Tab = 'send' | 'offers' | 'mine' | 'merchants';
+type Tab = 'send' | 'offers' | 'mine' | 'exchange' | 'merchants';
 
 /**
- * /v/:villageId/market?x=&y= – the market (05-frontend §3), four tabs: send resources (the map's
+ * /v/:villageId/market?x=&y= – the market (05-frontend §3), five tabs: send resources (the map's
  * "Send resources" button fills the target), the offers of others (accept), the village's own
- * offers (create, cancel) and the merchants on their way. The merchants' count is always on top.
+ * offers (create, cancel), trading with the market itself (v1.3; hidden when the world turned it
+ * off) and the merchants on their way. The merchants' count is always on top.
  */
 export function MarketPage() {
   const villageId = parseVillageId(useParams().villageId);
@@ -48,13 +50,17 @@ function Market({ villageId }: { villageId: number }) {
     return <p>{t.common.loading}</p>;
   }
 
-  const { merchants } = market.data;
-  const tabs = [
+  const { merchants, exchange } = market.data;
+  const exchangeOn = exchange.ratio > 0;
+  const tabs: { value: Tab; label: string }[] = [
     { value: 'send', label: t.market.tabs.send },
     { value: 'offers', label: t.market.tabs.offers },
     { value: 'mine', label: t.market.tabs.mine },
+    ...(exchangeOn ? [{ value: 'exchange' as const, label: t.market.tabs.exchange }] : []),
     { value: 'merchants', label: t.market.tabs.merchants },
-  ] satisfies { value: Tab; label: string }[];
+  ];
+  // the admin can turn the exchange off while the tab is open
+  const shown: Tab = tab === 'exchange' && !exchangeOn ? 'send' : tab;
 
   return (
     <div className={styles.page}>
@@ -92,12 +98,13 @@ function Market({ villageId }: { villageId: number }) {
         </>
       ) : (
         <>
-          <SegmentedControl label={t.market.tabs.label} options={tabs} value={tab} onChange={setTab} />
-          <div className={tab === 'merchants' || tab === 'mine' ? styles.twoColumns : styles.oneColumn}>
-            {tab === 'send' && <SendResourcesCard village={village.data} market={market.data} />}
-            {tab === 'offers' && <OffersCard village={village.data} free={merchants.free} />}
-            {tab === 'mine' && <OwnOffersCard village={village.data} market={market.data} />}
-            {tab === 'merchants' && (
+          <SegmentedControl label={t.market.tabs.label} options={tabs} value={shown} onChange={setTab} scroll />
+          <div className={shown === 'merchants' || shown === 'mine' ? styles.twoColumns : styles.oneColumn}>
+            {shown === 'send' && <SendResourcesCard village={village.data} market={market.data} />}
+            {shown === 'offers' && <OffersCard village={village.data} free={merchants.free} />}
+            {shown === 'mine' && <OwnOffersCard village={village.data} market={market.data} />}
+            {shown === 'exchange' && <ExchangeCard village={village.data} exchange={exchange} />}
+            {shown === 'merchants' && (
               <>
                 <OutgoingTransportsCard villageId={villageId} transports={market.data.outgoing} />
                 <IncomingTransportsCard villageId={villageId} transports={market.data.incoming} />

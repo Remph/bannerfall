@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadShowMovements, saveShowMovements } from './mapMovementsStorage';
+import { loadShowLines, loadShowMovements, saveShowLines, saveShowMovements } from './mapMovementsStorage';
 
 function stubStorage() {
   const items = new Map<string, string>();
@@ -38,5 +38,33 @@ describe('movement markers storage', () => {
     });
     expect(loadShowMovements()).toBe(true);
     expect(() => saveShowMovements(false)).not.toThrow();
+  });
+});
+
+describe('movement lines storage', () => {
+  it('hides the lines until they are switched on, and forgets the default', () => {
+    const items = stubStorage();
+    expect(loadShowLines()).toBe(false);
+    saveShowLines(true);
+    expect(loadShowLines()).toBe(true);
+    saveShowLines(false);
+    expect(items.size).toBe(0);
+    expect(loadShowLines()).toBe(false);
+  });
+
+  it('hides the lines when the storage is blocked', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+      removeItem: () => {
+        throw new Error('blocked');
+      },
+    });
+    expect(loadShowLines()).toBe(false);
+    expect(() => saveShowLines(true)).not.toThrow();
   });
 });

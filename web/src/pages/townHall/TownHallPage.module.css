@@ -124,9 +124,12 @@
   white-space: nowrap;
 }
 
+/* neutral (1.3): a paper well with dark text (gold in dark mode), so the upgrade buttons stay the
+   strongest green on the page */
 .badge {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-well);
+  color: var(--color-title);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   font-weight: 700;
 }
 
@@ -272,4 +275,93 @@
   padding: 0 var(--space-3) var(--space-3);
   font-size: 0.9rem;
   color: var(--color-text-muted);
+}
+
+/* a waiting order outside "Change order": one slim line (1.3) */
+.waiting {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* the × lines up with the running order's */
+  padding: 2px var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.waiting:first-child {
+  border-top: 0;
+}
+
+.waitingIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-well);
+  color: var(--color-text-muted);
+}
+
+.waitingIcon svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.waitingName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.waitingLevel {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.waitingTime {
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.waitingCancel {
+  flex: none;
+}
+
+.reorderRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+/* a quiet text button: the queue's controls stay out of the way until needed */
+.reorderButton {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reorderButton svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.reorderIcons {
+  display: inline-flex;
 }

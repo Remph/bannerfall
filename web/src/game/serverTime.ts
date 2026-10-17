@@ -114,6 +114,28 @@ export function useServerNow(): number {
   return useSyncExternalStore(subscribeToTicks, currentTick);
 }
 
+/*
+ * A world that has ended is frozen (v1.3, 02-game-rules §22): its game time stands still at the end,
+ * so resources stop counting and countdowns stop. The app layout sets the end from GET /api/world.
+ * The server clock itself (ServerClock) keeps running.
+ */
+let frozenAtMs: number | null = null;
+
+/** When the world ended, in milliseconds; null while it runs. */
+export function setFrozenAt(endedAtMs: number | null): void {
+  frozenAtMs = endedAtMs;
+}
+
+/** `nowMs` in game time: the end of the world once it has ended, otherwise `nowMs` itself. */
+export function gameTime(nowMs: number): number {
+  return frozenAtMs !== null && frozenAtMs < nowMs ? frozenAtMs : nowMs;
+}
+
+/** Like useServerNow(), in game time: what resources, countdowns and movements are shown at. */
+export function useGameNow(): number {
+  return gameTime(useServerNow());
+}
+
 export function median(values: readonly number[]): number {
   if (values.length === 0) {
     return 0;

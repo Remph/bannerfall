@@ -1,4 +1,5 @@
 import type { BuildingEffect } from '../api/queries/buildings';
+import type { EndReason, VictoryMode } from '../api/queries/world';
 import { tierName } from '../game/banners';
 import type { BannerType, BuildingType, UnitType } from '../game/gameData';
 import type { MarkerKind } from '../game/mapMovements';
@@ -99,6 +100,27 @@ export const en = {
     text: (version: string) => `Bannerfall ${version} is live.`,
     link: 'See what is new',
   },
+  /** The end of a world (v1.3, 02-game-rules §22): the frozen look and the end screen. */
+  worldEnd: {
+    paused: 'stopped',
+    frozen: 'The world has ended',
+    title: 'This world has ended',
+    when: (when: string) => `on ${when}`,
+    numbers: 'Your numbers',
+    rank: 'Rank',
+    rankValue: (rank: number, total: number) => `${rank} of ${total}`,
+    points: 'Points',
+    villages: 'Villages',
+    achievements: 'Achievements',
+    seeResult: 'See the result',
+    lookAround: 'Look around',
+    stays: 'Reports, messages and the chat stay open.',
+  },
+  /** v1.3: the strip under the top bar once the world has ended (02-game-rules §22). */
+  endedBanner: {
+    label: 'World ended',
+    link: 'See the result',
+  },
   /** The pre-game (M14g): the world exists but has not opened; players can chat and read the settings. */
   pregame: {
     title: (world: string) => `${world} has not opened yet`,
@@ -153,6 +175,9 @@ export const en = {
     npcLordsValue: (count: number, difficulty: string) => (count === 0 ? 'none' : `${count}, ${difficulty}`),
     marketRatio: 'Widest market ratio',
     marketRatioValue: (ratio: string) => `1 : ${ratio}`,
+    /** v1.3: trading with the market itself, "1.5 for 1" (or "No" when the world has it off). */
+    marketExchange: 'Trade with the market',
+    marketExchangeValue: (ratio: string) => `${ratio} for 1, up to a daily amount`,
     guilds: 'Guilds',
     guildsValue: (max: number) => `up to ${max} members each`,
     unitLevels: 'Unit levels',
@@ -164,6 +189,14 @@ export const en = {
         : `one slot, another ${perSlot === 1 ? 'for every village' : `for every ${perSlot} villages`}, up to ${max}`,
     banners: 'Banners',
     bannersValue: 'Banner Hall, equip and swap banners',
+    /** v1.3 (02-game-rules §22): how the world is won, and its end date. */
+    victory: 'Victory',
+    victoryDomination: (percent: number, hours: number) => `${percent}% of all villages, held for ${hours} hours`,
+    victoryKeeps: (needed: number, count: number, hours: number) =>
+      `${needed} of ${count} banner keeps, held for ${hours} hours`,
+    victoryNone: 'the host ends the world',
+    endsAt: 'World ends',
+    endsAtNone: 'no date set',
     yes: 'yes',
     no: 'no',
   },
@@ -231,6 +264,8 @@ export const en = {
   } satisfies Record<UnitType, string>,
   village: {
     switcherTitle: 'Your villages',
+    /** The tag of the village held longest, first in the switcher (1.3). */
+    mainVillage: 'Main village',
     rename: 'Rename village',
     nameLabel: 'Village name',
     nameHint: '1–32 characters',
@@ -245,6 +280,10 @@ export const en = {
     buildingsTitle: 'Buildings',
     level: (level: number) => `Lv ${level}`,
     notBuilt: 'not built',
+    /** The switch in the Buildings card (1.3): the village picture or the list. */
+    viewLabel: 'Show the buildings as',
+    viewPicture: 'Picture',
+    viewList: 'List',
     infoTitle: 'Village',
     population: 'Population',
     storage: 'Warehouse (per resource)',
@@ -257,7 +296,7 @@ export const en = {
   },
   warehouse: {
     title: 'Warehouse',
-    back: '← Village overview',
+    back: 'Village overview',
     /** "Lv 5 · holds 1,000 of each resource". */
     holds: (level: string, capacity: string) => `${level} · holds ${capacity} of each resource`,
     fullTitle: 'When is it full?',
@@ -274,7 +313,7 @@ export const en = {
   } /** The smithy (M30, 02-game-rules §5.4): what every unit can do and, with unit levels, research. */,
   smithy: {
     title: 'Smithy',
-    back: '← Village overview',
+    back: 'Village overview',
     notBuilt: 'The smithy is not built in this village yet. Research needs it.',
     toTownHall: 'Build the smithy in the Town Hall',
     levelsOff: 'Unit levels are switched off in this world: every unit has its base values.',
@@ -320,6 +359,7 @@ export const en = {
 
   townHall: {
     title: 'Town Hall',
+    back: 'Village overview',
     buildingsTitle: 'Buildings',
     lockedTitle: 'Not available yet',
     build: 'Build',
@@ -388,6 +428,11 @@ export const en = {
     /** Next to an order in a paid slot (behind the world's queue size, M13c). */
     paidSlot: 'paid slot',
     paidSlotsNote: (size: number) => `Places after ${size} cost extra, and their orders can't be moved.`,
+    /** Below the queue: shows the move buttons on the waiting orders (1.3). */
+    reorder: 'Change order',
+    reorderDone: 'Done',
+    /** A finished order, for a moment before its line folds away (1.3). */
+    finished: 'Done',
   },
   recruit: {
     /** The Banner Hall's tab: in German with a soft hyphen, so a phone can break it (M32b). */
@@ -421,6 +466,8 @@ export const en = {
       free === 1
         ? 'Only 1 free place in the queue: recruit one order at a time.'
         : `Only ${free} free places in the queue: fill in fewer fields.`,
+    /** Why "Recruit all" is grey while no field has a number (1.3). */
+    enterCount: 'Enter a number for a unit first.',
   },
   /** The paladin and his slots (M31, 02-game-rules §5.5): the counter under his name in the barracks. */
   paladin: {
@@ -434,7 +481,7 @@ export const en = {
   /** Banners and the Banner Hall (M32a, 02-game-rules §21). */
   banners: {
     title: 'Banner Hall',
-    back: 'Back to the village',
+    back: 'Village overview',
     /** The name of a type, as the banner is called: "War banner". */
     types: {
       HARVEST: 'Harvest banner',
@@ -450,6 +497,8 @@ export const en = {
     /** The text of a banner picture: "War banner, tier II". */
     label: (name: string, tier: number) => `${name}, tier ${tierName(tier)}`,
     tier: (tier: number) => `Tier ${tierName(tier)}`,
+    /** Identical banners of the stash in one row (1.3): "× 3". */
+    count: (count: number) => `× ${count}`,
     /** What a banner does at a tier; the percent is already formatted ("10 %"). */
     effects: {
       HARVEST: (percent: string) => `Wood, clay and iron production +${percent}`,
@@ -592,6 +641,8 @@ export const en = {
     loading: 'Loading the map…',
     loadError: 'Part of the map could not be loaded.',
     legend: 'Colours on the map',
+    // the side column's folded legend (1.3)
+    legendFold: 'Legend',
     legendKinds: {
       own: 'Your villages',
       player: 'Players',
@@ -607,6 +658,9 @@ export const en = {
     /** Behind the owner's name. */
     youTag: 'you',
     npcTag: 'NPC lord',
+    /** v1.3: a banner keep (02-game-rules §22), a strong barbarian village that counts for victory. */
+    keep: 'Banner keep',
+    keepValue: 'counts for victory',
     points: 'Points',
     loyalty: 'Loyalty',
     /** Loyalty of a village that is not yours and that you have not attacked (M21). */
@@ -614,6 +668,10 @@ export const en = {
     loyaltyUnknownHint: 'You see the loyalty of villages you have attacked. Attack this one to find out.',
     /** Behind a loyalty value of a village you attacked: when you saw it (it has grown back since). */
     loyaltySeen: (when: string) => `seen ${when}`,
+    /** v1.3: the banner chance against this village's owner (or this barbarian village) is used. */
+    bannerChance: 'Banner chance',
+    bannerChanceUsed: (when: string) => `used · back at ${when}`,
+    bannerChanceLegend: 'Your banner chance used',
     distance: 'Distance',
     fields: (amount: string) => `${amount} fields`,
     currentVillage: 'Your current village',
@@ -671,6 +729,34 @@ export const en = {
       returns: (count: number) => (count === 1 ? '1 return' : `${count} returns`),
       nextHome: (when: string) => `first back ${when}`,
     },
+    /** The movement lines (v1.3): a switch of their own, and the bubble of a tapped line. */
+    lines: {
+      toggle: 'Show movement lines',
+      legend: 'Lines: solid behind the troops, dotted ahead',
+      legendHostile: 'Attack on you: dashed',
+      layers: 'Map layers',
+      markersRow: 'Troops at villages',
+      markersHint: 'A badge on each village your troops are heading to',
+      linesRow: 'Movement lines',
+      linesHint: 'Every movement as a line from start to target',
+      legendTitle: 'Legend',
+      attackOn: (target: string) => `Attack on ${target}`,
+      nobleAttackOn: (target: string) => `Attack with nobles on ${target}`,
+      supportFor: (target: string) => `Support for ${target}`,
+      returnTo: (home: string) => `Coming home to ${home}`,
+      attackFrom: (source: string) => `Attack from ${source}`,
+      supportFrom: (source: string) => `Support from ${source}`,
+      fieldsLeft: (fields: string) => `${fields} fields to go`,
+      positionHidden: 'Where this attack is right now stays hidden.',
+      arrives: 'Arrives',
+      way: 'Way',
+      troops: 'Troops',
+      hidden: 'hidden',
+      toRally: 'Rally point',
+      showTarget: 'Show target',
+      showAttacker: 'Show attacker',
+      showStart: 'Show start',
+    },
     /** Desktop side column while no village is selected. */
     pickHint: 'Click a village on the map to see it here.',
     panelColumnLabel: 'Selected village',
@@ -679,6 +765,12 @@ export const en = {
   rally: {
     title: 'Rally Point',
     sendTitle: 'Send troops',
+    /** The switch on phones and tablets (1.3): one part of the page at a time. */
+    partsLabel: 'Show',
+    partSend: 'Send',
+    /** Followed by the number of movements, if any. */
+    partMoves: 'On the way',
+    partTroops: 'Troops',
     target: 'Target',
     targetHint: 'Coordinates, e.g. 48|52 or 48.52',
     targetLoading: 'Looking for the village…',
@@ -738,8 +830,10 @@ export const en = {
       RETURN: 'Returning from',
     } satisfies Record<MovementKind, string>,
     arrivesAt: (time: string) => `arrives at ${time}`,
-    /** Incoming attacks don't show their units. */
-    unitsUnknown: 'Units unknown',
+    /** Once above the incoming list: other players' attacks don't show their units or start (1.3). */
+    attacksHidden: 'Troops and start of other players’ attacks stay hidden.',
+    /** In place of the hidden units: the attacker's village on the map. */
+    onMap: 'On the map',
     /** Followed by the time left to cancel: "Cancel 0:04:12". */
     cancel: 'Cancel',
     cancelTitle: 'Cancel this command?',
@@ -878,7 +972,14 @@ export const en = {
     ofFree: (amount: string, total: string) => `${amount} of ${total}`,
     noMarket: 'This village has no market yet, so it has no merchants.',
     toTownHall: 'Build one in the Town Hall',
-    tabs: { label: 'Market sections', send: 'Send', offers: 'Offers', mine: 'Own', merchants: 'Merchants' },
+    tabs: {
+      label: 'Market sections',
+      send: 'Send',
+      offers: 'Offers',
+      mine: 'Own',
+      exchange: 'Exchange',
+      merchants: 'Merchants',
+    },
     sendTitle: 'Send resources',
     amountLabel: (resource: string) => `Amount to send: ${resource}`,
     total: 'Total',
@@ -932,9 +1033,47 @@ export const en = {
     delivered: 'Delivered',
     homeIn: 'home in',
     merchantCount: (amount: string, one: boolean) => (one ? `${amount} merchant` : `${amount} merchants`),
+    /** v1.3: trading with the market itself, at a rate the world sets. */
+    exchangeTitle: 'Trade with the market',
+    exchangeText: (ratio: string) =>
+      `The market gives 1 of a resource for ${ratio} of another, at once and without merchants.`,
+    iGet: 'I get',
+    exchangeAmountLabel: 'Amount you get',
+    exchangeSame: 'Choose two different resources.',
+    /** "Iron left today: 3,200 of 5,000". */
+    exchangeLeft: (resource: string) => `${resource} left today`,
+    exchangeResets: 'New amounts at',
+    exchange: 'Trade',
+    exchanging: 'Trading…',
+    exchanged: 'Traded – the resources are in the warehouse.',
+    exchangeHint: 'The daily amount of each resource grows with the market level and counts what you get.',
   },
   reports: {
     title: 'Reports',
+    /** Desktop (1.3): next to the list until a report is opened, and the column's name for screen readers. */
+    pickReport: 'Pick a report on the left to read it here.',
+    openReport: 'Open report',
+    /** The filter chips above the list (1.3), each with its count. */
+    filtersLabel: 'Show reports',
+    filters: {
+      all: 'All',
+      ATTACKS: 'Attacks',
+      DEFENSE: 'Defence',
+      SCOUTING: 'Scouting',
+      SUPPORT: 'Support',
+      TRADE: 'Trade',
+    },
+    emptyFilter: 'No reports of this kind.',
+    /** The day headings of the list (1.3); older days show their date. */
+    today: 'Today',
+    yesterday: 'Yesterday',
+    /** The third line of a battle in the list (1.3). */
+    lineLosses: 'Losses:',
+    lineNoLosses: 'no losses',
+    /** The attackers carried all they could: there was more to take. */
+    fullHaul: 'full haul',
+    /** Before the resources the attackers took from the reader's village. */
+    lineTaken: 'Taken:',
     /** Under the list's title: "3 unread · 42 reports". */
     unreadCount: (count: number) => `${count} unread`,
     total: (count: number) => (count === 1 ? '1 report' : `${count} reports`),
@@ -947,6 +1086,12 @@ export const en = {
     deleteAll: 'Delete all',
     /** 1.2.3: deletes the own attack and scout reports on barbarian villages, except new banners. */
     deleteBarbarian: 'Delete barbarian reports',
+    /** 1.3: the list's select mode (it replaced the delete button on every line). */
+    select: 'Select',
+    selectDone: 'Done',
+    selectedCount: (count: number) => `${count} selected`,
+    selectAll: 'Select all',
+    selectNone: 'Select none',
     /** M38: on a battle report, the other side's village for the current village's farm list. */
     addToFarm: (village: string) => `Add ${village} to the farm list`,
     onFarmList: (village: string) => `${village} is on the farm list`,
@@ -1127,6 +1272,17 @@ export const en = {
     notifications: 'Notifications',
     dismiss: 'Dismiss',
     worldOpened: 'The world has opened. Your village is ready!',
+    worldEnded: (winner: string | null) =>
+      winner === null ? 'The world has ended.' : `The world has ended: ${winner} won!`,
+    /** v1.3: the victory clock started or passed on (`when` is "Sat 17 Oct, 01:49"), or stopped. */
+    victoryClock: (side: string, when: string) =>
+      `${side} meets the victory condition: they win on ${when} unless someone stops them`,
+    victoryClockYours: (when: string) => `Your guild meets the victory condition: you win on ${when} if you hold on`,
+    victoryClockYou: (when: string) => `You meet the victory condition: you win on ${when} if you hold on`,
+    victoryClockStopped: (side: string) =>
+      `${side} no longer meets the victory condition. The victory clock has stopped.`,
+    victoryClockStoppedYours: 'Your guild no longer meets the victory condition. The victory clock has stopped.',
+    victoryClockStoppedYou: 'You no longer meet the victory condition. The victory clock has stopped.',
     guildInvited: (guild: string) => `${guild} invited you to join their guild`,
     messageReceived: (player: string) => `New message from ${player}`,
     achievementEarned: (name: string, level: string | null) =>
@@ -1139,8 +1295,7 @@ export const en = {
   /** The farm helper (M18): targets with the usual troops, one tap sends one attack. */
   farm: {
     title: 'Farm list',
-    explainer:
-      'Save the villages you raid again and again with the troops you usually send. One tap sends one attack, “Send all” the whole list; nothing is ever sent by itself.',
+    explainer: 'Your raid targets with the usual troops. One tap sends one attack; nothing is ever sent by itself.',
     listTitle: (village: string) => `Targets of ${village}`,
     empty: 'No targets yet. Add a village with the form, or use “Add to farm list” on the map.',
     count: (count: number, max: number) => `${count} of ${max} targets`,
@@ -1151,9 +1306,9 @@ export const en = {
     lastSent: (when: string) => `last sent ${when}`,
     protectedUntil: (when: string) => `Under beginner protection until ${when}`,
     /** Your daily banner chance against this target is used (02 §21.7); `when` it comes back. */
-    bannerRollUsed: (when: string) => `Banner chance used · back at ${when}`,
+    bannerRollUsed: (when: string) => `Banner from ${when}`,
     bannerRollHint:
-      '“Banner chance used”: a won battle against this target has had its chance at a banner today. Against a player that counts for all their villages. The chance comes back at the time shown; plundering works as always.',
+      '“Banner from …”: a won battle against this target has had its chance at a banner today. Against a player that counts for all their villages. The chance comes back at the time shown; plundering works as always.',
     notEnough: 'Not enough troops at home for this.',
     sent: (arrival: string) => `Attack sent – arrives ${arrival}`,
     send: 'Send',
@@ -1164,25 +1319,29 @@ export const en = {
     editTitle: (target: string) => `Troops for ${target}`,
     save: 'Save',
     remove: 'Remove',
-    /** "Send all" (M39): the list from the top until it is done or the troops run short. */
+    /** 1.3: the "…" of a row, with Edit and Remove. */
+    more: (target: string) => `More for ${target}`,
+    /** "Send all" (M39): the whole list from the top; a target the troops don't cover is skipped (1.3). */
     sendAll: 'Send all',
     sendAllArmed: 'Really send all?',
-    sendAllHint: 'Sends the targets from top to bottom until the list is done or the troops for a target run short.',
+    sendAllHint: 'Top to bottom; a target without enough troops at home is skipped.',
+    /** In place of "Send banner chances (0)" (1.3). */
+    noBannerChances: 'No banner chance open',
+    /** The (i) button that opens the banner chance rules under the hint. */
+    bannerRulesLabel: 'How banner chances work',
     /** Like "send all", but only the targets with a banner chance (`bannerChance`, 1.2.3). */
     sendBannerChances: (count: number) => `Send banner chances (${count})`,
     sendBannerChancesArmed: 'Really send banner chances?',
     sendBannerChancesHint:
-      '“Send banner chances” does the same, but only for the targets without “Banner chance used” whose template can win a banner (not scouts alone, and at least 30 population against barbarian villages) and that have no attack of yours on the way yet. A player’s villages share one chance, so only the first of them is sent.',
+      '“Send banner chances” does the same, but only for the targets without “Banner from …” whose template can win a banner (not scouts alone, and at least 30 population against barbarian villages) and that have no attack of yours on the way yet. A player’s villages share one chance, so only the first of them the troops cover is sent.',
     sendAllLeavesPlayersOut: 'While your beginner protection lasts, “Send all” leaves players’ villages out.',
     sendAllSent: (count: number) =>
       count === 0 ? 'No attack sent' : count === 1 ? '1 attack sent' : `${count} attacks sent`,
-    sendAllDone: 'List done.',
-    sendAllStopped: (target: string | null) =>
-      target === null ? 'Stopped: not enough troops at home.' : `Stopped at ${target}: not enough troops at home.`,
     sendAllSkipped: (count: number) => `${count} skipped.`,
+    sendAllShort: (count: number) => `${count} not sent: not enough troops at home.`,
     noteSent: 'Sent.',
-    noteStopped: 'Stopped here: not enough troops at home.',
     noteSkipped: {
+      NOT_ENOUGH_UNITS: 'Not sent: not enough troops at home.',
       PROTECTED_TARGET: 'Skipped: under beginner protection when the troops arrive.',
       OWN_VILLAGE: 'Skipped: this is your village now.',
       ENDS_OWN_PROTECTION: 'Skipped: the attack would end your own beginner protection.',
@@ -1191,6 +1350,9 @@ export const en = {
   /** Private messages and the block list (M17). */
   messages: {
     title: 'Messages',
+    /** Desktop (1.3): next to the inbox until a conversation is opened, and the column's name for screen readers. */
+    pickConversation: 'Pick a conversation on the left, or open a player’s profile to write to them.',
+    openConversation: 'Open conversation',
     explainer: 'Write to another player. Only the two of you can read it.',
     /** Screen-reader text of the unread count on the navigation. */
     unreadBadge: (count: number) => (count === 1 ? '1 unread message' : `${count} unread messages`),
@@ -1299,6 +1461,8 @@ export const en = {
       kickTitle: 'Remove this member?',
       kickText: (name: string) => `${name} leaves the guild. They can be invited again.`,
       handOver: 'Make leader',
+      /** 1.3: the "…" of a member's line, with "Make leader" and "Remove". */
+      more: (name: string) => `Actions for ${name}`,
       handOverTitle: 'Hand over the lead?',
       handOverText: (name: string) => `${name} becomes the leader. You stay a member.`,
       disband: 'Disband the guild',
@@ -1326,6 +1490,71 @@ export const en = {
     previous: 'Previous',
     next: 'Next',
     page: (page: number, pages: number) => `Page ${page} of ${pages}`,
+  },
+  /** How the world is won (v1.3, 02-game-rules §22): the card above the ranking. */
+  victory: {
+    // v1.3: the card leads with who holds what; the player's own side is "your guild" or "you"
+    titleRunning: 'Victory condition',
+    titleEnded: 'Result',
+    yourGuild: 'Your guild',
+    keepsState: (who: string, keeps: number, count: number) => `${who} holds ${keeps} of ${count} keeps`,
+    keepsStateYou: (keeps: number, count: number) => `You hold ${keeps} of ${count} keeps`,
+    shareState: (who: string, share: string) => `${who} holds ${share} of the villages`,
+    shareStateYou: (share: string) => `You hold ${share} of the villages`,
+    noLeaderYet: 'Nobody leads yet',
+    closestKeeps: (side: string, keeps: number, needed: number) =>
+      `Closest: ${side} with ${keeps} of the ${needed} keeps needed.`,
+    closestShare: (side: string, share: string, needed: number) => `Closest: ${side} with ${share} of ${needed} %.`,
+    levelKeeps: (sides: number, keeps: number, needed: number) =>
+      `Level at the top: ${sides} sides with ${keeps} of the ${needed} keeps needed each.`,
+    levelShare: (sides: number, share: string, needed: number) =>
+      `Level at the top: ${sides} sides with ${share} of ${needed} % each.`,
+    ruleShortKeeps: (needed: number, count: number, hours: number) =>
+      `Whoever holds ${needed} of the ${count} banner keeps for ${hours} hours in a row wins.`,
+    ruleShortDomination: (percent: number, hours: number) =>
+      `Whoever holds ${percent} % of all villages for ${hours} hours in a row wins.`,
+    rules: 'Rules',
+    pips: (keeps: number, count: number, needed: number) => `${keeps} of ${count} keeps, ${needed} needed`,
+    guildTag: 'your guild',
+    youWon: 'You won!',
+    guildWon: 'Your guild won!',
+    sideWon: (side: string) => `${side} won.`,
+    yourPlaceGuild: (place: number, total: number) => `Your guild: place ${place} of ${total}`,
+    yourPlace: (place: number, total: number) => `You: place ${place} of ${total}`,
+    keepRowNone: 'held by nobody yet',
+    toCondition: 'Victory condition',
+    // how the winner won, under the headline that names it
+    wonBy: {
+      DOMINATION: 'Won by holding the map.',
+      KEEPS: 'Won by holding the banner keeps.',
+      END_DATE: 'Won with the most points at the end.',
+    } satisfies Record<EndReason, string>,
+    title: 'Victory',
+    ruleDomination: (percent: number, hours: number) =>
+      `A side wins once it holds ${percent}% of all villages on the map, barbarian villages included, for ${hours} hours in a row.`,
+    ruleKeeps: (needed: number, count: number, hours: number) =>
+      count === 1
+        ? `One banner keep stands in the centre of the map. A side wins once it holds it for ${hours} hours in a row.`
+        : `${count} banner keeps stand around the centre of the map. A side wins once it holds ${needed} of them for ${hours} hours in a row.`,
+    ruleNone: 'The host ends this world.',
+    sidesGuilds: 'A guild counts as one side with all its members; players without a guild count alone.',
+    sidesPlayers: 'Every player counts alone.',
+    endsAt: (when: string) => `The world ends ${when} at the latest. Then the side with the most points wins.`,
+    leader: (side: string) => `${side} meets the condition.`,
+    winsIn: 'Wins in',
+    winsAt: (when: string) => `on ${when}, unless someone stops them`,
+    winsAtYours: (when: string) => `on ${when}, if you hold on`,
+    winsAtYou: (when: string) => `on ${when}, if you hold on`,
+    standings: 'Leading sides',
+    finalStandings: 'Final standings',
+    share: (share: string, villages: number) => `${share} · ${villages === 1 ? '1 village' : `${villages} villages`}`,
+    keeps: (keeps: number, count: number) => `${keeps} of ${count} keeps`,
+    points: (points: string) => `${points} points`,
+    leaderTag: 'leads',
+    winnerTag: 'winner',
+    ended: (when: string) => `The world ended ${when}.`,
+    noWinner: 'Nobody won.',
+    frozen: 'Nothing moves any more. Reports, messages and the chat stay open.',
   },
   profile: {
     back: 'Ranking',
@@ -1489,6 +1718,50 @@ export const en = {
       spawn: 'Spawn',
       spawned: (x: number, y: number) => `A barbarian village stands on ${x}|${y} now.`,
     },
+    /** v1.3 (02-game-rules §22): how the world is won. */
+    victory: {
+      title: 'Victory',
+      hint: 'How this world is won. A side is a guild with all its members while guilds are on, otherwise a single player; NPC lords can win too. The server checks every 5 minutes, and the hold time starts again whenever another side leads or the leader drops below the goal. An end date (next card) works in every mode.',
+      mode: 'How the world is won',
+      modes: {
+        DOMINATION: 'Domination',
+        KEEPS: 'Banner keeps',
+        NONE: 'Host ends it',
+      } satisfies Record<VictoryMode, string>,
+      modeHints: {
+        DOMINATION:
+          'A side has to hold a share of all villages on the map, barbarian villages included, for the hold time.',
+        KEEPS:
+          'Strong barbarian villages stand in a ring around the centre of the map (wall 10, 2,100 defenders). A side has to hold the share of them for the hold time. They appear within 5 minutes of saving; raising the number adds more, lowering it removes none.',
+        NONE: 'Nobody wins by conquest: the world ends at the end date or when you end it.',
+      } satisfies Record<VictoryMode, string>,
+      dominationPercent: 'Share of all villages (%)',
+      victoryHoldHours: 'Hold for (hours)',
+      keepCount: 'Banner keeps on the map',
+      keepPercent: 'Share of the keeps (%)',
+      keepsNeeded: (needed: number, count: number) => `A side has to hold ${needed} of ${count} keeps.`,
+      saved: 'Saved.',
+    },
+    /** v1.3: the end date, ending the world now, and taking an end back. */
+    worldEnd: {
+      title: 'End of the world',
+      hint: 'An end date ends the world at that moment, whatever the mode: the side with the most points wins. An ended world is frozen: nothing moves any more, but everything stays readable and the chat stays open.',
+      noDate: 'No end date is set.',
+      status: (when: string) => `The world ends ${when}.`,
+      at: 'End date',
+      set: 'Set end date',
+      clear: 'Remove end date',
+      endNow: 'End now',
+      confirmNow:
+        'End the world now? The side with the most points wins and nothing moves any more. You can reopen it afterwards.',
+      confirmYes: 'Yes, end it',
+      saved: 'Saved.',
+      ended: (when: string) => `The world ended ${when}. It is frozen.`,
+      reopen: 'Reopen the world',
+      confirmReopen:
+        'Reopen the world? The result is deleted and the world runs on: whatever fell due while it was frozen happens at once.',
+      confirmReopenYes: 'Yes, reopen it',
+    },
     barbarianWalls: {
       title: 'Barbarians',
       hint: 'Barbarian villages that build walls: they start without one, and from the start day on every growth round adds one level up to the cap. Rams can break a wall down; it grows back only with the last switch. A wall that is already above the cap (a deleted player’s village) is left alone. Off keeps the old behaviour: a random wall of 0–2 at the start, never more.',
@@ -1610,6 +1883,11 @@ export const en = {
       paladinMaxSlots: 'Most paladin slots (0 = no paladin)',
       bannersEnabled: 'Banners work (Banner Hall, equipping)',
       bannerDropFactor: 'Banner drop chance, as a factor (1 = normal, 0 = none)',
+      marketExchangeRatio: 'Market exchange rate (1 for x; 0 = off, else 1 to 10)',
+      /** The language of the names the game gives villages (v1.3). */
+      villageNameLanguage: 'Village names',
+      villageNameLanguageHint:
+        "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
       guildMaxMembers: 'Most members per guild',
       saved: 'Saved.',
       mapSize: 'Map size (fields per side)',
@@ -1662,8 +1940,10 @@ export const en = {
         attacksPerHumanPerDay: 'Attacks per human and day, all lords',
         buildQuietFrom: 'No new build orders from',
         buildQuietTo: 'No new build orders until',
+        farmLootShare: 'Farm loot per day (× own daily production, 0 = no limit)',
         quietHours: 'No arrivals at humans 23:00–07:00',
         spareLastVillage: 'Spare a human’s last village',
+        farmRest: 'No farming at night (in the time without new build orders)',
         saved: 'Saved.',
       },
     },
@@ -1713,6 +1993,8 @@ export const en = {
     WORLD_FULL: 'The world is full. There is no free spot for a new village.',
     WORLD_NOT_OPEN: 'The world has not opened yet.',
     WORLD_ALREADY_OPEN: 'The world is open already; this can only be changed before it opens.',
+    WORLD_ENDED: 'The world has ended. Nothing can change any more.',
+    WORLD_NOT_ENDED: 'The world has not ended.',
     SERVER_STARTING: 'The server is starting. Try again in a moment.',
     GUILDS_DISABLED: 'The host has not switched guilds on.',
     GUILD_NOT_FOUND: 'This guild does not exist (anymore).',
@@ -1779,6 +2061,9 @@ export const en = {
     NOT_ENOUGH_MERCHANTS: 'Not enough free merchants.',
     INVALID_RATIO: 'The exchange rate is too lopsided for this world.',
     SAME_RESOURCE: 'An offer must ask for a different resource than it gives.',
+    EXCHANGE_OFF: 'Trading with the market is off in this world.',
+    EXCHANGE_LIMIT: 'The market does not give that much of this resource today.',
+    WAREHOUSE_FULL: 'The warehouse has no room for that much.',
     EMPTY_TRANSPORT: 'Choose at least one resource to send.',
     OWN_OFFER: 'You cannot accept your own offers.',
     OFFER_EXHAUSTED: 'The offer does not have that many left.',

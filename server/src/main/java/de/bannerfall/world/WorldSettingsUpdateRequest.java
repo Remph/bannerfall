@@ -11,7 +11,8 @@ import jakarta.validation.constraints.Size;
 /**
  * {@code PUT /api/admin/world-settings}: the settings the host may change in a running world, with
  * the ranges that keep the game working (02-game-rules §1). {@code buildQueueMax} must not be below
- * {@code buildQueueSize} (checked in {@link WorldService#updateSettings}).
+ * {@code buildQueueSize}, and {@code marketExchangeRatio} is 0 (off) or at least 1 (both checked in
+ * {@link WorldService#updateSettings}).
  */
 public record WorldSettingsUpdateRequest(
         @NotBlank @Size(max = 64) String name,
@@ -44,4 +45,11 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @Min(1) @Max(100) Integer paladinVillagesPerSlot,
         @Schema(nullable = true) @Min(0) @Max(20) Integer paladinMaxSlots,
         @Schema(nullable = true) Boolean bannersEnabled,
-        @Schema(nullable = true) @DecimalMin("0") @DecimalMax("3") Double bannerDropFactor) {}
+        @Schema(nullable = true) @DecimalMin("0") @DecimalMax("3") Double bannerDropFactor,
+        @Schema(nullable = true) @DecimalMin("0") @DecimalMax("10") Double marketExchangeRatio,
+        @Schema(nullable = true) VictoryMode victoryMode,
+        @Schema(nullable = true) @Min(10) @Max(100) Integer dominationPercent,
+        @Schema(nullable = true) @Min(1) @Max(720) Integer victoryHoldHours,
+        @Schema(nullable = true) @Min(1) @Max(12) Integer keepCount,
+        @Schema(nullable = true) @Min(1) @Max(100) Integer keepPercent,
+        @Schema(nullable = true) VillageNameLanguage villageNameLanguage) {}

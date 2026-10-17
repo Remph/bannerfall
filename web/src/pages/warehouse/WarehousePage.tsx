@@ -1,12 +1,13 @@
 import { Link, Navigate, useParams } from 'react-router';
 import type { Village } from '../../api/queries/villages';
 import { useVillage } from '../../api/queries/villages';
+import { BackLink } from '../../components/BackLink';
 import { BuildOrderLine, BuildOrderList } from '../../components/BuildOrderLine';
 import { Card } from '../../components/Card';
 import { Icon } from '../../components/Icon';
 import { formatDuration, formatNumber, formatUpcoming } from '../../game/format';
 import { isFull, projectResources, resourceTypes, whenFull, type ResourceType } from '../../game/resources';
-import { secondsUntil, useServerNow } from '../../game/serverTime';
+import { secondsUntil, useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { VillageError } from '../village/VillageError';
@@ -40,9 +41,7 @@ function Warehouse({ villageId }: { villageId: number }) {
   return (
     <div className={styles.page}>
       <header className={styles.head}>
-        <Link className={styles.back} to={`/v/${data.id}`}>
-          {t.warehouse.back}
-        </Link>
+        <BackLink to={`/v/${data.id}`}>{t.warehouse.back}</BackLink>
         <h1>{t.warehouse.title}</h1>
         <p className={styles.hint}>
           {t.warehouse.holds(t.village.level(level), formatNumber(data.storageCapacity, language))}
@@ -80,7 +79,7 @@ function Warehouse({ villageId }: { villageId: number }) {
 /** One resource: stock and fill bar, production, and a ticking "full in …". */
 function ResourceRow({ village, type }: { village: Village; type: ResourceType }) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const capacity = village.storageCapacity;
   const amount = projectResources(village, now)[type];
   const full = isFull(amount, capacity);

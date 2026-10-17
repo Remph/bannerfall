@@ -96,11 +96,15 @@ export function offerValue(offer: { offerAmount: number; wantAmount: number }): 
   return offer.offerAmount / offer.wantAmount;
 }
 
-/** The next time something on the market changes: a transport arrives or its merchants are home. */
+/**
+ * The next time something on the market changes: a transport arrives, its merchants are home or (with
+ * `exchangeResetsAt`, v1.3) a new day of trading with the market starts.
+ */
 export function nextMarketChangeMs(
   transports: readonly { arriveAt: string; returnAt: string; arrived: boolean }[],
+  exchangeResetsAt?: string,
 ): number | undefined {
-  let next: number | undefined;
+  let next = exchangeResetsAt === undefined ? undefined : Date.parse(exchangeResetsAt);
   for (const transport of transports) {
     const at = Date.parse(transport.arrived ? transport.returnAt : transport.arriveAt);
     if (next === undefined || at < next) {
@@ -108,4 +112,28 @@ export function nextMarketChangeMs(
     }
   }
   return next;
+}
+
+/**
+ * What receiving `amount` from the market itself costs: ceil(amount × ratio), as the server counts
+ * it in decimals (1000 at 1.1 costs 1100, not 1101 from 1100.0000000000002).
+ */
+export function exchangeCost(amount: number, ratio: number): number {
+  return Math.ceil(Number((amount * ratio).toFixed(6)));
+}
+
+/**
+ * The most one trade with the market can get: what is left of today's amount, what the stock of
+ * the paid resource pays for and what still fits into the warehouse.
+ */
+export function maxExchange(left: number, giveStock: number, ratio: number, room: number): number {
+  if (ratio <= 0) {
+    return 0;
+  }
+  let amount = Math.max(0, Math.min(left, Math.floor(room), MAX_AMOUNT, Math.floor(giveStock / ratio)));
+  // floor(stock / ratio) can be one too many once the cost is rounded up
+  while (amount > 0 && exchangeCost(amount, ratio) > Math.floor(giveStock)) {
+    amount--;
+  }
+  return amount;
 }

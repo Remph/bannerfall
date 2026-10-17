@@ -7,7 +7,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatDecimal, formatDuration, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RallyPage.module.css';
 import { VillageRefText } from './VillageRefText';
@@ -29,7 +29,7 @@ interface TrainConfirmProps {
  */
 export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const me = useCurrentAccount();
   const selectId = useId();
   const [catapultTargets, setCatapultTargets] = useState<BuildingType[]>(() => train.attacks.map(() => 'HEADQUARTERS'));
@@ -142,7 +142,12 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
         <Button type="button" variant="secondary" onClick={onBack}>
           {t.rally.back}
         </Button>
-        <Button type="button" disabled={broken || send.isPending || preview.isFetching} onClick={confirm}>
+        <Button
+          type="button"
+          variant="attack"
+          disabled={broken || send.isPending || preview.isFetching}
+          onClick={confirm}
+        >
           {send.isPending ? t.rally.sending : t.rally.confirmTrain(train.attacks.length)}
         </Button>
       </div>

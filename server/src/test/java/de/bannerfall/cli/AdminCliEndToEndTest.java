@@ -316,6 +316,13 @@ class AdminCliEndToEndTest {
                 s.paladinVillagesPerSlot(),
                 s.paladinMaxSlots(),
                 s.bannersEnabled(),
-                s.bannerDropFactor());
+                s.bannerDropFactor(),
+                s.marketExchangeRatio(),
+                s.victoryMode(),
+                s.dominationPercent(),
+                s.victoryHoldHours(),
+                s.keepCount(),
+                s.keepPercent(),
+                s.villageNameLanguage());
     }
 }

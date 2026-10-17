@@ -228,8 +228,9 @@ public class FarmService {
      * "Send all" (M39): works through the list from the top, sending each entry's template as
      * {@link #send} would. An entry whose target can't be hit now (beginner protection at arrival,
      * the player's own village by now) is skipped, and so is a player's village while the sender's
-     * own beginner protection lasts: one tap for the whole list must not end it. The run stops at
-     * the first entry the units at home don't cover, or at the end of the list. Each attack that
+     * own beginner protection lasts: one tap for the whole list must not end it. An entry the units
+     * at home don't cover is skipped too (1.3; before, the run stopped there), so a later entry
+     * with other units still goes out; the run always ends at the end of the list. Each attack that
      * went out stays sent; the whole run holds the village's lock, so nothing else takes units from
      * it in between.
      *
@@ -306,15 +307,16 @@ public class FarmService {
                         new FarmSendAllDto.Skipped(
                                 entry.getId(), FarmSendAllDto.SkipReason.PROTECTED_TARGET));
             } else if (errors.contains(ErrorCode.NOT_ENOUGH_UNITS)) {
-                return new FarmSendAllDto(
-                        sent, skipped, FarmSendAllDto.Stop.NOT_ENOUGH_UNITS, entry.getId());
+                skipped.add(
+                        new FarmSendAllDto.Skipped(
+                                entry.getId(), FarmSendAllDto.SkipReason.NOT_ENOUGH_UNITS));
             } else {
                 // a template can't break any other rule (no nobles, never empty, ...): a bug
                 throw new IllegalStateException(
                         "Farm entry " + entry.getId() + " can't be sent: " + errors);
             }
         }
-        return new FarmSendAllDto(sent, skipped, FarmSendAllDto.Stop.DONE, null);
+        return new FarmSendAllDto(sent, skipped);
     }
 
     private FarmTarget find(long villageId, long targetId) {

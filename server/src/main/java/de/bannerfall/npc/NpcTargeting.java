@@ -14,6 +14,7 @@ import de.bannerfall.rules.Barbarians;
 import de.bannerfall.rules.BattleInput;
 import de.bannerfall.rules.BattleResult;
 import de.bannerfall.rules.Combat;
+import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.Production;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.rules.UnitLevels;
@@ -393,7 +394,44 @@ public final class NpcTargeting {
 
     /** Nobles a train needs: {@code ceil(loyalty / 25)}, at least 1. */
     public static int noblesNeeded(int loyalty) {
-        return Math.max(1, (int) Math.ceil(loyalty / 25.0));
+        return noblesNeeded(loyalty, 0);
+    }
+
+    /**
+     * Nobles a train needs against a village with an Oath banner (v1.3, 02-game-rules §21.2): each
+     * noble is counted as {@code 25 × (1 − oath)}, so {@code ceil(loyalty / (25 × (1 − oath)))}, at
+     * least 1. {@code oath} 0 is the plain rule.
+     */
+    public static int noblesNeeded(double loyalty, double oath) {
+        double perNoble = 25 * (1 - oath);
+        // a hair below the next whole number counts as that number (100 / 25 is 4, not 5)
+        return Math.max(1, (int) Math.ceil(loyalty / perNoble - 1e-9));
+    }
+
+    /**
+     * The loyalty the nobles find when they arrive (v1.3): it grows back on the way, {@code
+     * min(100, loyalty + perHour × hours until arrival)}. Counting today's loyalty sent too few
+     * nobles on long walks (20 fields at speed 3 take about 12 hours, 35 points of loyalty).
+     */
+    public static double loyaltyAtArrival(
+            double loyalty, double perHour, Instant now, Instant arrival) {
+        return Loyalty.regen(loyalty, perHour, now, arrival);
+    }
+
+    /**
+     * The Oath the lord expects in the target (v1.3, like {@link #bulwark}): the banner its last
+     * successful scouting saw, at the tier the scouted Banner Hall lets it work; 0 without.
+     */
+    public static double oath(Intel intel, BannerCatalog catalog) {
+        if (intel == null || intel.banner() == null || intel.banner().type() != BannerType.OATH) {
+            return 0;
+        }
+        int hall =
+                intel.buildings() == null
+                        ? 0
+                        : intel.buildings().getOrDefault(BuildingType.BANNER_HALL, 0);
+        int tier = BannerRules.effectiveTier(intel.banner().tier(), hall);
+        return tier == 0 ? 0 : catalog.effect(BannerType.OATH, tier);
     }
 
     /** The attack an escort needs: 3 × the defence of the empty village with this wall. */

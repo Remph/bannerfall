@@ -100,16 +100,10 @@
   gap: var(--space-2);
 }
 
-/* ---------- columns: buildings | facts + troops ---------- */
+/* ---------- columns: buildings over troops | training, and queue + facts at the side (1.3) ---------- */
 .columns {
   display: grid;
   gap: var(--space-3);
-}
-
-.side {
-  display: grid;
-  gap: var(--space-3);
-  align-content: start;
 }
 
 @media (min-width: 1024px) {
@@ -117,6 +111,35 @@
     grid-template-columns: minmax(0, 1fr) 20rem;
     align-items: start;
   }
+
+  /* the desktop's two columns (VillagePage renders them only there) */
+  .main,
+  .side {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+  }
+
+  /* both columns end at about the same height instead of a long side column */
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    align-items: start;
+  }
+}
+
+/* ---------- the village picture (1.3): as wide as the card, up to about a large laptop's width; on
+   wider screens it stays centred instead of growing taller than the window ---------- */
+.picture {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+/* the phone layout on a small tablet: not taller than about the screen */
+.pictureCompact {
+  max-width: 30rem;
 }
 
 /* ---------- buildings: 1 column on phones, 2 on tablets, 3 on desktop ---------- */
@@ -144,6 +167,11 @@
 
 .buildingLink:hover {
   background: var(--color-well);
+}
+
+/* the level badge is a well too: on the hovered row it turns to paper, so it stays a pill */
+.buildingLink:hover .badge {
+  background: var(--color-surface);
 }
 
 .building:first-child {
@@ -216,9 +244,12 @@
   white-space: nowrap;
 }
 
+/* neutral (1.3): a paper well with dark text (gold in dark mode), so the upgrade buttons stay the
+   strongest green on the page */
 .badge {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-well);
+  color: var(--color-title);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   font-weight: 700;
 }
 
@@ -261,6 +292,25 @@
   margin: 0;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* a fact that leads somewhere (the storage → the warehouse): like the other values, plus a chevron */
+.factLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 2.5rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.factLink svg {
+  color: var(--color-accent);
+}
+
+.factLink:hover,
+.factLink:focus-visible {
+  text-decoration: underline;
 }
 
 .empty {

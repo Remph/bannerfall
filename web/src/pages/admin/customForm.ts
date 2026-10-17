@@ -12,6 +12,8 @@ export interface CustomForm {
   spareLastVillage: boolean;
   buildQuietFrom: string;
   buildQuietTo: string;
+  farmLootShare: string;
+  farmRest: boolean;
 }
 
 export function customToForm(values: NpcDifficultyValues): CustomForm {
@@ -26,6 +28,8 @@ export function customToForm(values: NpcDifficultyValues): CustomForm {
     spareLastVillage: values.spareLastVillage,
     buildQuietFrom: values.buildQuietFrom,
     buildQuietTo: values.buildQuietTo,
+    farmLootShare: String(values.farmLootShare),
+    farmRest: values.farmRest,
   };
 }
 
@@ -45,7 +49,8 @@ const TIME = /^\d\d:\d\d$/;
 
 /**
  * The values to send, or null while a field is not valid (the same ranges the server checks, 09 §8:
- * factors above 0, the boost threshold and the caps not negative, caps whole numbers, times HH:mm).
+ * factors above 0, the boost threshold, the caps and the farm loot share not negative, caps whole numbers,
+ * times HH:mm).
  */
 export function customFromForm(form: CustomForm): NpcDifficultyValues | null {
   const productionFactor = number(form.productionFactor, Number.MIN_VALUE);
@@ -54,6 +59,7 @@ export function customFromForm(form: CustomForm): NpcDifficultyValues | null {
   const leadMargin = number(form.leadMargin, Number.MIN_VALUE);
   const attacksPerPlayerPerDay = number(form.attacksPerPlayerPerDay, 0, true);
   const attacksPerHumanPerDay = number(form.attacksPerHumanPerDay, 0, true);
+  const farmLootShare = number(form.farmLootShare, 0);
   if (
     productionFactor === null ||
     boostBelow === null ||
@@ -61,6 +67,7 @@ export function customFromForm(form: CustomForm): NpcDifficultyValues | null {
     leadMargin === null ||
     attacksPerPlayerPerDay === null ||
     attacksPerHumanPerDay === null ||
+    farmLootShare === null ||
     !TIME.test(form.buildQuietFrom) ||
     !TIME.test(form.buildQuietTo)
   ) {
@@ -77,5 +84,7 @@ export function customFromForm(form: CustomForm): NpcDifficultyValues | null {
     spareLastVillage: form.spareLastVillage,
     buildQuietFrom: form.buildQuietFrom,
     buildQuietTo: form.buildQuietTo,
+    farmLootShare,
+    farmRest: form.farmRest,
   };
 }

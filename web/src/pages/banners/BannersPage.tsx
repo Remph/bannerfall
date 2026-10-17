@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import {
@@ -11,24 +11,28 @@ import {
   type OwnBanner,
 } from '../../api/queries/banners';
 import { useVillage } from '../../api/queries/villages';
+import { BackLink } from '../../components/BackLink';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { Icon } from '../../components/Icon';
 import {
   FUSE_COUNT,
   effectOfTier,
   effectiveTier,
   fusableByTier,
   fuseTypes,
+  groupStash,
   percentPoints,
   stashOf,
   toggleFuseChoice,
   type BannerLike,
 } from '../../game/banners';
-import { formatNumber } from '../../game/format';
+import { formatShare } from '../../game/format';
 import type { BannerType } from '../../game/gameData';
+import { prefersReducedMotion } from '../../game/motion';
 import { useI18n } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { recruitPath } from '../recruit/recruitPaths';
@@ -71,10 +75,10 @@ function BannersScreen({ villageId }: { villageId: number }) {
   return <BannersView villageId={villageId} data={banners.data} here={here} />;
 }
 
-/** "10 %" or "4,5 %": the effect of a tier as the texts show it. */
+/** "10 %" or "4,5 %" (de), "10%" or "4.5%" (en): the effect of a tier as the texts show it. */
 function usePercent() {
   const { language } = useI18n();
-  return (fraction: number) => `${formatNumber(percentPoints(fraction), language)} %`;
+  return (fraction: number) => formatShare(percentPoints(fraction), language);
 }
 
 function BannersView({ villageId, data, here }: { villageId: number; data: Banners; here: BannerVillage }) {
@@ -90,9 +94,7 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
   return (
     <div className={styles.page}>
       <header className={styles.head}>
-        <Link className={styles.back} to={`/v/${villageId}`}>
-          {s.back}
-        </Link>
+        <BackLink to={`/v/${villageId}`}>{s.back}</BackLink>
         <h1>{s.title}</h1>
         <p className={styles.hint}>
           {here.hallLevel === 0 ? s.notBuilt : s.hallLevel(here.hallLevel, data.hallMaxLevel)}
@@ -109,8 +111,13 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
 
       <Card title={s.slotTitle}>
         <div className={styles.body}>
+          {here.locked && (
+            <p className={styles.lockChip}>
+              <Icon name="lock" />
+              {s.locked}
+            </p>
+          )}
           <Slot data={data} here={here} flying={flying} busy={busy} onUnequip={() => unequip.mutate()} />
-          {here.locked && <p className={styles.warning}>{s.locked}</p>}
           {error !== null && <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>}
         </div>
       </Card>
@@ -123,15 +130,16 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
           <p className={styles.empty}>{s.stashEmpty}</p>
         ) : (
           <ul className={styles.stash}>
-            {stash.map((banner) => (
+            {groupStash(stash).map(({ banner, count }) => (
               <StashRow
                 key={banner.id}
                 banner={banner}
+                count={count}
                 data={data}
                 here={here}
                 swapping={flying !== null}
                 pending={equip.isPending && equip.variables === banner.id}
-                disabled={busy || !data.enabled || here.hallLevel === 0 || here.locked}
+                disabled={busy || !data.enabled || here.hallLevel === 0}
                 onEquip={() => equip.mutate(banner.id)}
               />
             ))}
@@ -197,12 +205,12 @@ function Slot({
       </div>
     );
   }
-  const type = flying.type as BannerType;
+  const type = flying.type;
   // the server's number: it is also 0 while the host has banners switched off
   const effective = here.effectiveTier;
   return (
     <div className={styles.slot}>
-      <Banner type={type} tier={flying.tier} size={56} dormant={effective === 0} />
+      <Banner type={type} tier={flying.tier} size={56} dormant={effective === 0} decorative />
       <div className={styles.slotText}>
         <strong>{s.types[type]}</strong>
         <span>{s.tier(flying.tier)}</span>
@@ -224,6 +232,8 @@ function Slot({
 
 interface StashRowProps {
   banner: OwnBanner;
+  /** Banners of this type and tier in the stash (one row for all of them). */
+  count: number;
   data: Banners;
   here: BannerVillage;
   swapping: boolean;
@@ -232,39 +242,51 @@ interface StashRowProps {
   onEquip: () => void;
 }
 
-/** One banner of the stash: what it does at its tier, what it would do in this village's hall, and the button. */
-function StashRow({ banner, data, here, swapping, pending, disabled, onEquip }: StashRowProps) {
+/**
+ * One type and tier of the stash: what it does at its tier, what it would do in this village's hall,
+ * and the button (none while an attack locks the slot: the lock above says why).
+ */
+function StashRow({ banner, count, data, here, swapping, pending, disabled, onEquip }: StashRowProps) {
   const { t } = useI18n();
   const s = t.banners;
   const percent = usePercent();
-  const type = banner.type as BannerType;
+  const type = banner.type;
   const effective = effectiveTier(banner.tier, here.hallLevel);
   const name = s.types[type];
   return (
     <li className={styles.stashRow}>
-      <Banner type={type} tier={banner.tier} size={72} />
+      <Banner type={type} tier={banner.tier} size={72} decorative />
       <div className={styles.stashText}>
-        <strong>{name}</strong>
+        <strong>
+          {name}
+          {count > 1 && <span className={styles.countPill}>{s.count(count)}</span>}
+        </strong>
         <span>{s.tier(banner.tier)}</span>
         <span>{s.effects[type](percent(effectOfTier(data.effects, type, banner.tier)))}</span>
         {here.hallLevel > 0 && effective < banner.tier && <span className={styles.hint}>{s.cappedAt(effective)}</span>}
       </div>
-      <Button
-        type="button"
-        size="small"
-        disabled={disabled}
-        aria-label={swapping ? s.swapLabel(name) : s.equipLabel(name)}
-        onClick={onEquip}
-      >
-        {pending ? s.equipping : swapping ? s.swap : s.equip}
-      </Button>
+      {!here.locked && (
+        <Button
+          type="button"
+          size="small"
+          disabled={disabled}
+          aria-label={swapping ? s.swapLabel(name) : s.equipLabel(name)}
+          onClick={onEquip}
+        >
+          {pending ? s.equipping : swapping ? s.swap : s.equip}
+        </Button>
+      )}
     </li>
   );
 }
 
+/** How long the fuse plays over the card (Banners.module.css: the fade ends at 2.85 s). */
+const FUSE_MS = 2900;
+
 /**
  * Fusing (M32c, 02-game-rules §21.4.2): choose three stash banners of one tier, pick the type the
  * new one takes, confirm. The banners are buttons that toggle (`aria-pressed`), grouped by tier.
+ * Once fused, the three fly together into the new one over the card (1.3, not with reduced motion).
  */
 function FuseCard({ stash }: { stash: OwnBanner[] }) {
   const { t } = useI18n();
@@ -274,6 +296,17 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
   const [type, setType] = useState<BannerType | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<{ type: BannerType; tier: number } | null>(null);
+  // the three banners flying together into the new one (1.3), shown over the card for a moment
+  const [fusing, setFusing] = useState<{ from: BannerLike[]; type: BannerType; tier: number } | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (fusing === null) {
+      return;
+    }
+    bodyRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    const timer = window.setTimeout(() => setFusing(null), FUSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [fusing]);
   const groups = fusableByTier(stash.map(asBannerLike));
   // a chosen banner that left the stash (fused, raised, stolen) is no longer chosen
   const present = chosen.filter((entry) => stash.some((banner) => banner.id === entry.id));
@@ -296,6 +329,9 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
       { bannerIds: present.map((banner) => banner.id), type: target },
       {
         onSuccess: () => {
+          if (!prefersReducedMotion()) {
+            setFusing({ from: present, type: target, tier: newTier });
+          }
           setDone({ type: target, tier: newTier });
           setChosen([]);
           setType(null);
@@ -308,7 +344,20 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
   const anyGroup = groups.some((group) => group.banners.length >= FUSE_COUNT);
   return (
     <Card title={s.fuseTitle}>
-      <div className={styles.body}>
+      <div ref={bodyRef} className={`${styles.body} ${styles.fuseBody}`}>
+        {fusing !== null && (
+          <div className={styles.fuseAnimation} aria-hidden="true">
+            {fusing.from.map((banner, index) => (
+              <span key={banner.id} className={styles.fuseFrom} data-place={index}>
+                <Banner type={banner.type} tier={banner.tier} size={48} decorative />
+              </span>
+            ))}
+            <span className={styles.fuseFlash} />
+            <span className={styles.fuseTo}>
+              <Banner type={fusing.type} tier={fusing.tier} size={72} decorative />
+            </span>
+          </div>
+        )}
         <p className={styles.hint}>{s.fuseExplain}</p>
         {done !== null && (
           <p className={styles.success} role="status">
@@ -339,7 +388,7 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
                             aria-label={s.selectLabel(s.label(name, banner.tier))}
                             onClick={() => toggle(banner)}
                           >
-                            <Banner type={banner.type} tier={banner.tier} size={40} />
+                            <Banner type={banner.type} tier={banner.tier} size={40} decorative />
                             <span>{name}</span>
                           </button>
                         </li>
@@ -361,7 +410,7 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
                       checked={option === pickedType}
                       onChange={() => setType(option)}
                     />
-                    <Banner type={option} tier={newTier} size={20} />
+                    <Banner type={option} tier={newTier} size={20} decorative />
                     {s.types[option]}
                   </label>
                 ))}
@@ -395,9 +444,9 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
   );
 }
 
-/** The server's banner with its type as the client's union (the schema says string). */
+/** The server's banner as the shape the fuse helpers take. */
 function asBannerLike(banner: OwnBanner): BannerLike {
-  return { id: banner.id, type: banner.type as BannerType, tier: banner.tier, villageId: banner.villageId ?? null };
+  return { id: banner.id, type: banner.type, tier: banner.tier, villageId: banner.villageId ?? null };
 }
 
 /** One of the player's villages: its hall, its banner, and a link to its page. */
@@ -410,11 +459,20 @@ function VillageRow({ entry, data, current }: { entry: BannerVillage; data: Bann
       {banner === null ? (
         <span className={styles.noBanner} aria-hidden="true" />
       ) : (
-        <Banner type={banner.type as BannerType} tier={banner.tier} size={20} dormant={entry.effectiveTier === 0} />
+        <Banner type={banner.type} tier={banner.tier} size={20} dormant={entry.effectiveTier === 0} decorative />
       )}
       <span className={styles.villageName}>{entry.name}</span>
       <span className={styles.hint}>
-        {banner === null ? s.noBanner : s.types[banner.type as BannerType]} · {s.hallShort(entry.hallLevel)}
+        {banner === null ? (
+          s.noBanner
+        ) : (
+          <>
+            {s.types[banner.type]}
+            {/* the picture is decorative here, so its tier is read from this text */}
+            <span className="sr-only">, {s.tier(banner.tier)}</span>
+          </>
+        )}{' '}
+        · {s.hallShort(entry.hallLevel)}
       </span>
     </>
   );

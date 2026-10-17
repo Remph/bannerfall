@@ -1,5 +1,6 @@
 package de.bannerfall.event;
 
+import de.bannerfall.world.WorldService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
@@ -22,6 +23,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * check, so an event is never applied twice. If the handler throws, that transaction is rolled back
  * completely and the failure is written in a second one: the attempt is counted, and after {@value
  * #MAX_ATTEMPTS} attempts the event is FAILED. A failing event never blocks the others.
+ *
+ * <p>A world that has ended is frozen (v1.3, 02-game-rules §22): only events due at the end or
+ * before still run, everything later stays pending (and runs if the host takes the end back).
  */
 @Component
 public class EventProcessor {
@@ -48,6 +52,7 @@ public class EventProcessor {
     private final EventHandlerRegistry handlers;
     private final Clock clock;
     private final StartupGate startupGate;
+    private final WorldService worldService;
 
     /** REQUIRES_NEW: every event gets its own transaction, even if the caller has one open. */
     private final TransactionTemplate transaction;
@@ -57,8 +62,10 @@ public class EventProcessor {
             EventHandlerRegistry handlers,
             Clock clock,
             PlatformTransactionManager transactionManager,
-            StartupGate startupGate) {
+            StartupGate startupGate,
+            WorldService worldService) {
         this.events = events;
+        this.worldService = worldService;
         this.handlers = handlers;
         this.clock = clock;
         this.startupGate = startupGate;
@@ -95,6 +102,10 @@ public class EventProcessor {
      * @return how many events were handled successfully
      */
     public int processDue(Instant until) {
+        Instant endedAt = worldService.endedAt();
+        if (endedAt != null && endedAt.isBefore(until)) {
+            until = endedAt;
+        }
         int processed = 0;
         // Failed in this call but still PENDING (attempts left): they would be fetched again and
         // again, so they are skipped until the next call.
@@ -145,6 +156,11 @@ public class EventProcessor {
         if (event == null
                 || event.getStatus() != GameEventStatus.PENDING
                 || event.getDueAt().isAfter(until)) {
+            return false;
+        }
+        // An earlier event of this call may have ended the world (§22): later ones wait.
+        Instant endedAt = worldService.endedAt();
+        if (endedAt != null && event.getDueAt().isAfter(endedAt)) {
             return false;
         }
         handlers.get(event.getKind()).handle(event);

@@ -15,14 +15,6 @@
   margin: 0;
 }
 
-.back {
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.back:hover,
-.back:focus-visible,
 .link:hover,
 .link:focus-visible {
   text-decoration: underline;
@@ -126,7 +118,7 @@
 }
 
 .isFull .bar {
-  background: var(--color-accent);
+  background: var(--color-danger);
 }
 
 .status {

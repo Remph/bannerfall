@@ -57,7 +57,8 @@ class NpcBalanceTest {
 
     @Test
     void customIsNormalUntilTheAdminSetsIt() {
-        Difficulty custom = new Difficulty(1.5, 0, 1, 2, 1, 1, false, false, "01:00", "02:00");
+        Difficulty custom =
+                new Difficulty(1.5, 0, 1, 2, 1, 1, false, false, "01:00", "02:00", 0.3, true);
 
         assertThat(BALANCE.difficulty(NpcDifficulty.CUSTOM, null)).isEqualTo(NORMAL);
         assertThat(BALANCE.difficulty(NpcDifficulty.CUSTOM, custom)).isEqualTo(custom);
@@ -67,14 +68,43 @@ class NpcBalanceTest {
 
     @Test
     void invalidDifficultyValuesAreReported() {
-        Difficulty bad = new Difficulty(0, -1, 0, 0, -1, 0, true, true, "25:00", null);
+        Difficulty bad = new Difficulty(0, -1, 0, 0, -1, 0, true, true, "25:00", null, -1, false);
 
         assertThat(bad.problems("custom"))
                 .anyMatch(p -> p.contains("production-factor"))
                 .anyMatch(p -> p.contains("boost-below"))
                 .anyMatch(p -> p.contains("attack caps"))
-                .anyMatch(p -> p.contains("HH:mm"));
+                .anyMatch(p -> p.contains("HH:mm"))
+                .anyMatch(p -> p.contains("farm-loot-share"));
         assertThat(NORMAL.problems("normal")).isEmpty();
+    }
+
+    @Test
+    void theFarmBudgetIsAShareOfTheLordsDailyProduction() {
+        // NORMAL: 50 % of a day's production; 1000 per hour make 24 000 a day, so 12 000 of loot
+        assertThat(NORMAL.farmLootShare()).isEqualTo(0.5);
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 11_999, 1000)).isFalse();
+        assertThat(NpcBalance.farmBudgetSpent(NORMAL, 12_000, 1000)).isTrue();
+        // a share of 0 is no budget
+        Difficulty unlimited =
+                new Difficulty(0.9, 0, 1, 1.25, 4, 8, true, true, "23:00", "07:00", 0, false);
+        assertThat(NpcBalance.farmBudgetSpent(unlimited, 1_000_000, 1)).isFalse();
+    }
+
+    @Test
+    void customValuesStoredBeforeTheFarmBudgetReadAsNoBudget() {
+        String old =
+                "{\"productionFactor\":0.9,\"boostBelow\":0.5,\"boostFactor\":1.25,"
+                        + "\"leadMargin\":1.25,\"attacksPerPlayerPerDay\":4,"
+                        + "\"attacksPerHumanPerDay\":8,\"quietHours\":true,"
+                        + "\"spareLastVillage\":true,\"buildQuietFrom\":\"23:00\","
+                        + "\"buildQuietTo\":\"07:00\"}";
+
+        Difficulty read = new NpcDifficultyConverter().convertToEntityAttribute(old);
+
+        assertThat(read.farmLootShare()).isZero();
+        assertThat(read.farmRest()).isFalse();
+        assertThat(read.problems("custom")).isEmpty();
     }
 
     @Test

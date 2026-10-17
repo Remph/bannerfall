@@ -16,11 +16,11 @@ import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
 import de.bannerfall.village.OwnerChange;
-import de.bannerfall.village.SpawnService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageLocker;
 import de.bannerfall.village.VillageRefDto;
 import de.bannerfall.village.VillageRepository;
+import de.bannerfall.world.WorldService;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
@@ -46,6 +46,7 @@ public class ConquestService {
     private final ApplicationEventPublisher events;
     private final AchievementService achievements;
     private final BannerService bannerService;
+    private final WorldService worldService;
 
     ConquestService(
             OwnerChange ownerChange,
@@ -56,7 +57,8 @@ public class ConquestService {
             ReportService reportService,
             ApplicationEventPublisher events,
             AchievementService achievements,
-            BannerService bannerService) {
+            BannerService bannerService,
+            WorldService worldService) {
         this.ownerChange = ownerChange;
         this.stacks = stacks;
         this.villages = villages;
@@ -66,6 +68,7 @@ public class ConquestService {
         this.events = events;
         this.achievements = achievements;
         this.bannerService = bannerService;
+        this.worldService = worldService;
     }
 
     /**
@@ -109,7 +112,10 @@ public class ConquestService {
         ownerChange.dropOrders(village.getId(), at);
         ownerChange.dropUnits(village, previousOwnerId);
 
-        village.conquer(conqueror, SpawnService.defaultName(conqueror.getName()), at);
+        village.conquer(
+                conqueror,
+                worldService.settings().villageNameLanguage().defaultName(conqueror.getName()),
+                at);
         // the banner flying there goes with the village (02-game-rules §21.6.1)
         ConquestReport.ConqueredBanner banner =
                 bannerService.villageConquered(village, conqueror, at);

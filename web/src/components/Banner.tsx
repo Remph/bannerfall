@@ -115,10 +115,18 @@ interface BannerProps {
   size?: number;
   /** Greyed out: the banner is dormant (the village has no Banner Hall). */
   dormant?: boolean;
+  /**
+   * Hidden from screen readers, for a banner whose name is written right next to it: otherwise the
+   * name would be read twice.
+   */
+  decorative?: boolean;
 }
 
-/** `<Banner type="WAR" tier={2} />`: an image labelled "War banner, tier II". */
-export function Banner({ type, tier, size = 56, dormant = false }: BannerProps) {
+/**
+ * `<Banner type="WAR" tier={2} />`: an image labelled "War banner, tier II"; with `decorative`, an
+ * image screen readers skip.
+ */
+export function Banner({ type, tier, size = 56, dormant = false, decorative = false }: BannerProps) {
   const t = useT();
   const level = Math.min(3, Math.max(1, Math.round(tier)));
   const { field, emblem } = looks[type];
@@ -131,8 +139,9 @@ export function Banner({ type, tier, size = 56, dormant = false }: BannerProps) 
       viewBox="0 0 48 72"
       width={size}
       height={(size * 72) / 48}
-      role="img"
-      aria-label={t.banners.label(t.banners.types[type], level)}
+      role={decorative ? undefined : 'img'}
+      aria-label={decorative ? undefined : t.banners.label(t.banners.types[type], level)}
+      aria-hidden={decorative || undefined}
       style={dormant ? { opacity: 0.45, filter: 'grayscale(0.7)' } : undefined}
       focusable="false"
     >

@@ -106,6 +106,24 @@ public class NpcBalance {
         return d.productionFactor() * (stance.boosted() ? d.boostFactor() : 1.0);
     }
 
+    // ---- the farm budget (09 §6.2, v1.3) ----
+
+    /** The farm budget counts the loot of the last 24 real hours. */
+    public static final Duration FARM_BUDGET_WINDOW = Duration.ofHours(24);
+
+    /**
+     * Whether the lord has farmed enough for now: its loot of the last 24 real hours is at least
+     * the difficulty's {@code farmLootShare} of what its villages produce in 24 hours. A share of 0
+     * is no budget.
+     *
+     * @param productionPerHour the lord's production per real hour, all villages and resources
+     *     (world speed and production factor included)
+     */
+    public static boolean farmBudgetSpent(Difficulty d, long loot, double productionPerHour) {
+        double share = d.farmLootShare();
+        return share > 0 && loot >= share * productionPerHour * FARM_BUDGET_WINDOW.toHours();
+    }
+
     // ---- limits towards players (§7) ----
 
     /** The caps count the commands of the last 24 real hours. */

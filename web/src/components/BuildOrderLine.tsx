@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import type { BuildOrder } from '../api/queries/buildings';
 import { hasStarted, progress } from '../game/buildQueue';
 import { formatWhen } from '../game/format';
-import { useServerNow } from '../game/serverTime';
-import { useI18n } from '../i18n';
+import { useGameNow } from '../game/serverTime';
+import { useI18n, useT } from '../i18n';
 import styles from './BuildOrderLine.module.css';
 import { Countdown } from './Countdown';
 import { Icon } from './Icon';
@@ -16,13 +16,31 @@ export function BuildOrderList({ children }: { children: ReactNode }) {
 /**
  * One order of a build queue: building, target level and when it is ready; the running order also
  * gets a countdown and a progress bar. `children` are buttons on the right (the Town Hall's controls).
+ * `finished` and `entering` come from useFinishedOrders: a done order folds away, the next slides in.
  */
-export function BuildOrderLine({ order, children }: { order: BuildOrder; children?: ReactNode }) {
+export function BuildOrderLine({
+  order,
+  children,
+  finished = false,
+  entering = false,
+}: {
+  order: BuildOrder;
+  children?: ReactNode;
+  finished?: boolean;
+  entering?: boolean;
+}) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const started = hasStarted(order, now);
+  if (finished) {
+    return (
+      <FinishedOrderLine>
+        {t.buildings[order.building]} <span className={styles.level}>{t.village.level(order.targetLevel)}</span>
+      </FinishedOrderLine>
+    );
+  }
   return (
-    <li className={styles.line}>
+    <li className={entering ? `${styles.line} ${styles.entering}` : styles.line}>
       <span className={styles.icon}>
         <Icon name={order.building} />
       </span>
@@ -46,6 +64,28 @@ export function BuildOrderLine({ order, children }: { order: BuildOrder; childre
         )}
       </span>
       {children !== undefined && <span className={styles.actions}>{children}</span>}
+    </li>
+  );
+}
+
+/**
+ * An order that has just finished: green with a check and "Done", then its line folds away
+ * (UI review 1.3, motion). Hidden from screen readers, which hear the queue as it is now.
+ */
+export function FinishedOrderLine({ children }: { children: ReactNode }) {
+  const t = useT();
+  return (
+    <li className={`${styles.line} ${styles.finished}`} aria-hidden="true">
+      <span className={`${styles.icon} ${styles.doneIcon}`}>
+        <Icon name="check" />
+      </span>
+      <span className={styles.text}>
+        <span className={styles.name}>{children}</span>
+        <span className={`${styles.time} ${styles.doneText}`}>{t.buildQueue.finished}</span>
+        <span className={styles.bar}>
+          <span className={styles.fill} />
+        </span>
+      </span>
     </li>
   );
 }

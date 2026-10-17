@@ -155,6 +155,8 @@
   /* at the bottom: room for the chat button, so it never covers the end of a page */
   .main {
     padding: var(--space-4) var(--space-3) 5rem;
+    /* the padding above and below, for pages that fill the window (ListDetail's fill) */
+    --main-padding-block: calc(var(--space-4) + 5rem);
   }
 
   /* the map on the desktop (M11b): the whole width and height between the bars and the footer */
@@ -176,4 +178,27 @@
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* The chat column (1.3, ChatDock from 1600 px, not on the map): fixed at the right edge below the
+   bars, so the page, the banners above it and the footer's server time make room for it. The page
+   keeps its width and moves left, centred in what is left of the window. */
+.app:has([data-chat-column]) .main {
+  max-width: calc(var(--content-width) + var(--chat-column-width));
+  padding-right: calc(var(--chat-column-width) + var(--space-3));
+}
+
+.app:has([data-chat-column]) > aside {
+  width: auto;
+  margin-left: calc(max(0px, (100% - var(--content-width) - var(--chat-column-width)) / 2) + var(--space-3));
+}
+
+.app:has([data-chat-column]) .footer {
+  padding-right: calc(var(--chat-column-width) + var(--space-3));
+}
+
+/* Page changes cross-fade (global.css): the header is captured on its own, so it stays put. It is a
+   stacking context already (sticky with a z-index), so the name changes nothing else. */
+.header {
+  view-transition-name: header;
 }

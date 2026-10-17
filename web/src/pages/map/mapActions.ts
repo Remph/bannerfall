@@ -54,3 +54,16 @@ export function mapActions(
       ];
   }
 }
+
+/**
+ * The panel's buttons by weight (1.3): one lead (open an own village, attack any other), support
+ * next to it (the farm list for barbarians), the rest as quiet links.
+ */
+export function rankActions<T extends MapAction>(actions: T[]): { lead?: T; second?: T; quiet: T[] } {
+  const lead = actions.find((action) => action.key === 'open' || action.key === 'attack');
+  const second =
+    lead === undefined
+      ? undefined
+      : (actions.find((action) => action.key === 'support') ?? actions.find((action) => action.key === 'farm'));
+  return { lead, second, quiet: actions.filter((action) => action !== lead && action !== second) };
+}

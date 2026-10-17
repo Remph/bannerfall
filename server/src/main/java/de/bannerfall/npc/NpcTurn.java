@@ -26,6 +26,8 @@ final class NpcTurn {
      *     cap window
      * @param lordPoints the lord's player points
      * @param braked the rubber band's brake (09 §8) from the last finish step
+     * @param farmBudgetSpent the lord's loot of the last 24 real hours has reached its farm budget
+     *     (09 §6.2, v1.3): no farms or raids this round
      */
     record View(
             long lordId,
@@ -38,7 +40,8 @@ final class NpcTurn {
             List<Incoming> incoming,
             Map<Long, Integer> otherLordsToHuman,
             int lordPoints,
-            boolean braked) {}
+            boolean braked,
+            boolean farmBudgetSpent) {}
 
     final View view;
     final Village village;
@@ -56,6 +59,15 @@ final class NpcTurn {
 
     /** Set by the warfare before the economy: this academy village wants nobles (§6.6). */
     boolean wantsNobles;
+
+    /** Set by the defence: a foreign attack (not only scouts) is due here (§6.5). */
+    boolean threatened;
+
+    /**
+     * Set by the retaliation (v1.3): this village waits for its attack units to come home for a
+     * retaliation it can win with its whole army, so it doesn't farm with them meanwhile.
+     */
+    boolean gathering;
 
     NpcTurn(
             View view,

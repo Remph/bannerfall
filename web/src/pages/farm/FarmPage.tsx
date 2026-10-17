@@ -49,7 +49,7 @@ function Farm({ villageId }: { villageId: number }) {
   const bannerDrops = world !== undefined && world.bannersEnabled && world.bannerDropFactor > 0;
   const targetList = targets.data;
   const refetchTargets = targets.refetch;
-  // a "Banner chance used" pill goes when its time is up: the list is fetched again then (a second
+  // a "Banner from …" pill goes when its time is up: the list is fetched again then (a second
   // later, so the server's clock is past it too)
   useEffect(() => {
     const backIn =
@@ -88,58 +88,63 @@ function Farm({ villageId }: { villageId: number }) {
         <h1>{t.farm.title}</h1>
         <p className={styles.hint}>{t.farm.explainer}</p>
       </header>
-      {/* coming from "Add to farm list" on the map or a report: the form first */}
-      {initialTarget !== '' && add}
-      <Card title={t.farm.listTitle(village.data.name)}>
-        {targets.isError ? (
-          <div className={styles.body}>
-            <ErrorMessage>{errorMessage(t, targets.error)}</ErrorMessage>
-          </div>
-        ) : targets.isPending ? (
-          <div className={styles.body}>
-            <p>{t.common.loading}</p>
-          </div>
-        ) : targets.data.length === 0 ? (
-          <div className={styles.body}>
-            <p className={styles.empty}>{t.farm.empty}</p>
-          </div>
-        ) : (
-          <>
-            <SendAllBar
-              targets={targets.data}
-              // serverNow(), not ticking: as for the rows, a protection ending days later
-              leavesPlayersOut={targets.data.some((target) =>
-                farmSendEndsProtection(Date.parse(me.protectedUntil), target.target.playerId, serverNow()),
-              )}
-              bannerChances={bannerDrops ? targets.data.filter((target) => target.bannerChance).length : undefined}
-              pending={sendAll.isPending}
-              result={sendAll.data}
-              error={sendAll.error}
-              onSend={(bannerChanceOnly) => sendAll.mutate(bannerChanceOnly)}
-            />
-            <ul className={styles.list}>
-              {targets.data.map((target) => (
-                <li key={target.id}>
-                  <TargetRow
-                    villageId={villageId}
-                    target={target}
-                    home={home}
-                    note={notes?.get(target.id)}
-                    sendingAll={sendAll.isPending}
-                  />
-                </li>
-              ))}
-            </ul>
-            <div className={styles.body}>
-              <p className={styles.hint}>{t.farm.count(targets.data.length, FARM_LIST_MAX)}</p>
-              {targets.data.some((target) => bannerRollBackAt(target.nextBannerRollAt, serverNow()) !== undefined) && (
-                <p className={styles.hint}>{t.farm.bannerRollHint}</p>
-              )}
-            </div>
-          </>
-        )}
-      </Card>
-      {initialTarget === '' && add}
+      {/* desktop: the targets left, the form at the right (1.3); phones: one column, the form first
+          when coming from "Add to farm list" on the map or a report (first in the page too, so the
+          reading and tab order is the order on the screen) */}
+      <div className={styles.columns}>
+        {initialTarget !== '' && <div className={styles.formColumn}>{add}</div>}
+        <div className={styles.listColumn}>
+          <Card title={t.farm.listTitle(village.data.name)}>
+            {targets.isError ? (
+              <div className={styles.body}>
+                <ErrorMessage>{errorMessage(t, targets.error)}</ErrorMessage>
+              </div>
+            ) : targets.isPending ? (
+              <div className={styles.body}>
+                <p>{t.common.loading}</p>
+              </div>
+            ) : targets.data.length === 0 ? (
+              <div className={styles.body}>
+                <p className={styles.empty}>{t.farm.empty}</p>
+              </div>
+            ) : (
+              <>
+                <SendAllBar
+                  // serverNow(), not ticking: as for the rows, a protection ending days later
+                  leavesPlayersOut={targets.data.some((target) =>
+                    farmSendEndsProtection(Date.parse(me.protectedUntil), target.target.playerId, serverNow()),
+                  )}
+                  bannerChances={bannerDrops ? targets.data.filter((target) => target.bannerChance).length : undefined}
+                  pending={sendAll.isPending}
+                  result={sendAll.data}
+                  error={sendAll.error}
+                  onSend={(bannerChanceOnly) => sendAll.mutate(bannerChanceOnly)}
+                />
+                <ul className={styles.list}>
+                  {targets.data.map((target) => (
+                    <li key={target.id}>
+                      <TargetRow
+                        villageId={villageId}
+                        target={target}
+                        home={home}
+                        note={notes?.get(target.id)}
+                        sendingAll={sendAll.isPending}
+                      />
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.body}>
+                  <p className={styles.hint}>{t.farm.count(targets.data.length, FARM_LIST_MAX)}</p>
+                  {targets.data.some(
+                    (target) => bannerRollBackAt(target.nextBannerRollAt, serverNow()) !== undefined,
+                  ) && <p className={styles.hint}>{t.farm.bannerRollHint}</p>}
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+        {initialTarget === '' && <div className={styles.formColumn}>{add}</div>}
+      </div>
     </div>
   );
 }

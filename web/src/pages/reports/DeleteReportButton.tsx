@@ -9,10 +9,8 @@ const ARMED_MS = 4000;
 
 interface DeleteReportButtonProps {
   reportId: number;
-  /** The report's title, for the button's accessible name in the list. */
+  /** The report's title, for the button's accessible name. */
   title: string;
-  /** Only the icon (list lines); otherwise icon and "Delete". */
-  compact?: boolean;
   /** The second tap: the delete starts now. */
   onStart?: () => void;
   onDeleted?: () => void;
@@ -24,14 +22,7 @@ interface DeleteReportButtonProps {
  * second deletes. Without a second tap it turns back after a few seconds. No sheet: cleaning up a
  * list of reports shouldn't need a dialog per report, and a stray tap alone deletes nothing.
  */
-export function DeleteReportButton({
-  reportId,
-  title,
-  compact = false,
-  onStart,
-  onDeleted,
-  onError,
-}: DeleteReportButtonProps) {
+export function DeleteReportButton({ reportId, title, onStart, onDeleted, onError }: DeleteReportButtonProps) {
   const t = useT();
   const remove = useDeleteReport();
   const [armed, setArmed] = useState(false);
@@ -54,7 +45,7 @@ export function DeleteReportButton({
     remove.mutate(reportId, { onSuccess: onDeleted, onError });
   }
 
-  const classes = [styles.delete, compact && styles.deleteCompact, armed && styles.deleteArmed].filter(Boolean);
+  const classes = [styles.delete, armed && styles.deleteArmed].filter(Boolean);
   return (
     <button
       type="button"
@@ -71,7 +62,7 @@ export function DeleteReportButton({
       ) : (
         <>
           <Icon name="trash" />
-          {!compact && <span>{t.reports.delete}</span>}
+          <span>{t.reports.delete}</span>
         </>
       )}
     </button>

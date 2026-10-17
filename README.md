@@ -80,6 +80,8 @@ bannerfall-admin player Anna role admin --yes
 bannerfall-admin player Anna revoke-achievement FIRST_BLOOD --reason "…"   # for good, he can't earn it again
 bannerfall-admin world                  # all world settings
 bannerfall-admin world set invite-code newcode
+bannerfall-admin world set victory-mode KEEPS   # DOMINATION (default), KEEPS or NONE; see 02-game-rules §22
+bannerfall-admin world end --at "2026-11-07 20:00"   # end date (Berlin time); --now, --clear; world reopen takes an end back
 bannerfall-admin events failed          # and: events retry <id>
 bannerfall-admin npc list               # npc spawn <personality>, npc difficulty NORMAL
 bannerfall-admin barbarians spawn 40 52
@@ -156,6 +158,8 @@ The database migrates itself at start (Flyway). Everybody is logged out by an up
 4. Tell your friends the address and the invite code. They can register right away.
 5. Set the opening time (Berlin time) and, if you like, check the settings once more on the admin page: `... bannerfall-admin world open --at "2026-10-17 18:00"` (`--clear` takes the time back, `--now` opens at once). At that moment every registered player gets a village and the game starts. The login page shows the opening time and a countdown.
 
+How the world is won is set on the admin page (tab World, cards *Victory* and *End of the world*) or with `world set victory-mode`: by default a side (a guild, or a player without one) wins once it holds 60 % of all villages for 48 hours; `KEEPS` places banner keeps around the map centre instead, and `NONE` leaves the end to you. An end date (`world end --at …`) works in every mode: the most points win then. An ended world is frozen and stays readable; `world reopen` takes the end back. The rules are in `docs/plan/02-game-rules.md` §22.
+
 Everything else about running the world is under *Operating the server* above. A short daily look keeps a world healthy: `bannerfall-admin status`, `events failed`, `check`, `suspicious` and `logs --lines 50`.
 
 **Logs.** The app writes `server.log` and `server.err` into the volume `logs` (rolled daily and at 10 MB, 14 days): `docker compose -f compose.prod.yaml exec app tail -n 100 /app/logs/server.err`, or `bannerfall-admin logs`. The console output is in `docker compose -f compose.prod.yaml logs app`.
@@ -204,7 +208,9 @@ pnpm format:check
 pnpm build
 ```
 
-After changing REST endpoints, regenerate the typed API client (backend must be running): `cd web && pnpm gen:api`.
+After changing REST endpoints, update the web's copy of the API description and regenerate the typed
+API client: `cd server && ./gradlew test --tests '*OpenApiSnapshotTest' -PupdateOpenApi`, then
+`cd web && pnpm gen:api`. CI fails while either is out of date (`OpenApiSnapshotTest`, `pnpm check:api`).
 
 ## Versions (recorded at M0, 2026-10-02)
 

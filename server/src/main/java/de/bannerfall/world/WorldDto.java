@@ -24,7 +24,18 @@ import java.time.Instant;
  * @param paladinMaxSlots the most paladins a player can have; 0 = no paladin (M31)
  * @param bannersEnabled whether banners work in this world (M32, 02-game-rules §21.9)
  * @param bannerDropFactor multiplier of the banner drop chances; 0 = no drops (M32)
- * @param phase PREGAME until the host opens the world (M14g)
+ * @param marketExchangeRatio what 1 of a resource costs at the market itself; 0 = off (v1.3,
+ *     02-game-rules §12.1)
+ * @param victoryMode how the world is won (v1.3, 02-game-rules §22); {@code GET /api/world/victory}
+ *     has the details and the standings
+ * @param dominationPercent the share of all villages a side must hold (DOMINATION)
+ * @param victoryHoldHours how long a side must hold its share or its keeps (real hours)
+ * @param keepCount the banner keeps the world should have (KEEPS)
+ * @param keepPercent the share of the keeps a side must hold, rounded up (KEEPS)
+ * @param endsAt the end date the host set, null if none (§22)
+ * @param endedAt when the world ended, null while it runs (§22); the client's game time stands
+ *     still there
+ * @param phase PREGAME until the host opens the world (M14g), ENDED once it is over (§22)
  * @param opensAt the time the pre-game ends, null if the host has not set one (null once open)
  * @param registeredPlayers human players with an account (the pre-game page shows how many)
  * @param version the release this server runs, e.g. {@code 1.1.0} (M28; the tag next to the server
@@ -60,6 +71,14 @@ public record WorldDto(
         int paladinMaxSlots,
         boolean bannersEnabled,
         double bannerDropFactor,
+        double marketExchangeRatio,
+        VictoryMode victoryMode,
+        int dominationPercent,
+        int victoryHoldHours,
+        int keepCount,
+        int keepPercent,
+        @Schema(nullable = true) Instant endsAt,
+        @Schema(nullable = true) Instant endedAt,
         WorldPhase phase,
         @Schema(nullable = true) Instant opensAt,
         long registeredPlayers,

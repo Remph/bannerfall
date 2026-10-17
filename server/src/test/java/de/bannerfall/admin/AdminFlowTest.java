@@ -126,6 +126,52 @@ class AdminFlowTest {
     }
 
     @Test
+    void villagesGetNamesInTheWorldsLanguageAndASwitchRenamesTheDefaultNames() throws Exception {
+        admin.get("/api/admin/world-settings")
+                .andExpect(jsonPath("$.villageNameLanguage").value("EN"));
+        TestPlayer ben = TestPlayer.register(mockMvc);
+        String benName = playerName(ben);
+        assertThat(villageName(ben.villageId)).isEqualTo(benName + "'s village");
+        // a name the player gave stays whatever the language
+        TestPlayer clara = TestPlayer.register(mockMvc);
+        clara.browser
+                .patch(clara.villagePath(), "{\"name\":\"Burg Clara\"}")
+                .andExpect(status().isOk());
+        // also one in the shape of a default name, but not around a player's name
+        TestPlayer emil = TestPlayer.register(mockMvc);
+        emil.browser
+                .patch(emil.villagePath(), "{\"name\":\"Grandma's village\"}")
+                .andExpect(status().isOk());
+
+        // the invite code stays, so new players can still register
+        admin.put("/api/admin/world-settings", keepingInvite(",\"villageNameLanguage\":\"DE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.villageNameLanguage").value("DE"));
+
+        assertThat(villageName(ben.villageId)).isEqualTo("Dorf von " + benName);
+        assertThat(villageName(clara.villageId)).isEqualTo("Burg Clara");
+        assertThat(villageName(emil.villageId)).isEqualTo("Grandma's village");
+        TestPlayer dora = TestPlayer.register(mockMvc);
+        assertThat(villageName(dora.villageId)).isEqualTo("Dorf von " + playerName(dora));
+        // too long for the English pattern: left as it is
+        String longName = "Dorf von " + "A".repeat(23);
+        jdbc.sql("update village set name = ? where id = ?")
+                .params(longName, dora.villageId)
+                .update();
+
+        // an older client that leaves it out keeps it; switching back renames back
+        admin.put("/api/admin/world-settings", keepingInvite("}"))
+                .andExpect(jsonPath("$.villageNameLanguage").value("DE"));
+        assertThat(villageName(ben.villageId)).isEqualTo("Dorf von " + benName);
+        admin.put("/api/admin/world-settings", keepingInvite(",\"villageNameLanguage\":\"EN\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(villageName(ben.villageId)).isEqualTo(benName + "'s village");
+        assertThat(villageName(clara.villageId)).isEqualTo("Burg Clara");
+        assertThat(villageName(dora.villageId)).isEqualTo(longName);
+    }
+
+    @Test
     void unitLevelsAreOffByDefaultAndSwitchedOnAndOff() throws Exception {
         admin.get("/api/admin/world-settings")
                 .andExpect(jsonPath("$.unitLevelsEnabled").value(false));
@@ -176,6 +222,31 @@ class AdminFlowTest {
         admin.put("/api/admin/world-settings", withExtra(",\"bannerDropFactor\":-1}"))
                 .andExpect(status().isBadRequest());
         assertThat(worldService.settings().bannerDropFactor()).isZero();
+    }
+
+    @Test
+    void theMarketExchangeRatioIsChangedKeptWhenLeftOutAndRangeChecked() throws Exception {
+        admin.get("/api/admin/world-settings")
+                .andExpect(jsonPath("$.marketExchangeRatio").value(1.5));
+
+        admin.put("/api/admin/world-settings", withExtra(",\"marketExchangeRatio\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.marketExchangeRatio").value(2.0));
+        // an older client that leaves it out keeps it
+        admin.put("/api/admin/world-settings", settingsJson("Testland", 1, 5, 10, "c"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.marketExchangeRatio").value(2.0));
+
+        // 0 switches trading with the market off, 1 is the cheapest, 10 the dearest
+        admin.put("/api/admin/world-settings", withExtra(",\"marketExchangeRatio\":0}"))
+                .andExpect(status().isOk());
+        admin.put("/api/admin/world-settings", withExtra(",\"marketExchangeRatio\":1}"))
+                .andExpect(status().isOk());
+        admin.put("/api/admin/world-settings", withExtra(",\"marketExchangeRatio\":0.5}"))
+                .andExpect(status().isBadRequest());
+        admin.put("/api/admin/world-settings", withExtra(",\"marketExchangeRatio\":10.5}"))
+                .andExpect(status().isBadRequest());
+        assertThat(worldService.settings().marketExchangeRatio()).isEqualTo(1.0);
     }
 
     @Test
@@ -500,6 +571,26 @@ class AdminFlowTest {
                 .update();
     }
 
+    private String villageName(long villageId) {
+        return jdbc.sql("select name from village where id = ?")
+                .param(villageId)
+                .query(String.class)
+                .single();
+    }
+
+    private String playerName(TestPlayer player) {
+        return jdbc.sql("select name from player where id = ?")
+                .param(player.playerId)
+                .query(String.class)
+                .single();
+    }
+
+    /** Like {@link #withExtra} with the world's invite code. */
+    private String keepingInvite(String extra) {
+        String body = settingsJson("Testland", 1, 5, 10, originalSettings.inviteCode()).strip();
+        return body.substring(0, body.length() - 1) + extra;
+    }
+
     /**
      * The standard body with more fields ({@code extra} starts with a comma and closes the object).
      */
@@ -553,6 +644,13 @@ class AdminFlowTest {
                 s.paladinVillagesPerSlot(),
                 s.paladinMaxSlots(),
                 s.bannersEnabled(),
-                s.bannerDropFactor());
+                s.bannerDropFactor(),
+                s.marketExchangeRatio(),
+                s.victoryMode(),
+                s.dominationPercent(),
+                s.victoryHoldHours(),
+                s.keepCount(),
+                s.keepPercent(),
+                s.villageNameLanguage());
     }
 }

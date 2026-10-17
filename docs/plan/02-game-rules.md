@@ -46,6 +46,13 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `bannersEnabled` | true | Banners (M32, §21): on = the Banner Hall, equipping and the banner effects work; off = no effects, nothing can be equipped or built (the Hall is hidden), banners that exist are kept and asleep |
 | `bannerDropFactor` | 1.0 | 0–3: multiplies the banner drop chances (§21.7, built in M32b); 0 = no drops. Stored and shown since M32a |
 | `tradeMaxRatio` | 3.0 | Market offers: `1/ratio ≤ want/offer ≤ ratio` |
+| `marketExchangeRatio` | 1.5 | Trading with the market itself (v1.3, §12.1): what 1 of another resource costs; 0 = off, otherwise 1–10 |
+| `victoryMode` | DOMINATION | How the world is won (v1.3, §22): `DOMINATION`, `KEEPS` or `NONE` |
+| `dominationPercent` | 60 | 10–100: share of all villages (barbarians included) a side must hold in `DOMINATION` (§22.2) |
+| `victoryHoldHours` | 48 | 1–720 real hours a side must keep meeting the condition (§22.2) |
+| `keepCount` | 5 | 1–12 banner keeps around the centre in `KEEPS` (§22.3) |
+| `keepPercent` | 51 | 1–100: share of the keeps a side must hold, rounded up, at least 1 (§22.2) |
+| `villageNameLanguage` | EN | The language of the names the game gives villages (v1.3, §2): `EN` "Ben's village", `DE` "Dorf von Ben" |
 | `npcLordCount` | 4 | NPC lords spawned at world creation (§11b) |
 | `npcDifficulty` | NORMAL | EASY / NORMAL / HARD / CUSTOM – the NPC balance limits (§11b, 09 §8); CUSTOM's values are edited by the admin |
 | `npcThinkMinutes` | 20 | Base interval between NPC decision rounds, ÷ `speed` (§11b) |
@@ -76,7 +83,9 @@ A fresh production world starts in the **pre-game** (`bannerfall.world.start-in-
 - At most one village per field.
 - **Spacing rule:** a new village may not be placed within distance `< 2` of another village (neighbouring fields stay free).
 
-**Player spawn** (`MapPlacement.findPlayerSpot`). The new village is named `<player name>'s village` (just the player name if that is longer than 32 characters); players can rename it.
+**Player spawn** (`MapPlacement.findPlayerSpot`). The new village is named `<player name>'s village`, since v1.3 in the world's `villageNameLanguage` (`EN` that, `DE` `Dorf von <player name>`; just the player name if the name would be longer than 32 characters); players can rename it. The same name goes to an NPC lord's village and to a barbarian village someone conquers (§10). **Switching the language** (admin page or `bannerfall-admin world set village-name-language DE`) renames once every village whose name is still the old language's pattern around a player's name (`<name>'s village` ↔ `Dorf von <name>`, the owner's or a previous owner's, whoever owns it now), unless the new name would be too long; names players gave stay, also one in that shape around something that is no player's name ("Grandma's village") (`VillageRepository.renameDefaultNames`, bumping the version so no write puts the old name back).
+
+**Main village (v1.3).** A player's village list (`/api/me`, the village switcher, and with it the village a fresh login opens) is ordered by `owner_since`, when the player got the village (founded or conquered); the first one, held the longest, is tagged "Main village" once he has more than one. It has no game effect.
 ```
 n = number of player-owned villages
 r = 8 + 2.5 * sqrt(n) + random(-2.0, 2.0)
@@ -242,7 +251,7 @@ The Town Hall page shows what the **next** level of a building does before the p
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | SPEARMAN | Spearman | Speerträger | BARRACKS | Barracks 1 | 40 | 35 | 15 | 1 | 10 | 15 | 40 | INF | 18 | 25 | 1000 |
 | SWORDSMAN | Swordsman | Schwertkämpfer | BARRACKS | Barracks 1, Smithy 1 | 30 | 30 | 70 | 1 | 20 | 50 | 20 | INF | 22 | 15 | 1450 |
-| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 50 | 35 | 45 | 1 | 40 | 10 | 5 | INF | 18 | 10 | 1300 |
+| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 50 | 35 | 45 | 1 | 40 | 10 | 5 | INF | 18 | 15 | 1300 |
 | SCOUT | Scout | Späher | STABLE | Stable 1 | 50 | 50 | 20 | 2 | 0 | 2 | 1 | INF | 9 | 0 | 900 |
 | LIGHT_CAVALRY | Light Cavalry | Leichte Kavallerie | STABLE | Stable 3 | 125 | 100 | 250 | 4 | 120 | 30 | 40 | CAV | 10 | 80 | 1800 |
 | HEAVY_CAVALRY | Heavy Cavalry | Schwere Kavallerie | STABLE | Stable 10, Smithy 15 | 200 | 150 | 600 | 6 | 150 | 200 | 80 | CAV | 11 | 50 | 3600 |
@@ -362,6 +371,7 @@ Types: `ATTACK`, `SUPPORT`, `RETURN`.
 - If the home village changes owner (conquest, §10), every unit belonging to it outside the village is **lost**: its stacks elsewhere are deleted and its movements are cancelled without return (events deleted).
 - **On the map (M26, 2026-10-13):** the target village of a movement gets a marker – red crossed swords for attacks, yellow crossed swords for attacks that carry nobles, a green sword for supports. A player only sees markers for **his own commands** (attacks and supports sent from his villages, wherever they go) and for **what is on the way to his own villages** (foreign attacks and supports) – the same he sees at his rally points, so the map reveals nothing about other players' movements (like M21's loyalty rule). Yellow only for his own attacks: a foreign attack hides its units, so a defender sees an incoming noble attack in red. His own attack on a village he owns by now gets no marker (it arrives like a support, §10).
 - **Returning troops on the map (M36, 2026-10-14):** when his own troops walk home (survivors of an attack, a cancelled command, a support withdrawn or sent back), the village they return to gets a blue badge with the rally point's "returning" arrow in the **top right** corner of its field, with the number of returns from 2 on. Only his own returns, and only on his own villages (a RETURN always walks to the units' home): the defender's map doesn't follow an attacker home, and nobody sees another player's troops returning.
+- **Movement lines (v1.3, 2026-10-16, a player's wish):** a switch of its own on the map draws the same movements one by one as lines from where they started to where they arrive, solid behind the troops and dotted ahead, with the marker's badge where the troops are now (position = start + (target − start) × elapsed ÷ travel time). Same visibility as the markers. **Another player's attack on one of his villages gets a line but no position:** the server leaves out its start time, because with the distance it would give away the pace of the slowest unit (a noble walks slowest), which the rally point doesn't tell either; it is dotted all the way and shows only the time left. Supports other players send him show their position (their units are visible at the rally point anyway). Tapping a badge or a line shows what it is, the time left, the arrival to the second and the fields still ahead; since the UI review 1.3 in a panel that also shows the troops wherever the rally point shows them and offers Cancel while the cancel window is open. An attack on the player stands out in long dashes; the player's own troops still within one field of their start fold into one badge with their number at that village. Off by default, stored per device (picked defaults, overrulable).
 
 
 ### 6.1 Attack trains (M37, branch `integration/v1-2-features`)
@@ -486,6 +496,8 @@ stored[r] −= loot[r]
 ```
 Example: capacity 1000, stored 300/2000/2000, hiding 150 → avail 150/1850/1850 → loot 150/425/425.
 
+**Full haul (1.3):** when `loot` adds up to `capacity` (> 0), the troops carried all they could, so the stock likely holds more: the attacker's report stores `capacity` (`haulCapacity`) and the report list marks the line "full haul" (a hint to send more carriers next time). Only the attacker sees it; reports from before 1.3 have no capacity and never show it.
+
 ## 10. Loyalty and conquest
 
 - Every village has `loyalty` (0–100, starts at 100). Lazy regen: `min(100, loyalty + loyaltyRegenPerHour × speed × hours)`.
@@ -601,6 +613,21 @@ NPC lords fight each other by the same rules.
 
 **Decisions in M13b (2026-10-07):** the `TRADE_ARRIVED` report says what the warehouse could not take (`Village.receiveResources` returns the lost amount, counted in whole units like the shown stock); the market page checks the same limits as the server before it enables a button (free merchants, stock, ratio – `tradeMaxRatio` comes with `GET /api/world`) and the server still decides. The dev cheat `finish-movements` lets the merchants a village sent arrive too.
 
+### 12.1 Trading with the market (v1.3)
+
+Besides offers between players, a village can trade with **the market itself**: it gets `amount` of R2 and pays `ceil(amount × marketExchangeRatio)` of R1 (R1 ≠ R2; default ratio 1.5, so 1000 iron costs 1500 wood). The cost is counted in decimals (1000 at 1.1 costs 1100), rounded up once.
+
+| Quantity | Formula |
+|---|---|
+| Daily cap per resource, market level L | `floor(1000 × L × speed)` (L 0 → 0, L 25 at speed 1 → 25 000) |
+| Cost of `amount` | `ceil(amount × marketExchangeRatio)` |
+
+- **Instant, no merchants:** paid and received in the same request; merchants stay free and no transport, event or report is created.
+- **The cap counts what the village receives**, per resource and per village (1000 × L of wood, of clay and of iron each). What it pays doesn't count. The day ends at **midnight in the server's day zone** (`bannerfall.market.day-zone`, default `Europe/Berlin`; a 23- or 25-hour day at the clock changes); the market page shows when the next one starts. Rows of earlier days are deleted when the village trades again.
+- **Order of the checks:** the village is yours (`VILLAGE_NOT_FOUND`), the world has it on (`EXCHANGE_OFF` for ratio 0), R1 ≠ R2 (`SAME_RESOURCE`), the cap (`EXCHANGE_LIMIT`, also without a market), the stock pays for it (`NOT_ENOUGH_RESOURCES`), the warehouse can take all of it (`WAREHOUSE_FULL`: a trade that would overflow the warehouse is refused rather than cut). `amount` is 1–1 000 000 (validation).
+- The host changes the ratio at any time (admin page, `bannerfall-admin world set market-exchange-ratio 2`); values between 0 and 1 are refused, since below 1 trading back and forth would create resources.
+- NPC lords use it by the same rules and caps (v1.3): only to pay the next building or noble now, when one resource is short and the others can cover it at the ratio; never half a trade.
+
 ## 13. Chat
 
 - One global channel. Since M15b each guild has a channel of its own (§16.1).
@@ -639,7 +666,7 @@ Details (M8b):
 
 ## 15. Not in the MVP (ideas for later)
 
-Paladin, archers, morale, night bonus, demolishing, research levels, world end conditions, multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style).
+Paladin, archers, morale, night bonus, demolishing, research levels, world end conditions (built in v1.3, §22), multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style).
 
 **Dismissing units** – implemented, see §5.2a. The rules as decided (2026-10-04):
 - The player dismisses units of one kind from the home stack (only units at home). They **leave the home stack at once**: they no longer defend and can't be sent.
@@ -707,8 +734,8 @@ A list of targets per village with the units the player usually sends, a one-tap
 - **List:** per village (the village whose units are sent), at most **50 targets** (`FARM_LIST_FULL`). A target is a village, any village but the player's own (`SAME_VILLAGE`, `OWN_VILLAGE`), once per list (`ALREADY_IN_FARM_LIST`). It stays on the list when its owner changes (a barbarian village that a player conquers is still a target, only the beginner protection starts to count); it disappears when the village does.
 - **Template:** the units that are sent, 0 … 30 000 per type, at least one unit, **no nobles and no paladin** (a noble needs a decision each time, a paladin is a general and not a raider; M31). It can be changed at any time. Units don't have to be at home when it is saved.
 - **Send:** one tap sends exactly the template as an **attack** from the list's village, through the same code as a normal command (§6): units leave home now, the same errors (`NOT_ENOUGH_UNITS`, `PROTECTED_TARGET` at the arrival time, `OWN_VILLAGE` if the player has conquered the target since …), nothing is sent in part. The attack ends the sender's own beginner protection like any other, unless the target is a barbarian village (§6; the template has no nobles). The entry remembers when it was last sent.
-- **Send all (M39):** one button above the list works through it **from the top** (the order the targets were added), each entry exactly like its own Send (its template, an attack, the same rules). It goes on until the list is done or it reaches the first entry whose template the units at home don't cover (`NOT_ENOUGH_UNITS`): **there it stops**, even when a later, smaller template would still fit. Entries whose target can't be hit right now are **skipped** and the run goes on: the target player is under beginner protection at arrival (`PROTECTED_TARGET`) or the target is the player's own village by now (`OWN_VILLAGE`). A skipped entry stops nothing, even if its units would not have been enough either. While the **sender's own beginner protection** lasts, players' villages are skipped as well (default): a single Send of such a target asks twice because it ends that protection, so one tap for the whole list never does; barbarian villages are sent. Every attack that went out stays sent (no all-or-nothing, unlike an attack train); the run holds the village's lock, so nothing else takes its units in between. The answer lists the sent and skipped entries (with the reason) and where it stopped. Two taps (the button turns into "Really send all?", like a protected row's Send) since one tap sends up to 50 attacks; no other confirmation, no cooldown, entries with an attack already on the way are sent again.
-- **Send banner chances (1.2.3):** a second button next to "Send all" runs the same way over only the entries with a banner chance: no "Banner chance used" (§21.7: the player's roll against that target is free) and a template that can win a roll (not scouts alone; against a barbarian village at least 30 population, since the attacker's army is the losing side's size there). An entry whose pair (§21.7) already has one of the player's attacks on the way that can win a roll is left out too, since that attack uses the roll when it lands; a player's villages are one pair, so only the first of them on the list gets the chance (1.2.3, after the review). So a player can go for banners in one tap. The entries left out are neither sent nor counted as skipped. Hidden in worlds without banner drops.
+- **Send all (M39):** one button above the list works through it **from the top** (the order the targets were added), each entry exactly like its own Send (its template, an attack, the same rules). It always goes on **to the end of the list**. An entry whose template the units at home don't cover (any more) is **skipped** (`NOT_ENOUGH_UNITS`) and the run goes on with the next one, so a later entry with other or fewer units still goes out (v1.3, a player's wish: five axe entries and then four light cavalry entries, with axemen for four, used to stop at the fifth axe entry and leave the cavalry at home; until 1.2.3 the run stopped at the first such entry). Entries whose target can't be hit right now are skipped the same way: the target player is under beginner protection at arrival (`PROTECTED_TARGET`) or the target is the player's own village by now (`OWN_VILLAGE`); these reasons win over `NOT_ENOUGH_UNITS` when both apply. While the **sender's own beginner protection** lasts, players' villages are skipped as well (default): a single Send of such a target asks twice because it ends that protection, so one tap for the whole list never does; barbarian villages are sent. Every attack that went out stays sent (no all-or-nothing, unlike an attack train); the run holds the village's lock, so nothing else takes its units in between. The answer lists the sent and skipped entries (with the reason); the status line counts the attacks sent, the entries skipped and, separately, those not sent for lack of troops. Two taps (the button turns into "Really send all?", like a protected row's Send) since one tap sends up to 50 attacks; no other confirmation, no cooldown, entries with an attack already on the way are sent again.
+- **Send banner chances (1.2.3):** a second button next to "Send all" runs the same way over only the entries with a banner chance: no "Banner from …" tag (§21.7: the player's roll against that target is free) and a template that can win a roll (not scouts alone; against a barbarian village at least 30 population, since the attacker's army is the losing side's size there). An entry whose pair (§21.7) already has one of the player's attacks on the way that can win a roll is left out too, since that attack uses the roll when it lands; a player's villages are one pair, so only the first of them on the list gets the chance (1.2.3, after the review). So a player can go for banners in one tap. The entries left out are neither sent nor counted as skipped. An entry with a chance that the units don't cover is skipped like in "Send all" and doesn't use its pair's chance, so the next entry of the same player can still take it (v1.3). Hidden in worlds without banner drops.
 - **List display:** distance and one-way travel time of the template (the slowest unit), the target's beginner protection if it still lasts, when it was last sent. No result of the last attack is shown (default; the reports have it).
 - **From a report (M38):** a battle report offers the other side's village for the farm list: in the attacker's `ATTACK` and `SCOUT` reports the attacked village, in a `DEFENSE` report (also a supporter's) the attacker's village; never one of the reader's own villages. It opens the farm list of the village that sent the attack or scouts (while it is still the reader's), otherwise the current village's (like the map's "Add to farm list"), with the target filled in, and from an `ATTACK` report also the units that attack sent (without nobles, paladin and thieves) as the template; the player checks and adds it there. A village already on that list gets a link to the list instead.
 - **Owner change:** when a village changes hands (§10), its farm list is dropped with its orders; the new owner starts with an empty one.
@@ -965,7 +992,7 @@ Same chance for players and lords as requested; barbarians "a small chance". The
 - **Size:** the **losing** side must have fought with at least **30 population** of units (the attacker's sent units, or the defender's units in the village before losses; against barbarians the attacker's army must be at least 30 pop). Beating an empty village or a lone probe rolls nothing.
 - **One roll per pair per real day:** the same winner against the same loser (player, NPC lord, or one barbarian village) rolls at most **once per 24 real hours** (not scaled by speed: it protects the player's day, like the NPC attack caps, 09 §7). The reverse direction is its own pair.
 - **At most 8 drops per player per real 24 hours** as a safety net; normal play never hits it.
-- The farm list (§18) shows a "Banner chance used" tag with the time it comes back on each target whose pair roll is used (1.2.2), so players can aim for the targets that can still drop one. Against a player or lord the tag is on all of their villages, since the pair is the player.
+- The farm list (§18) shows a "Banner from 14:32" tag with the time it comes back (until 1.3 "Banner chance used · back at 14:32") on each target whose pair roll is used (1.2.2), so players can aim for the targets that can still drop one. Against a player or lord the tag is on all of their villages, since the pair is the player. Since v1.3 the detailed map shows the same thing: a small faded banner at the top left of each village whose pair roll is used (only the player's own rolls, so it reveals nothing about others), and the village panel says when it comes back ("used · back at 15:37").
 - Not eligible: attacks on one's own villages. A battle that conquers the village **does** roll (the banner that moves with the conquest and the drop are independent).
 - A player under beginner protection may win against barbarians and roll (M25), nobody can attack him.
 
@@ -1085,3 +1112,44 @@ Where the spec was silent, M32c picked these defaults (open to change):
 - **Simulator.** The request takes `warTier` (the War banner of the attacking village, 0 to 3), `bulwarkTier` (the Bulwark in the target, 0 to 3) and `bannerHall` (the target's hall, 0 to the building's maximum); missing means none. The hall caps the Bulwark like a real village (§21.2) and is the catapults' target level when they aim at the Banner Hall. The War tier is taken as it is (the player types the tier that works in his village). The answer names both bonuses once and per run the thieves sent and surviving and the theft chance (§21.6.2, with the hall after the catapults); it is 0 when the battle is lost or no thief survives, and without thieves there is no theft row. A world with banners off ignores all three inputs and shows none of it. Code review 1.2 (D4) added `plunderTier` (with the loot capacity) and `oathTier` (capped by the hall, with the loyalty outlook); the answer names them as `plunderBonus` and `oathBonus`.
 - **Simulator, filling the form.** "My units here" takes the War banner of the current village at the tier its hall lets it work; "This village" takes its Bulwark (as it is) and its hall; "Clear" resets them. From a report: the War banner from the report's attack bonus; the Bulwark and the hall from a successful scouting (the hall from the scouted buildings); without one, the Bulwark the defenders' copy names, in a hall just big enough for it. Turning a report's percent back into a tier uses the effect table of `GET /api/banners`.
 - **NPC estimator.** A successful scouting now also keeps the scouted banner in the lord's memory (a later scouting replaces it, a failed one keeps the old). The estimate adds the Bulwark at the tier the scouted hall allows, only while banners are on; any other banner type adds nothing. Lords still never use banners or thieves. Thieves among the scouted troops count as defenders with their 3 defence (attack 0 changes nothing in a defence), which a test pins down. The estimate fights without unit levels, as before.
+
+## 22. World end and victory (v1.3, branch `feature/v1-3-world-end`)
+
+Until v1.3 a world ran until the host stopped it. Now the host picks how it is won (decided 2026-10-16), with room for more modes later.
+
+### 22.1 Sides
+
+- A **side** is a guild with all its members while guilds are on (`guildsEnabled`), otherwise a single player. A player without a guild is a side of his own, so he can win too; in a world without guilds every player is.
+- NPC lords are players and count like them. Barbarian villages belong to nobody: they count in the total of all villages but are no side.
+- A side's numbers: its villages, its points (sum of its villages' points) and its banner keeps (§22.3).
+
+### 22.2 Modes (`victoryMode`)
+
+| Mode | A side wins once it… |
+|---|---|
+| `DOMINATION` (default) | holds at least `dominationPercent` % of **all villages on the map** (barbarians included) and is alone ahead in villages, for `victoryHoldHours` real hours in a row |
+| `KEEPS` | holds at least `ceil(keeps × keepPercent / 100)` (at least 1) of the banner keeps on the map and is alone ahead in keeps, for `victoryHoldHours` real hours in a row. 51 % of 5 keeps = 3, 51 % of 4 = 3, 99 % of 4 = 4, 50 % of 4 = 2 |
+| `NONE` | never wins by conquest: only the end date or the host ends the world |
+
+- **End date (`endsAt`, every mode).** The host may set one; when it comes, the side with the most points wins (then the most villages, then the lower key). Nobody wins on an empty map.
+- **The clock.** The event `VICTORY_CHECK` runs every 5 real minutes while the world is open (not scaled by `speed`). It stores the side that meets the condition (`victory_leader`, e.g. `GUILD:12` or `PLAYER:5`) and since when. Another side meeting it, or nobody, resets the clock; the hold time counts from the first check that saw the current side. The side wins at the first check at or after `since + victoryHoldHours`. A tie at the top means nobody meets the condition. Whenever the side meeting the condition changes (a side starts the clock, another takes it over, or nobody meets it any more), every human player gets `VICTORY_CLOCK` (since the v1.3 UI review): who holds it and when they win, or whose clock stopped, and whether that side is the player's own.
+- **Existing worlds** migrate to `DOMINATION` 60 % / 48 h, no end date.
+
+### 22.3 Banner keeps
+
+- `keepCount` (1–12, default 5) strong barbarian villages, flagged `keep`, on a ring around the map centre where the map is otherwise empty: evenly spaced, the first one straight north, radius `max(3, keepCount × 2.5 / 2π)` fields; a single keep sits on the centre. An occupied or too-close field moves the keep to the nearest free field within 10 (deterministic scan).
+- Each starts with mines, warehouse, farm and Town Hall at level 10, wall 10, a half-full warehouse and a garrison of 1000 spearmen, 1000 swordsmen and 100 heavy cavalry. Otherwise it is an ordinary barbarian village (it grows, can be farmed and conquered); conquered, it stays a keep for its new owner.
+- They are placed at world creation in a `KEEPS` world (before the other barbarians), and by the next victory check when the host switches to `KEEPS` or raises `keepCount`. Lowering it removes none; the share counts against the keeps that exist.
+- The map draws every keep as a fort with a gold flag and a gold ring around it (a gold star when zoomed far out and on the overview map); the village panel names it "Banner keep" and says how the race stands for the side holding it.
+
+### 22.4 The end: frozen
+
+- The world's phase becomes `ENDED` (`ended_at` set) and the result is stored (`world_result`: reason `DOMINATION` / `KEEPS` / `END_DATE`, the winner, the top 100 sides). Every human player gets `WORLD_ENDED` with the winner's name.
+- **Nothing moves any more:** game time stands still at `ended_at`. No event due after the end is processed (movements stay where they are, build orders wait, NPC lords stop), and a village read or caught up later is only brought forward to the end (no resources, loyalty, recruited or dismissed units after it; researches show as they were). The client's game time (`gameTime` in `serverTime.ts`) stops there too, so resources and countdowns stand still on screen ("stopped"); the server clock keeps running. The client turns off the buttons of everything the server refuses (05-frontend, *Ended world*) and drops the attack warnings. Every write answers `409 WORLD_ENDED`, except logging in and out, the own password, chat, guild chat, messages, reports (reading marks, sending, deleting), the simulator and the admin endpoints. Everything stays readable.
+- **The host can undo it** (`POST /api/admin/world-end/reopen`, `bannerfall-admin world reopen`): the result is deleted, the end date and the clock are cleared, the world runs on and everybody gets `WORLD_OPENED`. It picks up exactly where it stopped (since the v1.3 review): every game clock moves on by the frozen time (`FrozenTime`: pending events, build, recruit, dismiss and research orders, movements, transports, the villages' resource and loyalty anchors, beginner protection, banner chances, battle credits, loyalty sightings), so an attack keeps the travel time it had left and no village gets resources for the frozen time. History (reports, messages, chat) keeps its real time.
+
+### 22.5 Host
+
+- Settings `victoryMode`, `dominationPercent` (10–100), `victoryHoldHours` (1–720), `keepCount` (1–12), `keepPercent` (1–100) in the world settings (a card of their own on the admin page; `bannerfall-admin world set victory-mode KEEPS` etc.). They change in a running world; the next check uses them.
+- End date: `PUT /api/admin/world-end {endsAt}` (null clears; a time in the past ends the world at once, dated now, never back), `POST /api/admin/world-end/now` (the most points win), `bannerfall-admin world end --at <time> | --now | --clear`.
+- Players see the rules in the world info, and above the ranking a victory card: who holds what and the countdown to their win, the rule in one sentence (all of it behind "Rules"), the end date, the top 10 sides by the mode's measure; after the end the result (the winner, how they won, the player's own place) and the final standings. While a side meets the condition a strip under the top bar shows it on every page; after the end a strip says who won, and once per world an end screen shows the result (05-frontend, *Ended world*).

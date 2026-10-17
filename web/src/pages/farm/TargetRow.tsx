@@ -6,6 +6,7 @@ import { useChangeFarmUnits, useRemoveFarmTarget, useSendFarm, type FarmTarget }
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { MoreMenu } from '../../components/MoreMenu';
 import { Sheet } from '../../components/Sheet';
 import { UnitSummary } from '../../components/UnitSummary';
 import {
@@ -15,6 +16,7 @@ import {
   hasUnits,
   templateOf,
   type SendAllNote,
+  type SendAllSkipReason,
 } from '../../game/farm';
 import {
   formatCoords,
@@ -45,7 +47,8 @@ interface TargetRowProps {
 }
 
 /**
- * One target: where, how far, the template, and the buttons: send (one attack), edit, remove.
+ * One target: where, how far, the template, and Send (one attack) next to its name; edit and remove
+ * sit behind "…" (1.3), so the row has one button and the list stays short.
  * While the sender's beginner protection lasts, an attack on a player's village ends it (02 §6, D9):
  * the row says so like the rally point's confirmation, and Send takes two taps – the first turns it
  * into "Send anyway?", without a second it turns back after a few seconds. Barbarian villages stay
@@ -59,15 +62,21 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
   const remove = useRemoveFarmTarget(villageId);
   const [editing, setEditing] = useState(false);
   const [armed, setArmed] = useState(false);
-  // the note this row's own Send came after: it no longer says what happened last ("Stopped here"
-  // next to a sent attack); the next "send all" brings new notes
+  // the note this row's own Send came after: it no longer says what happened last ("not enough
+  // troops" next to a sent attack); the next "send all" brings new notes
   const [sentOverNote, setSentOverNote] = useState<SendAllNote>();
   const sentHere = send.variables === target.id;
   const template: UnitMap = target.units;
   const enough = fitsHome(template, home);
+  const showNote = note !== undefined && note !== sentOverNote;
+  // "Send all" sent this row: its last-sent fact gets a check instead of a line of its own (1.3)
+  const sentByRun = showNote && note.kind === 'sent';
+  // the run's "Not sent: not enough troops at home" says the same as the live line and more
+  const shortNote = showNote && note.kind === 'skipped' && note.reason === 'NOT_ENOUGH_UNITS';
   const protectedUntil = target.protectedUntil == null ? undefined : Date.parse(target.protectedUntil);
   const village = target.target;
-  // serverNow(), not the ticking useServerNow(): up to 50 rows shouldn't re-render every second for a
+  const name = village.name ?? t.map.barbarianVillage;
+  // serverNow(), not the ticking useGameNow(): up to 50 rows shouldn't re-render every second for a
   // protection that ends days later. A row rendered just before the end asks once too often at worst.
   const endsProtection = farmSendEndsProtection(Date.parse(me.protectedUntil), village.playerId, serverNow());
   // the same for the banner roll: the list is fetched again after every send
@@ -93,57 +102,80 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
 
   return (
     <div className={styles.target}>
-      <div className={styles.targetHead}>
-        <span className={styles.targetName}>{village.name ?? t.map.barbarianVillage}</span>
-        <Link className={styles.coords} to={mapPath(villageId, village)}>
-          {formatCoords(village.x, village.y)}
-        </Link>
-        {village.playerName != null && <span className={styles.owner}>{village.playerName}</span>}
-        {bannerRollBack !== undefined && (
-          <span className={styles.bannerRoll}>
-            <Icon name="BANNER_HALL" /> {t.farm.bannerRollUsed(formatWhen(bannerRollBack, serverNow(), language))}
-          </span>
-        )}
+      <div className={styles.targetTop}>
+        <div className={styles.targetHead}>
+          <span className={styles.targetName}>{name}</span>
+          <Link className={styles.coords} to={mapPath(villageId, village)}>
+            {formatCoords(village.x, village.y)}
+          </Link>
+          {village.playerName != null && <span className={styles.owner}>{village.playerName}</span>}
+          {bannerRollBack !== undefined && (
+            <span className={styles.bannerRoll}>
+              <Icon name="BANNER_HALL" /> {t.farm.bannerRollUsed(formatWhen(bannerRollBack, serverNow(), language))}
+            </span>
+          )}
+        </div>
+        <div className={styles.rowActions}>
+          <Button
+            type="button"
+            size="small"
+            disabled={!enough || send.isPending || sendingAll}
+            onClick={onSend}
+            // a mouse or keyboard user who moves on doesn't leave it armed
+            onBlur={() => setArmed(false)}
+            // armed, the visible "Send anyway?" is the name (the warning line below says why)
+            aria-label={armed ? undefined : t.farm.sendTo(name)}
+          >
+            {armed ? t.farm.sendAnyway : t.farm.send}
+          </Button>
+          <MoreMenu
+            label={t.farm.more(name)}
+            items={[
+              { label: t.farm.edit, icon: 'pencil', onSelect: () => setEditing(true) },
+              {
+                label: t.farm.remove,
+                icon: 'trash',
+                danger: true,
+                disabled: remove.isPending,
+                onSelect: () => remove.mutate(target.id),
+              },
+            ]}
+          />
+        </div>
       </div>
       <UnitSummary units={template} />
       <p className={styles.meta}>
         {t.farm.trip(formatDecimal(target.distance, language), formatDuration(target.travelSeconds))}
-        {target.lastSentAt != null && (
-          <> · {t.farm.lastSent(formatRecent(Date.parse(target.lastSentAt), serverNow(), language))}</>
+        {sentByRun ? (
+          <>
+            {' · '}
+            <span className={styles.lastSentDone}>
+              <Icon name="check" />
+              {/* the list is fetched again before the run counts as done, so the time is there */}
+              {target.lastSentAt != null
+                ? t.farm.lastSent(formatRecent(Date.parse(target.lastSentAt), serverNow(), language))
+                : t.farm.noteSent}
+            </span>
+          </>
+        ) : (
+          target.lastSentAt != null && (
+            <> · {t.farm.lastSent(formatRecent(Date.parse(target.lastSentAt), serverNow(), language))}</>
+          )
         )}
       </p>
       {protectedUntil !== undefined && (
         <p className={styles.warn}>{t.farm.protectedUntil(formatWhenExact(protectedUntil, serverNow(), language))}</p>
       )}
       {endsProtection && <p className={styles.notice}>{t.rally.endsProtection}</p>}
-      {!enough && <p className={styles.meta}>{t.farm.notEnough}</p>}
+      {!enough && !shortNote && <p className={styles.meta}>{t.farm.notEnough}</p>}
       {send.isSuccess && sentHere && (
         <p className={styles.sent} role="status">
           {t.farm.sent(formatWhenExact(Date.parse(send.data.arriveAt), serverNow(), language))}
         </p>
       )}
       {send.isError && sentHere && <ErrorMessage>{errorMessage(t, send.error)}</ErrorMessage>}
-      {note !== undefined && note !== sentOverNote && <SendAllNoteLine note={note} />}
+      {showNote && note.kind === 'skipped' && <SkippedLine reason={note.reason} />}
       {remove.isError && <ErrorMessage>{errorMessage(t, remove.error)}</ErrorMessage>}
-      <div className={styles.actions}>
-        <Button
-          type="button"
-          disabled={!enough || send.isPending || sendingAll}
-          onClick={onSend}
-          // a mouse or keyboard user who moves on doesn't leave it armed
-          onBlur={() => setArmed(false)}
-          // armed, the visible "Send anyway?" is the name (the warning line above says why)
-          aria-label={armed ? undefined : t.farm.sendTo(village.name ?? t.map.barbarianVillage)}
-        >
-          {armed ? t.farm.sendAnyway : t.farm.send}
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
-          {t.farm.edit}
-        </Button>
-        <Button type="button" variant="secondary" disabled={remove.isPending} onClick={() => remove.mutate(target.id)}>
-          {t.farm.remove}
-        </Button>
-      </div>
       <EditSheet
         key={String(editing)}
         open={editing}
@@ -156,17 +188,10 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
   );
 }
 
-/** The row's line after a "send all": sent, skipped and why, or where the run stopped. */
-function SendAllNoteLine({ note }: { note: SendAllNote }) {
+/** The row's line when a "send all" skipped it: why (troops short in the warning colour). */
+function SkippedLine({ reason }: { reason: SendAllSkipReason }) {
   const { t } = useI18n();
-  switch (note.kind) {
-    case 'sent':
-      return <p className={styles.sent}>{t.farm.noteSent}</p>;
-    case 'skipped':
-      return <p className={styles.meta}>{t.farm.noteSkipped[note.reason]}</p>;
-    case 'stopped':
-      return <p className={styles.warn}>{t.farm.noteStopped}</p>;
-  }
+  return <p className={reason === 'NOT_ENOUGH_UNITS' ? styles.warn : styles.meta}>{t.farm.noteSkipped[reason]}</p>;
 }
 
 interface EditSheetProps {

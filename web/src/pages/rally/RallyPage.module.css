@@ -30,7 +30,7 @@
   text-decoration: underline;
 }
 
-/* ---------- layout: phone = send, movements, troops, dev cheats; desktop = send + troops | movements ---------- */
+/* ---------- layout: phone = one part behind the switch, then the dev cheats; desktop = send + troops | movements ---------- */
 .layout {
   display: grid;
   gap: var(--space-3);
@@ -44,6 +44,20 @@
   display: grid;
   gap: var(--space-3);
   align-content: start;
+}
+
+@media (max-width: 1023.98px) {
+  .layout[data-part='send'] > :is(.moves, .troops),
+  .layout[data-part='moves'] > :is(.send, .troops),
+  .layout[data-part='troops'] > :is(.send, .moves) {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .switchRow {
+    display: none;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -460,6 +474,37 @@
   font-size: 0.9rem;
 }
 
+/* how far an own command has come (1.3), in the map's colours for its kind */
+.moveBar {
+  display: block;
+  height: 4px;
+  margin: 3px 0 1px;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  overflow: hidden;
+}
+
+.moveFill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  /* glides between the seconds instead of jumping, like the build queue's bar */
+  transition: transform 1s linear;
+}
+
+.barAttack .moveFill {
+  background: var(--map-attack);
+}
+
+.barSupport .moveFill {
+  background: var(--map-support);
+}
+
+.barReturn .moveFill {
+  background: var(--map-return);
+}
+
 .moveActions {
   flex: none;
   margin-left: auto;
@@ -608,4 +653,28 @@
 
 .cardError {
   padding: 0 var(--space-3) var(--space-3);
+}
+
+/* incoming: said once above the list instead of "Units unknown" on every attack (1.3) */
+.incomingNote {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* in place of an attack's hidden units: the attacker on the map; the padding makes the small text a
+   finger-sized target without moving the line */
+.onMap {
+  justify-self: start;
+  padding-block: 0.75rem;
+  margin-block: -0.75rem;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.onMap:hover {
+  text-decoration: underline;
 }

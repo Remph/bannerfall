@@ -36,6 +36,23 @@ export function stashOf<T extends BannerLike>(banners: readonly T[]): T[] {
     .sort((a, b) => b.tier - a.tier || bannerTypes.indexOf(a.type) - bannerTypes.indexOf(b.type) || a.id - b.id);
 }
 
+/**
+ * The stash for its list (1.3): banners of the same type and tier in one row with their count, in
+ * stash order. The row's banner is the first of them, the one "Equip" sends.
+ */
+export function groupStash<T extends BannerLike>(stash: readonly T[]): { banner: T; count: number }[] {
+  const groups: { banner: T; count: number }[] = [];
+  for (const banner of stash) {
+    const group = groups.find((entry) => entry.banner.type === banner.type && entry.banner.tier === banner.tier);
+    if (group === undefined) {
+      groups.push({ banner, count: 1 });
+    } else {
+      group.count += 1;
+    }
+  }
+  return groups;
+}
+
 /** Banners of one tier that fuse into one of the next tier (02-game-rules §21.4.2, banners.yml). */
 export const FUSE_COUNT = 3;
 /** The highest tier: it can't be fused. */

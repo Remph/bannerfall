@@ -79,3 +79,46 @@ export function refetchDelayMs(endAtMs: number, nowMs: number): number {
   }
   return nowMs - endAtMs < OVERDUE_FAST_FOR_MS ? OVERDUE_RETRY_MS : SLOW_RETRY_MS;
 }
+
+/** An order that left its queue because it was done, with its place there (UI review 1.3, motion). */
+export interface FinishedOrder<T> {
+  order: T;
+  index: number;
+}
+
+/**
+ * The orders of `before` that are gone from `after` because they were done by `nowMs` – not
+ * cancelled ones, which end later. Works for build, recruit and dismiss queues alike.
+ */
+export function finishedOrders<T extends { id: number; endAt: string }>(
+  before: readonly T[],
+  after: readonly T[],
+  nowMs: number,
+): FinishedOrder<T>[] {
+  const still = new Set(after.map((order) => order.id));
+  return before.flatMap((order, index) =>
+    !still.has(order.id) && Date.parse(order.endAt) <= nowMs ? [{ order, index }] : [],
+  );
+}
+
+/** A line of a queue as shown: an order, or one that just finished and is folding away. */
+export interface ShownOrder<T> {
+  order: T;
+  /** Done and about to fold away (the order is no longer in the queue). */
+  finished: boolean;
+  /** Just moved up to run, after the one before it finished. */
+  entering: boolean;
+}
+
+/** The queue with the just finished orders back at their places. */
+export function withFinished<T extends { id: number }>(
+  queue: readonly T[],
+  finished: readonly FinishedOrder<T>[],
+  enteringId: number | null = null,
+): ShownOrder<T>[] {
+  const shown = queue.map((order) => ({ order, finished: false, entering: order.id === enteringId }));
+  for (const { order, index } of [...finished].sort((a, b) => a.index - b.index)) {
+    shown.splice(Math.min(index, shown.length), 0, { order, finished: true, entering: false });
+  }
+  return shown;
+}

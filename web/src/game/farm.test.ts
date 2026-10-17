@@ -108,23 +108,24 @@ describe('farmSendEndsProtection', () => {
 });
 
 describe('sendAllNotes', () => {
-  it('marks the sent, the skipped and the entry the run stopped at', () => {
+  it('marks the sent and the skipped, troops short included', () => {
     const notes = sendAllNotes({
-      sent: [1, 3],
-      skipped: [{ targetId: 2, reason: 'PROTECTED_TARGET' }],
-      stop: 'NOT_ENOUGH_UNITS',
-      stoppedAt: 4,
+      sent: [1, 3, 5],
+      skipped: [
+        { targetId: 2, reason: 'PROTECTED_TARGET' },
+        { targetId: 4, reason: 'NOT_ENOUGH_UNITS' },
+      ],
     });
     expect(notes.get(1)).toEqual({ kind: 'sent' });
     expect(notes.get(2)).toEqual({ kind: 'skipped', reason: 'PROTECTED_TARGET' });
     expect(notes.get(3)).toEqual({ kind: 'sent' });
-    expect(notes.get(4)).toEqual({ kind: 'stopped' });
-    // after the stop: untouched
-    expect(notes.has(5)).toBe(false);
+    // the run went on below the entry the troops didn't cover
+    expect(notes.get(4)).toEqual({ kind: 'skipped', reason: 'NOT_ENOUGH_UNITS' });
+    expect(notes.get(5)).toEqual({ kind: 'sent' });
   });
 
-  it('has no stop mark when the list was done', () => {
-    const notes = sendAllNotes({ sent: [7], skipped: [], stop: 'DONE', stoppedAt: null });
+  it('leaves the entries the run passed by without a note', () => {
+    const notes = sendAllNotes({ sent: [7], skipped: [] });
     expect([...notes.keys()]).toEqual([7]);
   });
 });

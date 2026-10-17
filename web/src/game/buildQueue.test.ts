@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  finishedOrders,
   hasStarted,
   isPaidSlot,
   moveOptions,
   progress,
   REFETCH_AFTER_END_MS,
   refetchDelayMs,
+  withFinished,
   type QueuedOrder,
 } from './buildQueue';
 import type { BuildingType } from './gameData';
@@ -101,5 +103,49 @@ describe('refetchDelayMs', () => {
 
   it('never waits longer than a day', () => {
     expect(refetchDelayMs(now + 30 * 24 * 60 * minute, now)).toBe(86_400_000);
+  });
+});
+
+describe('finished orders (motion)', () => {
+  const at = (id: number, endMin: number) => ({ id, endAt: new Date(now + endMin * minute).toISOString() });
+
+  it('finds the orders that left the queue because they were done', () => {
+    const before = [at(1, -0.1), at(2, 5), at(3, 9)];
+    expect(finishedOrders(before, [at(2, 5), at(3, 9)], now)).toEqual([{ order: before[0], index: 0 }]);
+  });
+
+  it('leaves out cancelled orders, which end later', () => {
+    const before = [at(1, 2), at(2, 5), at(3, 9)];
+    expect(finishedOrders(before, [at(1, 2), at(3, 9)], now)).toEqual([]);
+  });
+
+  it('finds nothing when the queue is the same', () => {
+    const queue = [at(1, -1), at(2, 5)];
+    expect(finishedOrders(queue, [...queue], now)).toEqual([]);
+  });
+
+  it('puts the finished orders back at their places', () => {
+    const one = at(1, -1);
+    const two = at(2, -0.5);
+    const queue = [at(3, 5), at(4, 9)];
+    const shown = withFinished(
+      queue,
+      [
+        { order: two, index: 1 },
+        { order: one, index: 0 },
+      ],
+      3,
+    );
+    expect(shown.map(({ order, finished, entering }) => [order.id, finished, entering])).toEqual([
+      [1, true, false],
+      [2, true, false],
+      [3, false, true],
+      [4, false, false],
+    ]);
+  });
+
+  it('shows a finished order at the end of a shorter queue', () => {
+    const shown = withFinished([], [{ order: at(7, -1), index: 2 }]);
+    expect(shown).toEqual([{ order: at(7, -1), finished: true, entering: false }]);
   });
 });

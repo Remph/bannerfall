@@ -122,7 +122,8 @@ class ReportShareTest {
     void aCopyIsListedFromWhenItArrivedNotFromWhenItHappened() throws Exception {
         Instant happened = clock.instant().minus(Duration.ofHours(5));
         long old = create(ReportKind.ATTACK, happened, anna);
-        long bensOwn = create(ReportKind.DEFENSE, clock.instant().minus(Duration.ofHours(1)), ben);
+        Instant bensTime = clock.instant().minus(Duration.ofHours(1));
+        long bensOwn = create(ReportKind.DEFENSE, bensTime, ben);
         tick();
 
         share(anna, old, name(ben)).andExpect(status().isOk());
@@ -130,9 +131,11 @@ class ReportShareTest {
         long copyId = newestId(ben);
         ben.reports()
                 .andExpect(jsonPath("$.items[0].id").value(copyId))
-                // the line still shows when it happened
+                // the line still shows when it happened; the day headings go by when it arrived
                 .andExpect(jsonPath("$.items[0].happenedAt").value(happened.toString()))
-                .andExpect(jsonPath("$.items[1].id").value(bensOwn));
+                .andExpect(jsonPath("$.items[0].listedAt").value(clock.instant().toString()))
+                .andExpect(jsonPath("$.items[1].id").value(bensOwn))
+                .andExpect(jsonPath("$.items[1].listedAt").value(bensTime.toString()));
     }
 
     @Test

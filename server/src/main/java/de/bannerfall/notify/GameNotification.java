@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.report.ReportKind;
+import de.bannerfall.victory.VictorySide;
 import de.bannerfall.village.VillageRefDto;
+import de.bannerfall.world.EndReason;
 import io.swagger.v3.oas.annotations.media.DiscriminatorMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
@@ -29,6 +31,8 @@ import java.time.Instant;
     @JsonSubTypes.Type(value = GameNotification.VillageLost.class, name = "VILLAGE_LOST"),
     @JsonSubTypes.Type(value = GameNotification.VillageConquered.class, name = "VILLAGE_CONQUERED"),
     @JsonSubTypes.Type(value = GameNotification.WorldOpened.class, name = "WORLD_OPENED"),
+    @JsonSubTypes.Type(value = GameNotification.WorldEnded.class, name = "WORLD_ENDED"),
+    @JsonSubTypes.Type(value = GameNotification.VictoryClock.class, name = "VICTORY_CLOCK"),
     @JsonSubTypes.Type(value = GameNotification.GuildInvited.class, name = "GUILD_INVITED"),
     @JsonSubTypes.Type(value = GameNotification.GuildChanged.class, name = "GUILD_CHANGED"),
     @JsonSubTypes.Type(value = GameNotification.MessageReceived.class, name = "MESSAGE_RECEIVED"),
@@ -67,6 +71,12 @@ import java.time.Instant;
             @DiscriminatorMapping(
                     value = "WORLD_OPENED",
                     schema = GameNotification.WorldOpened.class),
+            @DiscriminatorMapping(
+                    value = "WORLD_ENDED",
+                    schema = GameNotification.WorldEnded.class),
+            @DiscriminatorMapping(
+                    value = "VICTORY_CLOCK",
+                    schema = GameNotification.VictoryClock.class),
             @DiscriminatorMapping(
                     value = "GUILD_INVITED",
                     schema = GameNotification.GuildInvited.class),
@@ -140,6 +150,35 @@ public sealed interface GameNotification {
      * needsRespawn} if the map had no room). The client loads the world and the player again.
      */
     record WorldOpened() implements GameNotification {}
+
+    /**
+     * The world has ended (v1.3, 02-game-rules §22): a side won or the end date came. The client
+     * shows a toast and loads the world and the result.
+     *
+     * @param winnerName the winning guild's or player's name; null if nobody held a village
+     */
+    record WorldEnded(EndReason reason, @Schema(nullable = true) String winnerName)
+            implements GameNotification {}
+
+    /**
+     * The victory clock started, passed to another side or stopped (v1.3, 02-game-rules §22.2): a
+     * side meets the victory condition now and wins at {@code winsAt} unless somebody stops it, or
+     * the side that met it no longer does. Sent to every player, so nobody misses the last hours of
+     * a world; the client shows a toast and loads the victory state.
+     *
+     * @param leader the side that meets the condition now; null when the clock stopped
+     * @param winsAt when {@code leader} wins if nothing changes; null without a leader
+     * @param previous the side that met it before; null if none, or if it owns no village now
+     * @param leaderYours whether {@code leader} is the player himself or his guild
+     * @param previousYours whether {@code previous} is the player himself or his guild
+     */
+    record VictoryClock(
+            @Schema(nullable = true) VictorySide leader,
+            @Schema(nullable = true) Instant winsAt,
+            @Schema(nullable = true) VictorySide previous,
+            boolean leaderYours,
+            boolean previousYours)
+            implements GameNotification {}
 
     /** A guild leader invited the player (M15a); the client shows a toast and loads the list. */
     record GuildInvited(long guildId, String guildName) implements GameNotification {}

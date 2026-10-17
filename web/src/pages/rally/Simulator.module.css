@@ -9,21 +9,6 @@
   gap: var(--space-1);
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: var(--touch-target);
-  width: fit-content;
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.back:hover {
-  text-decoration: underline;
-}
-
 .intro,
 .muted {
   margin: 0;

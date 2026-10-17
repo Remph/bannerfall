@@ -286,6 +286,32 @@ const icons = {
       <path d="M12 2 V5 M12 19 V22 M2 12 H5 M19 12 H22" {...stroke} strokeWidth={1.8} />
     </>,
   ],
+  /** The movement lines on the map (v1.3): solid behind the troops, dotted ahead. */
+  route: [
+    24,
+    <>
+      <path d="M3.5 20.5 L9.5 14.5" {...stroke} strokeWidth={2.2} />
+      <circle cx="12" cy="12" r="2.8" fill="currentColor" />
+      <path d="M15.5 8.5 L15.51 8.49 M18 6 L18.01 5.99 M20.5 3.5 L20.51 3.49" {...stroke} strokeWidth={2.4} />
+    </>,
+  ],
+  /** A banner keep (1.3): a small fort with a flag. */
+  keep: [
+    24,
+    <>
+      <path d="M4.5 21 V11 H7.5 V13 H10 V11 H14 V13 H16.5 V11 H19.5 V21 Z" {...stroke} strokeWidth={1.8} />
+      <path d="M10.3 21 V17.6 A1.7 1.7 0 0 1 13.7 17.6 V21" {...stroke} strokeWidth={1.8} />
+      <path d="M12 11 V2.8 M12 3.2 L17.5 5 L12 6.8" {...stroke} strokeWidth={1.8} />
+    </>,
+  ],
+  /** The map's layers (1.3): two sheets stacked on a third. */
+  layers: [
+    24,
+    <>
+      <path d="M12 3.5 L21 8.5 L12 13.5 L3 8.5 Z" {...stroke} strokeWidth={1.8} />
+      <path d="M3 12.5 L12 17.5 L21 12.5 M3 16.5 L12 21.5 L21 16.5" {...stroke} strokeWidth={1.8} />
+    </>,
+  ],
   /** The overview map (M11b): the map with the visible part as a small rectangle. */
   overview: [
     24,
@@ -296,11 +322,20 @@ const icons = {
     </>,
   ],
   info: [24, <path d="M12 11 V17 M12 7 V7.5 M3 12 A9 9 0 1 0 21 12 A9 9 0 1 0 3 12" {...stroke} strokeWidth={2} />],
+  lock: [
+    24,
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" {...stroke} strokeWidth={2} />
+      <path d="M8 11 V8 A4 4 0 0 1 16 8 V11" {...stroke} strokeWidth={2} />
+    </>,
+  ],
   chevronLeft: [24, <path d="M15 6 L9 12 L15 18" {...stroke} strokeWidth={2} />],
   chevronRight: [24, <path d="M9 6 L15 12 L9 18" {...stroke} strokeWidth={2} />],
   chevronUp: [24, <path d="M6 15 L12 9 L18 15" {...stroke} strokeWidth={2} />],
   chevronDown: [24, <path d="M6 9 L12 15 L18 9" {...stroke} strokeWidth={2} />],
   close: [24, <path d="M6 6 L18 18 M18 6 L6 18" {...stroke} strokeWidth={2} />],
+  /** A finished order (1.3). */
+  check: [24, <path d="M5 12.5 L10 17.5 L19 7" {...stroke} strokeWidth={2.4} />],
   plus: [24, <path d="M12 5 V19 M5 12 H19" {...stroke} strokeWidth={2} />],
   minus: [24, <path d="M5 12 H19" {...stroke} strokeWidth={2} />],
   /** Sending a report to other players (M40): a paper plane. */

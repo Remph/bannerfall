@@ -6,6 +6,7 @@ import {
   builtBuildings,
   farmCandidate,
   farmListVillageId,
+  groupByDay,
   hasSupporters,
   isScouting,
   pageCount,
@@ -195,5 +196,33 @@ describe('viewerOf (M40)', () => {
   it('is the reader for a report of the game, the first owner for a copy', () => {
     expect(viewerOf(null, 7)).toBe(7);
     expect(viewerOf({ viewOfPlayerId: 3 }, 7)).toBe(3);
+  });
+});
+
+describe('groupByDay', () => {
+  const at = (id: number, listedAt: string) => ({ id, listedAt });
+
+  it('puts the list’s reports under one heading per day, in list order', () => {
+    const days = groupByDay(
+      [
+        at(5, '2026-10-16T09:00:00Z'),
+        at(4, '2026-10-16T01:00:00Z'),
+        at(3, '2026-10-15T22:00:00Z'),
+        at(1, '2026-10-13T08:00:00Z'),
+      ],
+      'UTC',
+    );
+
+    expect(days.map((day) => [day.day, day.items.map((item) => item.id)])).toEqual([
+      ['2026-10-16', [5, 4]],
+      ['2026-10-15', [3]],
+      ['2026-10-13', [1]],
+    ]);
+  });
+
+  it('goes by the device’s day, and is empty without reports', () => {
+    const days = groupByDay([at(2, '2026-10-16T00:30:00+02:00'), at(1, '2026-10-15T23:30:00Z')], 'Europe/Berlin');
+    expect(days).toHaveLength(1);
+    expect(groupByDay([])).toEqual([]);
   });
 });

@@ -5,6 +5,7 @@ import { badgeText } from '../game/reports';
 import { useT } from '../i18n';
 import { attackedVillageId, totalIncomingAttacks } from '../realtime/notifications';
 import styles from './IncomingAttacksBadge.module.css';
+import { useWorldEnded } from './worldEnd';
 
 /**
  * The red counter in the top bar (05-frontend §7): attacks on the way to any of the player's
@@ -17,7 +18,9 @@ export function IncomingAttacksBadge({ currentVillageId }: { currentVillageId: n
   const me = useCurrentAccount();
   const total = totalIncomingAttacks(me);
   const villageId = attackedVillageId(me, currentVillageId);
-  if (total === 0 || villageId === undefined) {
+  // no attack lands in an ended world (v1.3)
+  const ended = useWorldEnded();
+  if (total === 0 || villageId === undefined || ended) {
     return null;
   }
   return (

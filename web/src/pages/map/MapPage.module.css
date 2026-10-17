@@ -7,15 +7,18 @@
 }
 
 /* Desktop (≥ 1024 px, M11b): the detailed map fills the window between the bars (AppLayout's wide
-   mode), a side column with the overview, "go to", legend and the village panel on the right; the
-   column scrolls by itself when the window is too low for it.
-   From 1280 px (1.1.2) the village panel gets a column of its own (see the end of this block), so its
-   buttons never end up below the fold on wide or low windows. */
+   mode), a side column with the overview, "go to" and the folded legend on the right. The column
+   fits the window: the overview shrinks with a low one, and only below about 10 rem of overview
+   does the column scroll (1.3). The village panel floats over the map as on tablets on windows
+   narrower than 1280 px or lower than 1000 px (v1.3); otherwise it sits at the top of the side
+   column (1.3; a column of its own since 1.1.2), so its buttons never end up below the fold. */
 .page {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  --side-width: 20rem;
+
+  grid-template-columns: minmax(0, 1fr) var(--side-width);
   grid-template-rows: minmax(0, 1fr);
   gap: var(--space-3);
 }
@@ -29,43 +32,48 @@
 }
 
 .side {
+  /* the containing block of its hidden screen-reader texts: positioned by the page they made the
+     whole page scroll next to the column */
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* room at the bottom, so the floating chat button never covers the buttons or the legend */
+  padding-bottom: 3.5rem;
 }
 
-/* Three columns (≥ 1280 px): map | overview, "go to" and legend | the selected village. The map
-   gives up width, which it has to spare on such windows, while height is what is scarce. */
+/* From 1280 px: map | one side column with the selected village on top, then the overview, "go
+   to" and the legend (1.3; before, the village had a third column and the map less width). */
 @media (min-width: 1280px) {
   .page {
-    --side-width: 17rem;
+    --side-width: 22rem;
 
-    grid-template-columns: minmax(0, 1fr) var(--side-width) var(--side-width);
-  }
-
-  /* the overview shrinks with a low window (it stays square, the canvas draws a square world) */
-  .side .overviewBox {
-    width: min(100%, max(11rem, 36dvh));
-    margin-inline: auto;
-  }
-
-  /* the village column: room at the bottom, so the floating chat button never covers an action */
-  .sidePanel {
-    padding-bottom: 4rem;
+    grid-template-columns: minmax(0, 1fr) var(--side-width);
   }
 }
 
 @media (min-width: 1600px) {
   .page {
-    --side-width: 20rem;
+    --side-width: 24rem;
   }
 }
 
+.sidePanel {
+  flex: none;
+}
+
+/* the overview card takes what the column has left: its square shrinks with a low window (down to
+   about 10 rem; below that the column scrolls) */
 .sideCard {
+  flex: 0 1 auto;
+  min-height: 14rem;
+  display: flex;
+  flex-direction: column;
   overflow: clip;
   background: var(--color-surface);
   border: 3px double var(--color-border);
@@ -110,6 +118,8 @@
 
 .toolbarSide .goTo {
   max-width: none;
+  /* a row of its own: beside the four buttons the field would be too narrow to type in */
+  flex-basis: 100%;
 }
 
 .goTo {
@@ -169,8 +179,43 @@
 
   .toolbarSide .legend {
     flex-basis: 100%;
-    margin: 0;
+    margin: var(--space-2) 0 0;
   }
+}
+
+/* the side column's legend: "Legend" next to the buttons, the list below it when opened */
+.legendFold[open] {
+  flex-basis: 100%;
+}
+
+.legendSummary {
+  min-height: var(--touch-target);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.legendSummary:hover {
+  background: var(--color-well);
+}
+
+/* no browser triangle: the chevron after the word turns when the legend opens */
+.legendSummary::-webkit-details-marker {
+  display: none;
+}
+
+.legendChevron {
+  transition: transform 0.15s ease;
+}
+
+.legendFold[open] .legendChevron {
+  transform: rotate(180deg);
 }
 
 /* the owner colours of the canvas, for the legend and the panel */
@@ -323,7 +368,7 @@
   }
 }
 
-/* desktop: a card in the side column, not over the map */
+/* wide desktops (≥ 1280 px): a card in a column of its own, not over the map */
 .panel.panelDocked {
   position: static;
   width: auto;
@@ -391,46 +436,78 @@
   white-space: nowrap;
 }
 
+/* the links by weight (1.3): one solid lead, an outlined second, a quiet row of the rest */
 .actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  display: grid;
+  gap: var(--space-1);
   padding-right: var(--space-2);
 }
 
-.action {
-  min-height: 2.25rem;
+/* lead and second share the row; on a narrow panel each takes a full line */
+.leadRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-2);
+}
+
+.lead,
+.second {
+  min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.9rem;
-  border: 1px solid var(--color-border);
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 1rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font: inherit; /* also as a button (the line panel's "Show target") */
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
 
-/* links lead somewhere now: the primary look */
-a.action {
-  border-color: transparent;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+/* red is kept for war: an attack leads in red */
+.lead.attack {
+  background: var(--color-danger);
+  color: var(--color-on-danger);
 }
 
-a.action:hover {
+.lead:hover {
   filter: brightness(1.08);
 }
 
-/* touch screens keep the full touch target height (05-frontend §8) */
-@media (pointer: coarse) {
-  .action {
-    min-height: var(--touch-target);
-  }
+.second {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.second:hover {
+  background: var(--color-well);
+}
+
+.quietRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
+.quiet {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-accent);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.quiet:hover {
+  text-decoration: underline;
 }
 
 .later {
@@ -474,6 +551,29 @@ a.action:hover {
   position: relative;
   aspect-ratio: 1;
   background: var(--map-outside);
+}
+
+/* Phones: no box of its own. Desktop side column: as high as the column is wide, shrinking down to
+   10 rem when the window is low; the square inside is as big as fits (1.3). */
+.overviewFit {
+  display: contents;
+}
+
+.sideCard .overview {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.sideCard .overviewFit {
+  flex: 0 1 calc(var(--side-width) - 6px);
+  min-height: 10rem;
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+
+.sideCard .overviewBox {
+  width: min(100cqw, 100cqh);
 }
 
 .overviewFill .overviewBox {
@@ -571,6 +671,20 @@ a.action:hover {
   flex: none;
 }
 
+.usedBanner {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: none;
+  stroke: var(--map-outline);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.usedBanner path + path {
+  fill: var(--map-banner-used);
+}
+
 .marker circle {
   fill: var(--map-attack);
   stroke: var(--map-outline);
@@ -621,4 +735,167 @@ a.action:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+/* ---------- movement lines (v1.3): the bubble of a tapped or hovered line ---------- */
+.lineBubble {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: max-content;
+  max-width: min(17rem, 80vw);
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.lineTime {
+  font-variant-numeric: tabular-nums;
+}
+
+.lineCountdown {
+  font-weight: 700;
+}
+
+.lineProgress {
+  display: block;
+  height: 5px;
+  margin-top: 0.25rem;
+  border-radius: 3px;
+  background: var(--color-well);
+  overflow: hidden;
+}
+
+.lineProgress > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--map-attack);
+}
+
+.lineProgress[data-kind='noble'] > span {
+  background: var(--map-noble);
+}
+
+.lineProgress[data-kind='support'] > span {
+  background: var(--map-support);
+}
+
+.lineProgress[data-kind='return'] > span {
+  background: var(--map-return);
+}
+
+/* the legend's sample of a line: solid, then dotted */
+.lineSample {
+  flex: none;
+  width: 1.6rem;
+  height: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* the legend's sample of an attack on the player: red, in long dashes */
+.lineSampleHostile {
+  color: var(--map-attack);
+}
+
+/* phones and tablets: the map layers sheet, two switches and the legend */
+.layersSheet {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.layerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layerText {
+  flex: 1;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.layerText > span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.layerSwitch {
+  flex: none;
+  position: relative;
+  width: 2.75rem;
+  height: 1.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  border: 1px solid var(--color-border);
+}
+
+.layerSwitch::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+
+.layerRow[aria-checked='true'] .layerSwitch {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.layerRow[aria-checked='true'] .layerSwitch::after {
+  transform: translateX(1.15rem);
+}
+
+.layersTitle {
+  margin: var(--space-2) 0 0;
+  font-size: 1rem;
+}
+
+.layersSheet .legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.layersSheet .legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* the link from a keep's row to the victory condition (1.3) */
+.keepLink {
+  color: var(--color-accent);
+  font-weight: 600;
+  white-space: nowrap;
 }

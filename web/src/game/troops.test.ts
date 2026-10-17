@@ -8,6 +8,7 @@ import {
   presentUnits,
   sendableUnits,
   trainAttacks,
+  travelProgress,
   troopOverview,
   unitsAway,
   withoutZeros,
@@ -182,5 +183,21 @@ describe('troopOverview', () => {
 
   it('is empty without troops', () => {
     expect(troopOverview(empty)).toEqual([]);
+  });
+});
+
+describe('travelProgress', () => {
+  const movement = { departAt: '2026-10-16T12:00:00Z', arriveAt: '2026-10-16T12:10:00Z' };
+
+  it('runs from 0 at departure to 1 at arrival', () => {
+    expect(travelProgress(movement, Date.parse('2026-10-16T12:00:00Z'))).toBe(0);
+    expect(travelProgress(movement, Date.parse('2026-10-16T12:05:00Z'))).toBe(0.5);
+    expect(travelProgress(movement, Date.parse('2026-10-16T12:10:00Z'))).toBe(1);
+  });
+
+  it('stays between 0 and 1, also for a movement without travel time', () => {
+    expect(travelProgress(movement, Date.parse('2026-10-16T11:59:00Z'))).toBe(0);
+    expect(travelProgress(movement, Date.parse('2026-10-16T12:11:00Z'))).toBe(1);
+    expect(travelProgress({ departAt: movement.departAt, arriveAt: movement.departAt }, 0)).toBe(1);
   });
 });

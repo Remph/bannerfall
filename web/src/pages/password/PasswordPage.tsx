@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useChangePassword } from '../../api/queries/auth';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { Icon } from '../../components/Icon';
 import { TextField } from '../../components/TextField';
 import { useI18n } from '../../i18n';
 import styles from './PasswordPage.module.css';
@@ -32,9 +31,7 @@ export function PasswordPage() {
 
   return (
     <div className={styles.page}>
-      <Link to="/" className={styles.back}>
-        <Icon name="chevronLeft" /> {labels.back}
-      </Link>
+      <BackLink to="/">{labels.back}</BackLink>
       <Card title={labels.title}>
         {change.isSuccess ? (
           <p className={styles.saved}>{labels.saved}</p>

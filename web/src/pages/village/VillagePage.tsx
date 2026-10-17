@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
@@ -11,16 +11,23 @@ import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { RecruitOrderLine, RecruitOrderList } from '../../components/RecruitOrderLine';
+import { SegmentedControl } from '../../components/SegmentedControl';
+import { useFinishedOrders } from '../../components/useFinishedOrders';
 import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
 import { buildingTypes, unitTypes } from '../../game/gameData';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
+import { DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
+import { useWorldEnded } from '../../layout/worldEnd';
 import { bannersPath } from '../banners/bannerPaths';
 import { warehousePath } from '../warehouse/warehousePaths';
 import { buildingTarget } from './buildingTarget';
+import { COMPACT, WIDE } from './scene/layouts';
+import { VillageScene } from './scene/VillageScene';
 import { VillageError } from './VillageError';
 import { VillageName } from './VillageName';
+import { loadVillageView, saveVillageView, type VillageView } from './villageView';
 import styles from './VillagePage.module.css';
 
 /** /v/:villageId – the village overview (05-frontend §3). */
@@ -36,6 +43,7 @@ export function VillagePage() {
 function VillageOverview({ villageId }: { villageId: number }) {
   const { t, language } = useI18n();
   const village = useVillage(villageId);
+  const desktop = useMediaQuery(DESKTOP_QUERY);
 
   if (village.isPending) {
     return <p>{t.common.loading}</p>;
@@ -55,64 +63,127 @@ function VillageOverview({ villageId }: { villageId: number }) {
         <ProtectionNotice />
         <IncomingAttacksNotice village={data} />
       </header>
-      <div className={styles.columns}>
-        <Buildings village={data} />
-        <div className={styles.side}>
+      {/* desktop: buildings over troops | training, queue and facts at the side (1.3); phones and
+          tablets: one column in the order buildings, queue, facts, troops, training. Two trees
+          rather than CSS order, so the reading and tab order is the order on the screen. */}
+      {desktop ? (
+        <div className={styles.columns}>
+          <div className={styles.main}>
+            <Buildings village={data} />
+            <div className={styles.pair}>
+              <TroopsAtHome village={data} />
+              <TrainingSummary villageId={data.id} />
+            </div>
+          </div>
+          <div className={styles.side}>
+            <QueueSummary village={data} />
+            <VillageFacts village={data} />
+          </div>
+        </div>
+      ) : (
+        <div className={styles.columns}>
+          <Buildings village={data} />
           <QueueSummary village={data} />
           <VillageFacts village={data} />
           <TroopsAtHome village={data} />
           <TrainingSummary villageId={data.id} />
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-/** All buildings in the canonical order. Each one links to its own screen or its place in the Town Hall (`buildingTarget`). */
+/**
+ * The width from which the village picture is spread out sideways (tablets, desktop). Narrower, the
+ * wide picture's plates would shrink to 11 px and less; the compact one is kept from growing taller than a
+ * tablet's screen instead (VillagePage.module.css).
+ */
+const WIDE_PICTURE_QUERY = '(min-width: 840px)';
+
+/**
+ * All buildings, as the village picture (the default since 1.3) or as the list; a switch in the
+ * header picks one and is remembered on the device. Each building links to its own screen or its
+ * place in the Town Hall (`buildingTarget`), in both views.
+ */
 function Buildings({ village }: { village: Village }) {
   const t = useT();
+  const [view, setView] = useState<VillageView>(loadVillageView);
+  const wide = useMediaQuery(WIDE_PICTURE_QUERY);
   // a world without banners has no use for the Banner Hall: left out unless one stands there
   const bannersOn = useWorld().data?.bannersEnabled ?? true;
+  const choose = (next: VillageView) => {
+    setView(next);
+    saveVillageView(next);
+  };
   return (
-    <Card title={t.village.buildingsTitle}>
-      <ul className={styles.buildings}>
-        {buildingTypes.map((type) => {
-          const level = village.buildings[type] ?? 0;
-          if (type === 'BANNER_HALL' && !bannersOn && level === 0) {
-            return null;
-          }
-          return (
-            <li key={type} className={level === 0 ? `${styles.building} ${styles.notBuilt}` : styles.building}>
-              <Link className={styles.buildingLink} to={buildingTarget(village.id, type, level)}>
-                <span className={styles.buildingIcon}>
-                  <Icon name={type} />
-                </span>
-                <span className={styles.buildingName}>{t.buildings[type]}</span>
-                {level === 0 ? (
-                  <span className={styles.badgeEmpty}>{t.village.notBuilt}</span>
-                ) : (
-                  <span className={styles.badge}>{t.village.level(level)}</span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+    <Card
+      title={t.village.buildingsTitle}
+      action={
+        <SegmentedControl
+          label={t.village.viewLabel}
+          options={[
+            { value: 'picture', label: t.village.viewPicture },
+            { value: 'list', label: t.village.viewList },
+          ]}
+          value={view}
+          onChange={choose}
+          compact
+        />
+      }
+    >
+      {view === 'picture' ? (
+        <div className={wide ? styles.picture : `${styles.picture} ${styles.pictureCompact}`}>
+          <VillageScene village={village} layout={wide ? WIDE : COMPACT} bannersOn={bannersOn} />
+        </div>
+      ) : (
+        <BuildingList village={village} bannersOn={bannersOn} />
+      )}
     </Card>
+  );
+}
+
+/** The buildings as a list in the canonical order, with icon, name and level. */
+function BuildingList({ village, bannersOn }: { village: Village; bannersOn: boolean }) {
+  const t = useT();
+  return (
+    <ul className={styles.buildings}>
+      {buildingTypes.map((type) => {
+        const level = village.buildings[type] ?? 0;
+        if (type === 'BANNER_HALL' && !bannersOn && level === 0) {
+          return null;
+        }
+        return (
+          <li key={type} className={level === 0 ? `${styles.building} ${styles.notBuilt}` : styles.building}>
+            <Link viewTransition className={styles.buildingLink} to={buildingTarget(village.id, type, level)}>
+              <span className={styles.buildingIcon}>
+                <Icon name={type} />
+              </span>
+              <span className={styles.buildingName}>{t.buildings[type]}</span>
+              {level === 0 ? (
+                <span className={styles.badgeEmpty}>{t.village.notBuilt}</span>
+              ) : (
+                <span className={styles.badge}>{t.village.level(level)}</span>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
 /** What is being built, with the countdown of the running order; the controls are in the Town Hall. */
 function QueueSummary({ village }: { village: Village }) {
   const t = useT();
+  const shown = useFinishedOrders(village.id, village.buildQueue);
   return (
     <Card title={t.buildQueue.title}>
-      {village.buildQueue.length === 0 ? (
+      {shown.length === 0 ? (
         <p className={styles.empty}>{t.buildQueue.empty}</p>
       ) : (
         <BuildOrderList>
-          {village.buildQueue.map((order) => (
-            <BuildOrderLine key={order.id} order={order} />
+          {shown.map(({ order, finished, entering }) => (
+            <BuildOrderLine key={order.id} order={order} finished={finished} entering={entering} />
           ))}
         </BuildOrderList>
       )}
@@ -140,8 +211,9 @@ function VillageFacts({ village }: { village: Village }) {
         <div>
           <dt>{t.village.storage}</dt>
           <dd>
-            <Link className={styles.link} to={warehousePath(village.id)}>
+            <Link className={styles.factLink} to={warehousePath(village.id)}>
               {formatNumber(village.storageCapacity, language)}
+              <Icon name="chevronRight" />
             </Link>
           </dd>
         </div>
@@ -218,7 +290,8 @@ function TrainingSummary({ villageId }: { villageId: number }) {
   const recruitment = useRecruitment(villageId);
   useRefreshWhenUnitsDone(villageId, recruitment.data, recruitment.dataUpdatedAt, recruitment.errorUpdatedAt);
   // each building trains one order at a time: the first of its queue
-  const running = (recruitment.data ?? []).flatMap((info) => info.queue.slice(0, 1));
+  const running = useMemo(() => (recruitment.data ?? []).flatMap((info) => info.queue.slice(0, 1)), [recruitment.data]);
+  const shown = useFinishedOrders(villageId, running);
   const waiting = (recruitment.data ?? []).reduce((sum, info) => sum + Math.max(0, info.queue.length - 1), 0);
 
   let content: ReactNode;
@@ -230,14 +303,14 @@ function TrainingSummary({ villageId }: { villageId: number }) {
         <ErrorMessage>{errorMessage(t, recruitment.error)}</ErrorMessage>
       </div>
     );
-  } else if (running.length === 0) {
+  } else if (shown.length === 0) {
     content = <p className={styles.empty}>{t.training.empty}</p>;
   } else {
     content = (
       <>
         <RecruitOrderList>
-          {running.map((order) => (
-            <RecruitOrderLine key={order.id} order={order} />
+          {shown.map(({ order, finished, entering }) => (
+            <RecruitOrderLine key={order.id} order={order} finished={finished} entering={entering} />
           ))}
         </RecruitOrderList>
         {waiting > 0 && <p className={styles.waiting}>{t.training.waiting(waiting)}</p>}
@@ -262,7 +335,9 @@ function TrainingSummary({ villageId }: { villageId: number }) {
  */
 function IncomingAttacksNotice({ village }: { village: Village }) {
   const t = useT();
-  if (village.incomingAttacks === 0) {
+  // no attack lands in an ended world (v1.3)
+  const ended = useWorldEnded();
+  if (village.incomingAttacks === 0 || ended) {
     return null;
   }
   return (
@@ -282,7 +357,7 @@ function IncomingAttacksNotice({ village }: { village: Village }) {
 function ProtectionNotice() {
   const { t, language } = useI18n();
   const me = useCurrentAccount();
-  const now = useServerNow();
+  const now = useGameNow();
   const until = Date.parse(me.protectedUntil);
   if (!(until > now)) {
     return null;

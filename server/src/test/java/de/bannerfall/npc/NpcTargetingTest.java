@@ -390,6 +390,45 @@ class NpcTargetingTest {
         assertThat(NpcTargeting.conquestScore(1000, 0)).isEqualTo(1000);
     }
 
+    /** v1.3: an Oath makes each noble count for {@code 25 × (1 − oath)}. */
+    @Test
+    void anOathRaisesTheNoblesNeeded() {
+        assertThat(NpcTargeting.noblesNeeded(100, 0)).isEqualTo(4);
+        assertThat(NpcTargeting.noblesNeeded(100, 0.04)).isEqualTo(5); // 100 / 24
+        assertThat(NpcTargeting.noblesNeeded(66, 0.12)).isEqualTo(3); // 66 / 22 = 3 exactly
+        assertThat(NpcTargeting.noblesNeeded(67, 0.12)).isEqualTo(4);
+        assertThat(NpcTargeting.noblesNeeded(10, 0.12)).isEqualTo(1);
+    }
+
+    @Test
+    void theOathTheLordExpectsIsTheScoutedOneAtTheScoutedHallsTier() {
+        BannerCatalog catalog = banners();
+        var oathIII = new BattleReport.ScoutedBanner(BannerType.OATH, 3);
+
+        assertThat(NpcTargeting.oath(scouted(oathIII, 3), catalog)).isEqualTo(0.12);
+        assertThat(NpcTargeting.oath(scouted(oathIII, 2), catalog)).isEqualTo(0.08);
+        assertThat(NpcTargeting.oath(scouted(oathIII, 0), catalog)).isZero();
+        assertThat(
+                        NpcTargeting.oath(
+                                scouted(new BattleReport.ScoutedBanner(BannerType.BULWARK, 3), 3),
+                                catalog))
+                .isZero();
+        assertThat(NpcTargeting.oath(scouted(null, 3), catalog)).isZero();
+        assertThat(NpcTargeting.oath(null, catalog)).isZero();
+    }
+
+    /** v1.3: the loyalty grows back while the nobles walk, up to 100. */
+    @Test
+    void theLoyaltyAtArrivalHasGrownOnTheWay() {
+        Instant arrival = NOW.plus(Duration.ofHours(10));
+        assertThat(NpcTargeting.loyaltyAtArrival(30, 3, NOW, arrival)).isEqualTo(60);
+        assertThat(NpcTargeting.loyaltyAtArrival(90, 3, NOW, arrival)).isEqualTo(100);
+        assertThat(NpcTargeting.loyaltyAtArrival(30, 3, NOW, NOW)).isEqualTo(30);
+        // 30 today needs 2 nobles, 60 at arrival needs 3
+        assertThat(NpcTargeting.noblesNeeded(NpcTargeting.loyaltyAtArrival(30, 3, NOW, arrival), 0))
+                .isEqualTo(3);
+    }
+
     // ---- defence (§6.5) ----
 
     @Test

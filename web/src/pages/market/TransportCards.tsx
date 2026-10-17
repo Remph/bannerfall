@@ -4,7 +4,7 @@ import { CostList } from '../../components/CostList';
 import { Countdown } from '../../components/Countdown';
 import { Icon } from '../../components/Icon';
 import { formatNumber, formatWhenExact } from '../../game/format';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import { VillageRefText } from '../rally/VillageRefText';
 import styles from './MarketPage.module.css';
@@ -63,7 +63,7 @@ function TransportLine({
   outgoing: boolean;
 }) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const other = outgoing ? transport.targetVillage : transport.sourceVillage;
   return (
     <li className={styles.move}>

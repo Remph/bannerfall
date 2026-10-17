@@ -1,9 +1,11 @@
 # Bannerfall production image (docs/plan/01-architecture.md §8).
 #   docker build -t bannerfall:1.2.0 --build-arg VERSION=1.2.0 .
 # Three stages: the web app, the server jar (with the web build inside), a small runtime.
+# The base images are pinned to exact versions, so a new base image only comes in as a reviewed
+# change (the development repository has Dependabot propose them).
 
 # --- 1. web: pnpm build -> /web/dist ---
-FROM node:24-slim AS web
+FROM node:24.22.0-slim AS web
 WORKDIR /web
 # The pnpm version comes from "packageManager" in web/package.json.
 RUN corepack enable
@@ -13,7 +15,7 @@ COPY web/ ./
 RUN pnpm build
 
 # --- 2. server: Gradle bootJar with the web build served from static/ ---
-FROM eclipse-temurin:25-jdk AS server
+FROM eclipse-temurin:25.0.4.1_1-jdk AS server
 WORKDIR /build
 # Wrapper and build files first: the Gradle download and the dependencies stay cached until they change.
 COPY server/gradlew server/settings.gradle.kts server/build.gradle.kts ./
@@ -25,7 +27,7 @@ ARG VERSION=0.0.1-SNAPSHOT
 RUN ./gradlew --no-daemon bootJar -PappVersion=${VERSION}
 
 # --- 3. runtime: JRE only, non-root ---
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:25.0.4.1_1-jre
 RUN groupadd --system --gid 10001 bannerfall \
  && useradd --system --uid 10001 --gid bannerfall --home-dir /app --shell /usr/sbin/nologin bannerfall \
  && mkdir -p /app/logs \

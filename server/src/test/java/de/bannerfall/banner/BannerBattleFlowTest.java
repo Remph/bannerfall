@@ -303,7 +303,12 @@ class BannerBattleFlowTest {
         setUnits(attacker, Map.of(UnitType.AXEMAN, 300));
         setUnits(defender, Map.of(UnitType.SPEARMAN, 30)); // 30 population: just enough
 
-        arriveAt(attack(attacker, defender, "{\"AXEMAN\":100}"));
+        Instant first = attack(attacker, defender, "{\"AXEMAN\":100}");
+        // the second attack a minute behind the first: on a full test map the two villages can lie
+        // more than a day's walk apart, so one sent after the first battle would be out of the day
+        clock.advance(Duration.ofMinutes(1));
+        Instant second = attack(attacker, defender, "{\"AXEMAN\":100}");
+        arriveAt(first);
 
         String report = attacker.newestReport("ATTACK");
         assertThat(JsonPath.<Map<String, Object>>read(report, "$.payload.banners.found"))
@@ -327,7 +332,7 @@ class BannerBattleFlowTest {
 
         // the same pair again within a day: no roll
         setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
-        arriveAt(attack(attacker, defender, "{\"AXEMAN\":100}"));
+        arriveAt(second);
         assertThat(bannersOf(attacker)).hasSize(1);
 
         // a real day later it rolls again
@@ -393,17 +398,20 @@ class BannerBattleFlowTest {
     @Test
     void eightDropsADayAreTheMost() throws Exception {
         dice.use(FixedRandomSource.constant(ALWAYS));
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 100));
+        setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
+        Instant arrival = attack(attacker, defender, "{\"AXEMAN\":100}");
+        // a minute before the battle: on a full test map the two villages can lie more than a
+        // day's walk apart, so "a minute before now" would already be out of the 24 hours
         for (int i = 0; i < 8; i++) {
             jdbc.sql(
                             "insert into banner_event (banner_id, kind, to_player_id, happened_at)"
                                     + " values (0, 'FOUND', ?, ?)")
-                    .params(attacker.playerId, Timestamp.from(clock.instant().minusSeconds(60)))
+                    .params(attacker.playerId, Timestamp.from(arrival.minusSeconds(60)))
                     .update();
         }
-        setUnits(attacker, Map.of(UnitType.AXEMAN, 100));
-        setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
 
-        arriveAt(attack(attacker, defender, "{\"AXEMAN\":100}"));
+        arriveAt(arrival);
 
         assertThat(bannersOf(attacker)).isEmpty();
     }

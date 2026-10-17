@@ -31,12 +31,21 @@ const settings: AdminWorldSettings = {
   paladinMaxSlots: 5,
   bannersEnabled: true,
   bannerDropFactor: 1,
+  marketExchangeRatio: 1.5,
+  villageNameLanguage: 'EN',
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
   barbarianWallMaxLevel: 5,
   barbarianWallsRebuild: false,
+  victoryMode: 'DOMINATION',
+  dominationPercent: 60,
+  victoryHoldHours: 48,
+  keepCount: 5,
+  keepPercent: 51,
   phase: 'OPEN',
   opensAt: null,
+  endsAt: null,
+  endedAt: null,
 };
 
 describe('barbarianWallsRequest', () => {

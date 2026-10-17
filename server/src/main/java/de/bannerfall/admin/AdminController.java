@@ -7,9 +7,11 @@ import de.bannerfall.cheat.SpawnBarbarianRequest;
 import de.bannerfall.common.Coordinates;
 import de.bannerfall.event.EventAdminService;
 import de.bannerfall.event.FailedEventDto;
+import de.bannerfall.victory.VictoryService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageRefDto;
 import de.bannerfall.world.AdminWorldSettingsDto;
+import de.bannerfall.world.WorldEndRequest;
 import de.bannerfall.world.WorldOpeningRequest;
 import de.bannerfall.world.WorldOpeningService;
 import de.bannerfall.world.WorldService;
@@ -45,6 +47,7 @@ class AdminController {
     private final AdminStatusService status;
     private final WorldService world;
     private final WorldOpeningService opening;
+    private final VictoryService victory;
     private final ChatService chat;
     private final EventAdminService eventAdmin;
     private final BarbarianService barbarians;
@@ -54,6 +57,7 @@ class AdminController {
             AdminStatusService status,
             WorldService world,
             WorldOpeningService opening,
+            VictoryService victory,
             ChatService chat,
             EventAdminService eventAdmin,
             BarbarianService barbarians,
@@ -61,6 +65,7 @@ class AdminController {
         this.status = status;
         this.world = world;
         this.opening = opening;
+        this.victory = victory;
         this.chat = chat;
         this.eventAdmin = eventAdmin;
         this.barbarians = barbarians;
@@ -125,6 +130,39 @@ class AdminController {
                             "world",
                             null,
                             AdminAuditService.changes(before, after));
+                    return after;
+                });
+    }
+
+    /**
+     * Sets, moves or clears ({@code endsAt: null}) the end date (v1.3, 02-game-rules §22). A time
+     * in the past ends the world at once.
+     */
+    @PutMapping("/world-end")
+    AdminWorldSettingsDto setWorldEnd(@Valid @RequestBody WorldEndRequest body) {
+        return worldEndChange(() -> victory.setEndsAt(body.endsAt()));
+    }
+
+    /** Ends the world now (§22): the side with the most points wins. */
+    @PostMapping("/world-end/now")
+    AdminWorldSettingsDto endWorldNow() {
+        return worldEndChange(victory::endNow);
+    }
+
+    /** Takes the end of the world back (§22): it runs again, without an end date. */
+    @PostMapping("/world-end/reopen")
+    AdminWorldSettingsDto reopenWorld() {
+        return worldEndChange(victory::reopen);
+    }
+
+    private AdminWorldSettingsDto worldEndChange(Runnable change) {
+        return audit.inTransaction(
+                () -> {
+                    AdminWorldSettingsDto before = world.adminSettings();
+                    change.run();
+                    AdminWorldSettingsDto after = world.adminSettings();
+                    audit.record(
+                            "WORLD_END", "world", null, AdminAuditService.changes(before, after));
                     return after;
                 });
     }

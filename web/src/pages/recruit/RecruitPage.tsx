@@ -32,7 +32,7 @@ import {
 } from '../../game/recruitment';
 import { freePaladinSlots, cappedBySlots } from '../../game/paladin';
 import { projectResources, whenAffordable, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { unitsAway, type UnitMap } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -199,7 +199,7 @@ interface UnitListProps {
  */
 function UnitList({ village, info, queueSize, away }: UnitListProps) {
   const t = useT();
-  const now = useServerNow();
+  const now = useGameNow();
   const enqueue = useEnqueueRecruit(village.id);
   const enqueueAll = useEnqueueRecruitAll(village.id);
   // M31: a paladin needs a free slot, on top of resources and population
@@ -342,6 +342,7 @@ function RecruitAll(props: RecruitAllProps) {
       )}
       <div className={styles.allAction}>
         {tooFewPlaces && <p className={styles.hint}>{t.recruit.queuePlaces(freePlaces)}</p>}
+        {rows.length === 0 && <p className={styles.hint}>{t.recruit.enterCount}</p>}
         <Button type="button" disabled={rows.length === 0 || !fits || tooFewPlaces || pending} onClick={onRecruit}>
           {recruiting
             ? t.recruit.recruiting
@@ -543,13 +544,16 @@ function UnitHead(props: { unit: RecruitUnit; atHome: number; total: number | un
       <span className={styles.icon}>
         <Icon name={unit.unit} />
       </span>
-      <h3 className={styles.name}>{t.units[unit.unit]}</h3>
-      <span className={styles.atHome}>
-        {total === undefined
-          ? t.recruit.atHome(formatNumber(atHome, language))
-          : t.recruit.atHomeOfTotal(formatNumber(atHome, language), formatNumber(total, language))}
+      <span className={styles.unitTitle}>
+        <h3 className={styles.name}>{t.units[unit.unit]}</h3>
+        <span className={styles.atHome}>
+          {total === undefined
+            ? t.recruit.atHome(formatNumber(atHome, language))
+            : t.recruit.atHomeOfTotal(formatNumber(atHome, language), formatNumber(total, language))}
+        </span>
       </span>
-      {dismiss}
+      {/* the same place in every row, empty while no unit is home (1.3) */}
+      <span className={styles.dismissSlot}>{dismiss}</span>
     </div>
   );
 }

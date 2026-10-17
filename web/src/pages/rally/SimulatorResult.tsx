@@ -41,7 +41,7 @@ export function SimulatorResult({ simulation, request }: SimulatorResultProps) {
 function BannerBonuses({ simulation }: { simulation: Simulation }) {
   const { t, language } = useI18n();
   const s = t.simulator;
-  const percent = (fraction: number, sign = '+') => `${sign}${formatNumber(percentPoints(fraction), language)} %`;
+  const percent = (fraction: number, sign = '+') => `${sign}${formatShare(percentPoints(fraction), language)}`;
   if (
     simulation.attackBonus <= 0 &&
     simulation.defenceBonus <= 0 &&

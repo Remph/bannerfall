@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react';
 import { Link, Navigate, Outlet, useLocation, useMatch } from 'react-router';
 import { useCurrentAccount } from '../api/queries/auth';
 import { useRefreshWhenBuildsEnd } from '../api/queries/buildings';
@@ -9,6 +9,7 @@ import { Icon } from '../components/Icon';
 import { ResourceBar } from '../components/ResourceBar';
 import { ServerClock } from '../components/ServerClock';
 import { Sheet } from '../components/Sheet';
+import { setFrozenAt } from '../game/serverTime';
 import { ToastProvider } from '../components/ToastProvider';
 import { VersionTag } from '../components/VersionTag';
 import { useT } from '../i18n';
@@ -17,8 +18,12 @@ import { ChatPanel } from '../pages/chat/ChatPanel';
 import { PregameFrame } from '../pages/pregame/PregameFrame';
 import { WorldInfo } from '../pages/pregame/WorldInfo';
 import { RealtimeProvider } from '../realtime/RealtimeProvider';
+import { ActionsStayOn } from './ActionsStayOn';
 import styles from './AppLayout.module.css';
 import { ChangelogBanner } from './ChangelogBanner';
+import { VictoryClockStrip } from './VictoryClockStrip';
+import { WorldEndedBanner } from './WorldEndedBanner';
+import { WorldEndScreen } from './WorldEndScreen';
 import { rememberVillage } from './currentVillage';
 import { IncomingAttacksBadge } from './IncomingAttacksBadge';
 import { MenuSheet, type MenuKind } from './MenuSheet';
@@ -28,6 +33,7 @@ import { useCurrentVillageId } from './useCurrentVillageId';
 import { DESKTOP_QUERY, useMediaQuery } from './useMediaQuery';
 import { VillageSwitcher } from './VillageSwitcher';
 import { isOpenWithoutVillage } from './withoutVillage';
+import { isOpenWhenEnded, WorldEndContext } from './worldEnd';
 
 /**
  * Frame of all game screens (05-frontend §3, §8). Phone: green strip on top (village switcher +
@@ -50,11 +56,24 @@ export function AppLayout() {
 function PhaseFrame() {
   const t = useT();
   const world = useWorld();
+  // A world that has ended is frozen (v1.3): resources and countdowns stand still at its end.
+  const endedAt = world.data?.phase === 'ENDED' ? world.data.endedAt : null;
+  useEffect(() => setFrozenAt(endedAt === null ? null : Date.parse(endedAt)), [endedAt]);
+  // ... and its game buttons are off (Button), except where ActionsStayOn says otherwise
+  const ended = endedAt !== null;
+  const worldEnd = useMemo(() => ({ ended, frozen: ended }), [ended]);
   if (world.data?.phase === 'PREGAME') {
     return <PregameFrame />;
   }
   // Without the answer the game frame would flash the village screens for a moment in the pre-game.
-  return world.isPending ? <FullScreenMessage>{t.common.loading}</FullScreenMessage> : <GameFrame />;
+  if (world.isPending) {
+    return <FullScreenMessage>{t.common.loading}</FullScreenMessage>;
+  }
+  return (
+    <WorldEndContext value={worldEnd}>
+      <GameFrame />
+    </WorldEndContext>
+  );
 }
 
 function GameFrame() {
@@ -69,7 +88,8 @@ function GameFrame() {
   const fullScreen = onMap && !desktop;
   const wide = onMap && desktop;
   // Without a village (all conquered, M11) only "/" (the respawn screen) and the pages that aren't about one village are open.
-  const allowedWithoutVillage = isOpenWithoutVillage(useLocation().pathname);
+  const { pathname } = useLocation();
+  const allowedWithoutVillage = isOpenWithoutVillage(pathname);
   const villageId = useCurrentVillageId();
   // Same query (and cache entry) as the village page: one request serves both.
   const village = useVillage(villageId);
@@ -90,10 +110,14 @@ function GameFrame() {
   // Phones: the resource strip is one slim row unless the player opens the details (remembered).
   const [details, setDetails] = useState(loadResourceDetails);
   const resourcesId = useId();
+  const appRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  useBarHeights(appRef, headerRef, footerRef);
 
   return (
-    <div className={fullScreen || wide ? `${styles.app} ${styles.appFull}` : styles.app}>
-      <header className={styles.header}>
+    <div ref={appRef} className={fullScreen || wide ? `${styles.app} ${styles.appFull}` : styles.app}>
+      <header ref={headerRef} className={styles.header}>
         <div className={styles.topBar}>
           {/* desktop only: back to the village overview */}
           <Link className={styles.brand} to={villageId === undefined ? '/' : `/v/${villageId}`} title={t.nav.village}>
@@ -134,11 +158,16 @@ function GameFrame() {
         </div>
         <DesktopNav villageId={villageId} />
       </header>
+      <WorldEndedBanner />
+      <VictoryClockStrip />
+      <WorldEndScreen />
       <ChangelogBanner />
       <main className={[styles.main, fullScreen && styles.mainFull, wide && styles.mainWide].filter(Boolean).join(' ')}>
-        {me.needsRespawn && !allowedWithoutVillage ? <Navigate to="/" replace /> : <Outlet />}
+        <ActionsStayOn open={isOpenWhenEnded(pathname)}>
+          {me.needsRespawn && !allowedWithoutVillage ? <Navigate to="/" replace /> : <Outlet />}
+        </ActionsStayOn>
       </main>
-      <footer className={styles.footer}>
+      <footer ref={footerRef} className={styles.footer}>
         {t.settings.serverTime} <ServerClock /> <VersionTag />
       </footer>
       <TabBar villageId={villageId} onMore={() => setMenu('more')} inFlow={fullScreen} />
@@ -158,13 +187,46 @@ function GameFrame() {
       <Sheet open={worldInfoOpen} onClose={() => setWorldInfoOpen(false)} title={t.worldInfo.title}>
         <WorldInfo />
       </Sheet>
-      {desktop ? (
-        <ChatDock onMap={onMap} />
-      ) : (
-        <Sheet open={chatOpen} onClose={() => setChatOpen(false)} title={t.chat.title} fullScreen>
-          <ChatPanel />
-        </Sheet>
-      )}
+      {/* the chat stays open in an ended world (v1.3) */}
+      <ActionsStayOn>
+        {desktop ? (
+          <ChatDock onMap={onMap} />
+        ) : (
+          <Sheet open={chatOpen} onClose={() => setChatOpen(false)} title={t.chat.title} fullScreen>
+            <ChatPanel />
+          </Sheet>
+        )}
+      </ActionsStayOn>
     </div>
   );
+}
+
+/**
+ * The sticky header's and the footer's heights as `--app-header-height` and `--app-footer-height`
+ * on the frame (1.3), for what sticks or is fixed below the header or fills the window between the
+ * two: the open report or conversation next to the list, the chat column. They change with the
+ * window width and the resource details.
+ */
+function useBarHeights(
+  appRef: RefObject<HTMLDivElement | null>,
+  headerRef: RefObject<HTMLElement | null>,
+  footerRef: RefObject<HTMLElement | null>,
+) {
+  useEffect(() => {
+    const app = appRef.current;
+    const header = headerRef.current;
+    const footer = footerRef.current;
+    if (app === null || header === null || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      app.style.setProperty('--app-header-height', `${header.getBoundingClientRect().height}px`);
+      app.style.setProperty('--app-footer-height', `${footer?.getBoundingClientRect().height ?? 0}px`);
+    });
+    observer.observe(header);
+    if (footer !== null) {
+      observer.observe(footer);
+    }
+    return () => observer.disconnect();
+  }, [appRef, headerRef, footerRef]);
 }

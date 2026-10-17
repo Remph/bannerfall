@@ -9,7 +9,7 @@ import { RecruitOrderLine, RecruitOrderList } from '../../components/RecruitOrde
 import { Sheet } from '../../components/Sheet';
 import { formatNumber } from '../../game/format';
 import { unitsDone } from '../../game/recruitment';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RecruitPage.module.css';
 
@@ -29,7 +29,7 @@ interface DismissQueueCardProps {
  */
 export function DismissQueueCard({ villageId, info, queueSize, locked }: DismissQueueCardProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const cancel = useCancelDismiss(villageId);
   const [confirming, setConfirming] = useState<DismissOrder | null>(null);
   const [error, setError] = useState<Error | null>(null);

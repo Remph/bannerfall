@@ -1,0 +1,36 @@
+# The server's tests and code style.
+# Pull requests and integration branches are not checked here for now: Actions minutes on private
+# repositories are limited, so the checks run where the change is made, and all of them run once
+# more before a release (by hand: "Run workflow" in the Actions tab, or locally).
+name: Server
+
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', 'web/src/api/openapi.json', '.github/workflows/server.yml']
+  workflow_dispatch:
+
+# A newer run for the same branch cancels the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    # In a private repository a push to main only repeats the run of the pull request it merged,
+    # so it is skipped there. A public repository gets its releases as pushes to main and tests them.
+    if: github.event_name != 'push' || github.ref_name != 'main' || !github.event.repository.private
+    runs-on: ubuntu-latest
+    # A normal run takes about 6 minutes; a hanging test should not use up the month's minutes.
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew check # runs the tests (Testcontainers works on GitHub runners) and spotlessCheck

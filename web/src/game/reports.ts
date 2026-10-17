@@ -1,4 +1,5 @@
 import { buildingTypes, unitTypes, type BuildingType, type UnitType } from './gameData';
+import { calendarDay } from './format';
 import type { UnitMap } from './troops';
 
 /**
@@ -23,6 +24,35 @@ export type ReportResult = 'won' | 'lost' | 'none';
 
 /** Reports per page of the list (the server's default). */
 export const REPORTS_PAGE_SIZE = 25;
+
+/** The filter chips of the list (server enum ReportFilter, 1.3); every kind is in exactly one. */
+export const reportFilters = ['ATTACKS', 'DEFENSE', 'SCOUTING', 'SUPPORT', 'TRADE'] as const;
+export type ReportFilter = (typeof reportFilters)[number];
+
+/** One day of the list: its reports in list order, under one heading. */
+export interface ReportDay<T> {
+  /** "2026-10-16", the day in the device's (or the given) time zone. */
+  day: string;
+  items: T[];
+}
+
+/**
+ * The list's reports by day (1.3): each report goes by `listedAt`, the moment the list sorts it by
+ * (a copy someone sent: when it arrived), so the days follow the list's order.
+ */
+export function groupByDay<T extends { listedAt: string }>(items: readonly T[], timeZone?: string): ReportDay<T>[] {
+  const days: ReportDay<T>[] = [];
+  for (const item of items) {
+    const day = calendarDay(Date.parse(item.listedAt), timeZone);
+    const last = days.at(-1);
+    if (last !== undefined && last.day === day) {
+      last.items.push(item);
+    } else {
+      days.push({ day, items: [item] });
+    }
+  }
+  return days;
+}
 
 /**
  * The result from the reader's side: the attacker wins with ATTACKER_WON, the defenders (owner and

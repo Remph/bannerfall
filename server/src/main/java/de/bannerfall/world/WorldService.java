@@ -4,6 +4,7 @@ import de.bannerfall.common.ApiException;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.npc.NpcBalanceSettings;
 import de.bannerfall.npc.NpcDifficulty;
+import de.bannerfall.village.VillageRepository;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,12 +23,14 @@ public class WorldService {
     private static final short ROW_ID = 1;
 
     private final WorldSettingsRepository repository;
+    private final VillageRepository villages;
 
     /** Loaded on first use; replaced as a whole on reload, so readers never see half an update. */
     private volatile Snapshot snapshot;
 
-    WorldService(WorldSettingsRepository repository) {
+    WorldService(WorldSettingsRepository repository, VillageRepository villages) {
         this.repository = repository;
+        this.villages = villages;
     }
 
     public WorldSettings settings() {
@@ -57,6 +60,26 @@ public class WorldService {
         return snapshot().opensAt();
     }
 
+    /** The end date the host set (v1.3, 02-game-rules §22); null = none. */
+    public Instant endsAt() {
+        return snapshot().endsAt();
+    }
+
+    /** When the world ended (§22); null while it runs. */
+    public Instant endedAt() {
+        return snapshot().endedAt();
+    }
+
+    /**
+     * {@code now} in game time: the moment the world ended once it has (§22), so nothing that is
+     * worked out from the time (resources, loyalty, recruiting, dismissing) moves on in a frozen
+     * world; otherwise {@code now} itself.
+     */
+    public Instant gameTime(Instant now) {
+        Instant endedAt = endedAt();
+        return endedAt != null && endedAt.isBefore(now) ? endedAt : now;
+    }
+
     /** Reads the row again. Call after changing it. */
     public void reload() {
         snapshot = load();
@@ -75,7 +98,8 @@ public class WorldService {
     /**
      * For what only makes sense on the map (spawning a lord or a barbarian village by hand).
      *
-     * @throws ApiException {@code 409 WORLD_NOT_OPEN} in the pre-game
+     * @throws ApiException {@code 409 WORLD_NOT_OPEN} in the pre-game, {@code 409 WORLD_ENDED} once
+     *     the world has ended
      */
     public void requireOpen() {
         if (phase() == WorldPhase.PREGAME) {
@@ -84,6 +108,17 @@ public class WorldService {
                     ErrorCode.WORLD_NOT_OPEN,
                     "The world has not opened yet; there is no map");
         }
+        if (phase() == WorldPhase.ENDED) {
+            throw ended();
+        }
+    }
+
+    /** {@code 409 WORLD_ENDED}: the world is over and frozen (v1.3, 02-game-rules §22). */
+    public static ApiException ended() {
+        return new ApiException(
+                HttpStatus.CONFLICT,
+                ErrorCode.WORLD_ENDED,
+                "The world has ended; nothing can be changed any more");
     }
 
     /**
@@ -147,6 +182,105 @@ public class WorldService {
         reloadAfterCommit();
     }
 
+    /** The victory state as stored, under the row lock (v1.3, 02-game-rules §22). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public VictoryState lockedVictoryState() {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        return new VictoryState(
+                phaseOf(row),
+                row.getEndsAt(),
+                row.getEndedAt(),
+                row.getVictoryLeader(),
+                row.getVictoryLeaderSince());
+    }
+
+    /** The victory state as stored, without a lock (what players see, §22). */
+    @Transactional(readOnly = true)
+    public VictoryState victoryState() {
+        WorldSettingsEntity row = repository.findById(ROW_ID).orElseThrow(WorldService::missingRow);
+        return new VictoryState(
+                phaseOf(row),
+                row.getEndsAt(),
+                row.getEndedAt(),
+                row.getVictoryLeader(),
+                row.getVictoryLeaderSince());
+    }
+
+    /**
+     * The victory state as stored, read under the row lock: the phase, the end date, when the world
+     * ended and the side that meets the victory condition since {@code leaderSince} (null = none).
+     */
+    public record VictoryState(
+            WorldPhase phase,
+            Instant endsAt,
+            Instant endedAt,
+            String leader,
+            Instant leaderSince) {}
+
+    /** Stores the side that meets the victory condition and since when; nulls = nobody. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void setVictoryLeader(String leader, Instant since) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        row.setVictoryLeader(leader, since);
+    }
+
+    /**
+     * Sets or clears (null) the end date. Only the row changes here; {@code WorldEndService} keeps
+     * the WORLD_END event in step.
+     *
+     * @throws ApiException {@code 409 WORLD_ENDED} once the world has ended
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void setEndsAt(Instant endsAt) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        if (row.getEndedAt() != null) {
+            throw ended();
+        }
+        row.setEndsAt(endsAt);
+        reloadAfterCommit();
+    }
+
+    /**
+     * Ends the world at {@code at} (§22): from the commit on it is {@link WorldPhase#ENDED}.
+     *
+     * @return false if it had ended already
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean markEnded(Instant at) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        if (row.getEndedAt() != null) {
+            return false;
+        }
+        row.setEndedAt(at);
+        row.setVictoryLeader(null, null);
+        reloadAfterCommit();
+        return true;
+    }
+
+    /**
+     * Takes an end back (the host, §22): the world runs again, without an end date and with the
+     * victory clock reset.
+     *
+     * @return false if the world had not ended
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean markReopened() {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        if (row.getEndedAt() == null) {
+            return false;
+        }
+        row.setEndedAt(null);
+        row.setEndsAt(null);
+        row.setVictoryLeader(null, null);
+        reloadAfterCommit();
+        return true;
+    }
+
     private WorldSettingsEntity lockedPregameRow() {
         WorldSettingsEntity row =
                 repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
@@ -164,6 +298,9 @@ public class WorldService {
     }
 
     private static WorldPhase phaseOf(WorldSettingsEntity row) {
+        if (row.getEndedAt() != null) {
+            return WorldPhase.ENDED;
+        }
         return row.getInitializedAt() == null && row.isPregame()
                 ? WorldPhase.PREGAME
                 : WorldPhase.OPEN;
@@ -201,7 +338,8 @@ public class WorldService {
      * next call on; running events keep their times.
      *
      * @return the settings as stored
-     * @throws ApiException {@code 400 VALIDATION} if {@code buildQueueMax < buildQueueSize}
+     * @throws ApiException {@code 400 VALIDATION} if {@code buildQueueMax < buildQueueSize} or
+     *     {@code marketExchangeRatio} lies between 0 and 1
      */
     @Transactional
     public AdminWorldSettingsDto updateSettings(WorldSettingsUpdateRequest update) {
@@ -210,6 +348,14 @@ public class WorldService {
                     HttpStatus.BAD_REQUEST,
                     ErrorCode.VALIDATION,
                     "buildQueueMax must not be below buildQueueSize");
+        }
+        Double exchangeRatio = update.marketExchangeRatio();
+        if (exchangeRatio != null && exchangeRatio > 0 && exchangeRatio < 1) {
+            // below 1 the market would hand out more than it takes
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.VALIDATION,
+                    "marketExchangeRatio must be 0 (off) or at least 1");
         }
         WorldSettingsEntity row =
                 repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
@@ -223,12 +369,32 @@ public class WorldService {
                         || changes(update.npcLordCount(), row.toSettings().npcLordCount()))) {
             throw alreadyOpen();
         }
+        VillageNameLanguage namesBefore = row.toSettings().villageNameLanguage();
         row.apply(update);
+        VillageNameLanguage names = row.toSettings().villageNameLanguage();
+        if (names != namesBefore) {
+            renameDefaultNames(namesBefore, names);
+        }
         if (phaseOf(row) == WorldPhase.PREGAME) {
             row.applySetup(update.mapSize(), update.barbarianInitialCount(), update.npcLordCount());
         }
         reloadAfterCommit();
         return adminDto(row);
+    }
+
+    /**
+     * Another language for the names the game gives villages (v1.3, 02-game-rules §2): the villages
+     * that still carry a default name of the old language get the new one, once. Names players gave
+     * stay.
+     */
+    private void renameDefaultNames(VillageNameLanguage from, VillageNameLanguage to) {
+        villages.renameDefaultNames(
+                from.prefix(),
+                from.suffix(),
+                from.likePattern(),
+                to.prefix(),
+                to.suffix(),
+                VillageNameLanguage.MAX_NAME_LENGTH);
     }
 
     /** All settings for the admin page. */
@@ -238,7 +404,12 @@ public class WorldService {
     }
 
     private static AdminWorldSettingsDto adminDto(WorldSettingsEntity row) {
-        return AdminWorldSettingsDto.of(row.toSettings(), phaseOf(row), row.getOpensAt());
+        return AdminWorldSettingsDto.of(
+                row.toSettings(),
+                phaseOf(row),
+                row.getOpensAt(),
+                row.getEndsAt(),
+                row.getEndedAt());
     }
 
     private static boolean changes(Integer given, int stored) {
@@ -268,7 +439,9 @@ public class WorldService {
                 row.getStartedAt(),
                 row.getInitializedAt(),
                 phaseOf(row),
-                phaseOf(row) == WorldPhase.PREGAME ? row.getOpensAt() : null);
+                phaseOf(row) == WorldPhase.PREGAME ? row.getOpensAt() : null,
+                row.getEndsAt(),
+                row.getEndedAt());
     }
 
     private static IllegalStateException missingRow() {
@@ -280,5 +453,7 @@ public class WorldService {
             Instant startedAt,
             Instant initializedAt,
             WorldPhase phase,
-            Instant opensAt) {}
+            Instant opensAt,
+            Instant endsAt,
+            Instant endedAt) {}
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
+import { BackLink } from '../../components/BackLink';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { errorMessage } from '../../api/errors';
 import {
@@ -23,7 +24,7 @@ import { IconButton } from '../../components/IconButton';
 import { formatDecimal, formatNumber, formatUpcoming } from '../../game/format';
 import type { UnitType } from '../../game/gameData';
 import { projectResources, whenAffordable, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { researchBlock, statsAt } from '../../game/unitLevels';
 import { useI18n } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -68,9 +69,7 @@ function SmithyView({ village, smithy }: { village: Village; smithy: Smithy }) {
   return (
     <div className={styles.page}>
       <header className={styles.head}>
-        <Link className={styles.back} to={`/v/${village.id}`}>
-          {s.back}
-        </Link>
+        <BackLink to={`/v/${village.id}`}>{s.back}</BackLink>
         <h1>{s.title}</h1>
         <p className={styles.hint}>{smithy.smithyLevel === 0 ? s.notBuilt : t.village.level(smithy.smithyLevel)}</p>
         {smithy.smithyLevel === 0 && (
@@ -107,7 +106,7 @@ function SmithyView({ village, smithy }: { village: Village; smithy: Smithy }) {
 function ResearchCard({ villageId, order }: { villageId: number; order: ResearchOrder | null }) {
   const { t } = useI18n();
   const s = t.smithy;
-  const now = useServerNow();
+  const now = useGameNow();
   const cancel = useCancelResearch(villageId);
   const [confirming, setConfirming] = useState<ResearchOrder | null>(null);
   const what = (entry: ResearchOrder) => s.researching(t.units[entry.unit], entry.level);
@@ -304,7 +303,7 @@ function NextResearchBlock(props: {
   const { next, village, starting, anyStarting, onStart } = props;
   const { t, language } = useI18n();
   const s = t.smithy;
-  const now = useServerNow();
+  const now = useGameNow();
   const stock: ResourceAmounts = projectResources(village, now);
   const affordable = (['wood', 'clay', 'iron'] as const).every((type) => Math.floor(stock[type]) >= next.cost[type]);
   const block = researchBlock({ missing: next.missing, villageBusy: next.villageBusy, affordable });

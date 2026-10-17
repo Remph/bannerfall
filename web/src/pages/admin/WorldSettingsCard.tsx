@@ -4,10 +4,12 @@ import { useAdminWorldSettings, useUpdateWorldSettings, type AdminWorldSettings 
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { SegmentedControl } from '../../components/SegmentedControl';
 import { TextField } from '../../components/TextField';
 import { useT } from '../../i18n';
+import { languageNames } from '../../i18n/language';
 import styles from './AdminPage.module.css';
-import { worldFromForm, worldToForm, type WorldForm } from './worldForm';
+import { villageNameLanguages, worldFromForm, worldToForm, type WorldForm } from './worldForm';
 
 /** The world settings of 02-game-rules §1, including the invite code (04-api *Admin*). */
 export function WorldSettingsCard() {
@@ -31,7 +33,7 @@ export function WorldSettingsCard() {
 
 type FieldName = Exclude<
   keyof WorldForm,
-  'barbarianGrowthEnabled' | 'guildsEnabled' | 'unitLevelsEnabled' | 'bannersEnabled'
+  'barbarianGrowthEnabled' | 'guildsEnabled' | 'unitLevelsEnabled' | 'bannersEnabled' | 'villageNameLanguage'
 >;
 
 function SettingsForm({
@@ -104,6 +106,23 @@ function SettingsForm({
         <TextField {...field('paladinVillagesPerSlot', { type: 'number', step: '1', min: '1', max: '100' })} />
         <TextField {...field('paladinMaxSlots', { type: 'number', step: '1', min: '0', max: '20' })} />
         <TextField {...field('bannerDropFactor', { type: 'number', step: '0.1', min: '0', max: '3' })} />
+        <TextField {...field('marketExchangeRatio', { type: 'number', step: '0.1', min: '0', max: '10' })} />
+      </div>
+      <div className={styles.setting}>
+        <span className={styles.settingLabel}>{labels.villageNameLanguage}</span>
+        <SegmentedControl
+          label={labels.villageNameLanguage}
+          options={villageNameLanguages.map((value) => {
+            const lang = value === 'DE' ? 'de' : 'en';
+            return { value, label: languageNames[lang], lang };
+          })}
+          value={form.villageNameLanguage}
+          onChange={(villageNameLanguage) => {
+            setForm({ ...form, villageNameLanguage });
+            save.reset();
+          }}
+        />
+        <p className={styles.hint}>{labels.villageNameLanguageHint}</p>
       </div>
       <label className={styles.check}>
         <input

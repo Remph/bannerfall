@@ -1,11 +1,14 @@
 package de.bannerfall.map;
 
+import de.bannerfall.banner.BannerBattleService;
+import de.bannerfall.banner.BannerBattleService.Loser;
 import de.bannerfall.rules.Loyalty;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +25,7 @@ class MapQuery {
     private static final String VILLAGES_IN_RECTANGLE =
             """
             select v.id, v.x, v.y, v.name, v.points, v.loyalty, v.loyalty_updated_at, v.player_id,
+                   v.keep,
                    p.name as player_name, coalesce(p.npc, false) as npc,
                    t.id as guild_id, t.tag as guild_tag,
                    s.loyalty as seen_loyalty, s.seen_at as loyalty_seen_at
@@ -36,11 +40,17 @@ class MapQuery {
 
     private final JdbcClient jdbc;
     private final WorldService worldService;
+    private final BannerBattleService bannerBattles;
     private final Clock clock;
 
-    MapQuery(JdbcClient jdbc, WorldService worldService, Clock clock) {
+    MapQuery(
+            JdbcClient jdbc,
+            WorldService worldService,
+            BannerBattleService bannerBattles,
+            Clock clock) {
         this.jdbc = jdbc;
         this.worldService = worldService;
+        this.bannerBattles = bannerBattles;
         this.clock = clock;
     }
 
@@ -48,53 +58,106 @@ class MapQuery {
      * The villages on the fields {@code x … x+w−1} × {@code y … y+h−1}, ordered by row. The part of
      * the rectangle beyond the map edge simply has no villages. The loyalty of the asking player's
      * own villages is regenerated up to now on the fly (nothing is written: the map locks no
-     * village); for all others it is the last value he saw, if any (02-game-rules §10, M21).
+     * village); for all others it is the last value he saw, if any (02-game-rules §10, M21). The
+     * used banner rolls come from one more query for the whole rectangle (v1.3).
      */
     List<MapVillageDto> villagesIn(long me, int x, int y, int w, int h) {
         WorldSettings world = worldService.settings();
         int mapSize = world.mapSize();
         double regenPerHour = Loyalty.regenPerHour(world);
         Instant now = clock.instant();
-        return jdbc.sql(VILLAGES_IN_RECTANGLE)
-                .param("me", me)
-                .param("fromX", x)
-                .param("toX", end(x, w, mapSize))
-                .param("fromY", y)
-                .param("toY", end(y, h, mapSize))
-                .query(
-                        (rs, rowNum) -> {
-                            Long ownerId = rs.getObject("player_id", Long.class);
-                            boolean own = ownerId != null && ownerId == me;
-                            Integer loyalty = null;
-                            Instant seenAt = null;
-                            if (own) {
-                                loyalty =
-                                        Loyalty.shown(
-                                                Loyalty.regen(
-                                                        rs.getDouble("loyalty"),
-                                                        regenPerHour,
-                                                        rs.getTimestamp("loyalty_updated_at")
-                                                                .toInstant(),
-                                                        now));
-                            } else if (rs.getObject("seen_loyalty") != null) {
-                                loyalty = rs.getInt("seen_loyalty");
-                                seenAt = rs.getTimestamp("loyalty_seen_at").toInstant();
-                            }
-                            return new MapVillageDto(
-                                    rs.getLong("id"),
-                                    rs.getInt("x"),
-                                    rs.getInt("y"),
-                                    rs.getString("name"),
-                                    ownerId,
-                                    rs.getString("player_name"),
-                                    rs.getBoolean("npc"),
-                                    rs.getInt("points"),
-                                    loyalty,
-                                    seenAt,
-                                    rs.getObject("guild_id", Long.class),
-                                    rs.getString("guild_tag"));
-                        })
-                .list();
+        List<MapVillageDto> villages =
+                jdbc.sql(VILLAGES_IN_RECTANGLE)
+                        .param("me", me)
+                        .param("fromX", x)
+                        .param("toX", end(x, w, mapSize))
+                        .param("fromY", y)
+                        .param("toY", end(y, h, mapSize))
+                        .query(
+                                (rs, rowNum) -> {
+                                    Long ownerId = rs.getObject("player_id", Long.class);
+                                    boolean own = ownerId != null && ownerId == me;
+                                    Integer loyalty = null;
+                                    Instant seenAt = null;
+                                    if (own) {
+                                        loyalty =
+                                                Loyalty.shown(
+                                                        Loyalty.regen(
+                                                                rs.getDouble("loyalty"),
+                                                                regenPerHour,
+                                                                rs.getTimestamp(
+                                                                                "loyalty_updated_at")
+                                                                        .toInstant(),
+                                                                now));
+                                    } else if (rs.getObject("seen_loyalty") != null) {
+                                        loyalty = rs.getInt("seen_loyalty");
+                                        seenAt = rs.getTimestamp("loyalty_seen_at").toInstant();
+                                    }
+                                    return new MapVillageDto(
+                                            rs.getLong("id"),
+                                            rs.getInt("x"),
+                                            rs.getInt("y"),
+                                            rs.getString("name"),
+                                            ownerId,
+                                            rs.getString("player_name"),
+                                            rs.getBoolean("npc"),
+                                            rs.getInt("points"),
+                                            loyalty,
+                                            seenAt,
+                                            rs.getObject("guild_id", Long.class),
+                                            rs.getString("guild_tag"),
+                                            null,
+                                            rs.getBoolean("keep"));
+                                })
+                        .list();
+        Map<String, Instant> rolls =
+                bannerBattles.nextRolls(
+                        me,
+                        villages.stream()
+                                .filter(v -> !own(v, me))
+                                .map(MapQuery::loserKey)
+                                .distinct()
+                                .toList(),
+                        now);
+        if (rolls.isEmpty()) {
+            return villages;
+        }
+        return villages.stream()
+                .map(v -> own(v, me) ? v : withRoll(v, rolls.get(loserKey(v))))
+                .toList();
+    }
+
+    private static boolean own(MapVillageDto village, long me) {
+        return village.playerId() != null && village.playerId() == me;
+    }
+
+    /**
+     * The side the player rolls against when he beats this village (as the farm list counts it).
+     */
+    private static String loserKey(MapVillageDto village) {
+        return village.playerId() == null
+                ? Loser.barbarianVillage(village.id()).key()
+                : Loser.player(village.playerId()).key();
+    }
+
+    private static MapVillageDto withRoll(MapVillageDto v, Instant nextBannerRollAt) {
+        return nextBannerRollAt == null
+                ? v
+                : new MapVillageDto(
+                        v.id(),
+                        v.x(),
+                        v.y(),
+                        v.name(),
+                        v.playerId(),
+                        v.playerName(),
+                        v.npc(),
+                        v.points(),
+                        v.loyalty(),
+                        v.loyaltySeenAt(),
+                        v.guildId(),
+                        v.guildTag(),
+                        nextBannerRollAt,
+                        v.keep());
     }
 
     /**

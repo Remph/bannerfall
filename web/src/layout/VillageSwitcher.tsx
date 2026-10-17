@@ -15,7 +15,10 @@ interface CurrentVillage {
   y: number;
 }
 
-/** Name and coordinates of the current village; opens a sheet with all own villages. */
+/**
+ * Name and coordinates of the current village; opens a sheet with all own villages in the order of
+ * `/api/me` (1.3: the one held longest first, tagged "Main village" once there are more).
+ */
 export function VillageSwitcher({ current }: { current: CurrentVillage | undefined }) {
   const { t, language } = useI18n();
   const me = useCurrentAccount();
@@ -37,7 +40,7 @@ export function VillageSwitcher({ current }: { current: CurrentVillage | undefin
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={t.village.switcherTitle}>
         <ul className={styles.list}>
-          {me.villages.map((village) => (
+          {me.villages.map((village, index) => (
             <li key={village.id}>
               <Link
                 to={villagePath(pathname, village.id)}
@@ -45,7 +48,12 @@ export function VillageSwitcher({ current }: { current: CurrentVillage | undefin
                 aria-current={village.id === current?.id ? 'page' : undefined}
                 onClick={() => setOpen(false)}
               >
-                <span className={styles.villageName}>{village.name}</span>
+                <span className={styles.villageName}>
+                  {village.name}
+                  {index === 0 && me.villages.length > 1 && (
+                    <span className={styles.main}>{t.village.mainVillage}</span>
+                  )}
+                </span>
                 <span className={styles.villageMeta}>
                   {formatCoords(village.x, village.y)} · {t.village.points(formatNumber(village.points, language))}
                 </span>

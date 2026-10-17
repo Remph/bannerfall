@@ -13,6 +13,8 @@ const normal: NpcDifficultyValues = {
   spareLastVillage: true,
   buildQuietFrom: '23:00',
   buildQuietTo: '07:00',
+  farmLootShare: 0.5,
+  farmRest: true,
 };
 
 describe('customFromForm', () => {
@@ -34,6 +36,11 @@ describe('customFromForm', () => {
     expect(customFromForm({ ...customToForm(normal), attacksPerHumanPerDay: '-1' })).toBeNull();
     expect(customFromForm({ ...customToForm(normal), attacksPerPlayerPerDay: '2.5' })).toBeNull();
     expect(customFromForm({ ...customToForm(normal), attacksPerPlayerPerDay: '0' })?.attacksPerPlayerPerDay).toBe(0);
+  });
+
+  it('accepts a farm loot share of 0 (no budget) and refuses a negative one', () => {
+    expect(customFromForm({ ...customToForm(normal), farmLootShare: '0' })?.farmLootShare).toBe(0);
+    expect(customFromForm({ ...customToForm(normal), farmLootShare: '-0.5' })).toBeNull();
   });
 
   it('refuses times that are not HH:mm', () => {

@@ -15,6 +15,7 @@ import de.bannerfall.event.EventProcessor;
 import de.bannerfall.event.EventScheduler;
 import de.bannerfall.npc.NpcLordService;
 import de.bannerfall.player.PlayerRepository;
+import de.bannerfall.victory.VictoryService;
 import de.bannerfall.village.SpawnService;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -53,6 +54,7 @@ class PregameFlowTest {
     @Autowired WorldOpeningService opening;
     @Autowired SpawnService spawns;
     @Autowired PlayerRepository players;
+    @Autowired VictoryService victory;
     @Autowired ApplicationEventPublisher events;
     @Autowired PlatformTransactionManager transactions;
 
@@ -407,6 +409,7 @@ class PregameFlowTest {
                         opening,
                         spawns,
                         players,
+                        victory,
                         events,
                         clock,
                         true,

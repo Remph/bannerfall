@@ -1,0 +1,67 @@
+/* Only rendered on desktop (≥ 1024 px). List and detail at 2 : 3 of the frame. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* the pages inside fill their column instead of their own maximum width (two classes: more
+   specific than the page's own rule, whichever stylesheet loads last) */
+.split .list > *,
+.split .detail > * {
+  max-width: none;
+}
+
+/* in view below the bars while the list scrolls; scrolls by itself when the item is longer */
+.detail {
+  position: sticky;
+  top: calc(var(--app-header-height, 0px) + var(--space-3));
+  max-height: calc(100dvh - var(--app-header-height, 0px) - 2 * var(--space-3));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* room at the bottom, so the floating chat button never covers the end */
+  padding-bottom: 4rem;
+}
+
+/* a conversation: exactly the room between the bars, so the page itself doesn't scroll; its message
+   list scrolls inside. The page's own padding below keeps the chat button clear of it. */
+.detail.fill {
+  height: calc(100dvh - var(--app-header-height, 0px) - var(--app-footer-height, 0px) - var(--main-padding-block, 0px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.split .fill > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* focused when an item is opened from the list by keyboard: the ring inside the column */
+.detail:focus-visible {
+  outline-offset: -2px;
+}
+
+.empty {
+  margin: 0;
+  padding: 3rem var(--space-4);
+  border: 2px dashed var(--color-divider);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* An opened item fades in next to the list (1.3, motion; reduced motion: global.css). */
+.detail > * {
+  animation: detail-in 0.22s ease-out both;
+}
+
+@keyframes detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}

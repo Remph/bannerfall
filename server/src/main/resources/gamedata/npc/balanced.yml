@@ -34,6 +34,7 @@ npc:
         - { HIDING_PLACE: 2 }
         - { FARM: 4, WAREHOUSE: 4 }
         - { HEADQUARTERS: 5 }
+        - { MARKET: 2 }                                 # trades for the next building (09 §5.4, v1.3)
         - { SMITHY: 1 }
         - { BARRACKS: 2, SMITHY: 2 }
         - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
@@ -44,6 +45,7 @@ npc:
         - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
         - { STABLE: 3 }
         - { FARM: 10, WAREHOUSE: 10 }
+        - { MARKET: 5 }
         - { WALL: 6 }
         - { BARRACKS: 10, SMITHY: 10 }
         - { WORKSHOP: 1 }

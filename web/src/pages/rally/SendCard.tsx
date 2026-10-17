@@ -13,7 +13,7 @@ import { TextField } from '../../components/TextField';
 import { isOnMap, parseCoords } from '../../game/coords';
 import { formatWhenExact } from '../../game/format';
 import type { UnitType } from '../../game/gameData';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { UnitSummary } from '../../components/UnitSummary';
 import {
   MAX_TRAIN_ATTACKS,
@@ -265,7 +265,7 @@ export function SendCard({ village, home }: SendCardProps) {
               <Icon name="shield" className={styles.buttonIcon} />
               {t.rally.support}
             </Button>
-            <Button type="button" onClick={() => open('ATTACK')}>
+            <Button type="button" variant="attack" onClick={() => open('ATTACK')}>
               <Icon name="troops" className={styles.buttonIcon} />
               {train.length > 0 ? t.rally.attackTrain(trainAttacks(train, units).length) : t.rally.attack}
             </Button>
@@ -312,7 +312,7 @@ export function SendCard({ village, home }: SendCardProps) {
  */
 function SentMessage({ sent }: { sent: Sent | null }) {
   const { t, language } = useI18n();
-  const now = useServerNow(); // here, not in SendCard: only this line re-renders every second
+  const now = useGameNow(); // here, not in SendCard: only this line re-renders every second
   return (
     <p role="status" className={styles.sent}>
       {sent !== null &&

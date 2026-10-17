@@ -79,15 +79,15 @@ export function nextBannerRollBackIn(nextBannerRollAts: (string | null)[], nowMs
   return next === undefined ? undefined : next - nowMs;
 }
 
-/** What "send all" (M39) answers: what went out, what was skipped and why, where it stopped. */
+/** What "send all" (M39) answers: what went out, what was skipped and why (the run always ends at the end of the list). */
 export type SendAllResult = components['schemas']['FarmSendAllDto'];
 
 export type SendAllSkipReason = SendAllResult['skipped'][number]['reason'];
 
-/** What a row shows after a "send all": sent, skipped (with the reason) or the entry it stopped at. */
-export type SendAllNote = { kind: 'sent' } | { kind: 'skipped'; reason: SendAllSkipReason } | { kind: 'stopped' };
+/** What a row shows after a "send all": sent, or skipped with the reason (troops short included, 1.3). */
+export type SendAllNote = { kind: 'sent' } | { kind: 'skipped'; reason: SendAllSkipReason };
 
-/** The note of each entry the run touched, by entry id; entries after the stop have none. */
+/** The note of each entry the run touched, by entry id; "Send banner chances" leaves some untouched. */
 export function sendAllNotes(result: SendAllResult): Map<number, SendAllNote> {
   const notes = new Map<number, SendAllNote>();
   for (const id of result.sent) {
@@ -95,9 +95,6 @@ export function sendAllNotes(result: SendAllResult): Map<number, SendAllNote> {
   }
   for (const { targetId, reason } of result.skipped) {
     notes.set(targetId, { kind: 'skipped', reason });
-  }
-  if (result.stoppedAt !== null) {
-    notes.set(result.stoppedAt, { kind: 'stopped' });
   }
   return notes;
 }

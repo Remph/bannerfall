@@ -2,6 +2,7 @@ import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useMyGuild } from '../../api/queries/guilds';
 import { useWorld } from '../../api/queries/world';
+import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { useI18n } from '../../i18n';
@@ -25,17 +26,20 @@ export function GuildPage() {
     return (
       <div className={styles.page}>
         <ErrorMessage>{errorMessage(t, mine.error ?? world.error)}</ErrorMessage>
-        <div>
-          <Button
-            type="button"
-            onClick={() => {
-              void mine.refetch();
-              void world.refetch();
-            }}
-          >
-            {t.common.retry}
-          </Button>
-        </div>
+        {/* reading again changes nothing, so it stays on in an ended world (v1.3) */}
+        <ActionsStayOn>
+          <div>
+            <Button
+              type="button"
+              onClick={() => {
+                void mine.refetch();
+                void world.refetch();
+              }}
+            >
+              {t.common.retry}
+            </Button>
+          </div>
+        </ActionsStayOn>
       </div>
     );
   }

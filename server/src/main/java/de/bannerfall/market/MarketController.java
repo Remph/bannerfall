@@ -25,10 +25,15 @@ import org.springframework.web.bind.annotation.RestController;
 class MarketController {
 
     private final MarketService marketService;
+    private final MarketExchangeService exchangeService;
     private final PlayerService playerService;
 
-    MarketController(MarketService marketService, PlayerService playerService) {
+    MarketController(
+            MarketService marketService,
+            MarketExchangeService exchangeService,
+            PlayerService playerService) {
         this.marketService = marketService;
+        this.exchangeService = exchangeService;
         this.playerService = playerService;
     }
 
@@ -44,6 +49,14 @@ class MarketController {
             @Valid @RequestBody TransportRequest body,
             @AuthenticationPrincipal AccountPrincipal me) {
         return marketService.send(villageId, playerService.idOf(me.accountId()), body);
+    }
+
+    @PostMapping("/villages/{villageId}/market/exchange")
+    ExchangeDto exchange(
+            @PathVariable long villageId,
+            @Valid @RequestBody ExchangeRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return exchangeService.exchange(villageId, playerService.idOf(me.accountId()), body);
     }
 
     @GetMapping("/offers")

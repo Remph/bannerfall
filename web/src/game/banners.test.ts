@@ -5,6 +5,7 @@ import {
   effectiveTier,
   fusableByTier,
   fuseTypes,
+  groupStash,
   percentPoints,
   stashOf,
   tierOfEffect,
@@ -93,5 +94,23 @@ describe('tierOfEffect', () => {
     expect(tierOfEffect(effects, 'WAR', null)).toBe(0);
     expect(tierOfEffect(effects, 'WAR', 0.07)).toBe(0);
     expect(tierOfEffect(effects, 'BULWARK', 0.03)).toBe(0);
+  });
+});
+
+describe('groupStash', () => {
+  it('puts banners of one type and tier in one row with their count, in stash order', () => {
+    const stash: BannerLike[] = [
+      { id: 1, type: 'WAR', tier: 3, villageId: null },
+      { id: 2, type: 'BULWARK', tier: 1, villageId: null },
+      { id: 3, type: 'BULWARK', tier: 1, villageId: null },
+      { id: 4, type: 'BULWARK', tier: 2, villageId: null },
+      { id: 5, type: 'BULWARK', tier: 1, villageId: null },
+    ];
+
+    expect(groupStash(stash).map(({ banner, count }) => [banner.id, count])).toEqual([
+      [1, 1],
+      [2, 3],
+      [4, 1],
+    ]);
   });
 });

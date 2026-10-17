@@ -1,12 +1,43 @@
-/* The farm list (05-frontend §3). Phone first: one column of cards. */
+/* The farm list (05-frontend §3). Phone first: one column of cards; desktop: targets | form (1.3). */
 .page {
   display: grid;
   gap: var(--space-3);
-  max-width: 44rem;
   align-content: start;
 }
 
+.columns {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 44rem;
+}
+
+.listColumn,
+.formColumn {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+@media (min-width: 1024px) {
+  .columns {
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    align-items: start;
+  }
+
+  /* the form at the right also when it comes first in the page */
+  .listColumn {
+    grid-area: 1 / 1;
+  }
+
+  .formColumn {
+    grid-area: 1 / 2;
+  }
+}
+
 .head {
+  max-width: 44rem;
   display: grid;
   gap: var(--space-1);
 }
@@ -100,6 +131,26 @@
   border-top: 0;
 }
 
+/* name and facts on the left, Send and "…" on the right (1.3) */
+.targetTop {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.targetTop .targetHead {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--space-1);
+}
+
+.rowActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .targetHead {
   display: flex;
   flex-wrap: wrap;
@@ -154,7 +205,99 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+}
+
+/* "Send all": the one hint line with the (i) of the banner chance rules at its end (1.3) */
+.hintLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hintLine > p {
+  flex: 1;
+  min-width: 0;
+}
+
+/* in place of "Send banner chances (0)" */
+.noChances {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* the run's summary, next to the buttons that started it */
+.sentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* a run that sent nothing (every target skipped): the same chip without the success colour */
+.noneSentChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sentChip svg,
+.lastSentDone svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
+/* armed: a thin bar runs down over the 4 seconds the second tap may take (ARMED_MS in
+   SendAllBar.tsx); with reduced motion it stays full */
+.armed {
+  position: relative;
+  overflow: hidden;
+}
+
+.armed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--color-on-danger);
+  opacity: 0.75;
+  transform-origin: left;
+  animation: armed-drain 4s linear forwards;
+}
+
+@keyframes armed-drain {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .armed::after {
+    animation: none;
+  }
+}
+
+/* a row "Send all" sent: its last-sent fact with a check, instead of a line of its own (1.3) */
+.lastSentDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--color-success);
+  font-weight: 600;
 }
 
 .sent {

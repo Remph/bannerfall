@@ -9,6 +9,7 @@ import de.bannerfall.Browser;
 import de.bannerfall.IntegrationTest;
 import de.bannerfall.MutableClock;
 import de.bannerfall.TestPlayer;
+import de.bannerfall.TestWorldConfiguration;
 import de.bannerfall.common.Coordinates;
 import de.bannerfall.event.EventProcessor;
 import de.bannerfall.gamedata.BuildingType;
@@ -19,6 +20,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +53,11 @@ class RaceTest {
     @Autowired GameData gameData;
 
     private final ExecutorService pool = Executors.newFixedThreadPool(4);
+    private final List<Long> extraVillages = new ArrayList<>();
+
+    /** The response bodies of the last {@link #together} call, for failure messages. */
+    private final List<String> lastBodies = new ArrayList<>();
+
     private TestPlayer alice;
     private TestPlayer bob;
     private Coordinates bobAt;
@@ -72,7 +79,21 @@ class RaceTest {
     void tearDown() {
         pool.shutdownNow();
         jdbc.sql("delete from game_event").update();
-        jdbc.sql("update world_settings set cancel_window_seconds = 600 where id = 1").update();
+        for (long id : extraVillages) {
+            jdbc.sql("delete from unit_stack where home_village_id = ? or location_village_id = ?")
+                    .params(id, id)
+                    .update();
+            jdbc.sql("delete from village where id = ?").param(id).update();
+        }
+        extraVillages.clear();
+        jdbc.sql(
+                        """
+                        update world_settings set cancel_window_seconds = 600,
+                               paladin_villages_per_slot = 4, paladin_max_slots = 5,
+                               unit_levels_enabled = false
+                        where id = 1
+                        """)
+                .update();
         worldService.reload();
     }
 
@@ -461,10 +482,203 @@ class RaceTest {
 
     // ---- helpers ----
 
+    // ---- 1.2 write paths across two villages of one player (the 1.2.0 audit, item 4) ----
+
+    @Test
+    void twoVillagesRecruitingTheLastPaladinGetOne() throws Exception {
+        setPaladinSlots(4, 5); // two villages: one slot
+        Browser second = secondSession();
+        long other = addVillage();
+        String paladin = "{\"unit\":\"PALADIN\",\"count\":1}";
+        for (int round = 0; round < ROUNDS; round++) {
+            jdbc.sql("delete from recruit_order where village_id in (?, ?)")
+                    .params(alice.villageId, other)
+                    .update();
+
+            List<Integer> statuses =
+                    together(
+                            () ->
+                                    alice.browser.post(
+                                            alice.villagePath() + "/recruit-orders", paladin),
+                            () -> second.post(villagePath(other) + "/recruit-orders", paladin));
+
+            assertThat(statuses).as(lastBodies.toString()).containsExactlyInAnyOrder(201, 409);
+            assertThat(
+                            jdbc.sql(
+                                            "select coalesce(sum(count), 0) from recruit_order"
+                                                    + " where village_id in (?, ?) and unit = ?")
+                                    .params(alice.villageId, other, "PALADIN")
+                                    .query(Long.class)
+                                    .single())
+                    .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void oneBannerEquippedInTwoVillagesFliesInOne() throws Exception {
+        Browser second = secondSession();
+        long other = addVillage();
+        setLevel(alice.villageId, BuildingType.BANNER_HALL, 1);
+        setLevel(other, BuildingType.BANNER_HALL, 1);
+        for (int round = 0; round < ROUNDS; round++) {
+            long banner =
+                    jdbc.sql(
+                                    """
+                                    insert into banner (owner_id, type, tier, origin, created_at)
+                                    values (?, 'HARVEST', 1, 'GRANTED', now()) returning id
+                                    """)
+                            .param(alice.playerId)
+                            .query(Long.class)
+                            .single();
+
+            List<Integer> statuses =
+                    together(
+                            () ->
+                                    alice.browser.put(
+                                            villagePath(alice.villageId) + "/banner/" + banner, ""),
+                            () -> second.put(villagePath(other) + "/banner/" + banner, ""));
+
+            assertThat(statuses).containsExactlyInAnyOrder(200, 409);
+            assertThat(
+                            jdbc.sql("select equipped_village_id from banner where id = ?")
+                                    .param(banner)
+                                    .query(Long.class)
+                                    .single())
+                    .isIn(alice.villageId, other);
+            assertThat(
+                            jdbc.sql(
+                                            "select count(*) from banner_event"
+                                                    + " where banner_id = ? and kind = 'EQUIPPED'")
+                                    .param(banner)
+                                    .query(Long.class)
+                                    .single())
+                    .isEqualTo(1);
+            // the next round starts with empty halls
+            jdbc.sql("update banner set equipped_village_id = null where id = ?")
+                    .param(banner)
+                    .update();
+        }
+    }
+
+    @Test
+    void theSameResearchStartedInTwoVillagesRunsOnceAndCostsOnce() throws Exception {
+        setUnitLevels(true);
+        Browser second = secondSession();
+        long other = addVillage();
+        for (long village : List.of(alice.villageId, other)) {
+            setLevel(village, BuildingType.SMITHY, 10);
+            setLevel(village, BuildingType.BARRACKS, 1);
+        }
+        String spearman = "{\"unit\":\"SPEARMAN\"}";
+        for (int round = 0; round < ROUNDS; round++) {
+            jdbc.sql("delete from research_order where player_id = ?")
+                    .param(alice.playerId)
+                    .update();
+            setStock(alice.villageId, 20_000);
+            setStock(other, 20_000);
+
+            List<Integer> statuses =
+                    together(
+                            () ->
+                                    alice.browser.post(
+                                            alice.villagePath() + "/research-orders", spearman),
+                            () -> second.post(villagePath(other) + "/research-orders", spearman));
+
+            assertThat(statuses).containsExactlyInAnyOrder(201, 409);
+            assertThat(
+                            jdbc.sql(
+                                            "select count(*) from research_order"
+                                                    + " where player_id = ? and unit = 'SPEARMAN'")
+                                    .param(alice.playerId)
+                                    .query(Long.class)
+                                    .single())
+                    .isEqualTo(1);
+            // only the village whose research runs has paid: the refused one was rolled back
+            long paid =
+                    List.of(alice.villageId, other).stream()
+                            .filter(village -> resources(village).getFirst() < 20_000)
+                            .count();
+            assertThat(paid).isEqualTo(1);
+        }
+    }
+
     private final List<Integer> arrivedOrReturning = new ArrayList<>();
 
     private long spearmenAtBefore(int round) {
         return arrivedOrReturning.stream().limit(round).mapToLong(Integer::longValue).sum();
+    }
+
+    private static String villagePath(long villageId) {
+        return "/api/villages/" + villageId;
+    }
+
+    /**
+     * A second village for Alice, rich like her first: a free field on a row of its own, handed
+     * over by SQL and deleted again after the test.
+     */
+    private long addVillage() {
+        int row = TestWorldConfiguration.MAP_SIZE - 16;
+        for (int x = 20; x < TestWorldConfiguration.MAP_SIZE; x++) {
+            Long id =
+                    jdbc.sql(
+                                    """
+                                    insert into village (player_id, name, x, y, wood, clay, iron,
+                                                         resources_updated_at, loyalty_updated_at,
+                                                         points, created_at)
+                                    values (:player, 'second', :x, :y, 0, 0, 0, now(), now(), 0, now())
+                                    on conflict (x, y) do nothing
+                                    returning id
+                                    """)
+                            .param("player", alice.playerId)
+                            .param("x", x)
+                            .param("y", row)
+                            .query(Long.class)
+                            .optional()
+                            .orElse(null);
+            if (id != null) {
+                extraVillages.add(id);
+                // every village has its home stack (a recruit order with 201 reads it)
+                jdbc.sql(
+                                "insert into unit_stack (home_village_id, location_village_id)"
+                                        + " values (?, ?)")
+                        .params(id, id)
+                        .update();
+                Fixture.richVillage(jdbc, id);
+                setLevel(id, BuildingType.HEADQUARTERS, 1);
+                return id;
+            }
+        }
+        throw new IllegalStateException("no free field for a second village");
+    }
+
+    private void setLevel(long villageId, BuildingType building, int level) {
+        jdbc.sql(
+                        "update village set b_"
+                                + building.name().toLowerCase(Locale.ROOT)
+                                + " = ? where id = ?")
+                .params(level, villageId)
+                .update();
+    }
+
+    /** The stock as of the test clock, so a catch-up adds no production. */
+    private void setStock(long villageId, int each) {
+        jdbc.sql(
+                        "update village set wood = ?, clay = ?, iron = ?, resources_updated_at = ?"
+                                + " where id = ?")
+                .params(each, each, each, Timestamp.from(clock.instant()), villageId)
+                .update();
+    }
+
+    private void setPaladinSlots(int villagesPerSlot, int maxSlots) {
+        jdbc.sql("update world_settings set paladin_villages_per_slot = ?, paladin_max_slots = ?")
+                .params(villagesPerSlot, maxSlots)
+                .update();
+        worldService.reload();
+    }
+
+    private void setUnitLevels(boolean enabled) {
+        jdbc.sql("update world_settings set unit_levels_enabled = ?").param(enabled).update();
+        worldService.reload();
     }
 
     private void allowCancelUntilArrival() {
@@ -502,9 +716,12 @@ class RaceTest {
         }
         start.countDown();
         List<Integer> statuses = new ArrayList<>();
+        lastBodies.clear();
         for (Future<ResultActions> future : futures) {
             ResultActions result = future.get(30, TimeUnit.SECONDS);
             statuses.add(result == null ? null : result.andReturn().getResponse().getStatus());
+            lastBodies.add(
+                    result == null ? null : result.andReturn().getResponse().getContentAsString());
         }
         return statuses;
     }

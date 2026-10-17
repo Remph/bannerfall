@@ -228,6 +228,95 @@ class MapMovementsTest {
                 .andExpect(jsonPath("$[0].attacks").value(1));
     }
 
+    @Test
+    void linesShowEveryMovementWithBothEndsAndHideTheStartOfForeignAttacks() throws Exception {
+        String attack = send("ATTACK", "{\"AXEMAN\":10}");
+        sendNobleAttack();
+        String support = send("SUPPORT", "{\"SPEARMAN\":5}");
+
+        // the sender: three lines, next arrival first (the axemen are the fastest)
+        String mine = body(lines(attacker).andExpect(status().isOk()));
+        assertThat(JsonPath.<Integer>read(mine, "$.length()")).isEqualTo(3);
+        assertThat(JsonPath.<Number>read(mine, "$[0].id").longValue())
+                .isEqualTo(number(attack, "$.id").longValue());
+        List<String> kinds = JsonPath.read(mine, "$[*].kind");
+        List<Boolean> own = JsonPath.read(mine, "$[*].own");
+        List<Boolean> nobles = JsonPath.read(mine, "$[*].nobles");
+        assertThat(kinds).containsExactlyInAnyOrder("ATTACK", "ATTACK", "SUPPORT");
+        assertThat(own).containsOnly(true);
+        assertThat(nobles).containsExactlyInAnyOrder(false, true, false);
+        assertThat(JsonPath.<Number>read(mine, "$[0].from.id").longValue())
+                .isEqualTo(attacker.villageId);
+        assertThat(JsonPath.<Number>read(mine, "$[0].to.id").longValue())
+                .isEqualTo(defender.villageId);
+        assertThat(JsonPath.<Integer>read(mine, "$[0].to.x")).isEqualTo(defenderAt.x());
+        assertThat(JsonPath.<Integer>read(mine, "$[0].to.y")).isEqualTo(defenderAt.y());
+        assertThat(JsonPath.<String>read(mine, "$[0].to.playerName")).isNotNull();
+        assertThat(Instant.parse(JsonPath.read(mine, "$[0].departAt")))
+                .isEqualTo(Instant.parse(JsonPath.read(attack, "$.departAt")));
+        assertThat(Instant.parse(JsonPath.read(mine, "$[0].arriveAt")))
+                .isEqualTo(Instant.parse(JsonPath.read(attack, "$.arriveAt")));
+
+        // the defender: the same three, not his own, no nobles, and no start for the attacks
+        String theirs = body(lines(defender));
+        assertThat(JsonPath.<Integer>read(theirs, "$.length()")).isEqualTo(3);
+        List<Boolean> theirOwn = JsonPath.read(theirs, "$[*].own");
+        List<Boolean> theirNobles = JsonPath.read(theirs, "$[*].nobles");
+        List<Object> attackStarts = JsonPath.read(theirs, "$[?(@.kind == 'ATTACK')].departAt");
+        List<String> supportStarts = JsonPath.read(theirs, "$[?(@.kind == 'SUPPORT')].departAt");
+        assertThat(theirOwn).containsOnly(false);
+        assertThat(theirNobles).containsOnly(false);
+        assertThat(attackStarts).hasSize(2).containsOnlyNulls();
+        assertThat(supportStarts).containsExactly(JsonPath.<String>read(support, "$.departAt"));
+
+        TestPlayer bystander = TestPlayer.register(mockMvc);
+        lines(bystander).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void aReturnIsALineHomeOnlyItsOwnerSees() throws Exception {
+        long attack = number(send("ATTACK", "{\"AXEMAN\":10}"), "$.id").longValue();
+        clock.advance(Duration.ofSeconds(60));
+        attacker.cancelMovement(attack).andExpect(status().isOk());
+
+        lines(attacker)
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].kind").value("RETURN"))
+                .andExpect(jsonPath("$[0].own").value(true))
+                .andExpect(jsonPath("$[0].to.id").value(attacker.villageId));
+        assertThat(JsonPath.<String>read(body(lines(attacker)), "$[0].departAt")).isNotNull();
+        lines(defender).andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void linesLeaveOutOwnAttacksOnAVillageHeOwnsByNow() throws Exception {
+        send("ATTACK", "{\"AXEMAN\":10}");
+        send("SUPPORT", "{\"SPEARMAN\":5}");
+        setOwner(defender.villageId, attacker.playerId);
+
+        List<String> kinds = JsonPath.read(body(lines(attacker)), "$[*].kind");
+        assertThat(kinds).containsExactly("SUPPORT");
+    }
+
+    @Test
+    void aLineToABarbarianVillageHasNoOwner() throws Exception {
+        setOwner(defender.villageId, null);
+        jdbc.sql("update village set name = null where id = ?").param(defender.villageId).update();
+
+        send("ATTACK", "{\"AXEMAN\":10}");
+
+        lines(attacker)
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].to.name").value(nullValue()))
+                .andExpect(jsonPath("$[0].to.playerId").value(nullValue()))
+                .andExpect(jsonPath("$[0].to.playerName").value(nullValue()))
+                .andExpect(jsonPath("$[0].from.playerId").value(attacker.playerId));
+    }
+
+    private ResultActions lines(TestPlayer player) throws Exception {
+        return player.browser.get("/api/map/movement-lines");
+    }
+
     private Instant nextReturnAt(TestPlayer player) throws Exception {
         return Instant.parse(JsonPath.read(body(movements(player)), "$[0].nextReturnAt"));
     }

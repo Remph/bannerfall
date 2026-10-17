@@ -31,12 +31,21 @@ const settings: AdminWorldSettings = {
   paladinMaxSlots: 5,
   bannersEnabled: true,
   bannerDropFactor: 1,
+  marketExchangeRatio: 1.5,
+  villageNameLanguage: 'EN',
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
   barbarianWallMaxLevel: 5,
   barbarianWallsRebuild: false,
+  victoryMode: 'DOMINATION',
+  dominationPercent: 60,
+  victoryHoldHours: 48,
+  keepCount: 5,
+  keepPercent: 51,
   phase: 'OPEN',
   opensAt: null,
+  endsAt: null,
+  endedAt: null,
 };
 
 describe('worldFromForm', () => {
@@ -67,10 +76,17 @@ describe('worldFromForm', () => {
       paladinMaxSlots: 5,
       bannersEnabled: true,
       bannerDropFactor: 1,
+      marketExchangeRatio: 1.5,
+      villageNameLanguage: 'EN',
       barbarianWallsEnabled: null,
       barbarianWallStartDays: null,
       barbarianWallMaxLevel: null,
       barbarianWallsRebuild: null,
+      victoryMode: null,
+      dominationPercent: null,
+      victoryHoldHours: null,
+      keepCount: null,
+      keepPercent: null,
       mapSize: null,
       barbarianInitialCount: null,
       npcLordCount: null,
@@ -106,6 +122,24 @@ describe('worldFromForm', () => {
     expect(worldFromForm({ ...form, bannerDropFactor: '3.1' })).toBeNull();
     expect(worldFromForm({ ...form, bannerDropFactor: '-0.1' })).toBeNull();
     expect(worldFromForm({ ...form, bannerDropFactor: '' })).toBeNull();
+  });
+
+  it('sends the market exchange ratio: 0 turns it off, otherwise 1 to 10', () => {
+    const form = worldToForm(settings);
+    expect(form.marketExchangeRatio).toBe('1.5');
+    expect(worldFromForm(form)?.marketExchangeRatio).toBe(1.5);
+    expect(worldFromForm({ ...form, marketExchangeRatio: '0' })?.marketExchangeRatio).toBe(0);
+    expect(worldFromForm({ ...form, marketExchangeRatio: '1' })?.marketExchangeRatio).toBe(1);
+    expect(worldFromForm({ ...form, marketExchangeRatio: '10' })?.marketExchangeRatio).toBe(10);
+    expect(worldFromForm({ ...form, marketExchangeRatio: '0.5' })).toBeNull();
+    expect(worldFromForm({ ...form, marketExchangeRatio: '10.5' })).toBeNull();
+    expect(worldFromForm({ ...form, marketExchangeRatio: '' })).toBeNull();
+  });
+
+  it('sends the language of default village names', () => {
+    const form = worldToForm(settings);
+    expect(form.villageNameLanguage).toBe('EN');
+    expect(worldFromForm({ ...form, villageNameLanguage: 'DE' })?.villageNameLanguage).toBe('DE');
   });
 
   it('sends map size, barbarians and lords only in the pre-game, and checks them then', () => {

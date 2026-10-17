@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageFromSearch, parseReportId, reportPath, reportsPath } from './reportPaths';
+import { filterFromSearch, pageFromSearch, parseReportId, reportPath, reportsPath } from './reportPaths';
 
 describe('reportsPath', () => {
   it('leaves the first page without a parameter and counts from 1 in the URL', () => {
@@ -34,11 +34,34 @@ describe('pageFromSearch', () => {
 });
 
 describe('reportPath / parseReportId', () => {
+  it('keeps the list the report was opened from', () => {
+    expect(reportPath(12, 1, 'ATTACKS')).toBe('/reports/12?filter=attacks&page=2');
+    expect(reportPath(12, 0, null)).toBe('/reports/12');
+    const search = new URLSearchParams(reportPath(12, 4, 'TRADE').split('?')[1]);
+    expect(pageFromSearch(search)).toBe(4);
+    expect(filterFromSearch(search)).toBe('TRADE');
+  });
+
   it('builds and reads the detail path', () => {
     expect(reportPath(12)).toBe('/reports/12');
     expect(parseReportId('12')).toBe(12);
     expect(parseReportId('0')).toBeUndefined();
     expect(parseReportId('12a')).toBeUndefined();
     expect(parseReportId(undefined)).toBeUndefined();
+  });
+});
+
+describe('reports filter in the path', () => {
+  it('keeps the filter in lower case before the page', () => {
+    expect(reportsPath(0, 'ATTACKS')).toBe('/reports?filter=attacks');
+    expect(reportsPath(1, 'SCOUTING')).toBe('/reports?filter=scouting&page=2');
+    expect(reportsPath(1, null)).toBe('/reports?page=2');
+  });
+
+  it('reads it back; unknown or missing is all reports', () => {
+    expect(filterFromSearch(new URLSearchParams('filter=defense&page=2'))).toBe('DEFENSE');
+    expect(filterFromSearch(new URLSearchParams('filter=TRADE'))).toBe('TRADE');
+    expect(filterFromSearch(new URLSearchParams('filter=bananas'))).toBeNull();
+    expect(filterFromSearch(new URLSearchParams(''))).toBeNull();
   });
 });

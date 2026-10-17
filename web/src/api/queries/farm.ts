@@ -98,8 +98,8 @@ export function useSendFarm(villageId: number) {
 }
 
 /**
- * POST …/farm-targets/send-all (M39): the list from the top, one attack per entry, until it is done
- * or the troops run out. The answer says what went out, what was skipped and where it stopped.
+ * POST …/farm-targets/send-all (M39): the whole list from the top, one attack per entry; an entry the
+ * troops don't cover is skipped (1.3). The answer says what went out and what was skipped and why.
  * `bannerChanceOnly` (1.2.3) leaves out the entries whose banner roll is used.
  */
 export function useSendAllFarm(villageId: number) {

@@ -114,6 +114,12 @@ public enum ErrorCode {
     OFFER_EXHAUSTED,
     /** An offer that doesn't exist (any more), or a foreign one to cancel (404). */
     OFFER_NOT_FOUND,
+    /** Trading with the market is switched off in this world ({@code marketExchangeRatio} 0). */
+    EXCHANGE_OFF,
+    /** More than the village may still get from the market today (also: no market). */
+    EXCHANGE_LIMIT,
+    /** What the market would give doesn't fit into the warehouse. */
+    WAREHOUSE_FULL,
 
     // Ranking and admin (M14a)
     /** A player that doesn't exist or was deleted by the admin (404). */
@@ -150,6 +156,15 @@ public enum ErrorCode {
     WORLD_NOT_OPEN,
     /** Pre-game only: map size, setting or moving the opening time once the world is open (409). */
     WORLD_ALREADY_OPEN,
+
+    // World end (v1.3, 02-game-rules §22)
+    /**
+     * A request that would change the game after the world has ended (409): the world is frozen,
+     * only reading, the chat and the account stay open.
+     */
+    WORLD_ENDED,
+    /** Taking an end back while the world has not ended (409). */
+    WORLD_NOT_ENDED,
 
     // Start-up (code review 1.2, D3)
     /**

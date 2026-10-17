@@ -23,6 +23,8 @@ import de.bannerfall.village.VillageRefDto;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,6 +94,39 @@ class ReportControllerTest {
         other.reports()
                 .andExpect(jsonPath("$.items[*].kind", contains("DEFENSE")))
                 .andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    void aFilterShowsOnlyItsKindsAndEveryFilterIsCounted() throws Exception {
+        Instant now = clock.instant();
+        create(ReportKind.SUPPORT_ARRIVED, now.minusSeconds(400), support(), player);
+        create(ReportKind.ATTACK, now.minusSeconds(300), battle(), player);
+        create(ReportKind.SCOUT, now.minusSeconds(200), battle(), player);
+        create(ReportKind.CONQUEST, now.minusSeconds(100), conquest(), player);
+
+        String attacks = body(player.browser.get("/api/reports?filter=ATTACKS"));
+        String all = body(player.reports());
+
+        assertThat(JsonPath.<List<String>>read(attacks, "$.items[*].kind"))
+                .containsExactly("CONQUEST", "ATTACK");
+        assertThat(number(attacks, "$.total").intValue()).isEqualTo(2);
+        assertThat(number(all, "$.total").intValue()).isEqualTo(4);
+        for (String list : List.of(attacks, all)) {
+            assertThat(JsonPath.<Map<String, Integer>>read(list, "$.counts"))
+                    .containsExactlyInAnyOrderEntriesOf(
+                            Map.of(
+                                    "ATTACKS", 2,
+                                    "DEFENSE", 0,
+                                    "SCOUTING", 1,
+                                    "SUPPORT", 1,
+                                    "TRADE", 0));
+        }
+        // the list's summary carries the loot and the reader's losses (1.3)
+        assertThat(JsonPath.<Integer>read(attacks, "$.items[1].summary.loot.clay")).isEqualTo(425);
+        assertThat(JsonPath.<Integer>read(attacks, "$.items[1].summary.losses.AXEMAN"))
+                .isEqualTo(3);
+        assertThat(JsonPath.<Boolean>read(attacks, "$.items[1].summary.fullHaul")).isFalse();
+        player.browser.get("/api/reports?filter=NONSENSE").andExpect(status().isBadRequest());
     }
 
     @Test
@@ -214,6 +249,44 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.code").value("REPORT_NOT_FOUND"));
         player.browser.delete("/api/reports/" + id).andExpect(status().isNotFound());
         player.reports().andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    void deleteChosenDeletesOnlyThoseThatAreTheOwnReports() throws Exception {
+        Instant now = clock.instant();
+        create(ReportKind.ATTACK, now.minusSeconds(100), battle(), player);
+        create(ReportKind.SUPPORT_ARRIVED, now.minusSeconds(200), support(), player);
+        create(ReportKind.DEFENSE, now.minusSeconds(300), battle(), player);
+        create(ReportKind.ATTACK, now.minusSeconds(400), battle(), other);
+        List<Integer> ids = JsonPath.read(body(player.reports()), "$.items[*].id");
+        long othersId = newestId(other);
+
+        // someone else's report and one that is gone already are skipped
+        player.browser
+                .post(
+                        "/api/reports/delete",
+                        "{\"ids\": [%d, %d, %d, 999999]}"
+                                .formatted(ids.get(0), ids.get(2), othersId))
+                .andExpect(status().isNoContent());
+
+        player.reports()
+                .andExpect(jsonPath("$.items[*].kind", contains("SUPPORT_ARRIVED")))
+                .andExpect(jsonPath("$.total").value(1));
+        other.reports().andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    void deleteChosenNeedsAtLeastOneAndAtMostAPageOfIds() throws Exception {
+        player.browser
+                .post("/api/reports/delete", "{\"ids\": []}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+        player.browser.post("/api/reports/delete", "{}").andExpect(status().isBadRequest());
+        String tooMany =
+                LongStream.rangeClosed(1, ReportController.MAX_PAGE_SIZE + 1)
+                        .mapToObj(Long::toString)
+                        .collect(Collectors.joining(", ", "{\"ids\": [", "]}"));
+        player.browser.post("/api/reports/delete", tooMany).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -398,6 +471,9 @@ class ReportControllerTest {
         anonymous.get("/api/reports/1").andExpect(status().isUnauthorized());
         anonymous.get("/api/reports/unread").andExpect(status().isUnauthorized());
         anonymous.post("/api/reports/read-all", "").andExpect(status().isUnauthorized());
+        anonymous
+                .post("/api/reports/delete", "{\"ids\": [1]}")
+                .andExpect(status().isUnauthorized());
         anonymous.post("/api/reports/delete-all?upTo=1", "").andExpect(status().isUnauthorized());
         anonymous
                 .post("/api/reports/delete-barbarian?upTo=1", "")
@@ -463,6 +539,10 @@ class ReportControllerTest {
                 new ResourceAmounts(150, 425, 425),
                 null,
                 banners);
+    }
+
+    private static ConquestReport conquest() {
+        return new ConquestReport(BEN, TOM, "Tomburg", null);
     }
 
     private static SupportReport support() {

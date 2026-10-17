@@ -68,7 +68,7 @@ gamedata:
       defense-cavalry: 5
       attack-type: INFANTRY
       minutes-per-field: 18
-      carry: 10
+      carry: 15
       base-seconds: 1300
       levels:
         - attack: 44

@@ -28,9 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SpawnService {
 
-    static final int MAX_NAME_LENGTH = 32;
-    private static final String NAME_SUFFIX = "'s village";
-
     private final VillageRepository villages;
     private final UnitStackRepository stacks;
     private final PlayerRepository players;
@@ -101,7 +98,10 @@ public class SpawnService {
                 villages.save(
                         new Village(
                                 player,
-                                defaultName(player.getName()),
+                                worldService
+                                        .settings()
+                                        .villageNameLanguage()
+                                        .defaultName(player.getName()),
                                 found.get(),
                                 world.startResources(),
                                 buildings,
@@ -136,15 +136,6 @@ public class SpawnService {
         Village village = createStartingVillage(player);
         achievements.grant(player, Achievement.PHOENIX);
         return village;
-    }
-
-    /**
-     * "Ben's village"; just the player name if that would be too long for the column. Also the name
-     * of a conquered barbarian village (02-game-rules §10).
-     */
-    public static String defaultName(String playerName) {
-        String name = playerName + NAME_SUFFIX;
-        return name.length() <= MAX_NAME_LENGTH ? name : playerName;
     }
 
     private BuildingLevels startLevels() {

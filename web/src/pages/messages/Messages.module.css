@@ -21,17 +21,6 @@
   color: var(--color-text-muted);
 }
 
-.back {
-  justify-self: start;
-  min-height: var(--touch-target);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .body {
   display: grid;
   gap: var(--space-2);
@@ -52,6 +41,8 @@
 
 .line {
   display: grid;
+  /* as wide as the list, not the whole preview: that is cut with "…" (next to a conversation, 1.3) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 2px;
   padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--color-divider);
@@ -113,8 +104,8 @@
   flex: none;
   padding: 0 0.5rem;
   border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -251,4 +242,41 @@
   align-items: center;
   color: var(--color-accent);
   font-weight: 600;
+}
+
+/* ---------- desktop: next to the inbox (1.3) ---------- */
+.openLine {
+  background: var(--color-well);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* the conversation fills its column: the messages scroll inside, the input stays at the bottom */
+.threadPage {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.threadPage .threadCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.threadPage .thread {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* a short conversation sits at the bottom, by the input, like a chat. An auto margin, not
+   `align-content: end`: that pushed a long conversation out at the top, where it couldn't be scrolled to. */
+.threadPage .thread > :first-child {
+  margin-top: auto;
+}
+
+.threadPage .older {
+  align-self: center;
 }

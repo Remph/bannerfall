@@ -10,6 +10,7 @@ import de.bannerfall.npc.NpcLordService;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.rules.Barbarians;
+import de.bannerfall.victory.VictoryService;
 import de.bannerfall.village.SpawnService;
 import de.bannerfall.village.Village;
 import java.time.Clock;
@@ -30,7 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
  * initial barbarian villages ({@code world_settings.initialized_at} makes sure that happens only
  * once), then the NPC lords ({@code npcLordCount}, 09-npc-lords §2). Every start makes sure the
  * recurring BARBARIAN_GROWTH event exists and that every NPC lord with villages has a pending
- * NPC_THINK round, so a lost or FAILED one comes back.
+ * NPC_THINK round, so a lost or FAILED one comes back; the same for the victory check and the end
+ * date (v1.3, {@link VictoryService#ensure}).
  *
  * <p>A fresh production server starts in the pre-game instead ({@code
  * bannerfall.world.start-in-pregame}, M14g): nothing is created until the world opens ({@link
@@ -51,6 +53,7 @@ public class WorldInitializer {
     private final WorldOpeningService opening;
     private final SpawnService spawns;
     private final PlayerRepository players;
+    private final VictoryService victory;
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final boolean enabled;
@@ -64,6 +67,7 @@ public class WorldInitializer {
             WorldOpeningService opening,
             SpawnService spawns,
             PlayerRepository players,
+            VictoryService victory,
             ApplicationEventPublisher events,
             Clock clock,
             @Value("${bannerfall.world.initializer-enabled:true}") boolean enabled,
@@ -75,6 +79,7 @@ public class WorldInitializer {
         this.opening = opening;
         this.spawns = spawns;
         this.players = players;
+        this.victory = victory;
         this.events = events;
         this.clock = clock;
         this.enabled = enabled;
@@ -121,7 +126,11 @@ public class WorldInitializer {
 
     private void create(Instant now) {
         WorldSettings world = worldService.settings();
-        if (worldService.claimInitialization(now)) {
+        boolean fresh = worldService.claimInitialization(now);
+        // Banner keeps first in a new world, so they get the centre (v1.3, 02-game-rules §22);
+        // also the victory check and the end date's event.
+        victory.ensure(now);
+        if (fresh) {
             int spawned = barbarians.spawnInitial(world.barbarianInitialCount()).size();
             log.info("New world: {} barbarian villages spawned", spawned);
             int lords = npcLords.spawnInitial(world.npcLordCount()).size();

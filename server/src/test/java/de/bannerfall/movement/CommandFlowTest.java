@@ -115,6 +115,8 @@ class CommandFlowTest {
                 .andExpect(jsonPath("$.incoming[0].kind").value("SUPPORT"))
                 .andExpect(jsonPath("$.incoming[0].sourceVillage.id").value(attacker.villageId))
                 .andExpect(jsonPath("$.incoming[0].units.SPEARMAN").value(10));
+        // a support shows when it set off, as its line on the map does
+        assertThat(instant(body(defender.troops()), "$.incoming[0].departAt")).isEqualTo(now);
         defender.village().andExpect(jsonPath("$.incomingAttacks").value(0));
     }
 
@@ -400,6 +402,30 @@ class CommandFlowTest {
         assertThat(protectedUntil(attacker)).isCloseTo(now, within(1, ChronoUnit.MILLIS));
     }
 
+    @Test
+    void anAttackShowsWhenItSetOffOnlyToItsSender() throws Exception {
+        Instant now = clock.instant();
+        sendOk("ATTACK", defenderAt, "{\"AXEMAN\":10}");
+        clock.advance(Duration.ofSeconds(5));
+        sendOk("SUPPORT", defenderAt, "{\"SPEARMAN\":10}");
+        // the defender: the attack's start stays hidden, the support's shows
+        String theirs = body(defender.troops());
+        assertThat(JsonPath.<String>read(theirs, "$.incoming[0].kind")).isEqualTo("ATTACK");
+        assertThat(JsonPath.<Object>read(theirs, "$.incoming[0].departAt")).isNull();
+        assertThat(instant(theirs, "$.incoming[1].departAt")).isEqualTo(now.plusSeconds(5));
+
+        // the target becomes the attacker's second village: his own attack shows its start too
+        handOver(defender.villageId, attacker);
+        String own = body(attacker.browser.get("/api/villages/" + defender.villageId + "/troops"));
+        assertThat(instant(own, "$.incoming[0].departAt")).isEqualTo(now);
+
+        // it changes hands again: for the new owner it is someone else's attack once more
+        handOver(defender.villageId, defender);
+        defender.troops()
+                .andExpect(jsonPath("$.incoming", hasSize(2)))
+                .andExpect(jsonPath("$.incoming[0].departAt").value(nullValue()));
+    }
+
     // ---- arrival ----
 
     @Test
@@ -474,7 +500,8 @@ class CommandFlowTest {
                 .andExpect(jsonPath("$.villages[0].incomingAttacks").value(0));
         defender.troops()
                 .andExpect(jsonPath("$.incoming[0].kind").value("ATTACK"))
-                .andExpect(jsonPath("$.incoming[0].units").value(nullValue()));
+                .andExpect(jsonPath("$.incoming[0].units").value(nullValue()))
+                .andExpect(jsonPath("$.incoming[0].departAt").value(nullValue()));
 
         clock.set(arrival);
         processor.processDue(clock.instant());
@@ -493,6 +520,8 @@ class CommandFlowTest {
         assertThat(number(back, "$.incoming[0].units.AXEMAN").intValue()).isEqualTo(10);
         Instant returnAt = instant(back, "$.incoming[0].arriveAt");
         assertThat(returnAt).isEqualTo(arrival.plusSeconds(travelSeconds(30)));
+        // the own troops coming home show when they set off (the web's progress bar)
+        assertThat(instant(back, "$.incoming[0].departAt")).isEqualTo(arrival);
 
         clock.set(returnAt);
         processor.processDue(clock.instant());
@@ -719,6 +748,12 @@ class CommandFlowTest {
                                 + column
                                 + " = ? where home_village_id = ? and location_village_id = ?")
                 .params(count, player.villageId, player.villageId)
+                .update();
+    }
+
+    private void handOver(long villageId, TestPlayer to) {
+        jdbc.sql("update village set player_id = ? where id = ?")
+                .params(to.playerId, villageId)
                 .update();
     }
 

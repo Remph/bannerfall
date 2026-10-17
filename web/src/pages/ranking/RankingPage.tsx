@@ -2,6 +2,7 @@ import { Link, Navigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { RANKING_PAGE_SIZE, useRanking, type RankingEntry } from '../../api/queries/ranking';
+import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Pagination } from '../../components/Pagination';
@@ -12,8 +13,12 @@ import { useI18n } from '../../i18n';
 import { pageFromSearch } from '../reports/reportPaths';
 import { playerPath, rankingPath } from './rankingPaths';
 import styles from './RankingPage.module.css';
+import { VictoryCard } from './VictoryCard';
 
-/** /ranking?page= – all players by points, NPC lords marked (05-frontend §3); a line opens the profile. */
+/**
+ * /ranking?page= – how the world is won (v1.3), then all players by points, NPC lords marked
+ * (05-frontend §3); a line opens the profile.
+ */
 export function RankingPage() {
   const { t } = useI18n();
   const [params] = useSearchParams();
@@ -24,11 +29,14 @@ export function RankingPage() {
     return (
       <div className={styles.page}>
         <ErrorMessage>{errorMessage(t, ranking.error)}</ErrorMessage>
-        <div>
-          <Button type="button" onClick={() => void ranking.refetch()}>
-            {t.common.retry}
-          </Button>
-        </div>
+        {/* reading again changes nothing, so it stays on in an ended world (v1.3) */}
+        <ActionsStayOn>
+          <div>
+            <Button type="button" onClick={() => void ranking.refetch()}>
+              {t.common.retry}
+            </Button>
+          </div>
+        </ActionsStayOn>
       </div>
     );
   }
@@ -49,26 +57,34 @@ export function RankingPage() {
         <h1>{t.ranking.title}</h1>
         <p className={styles.meta}>{t.ranking.count(total)}</p>
       </header>
-      {entries.length === 0 ? (
-        <p className={styles.meta}>{t.ranking.empty}</p>
-      ) : (
-        <ol className={styles.list} start={entries[0]?.rank}>
-          {entries.map((entry, index) => (
-            <Line key={entry.playerId} entry={entry} showRank={entries[index - 1]?.rank !== entry.rank} />
-          ))}
-        </ol>
-      )}
-      {pages > 1 && (
-        <Pagination
-          page={page}
-          pages={pages}
-          pathFor={rankingPath}
-          label={t.ranking.pagesLabel}
-          previous={t.ranking.previous}
-          next={t.ranking.next}
-          info={t.ranking.page(page + 1, pages)}
-        />
-      )}
+      {/* desktop: the list left, the victory card at the right (1.3); phones: the card first */}
+      <div className={styles.columns}>
+        <div className={styles.victoryColumn}>
+          <VictoryCard />
+        </div>
+        <div className={styles.listColumn}>
+          {entries.length === 0 ? (
+            <p className={styles.meta}>{t.ranking.empty}</p>
+          ) : (
+            <ol className={styles.list} start={entries[0]?.rank}>
+              {entries.map((entry, index) => (
+                <Line key={entry.playerId} entry={entry} showRank={entries[index - 1]?.rank !== entry.rank} />
+              ))}
+            </ol>
+          )}
+          {pages > 1 && (
+            <Pagination
+              page={page}
+              pages={pages}
+              pathFor={rankingPath}
+              label={t.ranking.pagesLabel}
+              previous={t.ranking.previous}
+              next={t.ranking.next}
+              info={t.ranking.page(page + 1, pages)}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

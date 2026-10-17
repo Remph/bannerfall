@@ -1,10 +1,10 @@
-import { Link, Navigate, useParams } from 'react-router';
+import { Navigate, useParams } from 'react-router';
 import { ApiError, errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useGuild } from '../../api/queries/guilds';
 import { useWorld } from '../../api/queries/world';
+import { BackLink } from '../../components/BackLink';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { Icon } from '../../components/Icon';
 import { useI18n } from '../../i18n';
 import styles from './Guild.module.css';
 import { GuildView } from './GuildView';
@@ -41,9 +41,7 @@ function GuildError({ error }: { error: Error }) {
   const { t } = useI18n();
   return (
     <div className={styles.page}>
-      <Link to={OWN_GUILD_PATH} className={styles.back}>
-        <Icon name="chevronLeft" /> {t.guild.back}
-      </Link>
+      <BackLink to={OWN_GUILD_PATH}>{t.guild.back}</BackLink>
       <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>
     </div>
   );

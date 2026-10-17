@@ -6,6 +6,8 @@ import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
@@ -60,10 +62,29 @@ public class ReportService {
         }
     }
 
-    /** A page of the player's reports, newest first, with the summaries the list shows. */
+    /**
+     * A page of the player's reports, newest first, with the summaries the list shows.
+     *
+     * @param filter only the reports of this filter (1.3); null for all
+     */
     @Transactional(readOnly = true)
-    public ReportPageDto list(long playerId, int page, int size) {
-        Page<Report> found = reports.findVisible(playerId, PageRequest.of(page, size));
+    public ReportPageDto list(long playerId, int page, int size, ReportFilter filter) {
+        PageRequest request = PageRequest.of(page, size);
+        Page<Report> found =
+                filter == null
+                        ? reports.findVisible(playerId, request)
+                        : reports.findVisibleOfKinds(
+                                playerId,
+                                filter.kinds().stream().map(ReportKind::name).toList(),
+                                request);
+        var counts = new EnumMap<ReportFilter, Long>(ReportFilter.class);
+        for (ReportFilter each : ReportFilter.values()) {
+            counts.put(each, 0L);
+        }
+        for (ReportRepository.KindCount row : reports.countVisibleByKind(playerId)) {
+            counts.merge(
+                    ReportFilter.of(ReportKind.valueOf(row.getKind())), row.getCount(), Long::sum);
+        }
         long newestId = reports.maxIdOfPlayer(playerId);
         return new ReportPageDto(
                 found.map(ReportItemDto::of).getContent(),
@@ -73,7 +94,8 @@ public class ReportService {
                 reports.countUnreadVisible(playerId),
                 newestId,
                 // up to newestId: a report arriving between the two queries isn't counted either
-                reports.countBarbarianWithoutBannerUpTo(playerId, newestId));
+                reports.countBarbarianWithoutBannerUpTo(playerId, newestId),
+                counts);
     }
 
     /**
@@ -109,6 +131,17 @@ public class ReportService {
         if (reports.deleteOwned(reportId, playerId) == 0) {
             throw new NotFoundException(ErrorCode.REPORT_NOT_FOUND);
         }
+    }
+
+    /**
+     * Deletes those of the given reports that are the player's (the list's select mode, 1.3). Ids
+     * of reports that are gone already (deleted in another tab) or someone else's are skipped.
+     *
+     * @return the number of reports deleted
+     */
+    @Transactional
+    public int deleteSome(long playerId, Collection<Long> reportIds) {
+        return reports.deleteOwnedIn(playerId, reportIds);
     }
 
     /**

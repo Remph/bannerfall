@@ -1,4 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
+import { releaseVelocity, type PointerSample } from '../../game/mapMotion';
 import type { Point } from '../../game/mapView';
 
 /** What the map does with the pointer input. Points are CSS pixels from the canvas' top left corner. */
@@ -11,6 +12,13 @@ export interface MapGestureCallbacks {
   onTap: (point: Point, pointerType: string) => void;
   /** The mouse moved over the map without a button pressed; null = it left or a drag started. */
   onHover: (point: Point | null) => void;
+  /**
+   * A finger or the mouse went down: a running glide or drift stops (1.3). True when one was
+   * running: that touch only stops the map, it is no tap on a village.
+   */
+  onDown?: () => boolean;
+  /** A one-finger drag was let go while still moving, at this speed in pixels per millisecond (1.3). */
+  onFling?: (velocity: Point) => void;
 }
 
 interface Gesture {
@@ -20,7 +28,14 @@ interface Gesture {
   pointerType: string;
   /** Moved farther than a tap allows (or used two fingers): this is no tap any more. */
   moved: boolean;
+  /** Two fingers were down at some point: the map never drifts on after a pinch. */
+  pinched: boolean;
+  /** The last positions of a one-finger drag, for its speed when it is let go. */
+  samples: PointerSample[];
 }
+
+/** Enough samples for the last 100 ms of a drag (mapMotion.releaseVelocity). */
+const MAX_SAMPLES = 12;
 
 /** How far a tap may wander before it becomes a drag: a finger is less precise than a mouse. */
 function tapSlop(pointerType: string): number {
@@ -61,12 +76,18 @@ export function useMapGestures(callbacks: MapGestureCallbacks) {
       start: point,
       pointerType: event.pointerType,
       moved: false,
+      pinched: false,
+      samples: [],
     };
     current.pointers.set(event.pointerId, point);
     if (current.pointers.size > 1) {
       current.moved = true; // a second finger: pinch, never a tap
+      current.pinched = true;
     }
     gesture.current = current;
+    if (callbacks.onDown?.() === true) {
+      current.moved = true;
+    }
     callbacks.onHover(null);
   }
 
@@ -91,6 +112,10 @@ export function useMapGestures(callbacks: MapGestureCallbacks) {
       return;
     }
     current.pointers.set(event.pointerId, point);
+    current.samples.push({ t: event.timeStamp, x: point.x, y: point.y });
+    if (current.samples.length > MAX_SAMPLES) {
+      current.samples.shift();
+    }
     if (!current.moved) {
       if (Math.hypot(point.x - current.start.x, point.y - current.start.y) < tapSlop(current.pointerType)) {
         return; // still a tap
@@ -115,6 +140,12 @@ export function useMapGestures(callbacks: MapGestureCallbacks) {
     delete event.currentTarget.dataset.dragging;
     if (completed && !current.moved) {
       callbacks.onTap(position(event), current.pointerType);
+    }
+    if (completed && current.moved && !current.pinched) {
+      const velocity = releaseVelocity(current.samples, event.timeStamp);
+      if (velocity !== null) {
+        callbacks.onFling?.(velocity);
+      }
     }
   }
 

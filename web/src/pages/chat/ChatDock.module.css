@@ -5,6 +5,8 @@
   right: var(--space-3);
   bottom: calc(var(--space-3) + 1.5rem); /* above the footer with the server time */
   z-index: 20;
+  /* page changes cross-fade (global.css); the chat stays put, like the bars */
+  view-transition-name: chat;
 }
 
 .launcher {
@@ -37,8 +39,8 @@
   min-width: 1.35rem;
   padding: 0 0.4rem;
   border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.35rem;
@@ -91,4 +93,16 @@
 
 .minimize:hover {
   background: var(--color-bar-hover);
+}
+
+/* From 1600 px (1.3): a column at the right edge, from below the bars to the bottom of the window */
+.dock.column {
+  top: var(--app-header-height, 0px);
+  right: 0;
+  bottom: 0;
+  width: var(--chat-column-width);
+  height: auto;
+  border-width: 0 0 0 3px;
+  border-radius: 0;
+  box-shadow: none;
 }

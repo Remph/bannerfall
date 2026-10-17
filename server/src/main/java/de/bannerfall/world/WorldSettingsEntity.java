@@ -74,6 +74,22 @@ public class WorldSettingsEntity {
 
     private double bannerDropFactor;
 
+    /** Trading with the market (v1.3, 02-game-rules §12.1); 0 = off. */
+    private double marketExchangeRatio;
+
+    /** How the world is won (v1.3, 02-game-rules §22). */
+    @Enumerated(EnumType.STRING)
+    private VictoryMode victoryMode;
+
+    private int dominationPercent;
+    private int victoryHoldHours;
+    private int keepCount;
+    private int keepPercent;
+
+    /** The language of the names the game gives villages (v1.3, 02-game-rules §2). */
+    @Enumerated(EnumType.STRING)
+    private VillageNameLanguage villageNameLanguage;
+
     /** The CUSTOM difficulty's values; null until the admin first picks CUSTOM. */
     @Convert(converter = NpcDifficultyConverter.class)
     @JdbcTypeCode(SqlTypes.JSON)
@@ -90,43 +106,65 @@ public class WorldSettingsEntity {
     /** When the pre-game ends; null = the host has not set a time (M14g). */
     private Instant opensAt;
 
+    /** The end date the host set (v1.3, 02-game-rules §22); null = none. */
+    private Instant endsAt;
+
+    /** When the world ended; null while it runs. Set = the world is frozen (§22). */
+    private Instant endedAt;
+
+    /**
+     * The side that meets the victory condition at the last check ({@code VictorySide.key()}), null
+     * if none; {@link #victoryLeaderSince} is when it first met it without a break.
+     */
+    private String victoryLeader;
+
+    private Instant victoryLeaderSince;
+
     protected WorldSettingsEntity() {}
 
     public WorldSettings toSettings() {
-        return new WorldSettings(
-                name,
-                speed,
-                unitSpeed,
-                mapSize,
-                startResources,
-                luckRange,
-                beginnerProtectionHours,
-                nobleMaxDistance,
-                loyaltyRegenPerHour,
-                buildQueueSize,
-                buildQueueMax,
-                recruitQueueSize,
-                cancelWindowSeconds,
-                barbarianInitialCount,
-                barbariansPerNewPlayer,
-                barbarianGrowthEnabled,
-                tradeMaxRatio,
-                inviteCode,
-                npcLordCount,
-                npcDifficulty,
-                npcThinkMinutes,
-                npcCustom,
-                guildsEnabled,
-                guildMaxMembers,
-                barbarianWallsEnabled,
-                barbarianWallStartDays,
-                barbarianWallMaxLevel,
-                barbarianWallsRebuild,
-                unitLevelsEnabled,
-                paladinVillagesPerSlot,
-                paladinMaxSlots,
-                bannersEnabled,
-                bannerDropFactor);
+        return WorldSettings.builder()
+                .name(name)
+                .speed(speed)
+                .unitSpeed(unitSpeed)
+                .mapSize(mapSize)
+                .startResources(startResources)
+                .luckRange(luckRange)
+                .beginnerProtectionHours(beginnerProtectionHours)
+                .nobleMaxDistance(nobleMaxDistance)
+                .loyaltyRegenPerHour(loyaltyRegenPerHour)
+                .buildQueueSize(buildQueueSize)
+                .buildQueueMax(buildQueueMax)
+                .recruitQueueSize(recruitQueueSize)
+                .cancelWindowSeconds(cancelWindowSeconds)
+                .barbarianInitialCount(barbarianInitialCount)
+                .barbariansPerNewPlayer(barbariansPerNewPlayer)
+                .barbarianGrowthEnabled(barbarianGrowthEnabled)
+                .tradeMaxRatio(tradeMaxRatio)
+                .inviteCode(inviteCode)
+                .npcLordCount(npcLordCount)
+                .npcDifficulty(npcDifficulty)
+                .npcThinkMinutes(npcThinkMinutes)
+                .npcCustom(npcCustom)
+                .guildsEnabled(guildsEnabled)
+                .guildMaxMembers(guildMaxMembers)
+                .barbarianWallsEnabled(barbarianWallsEnabled)
+                .barbarianWallStartDays(barbarianWallStartDays)
+                .barbarianWallMaxLevel(barbarianWallMaxLevel)
+                .barbarianWallsRebuild(barbarianWallsRebuild)
+                .unitLevelsEnabled(unitLevelsEnabled)
+                .paladinVillagesPerSlot(paladinVillagesPerSlot)
+                .paladinMaxSlots(paladinMaxSlots)
+                .bannersEnabled(bannersEnabled)
+                .bannerDropFactor(bannerDropFactor)
+                .marketExchangeRatio(marketExchangeRatio)
+                .victoryMode(victoryMode)
+                .dominationPercent(dominationPercent)
+                .victoryHoldHours(victoryHoldHours)
+                .keepCount(keepCount)
+                .keepPercent(keepPercent)
+                .villageNameLanguage(villageNameLanguage)
+                .build();
     }
 
     /** When the world was created (the V2 migration ran). Not part of {@link WorldSettings}. */
@@ -158,6 +196,36 @@ public class WorldSettingsEntity {
 
     public void setOpensAt(Instant opensAt) {
         this.opensAt = opensAt;
+    }
+
+    public Instant getEndsAt() {
+        return endsAt;
+    }
+
+    public void setEndsAt(Instant endsAt) {
+        this.endsAt = endsAt;
+    }
+
+    public Instant getEndedAt() {
+        return endedAt;
+    }
+
+    public void setEndedAt(Instant endedAt) {
+        this.endedAt = endedAt;
+    }
+
+    public String getVictoryLeader() {
+        return victoryLeader;
+    }
+
+    public Instant getVictoryLeaderSince() {
+        return victoryLeaderSince;
+    }
+
+    /** The side that meets the condition since {@code since}; both null = nobody. */
+    public void setVictoryLeader(String leader, Instant since) {
+        this.victoryLeader = leader;
+        this.victoryLeaderSince = since;
     }
 
     /** Pre-game only: what is fixed once the content is created (M14g). */
@@ -227,6 +295,27 @@ public class WorldSettingsEntity {
         }
         if (u.bannerDropFactor() != null) {
             bannerDropFactor = u.bannerDropFactor();
+        }
+        if (u.marketExchangeRatio() != null) {
+            marketExchangeRatio = u.marketExchangeRatio();
+        }
+        if (u.victoryMode() != null) {
+            victoryMode = u.victoryMode();
+        }
+        if (u.dominationPercent() != null) {
+            dominationPercent = u.dominationPercent();
+        }
+        if (u.victoryHoldHours() != null) {
+            victoryHoldHours = u.victoryHoldHours();
+        }
+        if (u.keepCount() != null) {
+            keepCount = u.keepCount();
+        }
+        if (u.keepPercent() != null) {
+            keepPercent = u.keepPercent();
+        }
+        if (u.villageNameLanguage() != null) {
+            villageNameLanguage = u.villageNameLanguage();
         }
     }
 

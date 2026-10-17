@@ -34,6 +34,18 @@ export function formatDecimal(value: number, language: Language): string {
   return format.format(value);
 }
 
+const ratioFormats = new Map<Language, Intl.NumberFormat>();
+
+/** An exchange rate with up to two decimals: 1.5 → "1.5" (en) / "1,5" (de), 2 → "2", 1.25 → "1.25". */
+export function formatRatio(value: number, language: Language): string {
+  let format = ratioFormats.get(language);
+  if (format === undefined) {
+    format = new Intl.NumberFormat(locales[language], { maximumFractionDigits: 2 });
+    ratioFormats.set(language, format);
+  }
+  return format.format(value);
+}
+
 /** Seconds as h:mm:ss – 1:02:03, 0:00:59, 27:00:00. Negative values show 0:00:00. */
 export function formatDuration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -120,7 +132,7 @@ export function formatWhenExact(ms: number, nowMs: number, language: Language, t
 }
 
 function when(ms: number, nowMs: number, language: Language, seconds: boolean, timeZone?: string): string {
-  const sameDay = dayOf(ms, timeZone) === dayOf(nowMs, timeZone);
+  const sameDay = calendarDay(ms, timeZone) === calendarDay(nowMs, timeZone);
   return new Intl.DateTimeFormat(locales[language], {
     weekday: sameDay ? undefined : 'short',
     hour: '2-digit',
@@ -151,8 +163,48 @@ export function formatUpcoming(ms: number, nowMs: number, language: Language, ti
 }
 
 /** The calendar day as "2026-10-03" (Swedish dates are ISO-like), in the device's or the given time zone. */
-function dayOf(ms: number, timeZone?: string): string {
+export function calendarDay(ms: number, timeZone?: string): string {
   return new Intl.DateTimeFormat('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(ms);
+}
+
+/**
+ * A day heading (the report list, 1.3): 'today', 'yesterday', or the day itself, "Wednesday 14
+ * October" / "Mittwoch, 14. Oktober".
+ */
+export function formatDay(
+  ms: number,
+  nowMs: number,
+  language: Language,
+  timeZone?: string,
+): 'today' | 'yesterday' | { date: string } {
+  const day = calendarDay(ms, timeZone);
+  const today = calendarDay(nowMs, timeZone);
+  if (day === today) {
+    return 'today';
+  }
+  // the calendar day before today (counted on the date, so a summer time change doesn't matter)
+  const [year, month, date] = today.split('-').map(Number) as [number, number, number];
+  if (day === new Date(Date.UTC(year, month - 1, date - 1)).toISOString().slice(0, 10)) {
+    return 'yesterday';
+  }
+  return {
+    date: new Intl.DateTimeFormat(locales[language], {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone,
+    }).format(ms),
+  };
+}
+
+/** Clock time without seconds, e.g. "21:14" (a line under a day heading). */
+export function formatTime(ms: number, language: Language, timeZone?: string): string {
+  return new Intl.DateTimeFormat(locales[language], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone,
+  }).format(ms);
 }
 
 /** Clock time with seconds, e.g. "21:14:07" (the server time display). */

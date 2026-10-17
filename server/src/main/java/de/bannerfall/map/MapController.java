@@ -50,4 +50,13 @@ class MapController {
     List<MapMovementDto> mapMovements(@AuthenticationPrincipal AccountPrincipal me) {
         return movementsQuery.movementsOf(playerService.idOf(me.accountId()));
     }
+
+    /**
+     * The same movements one by one with both ends (v1.3): the lines of the map. The start time of
+     * other players' attacks is left out.
+     */
+    @GetMapping("/map/movement-lines")
+    List<MapMovementLineDto> mapMovementLines(@AuthenticationPrincipal AccountPrincipal me) {
+        return movementsQuery.linesOf(playerService.idOf(me.accountId()));
+    }
 }

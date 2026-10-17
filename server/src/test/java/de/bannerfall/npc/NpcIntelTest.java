@@ -52,7 +52,7 @@ class NpcIntelTest {
                                 new ResourceAmounts(500, 600, 700),
                                 Map.of(BuildingType.WALL, 2, BuildingType.WAREHOUSE, 5),
                                 null),
-                        new ResourceAmounts(30, 30, 30),
+                        new ResourceAmounts(45, 45, 45),
                         BattleOutcome.ATTACKER_WON);
 
         NpcIntel.learn(memory, LORD, ReportKind.ATTACK, AT, report, DATA, 1, 48);
@@ -64,9 +64,9 @@ class NpcIntelTest {
         assertThat(intel.showedDefenders()).isFalse();
         assertThat(intel.wall()).isEqualTo(1);
         assertThat(intel.buildings()).containsEntry(BuildingType.WALL, 1);
-        assertThat(intel.resources()).isEqualTo(new ResourceAmounts(470, 570, 670));
-        // 9 axemen carry 90: the loot of 90 filled them
-        assertThat(intel.loot().total()).isEqualTo(90);
+        assertThat(intel.resources()).isEqualTo(new ResourceAmounts(455, 555, 655));
+        // 9 axemen carry 135: the loot of 135 filled them
+        assertThat(intel.loot().total()).isEqualTo(135);
         assertThat(intel.lootFull()).isTrue();
         assertThat(intel.outcome()).isEqualTo(BattleOutcome.ATTACKER_WON);
     }

@@ -10,8 +10,10 @@ import java.time.Instant;
  * the world is created, so they change only in the pre-game ({@link WorldSettingsUpdateRequest});
  * {@code npcDifficulty} has its own endpoint.
  *
- * @param phase PREGAME or OPEN (M14g)
+ * @param phase PREGAME, OPEN (M14g) or ENDED (v1.3, 02-game-rules §22)
  * @param opensAt the time the pre-game ends, null if none is set (always null once open)
+ * @param endsAt the end date the host set, null if none (§22)
+ * @param endedAt when the world ended, null while it runs
  */
 public record AdminWorldSettingsDto(
         String name,
@@ -46,10 +48,20 @@ public record AdminWorldSettingsDto(
         int paladinMaxSlots,
         boolean bannersEnabled,
         double bannerDropFactor,
+        double marketExchangeRatio,
+        VictoryMode victoryMode,
+        int dominationPercent,
+        int victoryHoldHours,
+        int keepCount,
+        int keepPercent,
+        VillageNameLanguage villageNameLanguage,
         WorldPhase phase,
-        @Schema(nullable = true) Instant opensAt) {
+        @Schema(nullable = true) Instant opensAt,
+        @Schema(nullable = true) Instant endsAt,
+        @Schema(nullable = true) Instant endedAt) {
 
-    static AdminWorldSettingsDto of(WorldSettings s, WorldPhase phase, Instant opensAt) {
+    static AdminWorldSettingsDto of(
+            WorldSettings s, WorldPhase phase, Instant opensAt, Instant endsAt, Instant endedAt) {
         return new AdminWorldSettingsDto(
                 s.name(),
                 s.speed(),
@@ -83,7 +95,16 @@ public record AdminWorldSettingsDto(
                 s.paladinMaxSlots(),
                 s.bannersEnabled(),
                 s.bannerDropFactor(),
+                s.marketExchangeRatio(),
+                s.victoryMode(),
+                s.dominationPercent(),
+                s.victoryHoldHours(),
+                s.keepCount(),
+                s.keepPercent(),
+                s.villageNameLanguage(),
                 phase,
-                phase == WorldPhase.PREGAME ? opensAt : null);
+                phase == WorldPhase.PREGAME ? opensAt : null,
+                endsAt,
+                endedAt);
     }
 }

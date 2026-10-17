@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useHandLeadOver, useKickMember, type Guild, type GuildMember } from '../../api/queries/guilds';
-import { Button } from '../../components/Button';
 import { useWorld } from '../../api/queries/world';
 import { Card } from '../../components/Card';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
+import { MoreMenu } from '../../components/MoreMenu';
 import { formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
 import { playerPath } from '../ranking/rankingPaths';
@@ -20,7 +20,10 @@ interface MembersCardProps {
   isLeader: boolean;
 }
 
-/** The members, leader first. The leader of the viewer's own guild gets "Make leader" and "Remove". */
+/**
+ * The members, leader first. The leader of the viewer's own guild gets "Make leader" and "Remove"
+ * behind a "…" on each other member's line (1.3); both ask first.
+ */
 export function MembersCard({ guild, ownPlayerId, isLeader }: MembersCardProps) {
   const { t, language } = useI18n();
   const labels = t.guild.leader;
@@ -48,7 +51,7 @@ export function MembersCard({ guild, ownPlayerId, isLeader }: MembersCardProps) 
     <Card title={t.guild.members}>
       <ul className={styles.list}>
         {guild.members.map((member) => (
-          <li key={member.playerId} className={styles.row}>
+          <li key={member.playerId} className={`${styles.row} ${styles.memberRow}`}>
             <span className={styles.rowMain}>
               {pregame ? (
                 <span className={styles.rowName}>{nameWithPills(member)}</span>
@@ -62,19 +65,18 @@ export function MembersCard({ guild, ownPlayerId, isLeader }: MembersCardProps) 
               </span>
             </span>
             {isLeader && member.playerId !== ownPlayerId && (
-              <span className={styles.rowActions}>
-                <Button
-                  type="button"
-                  size="small"
-                  variant="secondary"
-                  onClick={() => setAction({ kind: 'lead', member })}
-                >
-                  {labels.handOver}
-                </Button>
-                <Button type="button" size="small" variant="danger" onClick={() => setAction({ kind: 'kick', member })}>
-                  {labels.kick}
-                </Button>
-              </span>
+              <MoreMenu
+                label={labels.more(member.name)}
+                items={[
+                  { label: labels.handOver, icon: 'guild', onSelect: () => setAction({ kind: 'lead', member }) },
+                  {
+                    label: labels.kick,
+                    icon: 'close',
+                    danger: true,
+                    onSelect: () => setAction({ kind: 'kick', member }),
+                  },
+                ]}
+              />
             )}
           </li>
         ))}

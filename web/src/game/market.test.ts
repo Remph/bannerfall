@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  exchangeCost,
   maxAcceptable,
+  maxExchange,
   maxOfferCount,
   maxSendable,
   merchantsForOffer,
@@ -95,5 +97,31 @@ describe('helpers', () => {
     expect(nextMarketChangeMs([])).toBeUndefined();
     expect(nextMarketChangeMs([on, done])).toBe(Date.parse('2026-10-07T10:00:00Z'));
     expect(nextMarketChangeMs([done])).toBe(Date.parse('2026-10-07T11:00:00Z'));
+    // a new day of trading with the market counts too, whichever comes first
+    expect(nextMarketChangeMs([], '2026-10-07T22:00:00Z')).toBe(Date.parse('2026-10-07T22:00:00Z'));
+    expect(nextMarketChangeMs([done], '2026-10-07T22:00:00Z')).toBe(Date.parse('2026-10-07T11:00:00Z'));
+    expect(nextMarketChangeMs([done], '2026-10-07T10:30:00Z')).toBe(Date.parse('2026-10-07T10:30:00Z'));
+  });
+});
+
+describe('trading with the market', () => {
+  it('rounds the cost up, counting in decimals like the server', () => {
+    expect(exchangeCost(1000, 1.5)).toBe(1500);
+    expect(exchangeCost(1, 1.5)).toBe(2);
+    expect(exchangeCost(1000, 1.1)).toBe(1100);
+    expect(exchangeCost(7, 3.3)).toBe(24);
+    expect(exchangeCost(0, 1.5)).toBe(0);
+  });
+
+  it('gets at most what is left today, what the stock pays for and what fits', () => {
+    expect(maxExchange(5000, 3000, 1.5, 10_000)).toBe(2000);
+    expect(maxExchange(800, 3000, 1.5, 10_000)).toBe(800);
+    expect(maxExchange(5000, 3000, 1.5, 120.7)).toBe(120);
+    // 3 pays for 2 at 1.5 (cost 3), not for floor(3 / 1.5) + rounding
+    expect(maxExchange(5000, 3.9, 1.5, 100)).toBe(2);
+    expect(maxExchange(5000, 10, 3.3, 100)).toBe(3);
+    expect(maxExchange(0, 3000, 1.5, 100)).toBe(0);
+    expect(maxExchange(-10, 3000, 1.5, 100)).toBe(0);
+    expect(maxExchange(5000, 3000, 0, 100)).toBe(0);
   });
 });

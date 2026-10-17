@@ -9,6 +9,8 @@ import java.time.Instant;
  * @param summary null if the stored payload can't be read any more (see {@link
  *     ReportPayloadConverter})
  * @param sharedBy who sent this copy (M40); null for a report the game created
+ * @param listedAt where the list sorts it (1.3, the day headings): when it happened, for a copy
+ *     when it arrived
  */
 public record ReportItemDto(
         long id,
@@ -16,7 +18,8 @@ public record ReportItemDto(
         Instant happenedAt,
         boolean read,
         @Schema(nullable = true) ReportSummary summary,
-        @Schema(nullable = true) ReportSharedBy sharedBy) {
+        @Schema(nullable = true) ReportSharedBy sharedBy,
+        Instant listedAt) {
 
     static ReportItemDto of(Report report) {
         return new ReportItemDto(
@@ -25,6 +28,7 @@ public record ReportItemDto(
                 report.getHappenedAt(),
                 report.isRead(),
                 report.getPayload() == null ? null : report.getPayload().summary(report.getKind()),
-                report.getSharedBy());
+                report.getSharedBy(),
+                report.getSharedBy() == null ? report.getHappenedAt() : report.getCreatedAt());
     }
 }

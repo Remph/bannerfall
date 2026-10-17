@@ -1,5 +1,10 @@
 import type { AdminWorldSettings, WorldSettingsUpdate } from '../../api/queries/admin';
 
+/** The language of the names the game gives villages (v1.3): "Ben's village" or "Dorf von Ben". */
+export type VillageNameLanguage = AdminWorldSettings['villageNameLanguage'];
+
+export const villageNameLanguages: readonly VillageNameLanguage[] = ['EN', 'DE'];
+
 /** The world settings as the form holds them: numbers as the text in the field. */
 export interface WorldForm {
   name: string;
@@ -34,6 +39,10 @@ export interface WorldForm {
   /** Banners (M32): the Banner Hall and equipping work; the drop chance as a factor (0 = no drops, 1 = normal). */
   bannersEnabled: boolean;
   bannerDropFactor: string;
+  /** Trading with the market (v1.3): what 1 of another resource costs; 0 = off, else 1 to 10. */
+  marketExchangeRatio: string;
+  /** Default village names (v1.3); a switch renames the villages that still carry one. */
+  villageNameLanguage: VillageNameLanguage;
 }
 
 export function worldToForm(settings: AdminWorldSettings): WorldForm {
@@ -65,6 +74,8 @@ export function worldToForm(settings: AdminWorldSettings): WorldForm {
     paladinMaxSlots: String(settings.paladinMaxSlots),
     bannersEnabled: settings.bannersEnabled,
     bannerDropFactor: String(settings.bannerDropFactor),
+    marketExchangeRatio: String(settings.marketExchangeRatio),
+    villageNameLanguage: settings.villageNameLanguage,
   };
 }
 
@@ -88,7 +99,8 @@ function text(value: string): string | null {
 
 /**
  * The request to send, or null while a field is not valid: the same ranges as the server's
- * `WorldSettingsUpdateRequest`, and the paid slots must not be fewer than the normal ones. Map size,
+ * `WorldSettingsUpdateRequest`, the queue's paid slots must not be fewer than the normal ones and
+ * the market's exchange ratio is 0 (off) or at least 1. Map size,
  * barbarians and NPC lords are only sent (and checked) in the pre-game: later they are fixed.
  */
 export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUpdate | null {
@@ -115,6 +127,7 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
   const paladinVillagesPerSlot = number(form.paladinVillagesPerSlot, 1, 100, true);
   const paladinMaxSlots = number(form.paladinMaxSlots, 0, 20, true);
   const bannerDropFactor = number(form.bannerDropFactor, 0, 3);
+  const marketExchangeRatio = number(form.marketExchangeRatio, 0, 10);
   if (pregame && (mapSize === null || barbarianInitialCount === null || npcLordCount === null)) {
     return null;
   }
@@ -139,6 +152,8 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     paladinVillagesPerSlot === null ||
     paladinMaxSlots === null ||
     bannerDropFactor === null ||
+    marketExchangeRatio === null ||
+    (marketExchangeRatio > 0 && marketExchangeRatio < 1) ||
     buildQueueMax < buildQueueSize
   ) {
     return null;
@@ -168,11 +183,19 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     paladinMaxSlots,
     bannersEnabled: form.bannersEnabled,
     bannerDropFactor,
+    marketExchangeRatio,
+    villageNameLanguage: form.villageNameLanguage,
     // null = keep: the wall settings have their own card (BarbarianWallsCard, M29)
     barbarianWallsEnabled: null,
     barbarianWallStartDays: null,
     barbarianWallMaxLevel: null,
     barbarianWallsRebuild: null,
+    // null = keep: the victory settings have their own card (VictoryCard, v1.3)
+    victoryMode: null,
+    dominationPercent: null,
+    victoryHoldHours: null,
+    keepCount: null,
+    keepPercent: null,
     // null = keep: in an open world these are fixed
     mapSize: pregame ? mapSize : null,
     barbarianInitialCount: pregame ? barbarianInitialCount : null,

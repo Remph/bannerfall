@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Me } from '../api/queries/auth';
+import type { VictorySide } from '../api/queries/world';
+import { formatDateTime } from '../game/format';
 import { de } from '../i18n/de';
 import { en } from '../i18n/en';
 import {
@@ -119,8 +121,20 @@ describe('staleQueries', () => {
     ]);
   });
 
-  it('reloads the world and the player when the pre-game ends', () => {
-    expect(staleQueries({ type: 'WORLD_OPENED' })).toEqual([['world'], ['me']]);
+  it('reloads everything when the pre-game ends or the host takes the end of the world back', () => {
+    expect(staleQueries({ type: 'WORLD_OPENED' })).toEqual([[]]);
+  });
+
+  it('reloads the world, its result, the player and the admin cards when the world ends', () => {
+    expect(staleQueries({ type: 'WORLD_ENDED', reason: 'DOMINATION', winnerName: 'Iron Wolves' })).toEqual([
+      ['world'],
+      ['me'],
+      ['admin', 'world-settings'],
+    ]);
+  });
+
+  it('reloads the victory state when the victory clock starts or stops', () => {
+    expect(staleQueries(clock(null, null, false, false))).toEqual([['world', 'victory']]);
   });
 
   it('refreshes the invitations when a guild invites the player', () => {
@@ -204,7 +218,80 @@ describe('banner notifications (M32b)', () => {
   });
 });
 
+const wolves: VictorySide = {
+  kind: 'GUILD',
+  id: 4,
+  name: 'Iron Wolves',
+  tag: 'IW',
+  npc: false,
+  villages: 9,
+  points: 12000,
+  keeps: 3,
+};
+const benSide: VictorySide = { ...wolves, kind: 'PLAYER', id: 7, name: 'ben', tag: null };
+const winsAt = '2026-10-06T22:00:00Z';
+
+function clock(
+  leader: VictorySide | null,
+  previous: VictorySide | null,
+  leaderYours: boolean,
+  previousYours: boolean,
+): GameNotification {
+  return {
+    type: 'VICTORY_CLOCK',
+    leader,
+    winsAt: leader === null ? null : winsAt,
+    previous,
+    leaderYours,
+    previousYours,
+  };
+}
+
 describe('notificationToast', () => {
+  it('tells every player when a side starts the victory clock, and when it wins', () => {
+    const when = formatDateTime(Date.parse(winsAt), 'en');
+    expect(notificationToast(clock(wolves, null, false, false), en, ben, now, 'en')).toEqual({
+      text: `[IW] Iron Wolves meets the victory condition: they win on ${when} unless someone stops them`,
+      tone: 'info',
+      to: { pathname: '/ranking' },
+    });
+    // the player's own guild, or himself
+    expect(notificationToast(clock(wolves, null, true, false), en, ben, now, 'en')).toMatchObject({
+      text: `Your guild meets the victory condition: you win on ${when} if you hold on`,
+      tone: 'success',
+    });
+    expect(notificationToast(clock(benSide, wolves, true, false), de, ben, now, 'de')?.text).toBe(
+      `Du erfüllst die Siegbedingung: Sieg am ${formatDateTime(Date.parse(winsAt), 'de')}, wenn du durchhältst`,
+    );
+  });
+
+  it('says who lost the victory clock, and nothing when nobody had it', () => {
+    expect(notificationToast(clock(null, wolves, false, false), en, ben, now, 'en')?.text).toBe(
+      '[IW] Iron Wolves no longer meets the victory condition. The victory clock has stopped.',
+    );
+    expect(notificationToast(clock(null, wolves, false, true), de, ben, now, 'de')?.text).toBe(
+      'Deine Gilde erfüllt die Siegbedingung nicht mehr. Die Siegesuhr steht.',
+    );
+    expect(notificationToast(clock(null, null, false, false), en, ben, now, 'en')).toBeUndefined();
+  });
+
+  it('announces the end of the world with its winner and leads to the result', () => {
+    const toast = notificationToast(
+      { type: 'WORLD_ENDED', reason: 'KEEPS', winnerName: 'Iron Wolves' },
+      en,
+      ben,
+      now,
+      'en',
+    );
+    expect(toast).toEqual({
+      text: 'The world has ended: Iron Wolves won!',
+      tone: 'info',
+      to: { pathname: '/ranking' },
+    });
+    const nobody = notificationToast({ type: 'WORLD_ENDED', reason: 'END_DATE', winnerName: null }, en, ben, now, 'en');
+    expect(nobody?.text).toBe('The world has ended.');
+  });
+
   it('warns of an attack with the village names and the arrival to the second', () => {
     const toast = notificationToast(
       {

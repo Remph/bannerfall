@@ -7,15 +7,16 @@ import { useInvitePlayer, useMyGuild } from '../../api/queries/guilds';
 import { usePlayerProfile, type PlayerProfile } from '../../api/queries/ranking';
 import { useWorld } from '../../api/queries/world';
 import { AchievementBadge } from '../../components/AchievementBadge';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { Icon } from '../../components/Icon';
 import { Sheet } from '../../components/Sheet';
 import { sortEarned } from '../../game/achievements';
 import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
 import { bracketTag, profileInvite } from '../../game/guilds';
 import { useI18n } from '../../i18n';
+import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { useCurrentVillageId } from '../../layout/useCurrentVillageId';
 import { achievementName, levelName } from '../achievements/achievementText';
 import { conversationPath } from '../messages/messagePaths';
@@ -49,19 +50,15 @@ function ProfileError({ error }: { error: Error }) {
   const { t } = useI18n();
   return (
     <div className={styles.page}>
-      <BackLink />
+      <ToRanking />
       <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>
     </div>
   );
 }
 
-function BackLink() {
+function ToRanking() {
   const { t } = useI18n();
-  return (
-    <Link to={rankingPath(0)} className={styles.back}>
-      <Icon name="chevronLeft" /> {t.profile.back}
-    </Link>
-  );
+  return <BackLink to={rankingPath(0)}>{t.profile.back}</BackLink>;
 }
 
 function ProfileView({ profile }: { profile: PlayerProfile }) {
@@ -73,7 +70,7 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
 
   return (
     <div className={styles.page}>
-      <BackLink />
+      <ToRanking />
       <header className={styles.head}>
         <h1>
           {profile.name}
@@ -95,9 +92,12 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
         {/* NPC lords don't read mail */}
         {!isMe && !profile.npc && (
           <div className={styles.actions}>
-            <Button type="button" onClick={() => void navigate(conversationPath(profile.id))}>
-              {t.messages.write}
-            </Button>
+            {/* messages stay open in an ended world (v1.3) */}
+            <ActionsStayOn>
+              <Button type="button" onClick={() => void navigate(conversationPath(profile.id))}>
+                {t.messages.write}
+              </Button>
+            </ActionsStayOn>
             {/* keyed: an error or a pending request belongs to this player, not to the next profile */}
             <InviteToGuild key={profile.id} profile={profile} />
           </div>
@@ -221,8 +221,9 @@ function DeletePlayer({ profile }: { profile: PlayerProfile }) {
   const remove = useDeletePlayer();
   const [open, setOpen] = useState(false);
 
+  // Admin endpoints stay open in an ended world.
   return (
-    <>
+    <ActionsStayOn>
       <div>
         <Button type="button" variant="danger" onClick={() => setOpen(true)}>
           {t.profile.admin.delete}
@@ -254,6 +255,6 @@ function DeletePlayer({ profile }: { profile: PlayerProfile }) {
           </div>
         </div>
       </Sheet>
-    </>
+    </ActionsStayOn>
   );
 }

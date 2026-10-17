@@ -68,6 +68,32 @@ class BattleReportsTest {
     }
 
     @Test
+    void onlyTheAttackersCopyKnowsWhatHisSurvivorsCouldCarry() {
+        var plain = battle(Map.of(UnitType.AXEMAN, 100), List.of(Map.of(UnitType.SPEARMAN, 1)));
+        var battle =
+                new BattleReports.Battle(
+                        plain.attacker(),
+                        plain.defender(),
+                        plain.input(),
+                        plain.result(),
+                        plain.stackHomes(),
+                        plain.stockBefore(),
+                        plain.buildingsBefore(),
+                        plain.bannerBefore(),
+                        plain.loot(),
+                        plain.loyalty(),
+                        plain.loyaltySeen(),
+                        plain.banners(),
+                        1500);
+
+        assertThat(BattleReports.forAttacker(battle).haulCapacity()).isEqualTo(1500);
+        assertThat(BattleReports.forDefenders(battle).haulCapacity()).isNull();
+        assertThat(BattleReports.forSupporters(battle).haulCapacity()).isNull();
+        // without loot (lost, conquered) there is none
+        assertThat(BattleReports.forAttacker(plain).haulCapacity()).isNull();
+    }
+
+    @Test
     void whenNoAttackerSurvivesHisReportShowsOnlyHisOwnSide() {
         var battle =
                 battle(

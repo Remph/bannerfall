@@ -24,7 +24,7 @@ export function ConquestDetails({ kind, report, villageId }: ConquestDetailsProp
   const won = kind === 'CONQUEST';
   return (
     <>
-      <p className={[styles.verdict, won ? styles.won : styles.lost].join(' ')}>
+      <p className={[styles.verdict, styles.stamp, won ? styles.won : `${styles.lost} ${styles.shake}`].join(' ')}>
         {won ? t.reports.conquestWon : t.reports.conquestLost}
       </p>
       <div className={styles.columns}>
@@ -75,7 +75,7 @@ function ConquestBanner({ banner, won }: { banner: ConqueredBanner; won: boolean
     <div className={styles.group}>
       <h3 className={styles.groupTitle}>{t.reports.conquestBanner}</h3>
       <p className={styles.scoutedBanner}>
-        <Banner type={banner.type} tier={banner.tier} size={20} />
+        <Banner type={banner.type} tier={banner.tier} size={20} decorative />
         {t.banners.label(t.banners.types[banner.type], banner.tier)}
       </p>
       <p className={won && banner.toStash ? styles.bannerWon : styles.muted}>{fate}</p>

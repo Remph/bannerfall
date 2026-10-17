@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapActions } from './mapActions';
+import { mapActions, rankActions } from './mapActions';
 
 const keys = (actions: { key: string }[]) => actions.map((action) => action.key);
 
@@ -71,5 +71,27 @@ describe('mapActions', () => {
       (action) => action.key === 'profile',
     );
     expect(profile?.to).toBeUndefined();
+  });
+});
+
+describe('rankActions', () => {
+  const ranked = (kind: Parameters<typeof mapActions>[1], id = 3) => {
+    const { lead, second, quiet } = rankActions(mapActions({ id, playerId: 9, x: 0, y: 0 }, kind, 1));
+    return { lead: lead?.key, second: second?.key, quiet: keys(quiet) };
+  };
+
+  it('leads with attack on players and NPC lords, support second, the rest quiet', () => {
+    const expected = { lead: 'attack', second: 'support', quiet: ['farm', 'sendResources', 'profile'] };
+    expect(ranked('player')).toEqual(expected);
+    expect(ranked('npc')).toEqual(expected);
+  });
+
+  it('puts the farm list next to the attack on barbarians', () => {
+    expect(ranked('barbarian')).toEqual({ lead: 'attack', second: 'farm', quiet: [] });
+  });
+
+  it('leads with opening an own village', () => {
+    expect(ranked('own')).toEqual({ lead: 'open', second: 'support', quiet: ['sendResources'] });
+    expect(ranked('own', 1)).toEqual({ lead: 'open', second: undefined, quiet: [] });
   });
 });

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useId, useRef, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router';
+import { Navigate, useParams, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useBanners, type Banners } from '../../api/queries/banners';
 import { useBuildings } from '../../api/queries/buildings';
@@ -10,15 +10,16 @@ import { useSmithy } from '../../api/queries/smithy';
 import { useTroops } from '../../api/queries/troops';
 import { useVillage } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { TextField } from '../../components/TextField';
 import { effectOfTier, effectiveTier, percentPoints } from '../../game/banners';
-import { formatNumber, formatWhen } from '../../game/format';
+import { formatShare, formatWhen } from '../../game/format';
 import { buildingTypes, unitTypes, type BuildingType, type UnitType } from '../../game/gameData';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { levelChoices, ownLevels, type UnitLevelMap } from '../../game/unitLevels';
 import {
   MAX_BANNER_LEVEL,
@@ -203,9 +204,7 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   return (
     <div className={styles.page}>
       <header className={styles.head}>
-        <Link className={styles.back} to={rallyPath(villageId)}>
-          <Icon name="chevronLeft" /> {s.back}
-        </Link>
+        <BackLink to={rallyPath(villageId)}>{s.back}</BackLink>
         <h1>{s.title}</h1>
         <p className={styles.intro}>{s.intro}</p>
         {levelsOn && <p className={styles.intro}>{s.levelsHint}</p>}
@@ -538,7 +537,7 @@ function BannerTierSelect({
               ? t.banners.tier(tier)
               : t.simulator.bannerTierOption(
                   tier,
-                  `${type === 'OATH' ? '−' : '+'}${formatNumber(percentPoints(effectOfTier(effects, type, tier)), language)} %`,
+                  `${type === 'OATH' ? '−' : '+'}${formatShare(percentPoints(effectOfTier(effects, type, tier)), language)}`,
                 )}
           </option>
         ))}
@@ -560,7 +559,7 @@ function ownBanner(banners: Banners | undefined, villageId: number) {
 function ReportPicker({ onPick }: { onPick: (reportId: number) => void }) {
   const { t, language } = useI18n();
   const reports = useRecentReports(SIMULATOR_REPORT_LOOKBACK);
-  const now = useServerNow();
+  const now = useGameNow();
   const id = 'simulator-report';
   const items = simulatableReports(reports.data?.items ?? []);
   if (reports.isPending) {

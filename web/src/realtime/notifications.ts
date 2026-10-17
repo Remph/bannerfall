@@ -1,5 +1,6 @@
 import type { QueryKey } from '@tanstack/react-query';
 import { meQueryKey, type Me } from '../api/queries/auth';
+import { worldSettingsKey } from '../api/queries/admin';
 import { achievementsQueryKey } from '../api/queries/achievements';
 import { bannersQueryKey } from '../api/queries/banners';
 import { buildingsQueryKey } from '../api/queries/buildings';
@@ -15,14 +16,16 @@ import { smithyQueryKey } from '../api/queries/smithy';
 import { myGuildQueryKey, guildsQueryKey } from '../api/queries/guilds';
 import { troopsQueryKey } from '../api/queries/troops';
 import { villageQueryKey } from '../api/queries/villages';
-import { worldQueryKey } from '../api/queries/world';
+import { victoryQueryKey, worldQueryKey } from '../api/queries/world';
 import type { components } from '../api/schema';
 import type { ToastContent } from '../components/toasts';
-import { formatCoords, formatWhenExact } from '../game/format';
+import { formatCoords, formatDateTime, formatWhenExact } from '../game/format';
+import { sideName } from '../game/victory';
 import type { Dictionary } from '../i18n/en';
 import { achievementName, levelName } from '../pages/achievements/achievementText';
 import { bannersPath } from '../pages/banners/bannerPaths';
 import { conversationPath } from '../pages/messages/messagePaths';
+import { rankingPath } from '../pages/ranking/rankingPaths';
 import type { Language } from '../i18n/language';
 
 type Schemas = components['schemas'];
@@ -41,6 +44,8 @@ export type GameNotification =
   | Schemas['VillageLost']
   | Schemas['VillageConquered']
   | Schemas['WorldOpened']
+  | Schemas['WorldEnded']
+  | Schemas['VictoryClock']
   | Schemas['GuildInvited']
   | Schemas['GuildChanged']
   | Schemas['MessageReceived']
@@ -57,6 +62,8 @@ const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'VILLAGE_LOST',
   'VILLAGE_CONQUERED',
   'WORLD_OPENED',
+  'WORLD_ENDED',
+  'VICTORY_CLOCK',
   'GUILD_INVITED',
   'GUILD_CHANGED',
   'MESSAGE_RECEIVED',
@@ -75,6 +82,9 @@ export function parseNotification(body: unknown): GameNotification | undefined {
   }
   return undefined;
 }
+
+/** The empty prefix: every query. */
+const allQueries: QueryKey = [];
 
 /**
  * The queries a notification makes outdated (prefixes, for `invalidateQueries`). Only the queries
@@ -137,8 +147,16 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
     case 'SUPPORT_ARRIVED':
       return [troopsQueryKey(notification.villageId), villageQueryKey(notification.villageId), mapMovementsQueryKey];
     case 'WORLD_OPENED':
-      // the pre-game is over: the phase, and the player's first village (or the respawn screen)
-      return [worldQueryKey, meQueryKey];
+      // the pre-game is over (the phase, the player's first village or the respawn screen), or the
+      // host took the end of the world back (v1.3) and every time in the game moved on: everything
+      return [allQueries];
+    case 'WORLD_ENDED':
+      // v1.3: the phase and the result (['world', 'victory'] is under ['world']), and the host's
+      // admin cards
+      return [worldQueryKey, meQueryKey, worldSettingsKey];
+    case 'VICTORY_CLOCK':
+      // v1.3: the leader and the clock on the victory card and the strip under the top bar
+      return [victoryQueryKey];
     case 'GUILD_INVITED':
       // a new invitation shows on the guild page
       return [myGuildQueryKey];
@@ -223,6 +241,10 @@ export function notificationToast(
     }
     case 'WORLD_OPENED':
       return { text: t.realtime.worldOpened, tone: 'success', to: { pathname: '/' } };
+    case 'WORLD_ENDED':
+      return { text: t.realtime.worldEnded(notification.winnerName), tone: 'info', to: { pathname: rankingPath(0) } };
+    case 'VICTORY_CLOCK':
+      return victoryClockToast(notification, t, language);
     case 'GUILD_INVITED':
       return { text: t.realtime.guildInvited(notification.guildName), tone: 'info', to: { pathname: '/guild' } };
     case 'MESSAGE_RECEIVED':
@@ -261,6 +283,35 @@ export function notificationToast(
     case 'VILLAGE_CONQUERED':
       return undefined;
   }
+}
+
+/**
+ * The victory clock started or passed to another side (when the leader wins), or stopped (who lost
+ * it); "your guild" or "you" when the side is the player's own. Nothing if nobody held it.
+ */
+function victoryClockToast(
+  notification: Schemas['VictoryClock'],
+  t: Dictionary,
+  language: Language,
+): ToastContent | undefined {
+  const to = { pathname: rankingPath(0) };
+  const { leader, winsAt, previous } = notification;
+  if (leader !== null && winsAt !== null) {
+    const when = formatDateTime(Date.parse(winsAt), language);
+    if (!notification.leaderYours) {
+      return { text: t.realtime.victoryClock(sideName(leader), when), tone: 'info', to };
+    }
+    const text = leader.kind === 'GUILD' ? t.realtime.victoryClockYours(when) : t.realtime.victoryClockYou(when);
+    return { text, tone: 'success', to };
+  }
+  if (previous === null) {
+    return undefined;
+  }
+  if (!notification.previousYours) {
+    return { text: t.realtime.victoryClockStopped(sideName(previous)), tone: 'info', to };
+  }
+  const text = previous.kind === 'GUILD' ? t.realtime.victoryClockStoppedYours : t.realtime.victoryClockStoppedYou;
+  return { text, tone: 'info', to };
 }
 
 /**

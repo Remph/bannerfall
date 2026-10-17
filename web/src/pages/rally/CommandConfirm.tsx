@@ -7,7 +7,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatDecimal, formatDuration, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RallyPage.module.css';
 import { VillageRefText } from './VillageRefText';
@@ -27,7 +27,7 @@ interface CommandConfirmProps {
  */
 export function CommandConfirm({ villageId, command, onSent, onBack }: CommandConfirmProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const me = useCurrentAccount();
   const selectId = useId();
   const [catapultTarget, setCatapultTarget] = useState<BuildingType>('HEADQUARTERS');
@@ -122,6 +122,7 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
         </Button>
         <Button
           type="button"
+          variant={attack ? 'attack' : 'primary'}
           disabled={errors.length > 0 || send.isPending || preview.isFetching}
           onClick={() =>
             send.mutate({ ...command, catapultTarget: withCatapults ? catapultTarget : null }, { onSuccess: onSent })

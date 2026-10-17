@@ -3,9 +3,10 @@ import type { RecruitOrder } from '../api/queries/recruitment';
 import { hasStarted, progress } from '../game/buildQueue';
 import { formatNumber, formatWhen } from '../game/format';
 import { nextUnitAtMs, unitsDone } from '../game/recruitment';
-import { useServerNow } from '../game/serverTime';
+import { useGameNow } from '../game/serverTime';
 import { useI18n } from '../i18n';
 // Same look as a build order line, so both queues read alike.
+import { FinishedOrderLine } from './BuildOrderLine';
 import styles from './BuildOrderLine.module.css';
 import { Countdown } from './Countdown';
 import { Icon } from './Icon';
@@ -19,16 +20,34 @@ export function RecruitOrderList({ children }: { children: ReactNode }) {
  * One order of a recruitment queue: "12 × Spearman" and when the last one is ready. The running
  * order also gets a countdown, a progress bar, how many are done and when the next one is. The
  * numbers are computed from the clock (units finish one by one), so they move without a reload.
- * `children` are buttons on the right (the recruit screen's cancel button).
+ * `children` are buttons on the right (the recruit screen's cancel button). `finished` and `entering`
+ * come from useFinishedOrders, as on a build order line.
  */
-export function RecruitOrderLine({ order, children }: { order: RecruitOrder; children?: ReactNode }) {
+export function RecruitOrderLine({
+  order,
+  children,
+  finished = false,
+  entering = false,
+}: {
+  order: RecruitOrder;
+  children?: ReactNode;
+  finished?: boolean;
+  entering?: boolean;
+}) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const started = hasStarted(order, now);
   const done = unitsDone(order, now);
   const nextAt = nextUnitAtMs(order, done);
+  if (finished) {
+    return (
+      <FinishedOrderLine>
+        {t.recruitQueue.order(formatNumber(order.count, language), t.units[order.unit])}
+      </FinishedOrderLine>
+    );
+  }
   return (
-    <li className={styles.line}>
+    <li className={entering ? `${styles.line} ${styles.entering}` : styles.line}>
       <span className={styles.icon}>
         <Icon name={order.unit} />
       </span>

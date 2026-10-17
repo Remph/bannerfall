@@ -1,12 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { forgetReport, useReport, type Report, type ReportSummary } from '../../api/queries/reports';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { useInListDetail } from '../../components/listDetailContext';
 import { formatDateTimeExact } from '../../game/format';
 import { farmCandidate, farmListVillageId, viewerOf } from '../../game/reports';
 import { useI18n, useT } from '../../i18n';
@@ -16,40 +18,33 @@ import { AddToFarmLink } from './AddToFarmLink';
 import { BattleDetails } from './BattleDetails';
 import { ConquestDetails } from './ConquestDetails';
 import { DeleteReportButton } from './DeleteReportButton';
-import { parseReportId, reportsPath } from './reportPaths';
+import { filterFromSearch, pageFromSearch, parseReportId, reportsPath } from './reportPaths';
 import styles from './ReportsPage.module.css';
 import { reportTitle } from './reportText';
 import { SendReportButton } from './SendReportButton';
 import { SupportDetails } from './SupportDetails';
 import { TradeDetails } from './TradeDetails';
 
-/** /reports/:reportId – one report (05-frontend §3). Opening it marks it read. */
+/**
+ * /reports/:reportId?filter=&page= – one report (05-frontend §3), a child of the list's route: on
+ * desktop it is shown next to the list (1.3). Opening it marks it read.
+ */
 export function ReportPage() {
   const reportId = parseReportId(useParams().reportId);
+  const [params] = useSearchParams();
+  // "All reports" and deleting lead back to the list the report was opened from (in the address)
+  const back = reportsPath(pageFromSearch(params), filterFromSearch(params));
   if (reportId === undefined) {
-    return <Navigate to={reportsPath(0)} replace />;
+    return <Navigate to={back} replace />;
   }
-  return <ReportDetail key={reportId} reportId={reportId} />;
+  return <ReportDetail key={reportId} reportId={reportId} back={back} />;
 }
 
-/**
- * Where "All reports" leads: the list page the report was opened from (the list passes it as link
- * state), else the first page.
- */
-function backPath(state: unknown): string {
-  if (typeof state === 'object' && state !== null && 'from' in state) {
-    const from = state.from;
-    if (typeof from === 'string' && from.startsWith('/reports')) {
-      return from;
-    }
-  }
-  return reportsPath(0);
-}
-
-function ReportDetail({ reportId }: { reportId: number }) {
+function ReportDetail({ reportId, back }: { reportId: number; back: string }) {
   const t = useT();
   const report = useReport(reportId);
-  const back = backPath(useLocation().state);
+  // next to the list (desktop) the way back is right there
+  const inListDetail = useInListDetail();
   const queryClient = useQueryClient();
   // set when the report was deleted here: leaving the page then drops it from the cache
   const deleted = useRef(false);
@@ -65,9 +60,7 @@ function ReportDetail({ reportId }: { reportId: number }) {
 
   return (
     <div className={styles.page}>
-      <Link className={styles.back} to={back}>
-        <Icon name="chevronLeft" /> {t.reports.back}
-      </Link>
+      {!inListDetail && <BackLink to={back}>{t.reports.back}</BackLink>}
       {report.isError ? (
         <div className={styles.status}>
           <ErrorMessage>{errorMessage(t, report.error)}</ErrorMessage>

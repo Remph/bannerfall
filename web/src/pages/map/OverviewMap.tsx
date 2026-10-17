@@ -287,27 +287,29 @@ export function OverviewMap(props: OverviewMapProps) {
           />
         </div>
       )}
-      <div ref={boxRef} className={styles.overviewBox}>
-        <canvas
-          ref={canvasRef}
-          className={styles.overviewCanvas}
-          tabIndex={0}
-          role="application"
-          aria-label={t.map.overviewLabel}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={(event) => onPointerEnd(event, true)}
-          onPointerCancel={(event) => onPointerEnd(event, false)}
-          onKeyDown={onKeyDown}
-        />
-        {map.error !== null && (
-          <div className={styles.overviewStatus} role="status">
-            {t.map.loadError}
-            <button type="button" className={styles.retry} onClick={map.retry}>
-              {t.common.retry}
-            </button>
-          </div>
-        )}
+      <div className={styles.overviewFit}>
+        <div ref={boxRef} className={styles.overviewBox}>
+          <canvas
+            ref={canvasRef}
+            className={styles.overviewCanvas}
+            tabIndex={0}
+            role="application"
+            aria-label={t.map.overviewLabel}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={(event) => onPointerEnd(event, true)}
+            onPointerCancel={(event) => onPointerEnd(event, false)}
+            onKeyDown={onKeyDown}
+          />
+          {map.error !== null && (
+            <div className={styles.overviewStatus} role="status">
+              {t.map.loadError}
+              <button type="button" className={styles.retry} onClick={map.retry}>
+                {t.common.retry}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {layer === 'guild' && (
         <ul className={styles.guildLegend} aria-label={t.map.layer.legend}>

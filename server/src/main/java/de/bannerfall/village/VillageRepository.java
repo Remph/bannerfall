@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface VillageRepository extends JpaRepository<Village, Long> {
@@ -50,6 +51,9 @@ public interface VillageRepository extends JpaRepository<Village, Long> {
     /** How many villages the player has. */
     long countByPlayerId(long playerId);
 
+    /** The banner keeps on the map (v1.3, 02-game-rules §22). */
+    long countByKeepTrue();
+
     /** Villages owned by players (humans and NPC lords), for the spawn radius. */
     long countByPlayerIsNotNull();
 
@@ -61,9 +65,47 @@ public interface VillageRepository extends JpaRepository<Village, Long> {
                       where m.targetVillage = v
                         and m.kind = de.bannerfall.movement.MovementKind.ATTACK
                         and m.ownerPlayerId <> :playerId) as Integer))
-            from Village v where v.player.id = :playerId order by v.id
+            from Village v where v.player.id = :playerId order by v.ownerSince, v.id
             """)
     List<VillageSummaryDto> findSummariesByPlayerId(long playerId);
+
+    /**
+     * Gives every village with a default name of {@code from} the default name of {@code to}
+     * ("Ben's village" → "Dorf von Ben", v1.3, 02-game-rules §2), unless that is too long for the
+     * column. A default name is the pattern around a player's name (the owner's, or the previous
+     * owner's after a conquest), so a name a player gave in the same shape ("Grandma's village")
+     * stays. Bumps the version, so a write that read the village before fails instead of putting
+     * the old name back.
+     *
+     * @return how many villages were renamed
+     */
+    @Modifying
+    @Query(
+            value =
+                    """
+                    update village v set
+                        name = :toPrefix
+                            || substr(v.name, length(:fromPrefix) + 1,
+                                      length(v.name) - length(:fromPrefix) - length(:fromSuffix))
+                            || :toSuffix,
+                        version = v.version + 1
+                    where v.name like :fromPattern escape '\\'
+                      and length(v.name) - length(:fromPrefix) - length(:fromSuffix)
+                          + length(:toPrefix) + length(:toSuffix) <= :maxLength
+                      and exists (
+                          select 1 from player p
+                          where p.name = substr(v.name, length(:fromPrefix) + 1,
+                                                length(v.name) - length(:fromPrefix)
+                                                    - length(:fromSuffix)))
+                    """,
+            nativeQuery = true)
+    int renameDefaultNames(
+            String fromPrefix,
+            String fromSuffix,
+            String fromPattern,
+            String toPrefix,
+            String toSuffix,
+            int maxLength);
 
     /** A player's villages as a profile shows them, oldest first. */
     @Query(

@@ -22,6 +22,15 @@
   background: rgba(20, 15, 10, 0.45);
 }
 
+/* closing mirrors opening (Sheet.tsx waits for it, then closes the dialog) */
+.sheet.closing {
+  animation: slide-down 0.17s ease-in forwards;
+}
+
+.sheet.closing::backdrop {
+  animation: fade-out 0.17s ease-in forwards;
+}
+
 .content {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -75,6 +84,10 @@
   .sheet[open] {
     animation-name: fade-in;
   }
+
+  .sheet.closing {
+    animation-name: fade-out;
+  }
 }
 
 /* Full screen (the chat): the body is a column whose content scrolls by itself. */
@@ -116,5 +129,17 @@
   from {
     opacity: 0;
     transform: translateY(0.5rem);
+  }
+}
+
+@keyframes slide-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
   }
 }

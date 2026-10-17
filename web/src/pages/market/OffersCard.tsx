@@ -12,7 +12,7 @@ import { UnitCountInput } from '../../components/UnitCountInput';
 import { formatDecimal, formatDuration, formatNumber, formatWhenExact } from '../../game/format';
 import { maxAcceptable, merchantsNeeded, offerValue, resourceKey } from '../../game/market';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
-import { useServerNow } from '../../game/serverTime';
+import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import { VillageError } from '../village/VillageError';
 import { OfferText } from './OfferText';
@@ -134,7 +134,7 @@ interface AcceptOfferProps {
 /** The accept sheet: how many units, what they cost, what comes back, the merchants and the arrival. */
 function AcceptOffer({ offer, village, free, onDone, onBack }: AcceptOfferProps) {
   const { t, language } = useI18n();
-  const now = useServerNow();
+  const now = useGameNow();
   const accept = useAcceptOffer(village.id);
   const [count, setCount] = useState(1);
   const stock = projectResources(village, now);

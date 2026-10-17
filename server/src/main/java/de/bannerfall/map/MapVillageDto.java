@@ -15,6 +15,11 @@ import java.time.Instant;
  *     when {@code loyalty} is null
  * @param guildId the owner's guild (M15a), null for barbarian villages and players in no guild
  * @param guildTag its tag
+ * @param nextBannerRollAt the asking player has used his banner roll against this village's side
+ *     (v1.3, 02-game-rules §21.7: its owner, or the barbarian village itself): when it comes back.
+ *     Null when the roll is free, for his own villages and while banners or drops are off; the same
+ *     as the farm list's tag
+ * @param keep a banner keep (v1.3, 02-game-rules §22), whoever owns it
  */
 public record MapVillageDto(
         long id,
@@ -28,4 +33,6 @@ public record MapVillageDto(
         @Schema(nullable = true) Integer loyalty,
         @Schema(nullable = true) Instant loyaltySeenAt,
         @Schema(nullable = true) Long guildId,
-        @Schema(nullable = true) String guildTag) {}
+        @Schema(nullable = true) String guildTag,
+        @Schema(nullable = true) Instant nextBannerRollAt,
+        boolean keep) {}

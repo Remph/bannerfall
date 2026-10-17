@@ -69,6 +69,16 @@ export function canCancel(movement: { cancellableUntil: string | null }, nowMs: 
   return movement.cancellableUntil !== null && nowMs < Date.parse(movement.cancellableUntil);
 }
 
+/** How far a movement has come, 0 at departure to 1 at arrival (the rally point's bars, 1.3). */
+export function travelProgress(movement: { departAt: string; arriveAt: string }, nowMs: number): number {
+  const depart = Date.parse(movement.departAt);
+  const total = Date.parse(movement.arriveAt) - depart;
+  if (!(total > 0)) {
+    return 1;
+  }
+  return Math.min(1, Math.max(0, (nowMs - depart) / total));
+}
+
 /** When the next of these movements arrives (ms since 1970); undefined if there are none. */
 export function nextArrivalMs(movements: readonly { arriveAt: string }[]): number | undefined {
   let next: number | undefined;

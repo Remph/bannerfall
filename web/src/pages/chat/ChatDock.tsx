@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { badgeText } from '../../game/reports';
 import { useT } from '../../i18n';
+import { CHAT_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { useChatUnread } from '../../realtime/chatSeen';
 import { ChatPanel } from './ChatPanel';
 import styles from './ChatDock.module.css';
@@ -9,7 +10,8 @@ import { loadChatDockOpen, saveChatDockOpen } from './chatDockStorage';
 
 /**
  * Desktop (≥ 1024 px): the world chat as a floating panel at the bottom right, minimised to a
- * button with the unread count (05-frontend §8). The choice is remembered.
+ * button with the unread count (05-frontend §8). The choice is remembered. From 1600 px the open
+ * chat is a column at the right edge below the bars instead, and the page moves left (1.3).
  * `onMap`: on the map it starts minimised, so it doesn't cover the side column (M11b review);
  * opening or minimising it there isn't remembered, the other pages keep the stored choice.
  */
@@ -26,6 +28,8 @@ export function ChatDock({ onMap = false }: { onMap?: boolean }) {
   const badge = badgeText(unread);
   const panelId = useId();
   const titleId = useId();
+  // not on the map: there it would take the map's width (it floats over the side column instead)
+  const column = useMediaQuery(CHAT_COLUMN_QUERY) && !onMap;
 
   function setOpen(next: boolean) {
     setOpenState(next);
@@ -56,7 +60,13 @@ export function ChatDock({ onMap = false }: { onMap?: boolean }) {
   }
 
   return (
-    <section id={panelId} className={styles.dock} aria-labelledby={titleId}>
+    <section
+      id={panelId}
+      className={column ? `${styles.dock} ${styles.column}` : styles.dock}
+      aria-labelledby={titleId}
+      // AppLayout's CSS makes room for it
+      data-chat-column={column || undefined}
+    >
       <header className={styles.header}>
         <Icon name="chat" />
         <h2 id={titleId} className={styles.title}>

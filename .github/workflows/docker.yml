@@ -1,0 +1,40 @@
+# The production image (M14b): builds the web app and the server jar inside Docker, so a broken
+# Dockerfile shows up before a release. Nothing is pushed. The release workflow builds the image
+# again for every tag.
+# Pull requests and integration branches are not checked here for now: Actions minutes on private
+# repositories are limited, so the checks run where the change is made, and all of them run once
+# more before a release (by hand: "Run workflow" in the Actions tab, or locally).
+name: Docker image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - ops/**
+      - server/gradlew
+      - server/*.gradle.kts
+      - server/gradle/**
+      - web/package.json
+      - web/pnpm-lock.yaml
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+# A newer run for the same branch cancels the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    # In a private repository a push to main only repeats the run of the pull request it merged,
+    # so it is skipped there. A public repository gets its releases as pushes to main and tests them.
+    if: github.event_name != 'push' || github.ref_name != 'main' || !github.event.repository.private
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build --build-arg VERSION=ci -t bannerfall:ci .
+      - name: The image starts its own CLI
+        run: docker run --rm --entrypoint bannerfall-admin bannerfall:ci --help

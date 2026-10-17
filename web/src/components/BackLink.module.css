@@ -1,0 +1,16 @@
+.back {
+  justify-self: start;
+  width: fit-content;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover,
+.back:focus-visible {
+  text-decoration: underline;
+}

@@ -51,6 +51,8 @@ final class BattleReports {
      * @param loyaltySeen what the attacker learns about the loyalty (02-game-rules §10): the same
      *     as {@code loyalty} with nobles, else the unchanged value; null if no attacker came back
      * @param banners what banners did (M32b)
+     * @param haulCapacity what the surviving attackers could carry when they took loot (1.3); null
+     *     when they took none (lost, or conquered the village)
      */
     record Battle(
             VillageRefDto attacker,
@@ -64,7 +66,38 @@ final class BattleReports {
             ResourceAmounts loot,
             BattleReport.LoyaltyReport loyalty,
             BattleReport.LoyaltyReport loyaltySeen,
-            Banners banners) {
+            Banners banners,
+            Integer haulCapacity) {
+
+        /** A battle without the haul capacity. */
+        Battle(
+                VillageRefDto attacker,
+                VillageRefDto defender,
+                BattleInput input,
+                BattleResult result,
+                List<VillageRefDto> stackHomes,
+                ResourceAmounts stockBefore,
+                Map<BuildingType, Integer> buildingsBefore,
+                BattleReport.ScoutedBanner bannerBefore,
+                ResourceAmounts loot,
+                BattleReport.LoyaltyReport loyalty,
+                BattleReport.LoyaltyReport loyaltySeen,
+                Banners banners) {
+            this(
+                    attacker,
+                    defender,
+                    input,
+                    result,
+                    stackHomes,
+                    stockBefore,
+                    buildingsBefore,
+                    bannerBefore,
+                    loot,
+                    loyalty,
+                    loyaltySeen,
+                    banners,
+                    null);
+        }
 
         /** A battle without banners. */
         Battle(
@@ -168,7 +201,8 @@ final class BattleReports {
                         sawBanner ? bonus(banners.defenceBonus()) : null,
                         banners.attackerFound(),
                         banners.theft(),
-                        null));
+                        null),
+                battle.haulCapacity());
     }
 
     /** The copy for the village owner (kind DEFENSE); supporters get {@link #forSupporters}. */
@@ -202,7 +236,8 @@ final class BattleReports {
                         bonus(banners.defenceBonus()),
                         owner ? banners.defenderFound() : null,
                         null,
-                        owner ? banners.stolen() : null));
+                        owner ? banners.stolen() : null),
+                null);
     }
 
     /** A bonus for the report: null for 0, so a battle without banners shows none. */
@@ -215,7 +250,8 @@ final class BattleReports {
             BattleReport.DefenderSide defenderSide,
             BattleReport.ScoutingReport scouting,
             BattleReport.LoyaltyReport loyalty,
-            BattleReport.BannerReport banners) {
+            BattleReport.BannerReport banners,
+            Integer haulCapacity) {
         BattleInput input = battle.input();
         BattleResult result = battle.result();
         return new BattleReport(
@@ -231,7 +267,8 @@ final class BattleReports {
                 scouting,
                 battle.loot(),
                 loyalty,
-                banners);
+                banners,
+                haulCapacity);
     }
 
     /** The levels above 1 of the unit types that are in {@code units} (M30). */

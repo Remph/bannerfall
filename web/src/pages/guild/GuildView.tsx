@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
 import { useDisbandGuild, useLeaveGuild, type Guild } from '../../api/queries/guilds';
+import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
-import { Icon } from '../../components/Icon';
 import { formatNumber } from '../../game/format';
 import { bracketTag } from '../../game/guilds';
 import { useI18n } from '../../i18n';
@@ -34,14 +33,12 @@ export function GuildView({ guild, ownPlayerId, maxMembers, back = false, childr
   const { t, language } = useI18n();
   const own = guild.members.find((member) => member.playerId === ownPlayerId);
   const isLeader = own?.role === 'LEADER';
+  // another guild's profile has nothing for the right column: it stays one column
+  const split = isLeader || own !== undefined || children !== undefined;
 
   return (
-    <div className={styles.page}>
-      {back && (
-        <Link to={OWN_GUILD_PATH} className={styles.back}>
-          <Icon name="chevronLeft" /> {t.guild.back}
-        </Link>
-      )}
+    <div className={split ? `${styles.page} ${styles.wide}` : styles.page}>
+      {back && <BackLink to={OWN_GUILD_PATH}>{t.guild.back}</BackLink>}
       <header className={styles.head}>
         <h1>
           <span className={styles.tagInName}>{bracketTag(guild.tag)}</span>
@@ -51,11 +48,20 @@ export function GuildView({ guild, ownPlayerId, maxMembers, back = false, childr
           {t.guild.membersOf(guild.members.length, maxMembers)} · {t.guild.points(formatNumber(guild.points, language))}
         </p>
       </header>
-      <DescriptionCard guild={guild} isLeader={isLeader} />
-      <MembersCard guild={guild} ownPlayerId={ownPlayerId ?? 0} isLeader={isLeader} />
-      {isLeader && <InvitePlayerCard guild={guild} />}
-      {own !== undefined && <LeaveCard guild={guild} isLeader={isLeader} />}
-      {children}
+      {/* desktop: description and members left, the rest at the right (1.3) */}
+      <div className={split ? `${styles.columns} ${styles.split}` : styles.columns}>
+        <div className={styles.column}>
+          <DescriptionCard guild={guild} isLeader={isLeader} />
+          <MembersCard guild={guild} ownPlayerId={ownPlayerId ?? 0} isLeader={isLeader} />
+        </div>
+        {split && (
+          <div className={styles.column}>
+            {isLeader && <InvitePlayerCard guild={guild} />}
+            {own !== undefined && <LeaveCard guild={guild} isLeader={isLeader} />}
+            {children}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

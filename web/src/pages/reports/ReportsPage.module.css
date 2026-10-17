@@ -37,8 +37,8 @@
   gap: var(--space-2) var(--space-3);
 }
 
-/* "Mark all as read", "Delete barbarian reports" (1.2.3) and "Delete all" (M38): side by side,
-   wrapping under the title on a phone */
+/* "Mark all as read", "Select" (1.3), "Delete barbarian reports" (1.2.3) and "Delete all" (M38):
+   side by side, wrapping under the title on a phone */
 .headActions {
   display: flex;
   flex-wrap: wrap;
@@ -88,7 +88,7 @@
   border-top: 0;
 }
 
-/* the whole line except the delete button opens the report */
+/* the whole line opens the report (in select mode: chooses it) */
 .lineLink {
   flex: 1;
   min-width: 0;
@@ -119,7 +119,7 @@
   overflow-wrap: anywhere;
 }
 
-/* unread: bold, with a dot in the accent colour in front */
+/* unread: bold, with a red dot in front (like the unread counts) */
 .unread .lineTitle {
   font-weight: 700;
 }
@@ -131,7 +131,7 @@
   height: 0.5rem;
   margin-right: 0.4rem;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--color-danger);
   vertical-align: 0.1em;
 }
 
@@ -145,9 +145,45 @@
   font-variant-numeric: tabular-nums;
 }
 
-.lineAction {
+/* ---------- select mode (1.3) ---------- */
+.check {
+  width: 1.25rem;
+  height: 1.25rem;
   flex: none;
-  padding-right: var(--space-2);
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.chosen .lineLink {
+  background: var(--color-well);
+}
+
+/* sticks above the tab bar (3.5rem + its 2px border) on phones, at the bottom on the desktop */
+.selectBar {
+  position: sticky;
+  bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px) + var(--space-2));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-bar);
+  color: var(--color-on-bar);
+  box-shadow: var(--shadow-float);
+}
+
+.selectCount {
+  flex: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1024px) {
+  .selectBar {
+    bottom: var(--space-3);
+  }
 }
 
 /* kind icon in a round well; green for a win, red for a loss */
@@ -234,43 +270,21 @@
   cursor: default;
 }
 
-.deleteCompact {
-  min-width: var(--touch-target);
-  padding: 0;
-  font-size: 1.1rem;
-}
-
 /* after the first tap: red, with the question as text */
-.deleteArmed,
-.deleteArmed.deleteCompact {
+.deleteArmed {
   padding: 0 0.9rem;
   border-color: var(--color-danger);
   background: var(--color-danger);
-  color: var(--color-on-accent);
+  color: var(--color-on-danger);
   font-size: 0.9rem;
 }
 
 .deleteArmed:hover:not(:disabled),
 .deleteArmed:focus-visible {
-  color: var(--color-on-accent);
+  color: var(--color-on-danger);
 }
 
 /* ---------- one report ---------- */
-.back {
-  justify-self: start;
-  min-height: var(--touch-target);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.back:hover {
-  text-decoration: underline;
-}
-
 .detailHead {
   display: flex;
   flex-wrap: wrap;
@@ -300,6 +314,55 @@
 .verdict.lost {
   background: var(--color-danger-bg);
   color: var(--color-danger);
+}
+
+/* When a report opens, its verdict lands like a stamp; a lost village shakes once (UI review 1.3,
+   motion). */
+.stamp {
+  animation: stamp 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.12s both;
+  transform-origin: 20% 50%;
+}
+
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-4deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.96) rotate(0.5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.stamp.shake {
+  animation:
+    stamp 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.12s both,
+    shake 0.5s ease-in-out 0.6s;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20%,
+  60% {
+    translate: -6px;
+  }
+  40%,
+  80% {
+    translate: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp,
+  .stamp.shake {
+    animation: none;
+  }
 }
 
 /* attacker | defender, loot | scouting side by side on wide screens */
@@ -630,4 +693,124 @@
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
+}
+
+/* ---------- filters and days (1.3) ---------- */
+/* a row of chips that scrolls sideways on phones (to the screen's edge) */
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--space-3));
+  padding: 0 var(--space-3);
+}
+
+/* desktop: the chips wrap instead of running out of the list's column (1.3) */
+@media (min-width: 1024px) {
+  .chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.chip {
+  flex: none;
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.chip:hover {
+  border-color: var(--color-accent);
+}
+
+.chip[aria-current='page'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.chipCount {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (pointer: coarse) {
+  .chip {
+    min-height: var(--touch-target);
+  }
+}
+
+.days {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.day {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dayTitle {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* a battle's third line: the resources taken, the losses */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fact {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+}
+
+.resource {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.factUnits {
+  font-size: 0.8rem;
+}
+
+.fullHaul {
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+/* desktop (1.3): the report open next to the list */
+.open .lineLink {
+  background: var(--color-well);
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }

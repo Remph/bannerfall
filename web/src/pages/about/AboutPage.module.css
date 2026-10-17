@@ -5,17 +5,6 @@
   max-width: 40rem;
 }
 
-.back {
-  justify-self: start;
-  min-height: var(--touch-target);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .intro {
   margin: 0;
 }
