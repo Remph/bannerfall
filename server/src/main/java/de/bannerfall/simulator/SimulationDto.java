@@ -1,5 +1,6 @@
 package de.bannerfall.simulator;
 
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.report.BattleOutcome;
@@ -19,13 +20,30 @@ import java.util.Map;
  *     review 1.2); 0 without
  * @param oathBonus the Oath banner the loyalty outlook was counted with, as a fraction, after the
  *     hall's cap; 0 without
+ * @param attackerStandard the attacking army's paladin standard as it worked (1.4, 02-game-rules
+ *     §21.18); null without a standard or without a paladin in the army
+ * @param defenderStandard the defenders' standard as it worked; null like {@code attackerStandard}
+ * @param nightFactor the night bonus the defence was multiplied with (1.4, 02-game-rules §8.1),
+ *     e.g. {@code 2.0}; 1 by day and in a world without it
  */
 public record SimulationDto(
         List<Scenario> scenarios,
         double attackBonus,
         double defenceBonus,
         double plunderBonus,
-        double oathBonus) {
+        double oathBonus,
+        @Schema(nullable = true) Standard attackerStandard,
+        @Schema(nullable = true) Standard defenderStandard,
+        double nightFactor) {
+
+    /**
+     * A paladin standard in the simulated battle (§21.18).
+     *
+     * @param effectiveTier the tier it works at: at most that side's paladin level; 0 = asleep (the
+     *     defenders' without a Banner Hall)
+     * @param bonus the effect of that tier, as a fraction
+     */
+    public record Standard(BannerType type, int tier, int effectiveTier, double bonus) {}
 
     /**
      * One battle.
@@ -51,6 +69,10 @@ public record SimulationDto(
      *     decides what they take)
      * @param theft what the banner thieves could do (M32c); null without thieves in the attack or
      *     with banners switched off
+     * @param standardTheft what the defenders' thieves could do with the attacking army's standard
+     *     (1.4, §21.18): the chance that they take it, with {@code sent} and {@code survived} the
+     *     defending thieves; null unless the attacker loses carrying a standard while the world
+     *     lets the defenders take standards
      */
     public record Scenario(
             double luck,
@@ -70,7 +92,8 @@ public record SimulationDto(
             @Schema(nullable = true) Scouting scouting,
             @Schema(nullable = true) LoyaltyOutlook loyalty,
             int lootCapacity,
-            @Schema(nullable = true) Theft theft) {}
+            @Schema(nullable = true) Theft theft,
+            @Schema(nullable = true) Theft standardTheft) {}
 
     /**
      * The banner thieves of the attack (02-game-rules §21.6.2): the chance that the survivors take

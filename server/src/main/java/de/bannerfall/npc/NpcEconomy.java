@@ -15,6 +15,8 @@ import de.bannerfall.npc.NpcPlanning.Next;
 import de.bannerfall.paladin.PaladinService;
 import de.bannerfall.recruit.RecruitOrder;
 import de.bannerfall.recruit.RecruitService;
+import de.bannerfall.research.ResearchOrderRepository;
+import de.bannerfall.research.ResearchService;
 import de.bannerfall.rules.BuildRules;
 import de.bannerfall.rules.Population;
 import de.bannerfall.rules.RecruitRules;
@@ -54,6 +56,9 @@ class NpcEconomy {
     private final NpcBalance balance;
     private final MarketExchangeService exchanges;
     private final PaladinService paladins;
+    private final NpcBanners npcBanners;
+    private final ResearchService researchService;
+    private final ResearchOrderRepository researches;
 
     NpcEconomy(
             VillageStateService stateService,
@@ -64,7 +69,10 @@ class NpcEconomy {
             WorldService worldService,
             NpcBalance balance,
             MarketExchangeService exchanges,
-            PaladinService paladins) {
+            PaladinService paladins,
+            NpcBanners npcBanners,
+            ResearchService researchService,
+            ResearchOrderRepository researches) {
         this.stateService = stateService;
         this.buildService = buildService;
         this.recruitService = recruitService;
@@ -74,6 +82,9 @@ class NpcEconomy {
         this.balance = balance;
         this.exchanges = exchanges;
         this.paladins = paladins;
+        this.npcBanners = npcBanners;
+        this.researchService = researchService;
+        this.researches = researches;
     }
 
     /**
@@ -212,7 +223,11 @@ class NpcEconomy {
                 return NpcPlanning.nextNoble(s.levels, s.current, gameData, s.freePop);
             }
             return NpcPlanning.nextBuild(
-                    template.build(), s.levels, s.current, gameData, s.freePop);
+                    template.buildSteps(world.bannerHallAvailable()),
+                    s.levels,
+                    s.current,
+                    gameData,
+                    s.freePop);
         }
 
         /**
@@ -354,11 +369,17 @@ class NpcEconomy {
                 return;
             }
             Map<UnitType, Integer> havePop = populationOf(s.all);
-            if (recruitPaladin(s, reserve, popReserve, budgetLeft)) {
+            double training = trainPaladin(s, reserve, budgetLeft);
+            troops += training;
+            budgetLeft -= training;
+            if (recruitPaladin(snap(), reserve, popReserve, budgetLeft)) {
                 double paladinCost = gameData.unit(UnitType.PALADIN).cost().total();
                 troops += paladinCost;
                 budgetLeft -= paladinCost;
             }
+            double thieves = recruitThieves(snap(), reserve, popReserve, budgetLeft);
+            troops += thieves;
+            budgetLeft -= thieves;
             while (true) {
                 s = snap();
                 Set<UnitType> excluded = EnumSet.copyOf(ordered);
@@ -432,6 +453,75 @@ class NpcEconomy {
             changed();
             ordered.add(UnitType.PALADIN);
             return true;
+        }
+
+        /**
+         * §14.6 (lord banners): the village starts the paladin's next Hall training level if the
+         * rule allows it ({@link NpcBanners#paladinLevelToTrain}) and the stock above the reserve
+         * and the troop budget pay it.
+         *
+         * @return its cost (the caller books it as troops), 0 if nothing started
+         */
+        double trainPaladin(Snap s, ResourceAmounts reserve, double budgetLeft) {
+            int level =
+                    npcBanners.paladinLevelToTrain(
+                            world,
+                            village.getId(),
+                            s.current.get(BuildingType.BANNER_HALL),
+                            researches.findByPlayerId(playerId),
+                            now);
+            if (level == 0) {
+                return 0;
+            }
+            ResourceAmounts cost = gameData.unit(UnitType.PALADIN).levelDef(level).cost();
+            if (cost.total() > budgetLeft
+                    || !cost.fitsInto(NpcPlanning.minusReserve(s.stock, reserve))) {
+                return 0;
+            }
+            researchService.start(village.getId(), playerId, UnitType.PALADIN);
+            changed();
+            return cost.total();
+        }
+
+        /**
+         * §14.4 (lord banners): one order of banner thieves outside the mix, like the paladin, up
+         * to the template's {@code thieves}, as far as the stock above the reserve, the population
+         * above its reserve and the troop budget pay them.
+         *
+         * @return their cost (the caller books it as troops), 0 if none were ordered
+         */
+        double recruitThieves(Snap s, ResourceAmounts reserve, int popReserve, double budgetLeft) {
+            int wanted =
+                    NpcBanners.thievesWanted(
+                            template,
+                            world,
+                            s.current.get(BuildingType.BANNER_HALL),
+                            s.all.get(UnitType.BANNER_THIEF));
+            if (wanted < 1 || ordered.contains(UnitType.BANNER_THIEF)) {
+                return 0;
+            }
+            UnitDef def = gameData.unit(UnitType.BANNER_THIEF);
+            long inQueue = s.orders.stream().filter(o -> o.getBuilding() == def.building()).count();
+            if (inQueue >= world.recruitQueueSize()
+                    || !BuildRules.missingRequirements(def.requires(), s.current).isEmpty()) {
+                return 0;
+            }
+            int unitCost = def.cost().total();
+            int count =
+                    Math.min(
+                            wanted,
+                            RecruitRules.maxAffordable(
+                                    def,
+                                    NpcPlanning.minusReserve(s.stock, reserve),
+                                    s.freePop - popReserve));
+            count = (int) Math.min(count, Math.floor(budgetLeft / unitCost));
+            if (count < 1) {
+                return 0;
+            }
+            recruitService.enqueue(village.getId(), playerId, UnitType.BANNER_THIEF, count);
+            changed();
+            ordered.add(UnitType.BANNER_THIEF);
+            return (double) unitCost * count;
         }
 
         /** The stage's mix limited to the units the village can recruit now, requirements met. */

@@ -1,6 +1,7 @@
 package de.bannerfall.npc;
 
 import de.bannerfall.banner.BannerCatalog;
+import de.bannerfall.banner.VillageBanners;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
@@ -15,7 +16,11 @@ import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.npc.NpcTargeting.Estimate;
 import de.bannerfall.npc.NpcWorld.MapVillage;
 import de.bannerfall.rules.Loyalty;
+import de.bannerfall.rules.NightBonus;
+import de.bannerfall.rules.StandardEffect;
+import de.bannerfall.rules.Travel;
 import de.bannerfall.unit.UnitService;
+import de.bannerfall.world.NightBonusService;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -41,18 +46,24 @@ class NpcWarfare {
     private final GameData gameData;
     private final NpcBalance balance;
     private final BannerCatalog banners;
+    private final VillageBanners villageBanners;
+    private final NightBonusService nightBonus;
 
     NpcWarfare(
             CommandService commands,
             UnitService unitService,
             GameData gameData,
             NpcBalance balance,
-            BannerCatalog banners) {
+            BannerCatalog banners,
+            VillageBanners villageBanners,
+            NightBonusService nightBonus) {
         this.commands = commands;
         this.unitService = unitService;
         this.gameData = gameData;
         this.balance = balance;
         this.banners = banners;
+        this.villageBanners = villageBanners;
+        this.nightBonus = nightBonus;
     }
 
     // ---- conquest target, before the economy (§6.6) ----
@@ -141,6 +152,7 @@ class NpcWarfare {
         }
         return estimateAttack(
                         turn,
+                        target,
                         NpcTargeting.only(turn.available, clearingUnits(turn)),
                         intel,
                         null,
@@ -197,7 +209,7 @@ class NpcWarfare {
         Map<UnitType, Integer> clearing = Map.of();
         Map<UnitType, Integer> escort;
         if (intel.showedDefenders() || wall > 0) {
-            Estimate full = estimateAttack(turn, pool, intel, null, 0);
+            Estimate full = estimateAttack(turn, target, pool, intel, null, 0);
             if (!full.go()) {
                 return;
             }
@@ -206,7 +218,7 @@ class NpcWarfare {
                 return;
             }
             clearing = NpcTargeting.minus(pool, escort);
-            Estimate rest = estimateAttack(turn, clearing, intel, null, 0);
+            Estimate rest = estimateAttack(turn, target, clearing, intel, null, 0);
             if (!rest.go()
                     || NpcTargeting.attackOf(gameData, escort)
                             < NpcTargeting.escortAttackNeeded(rest.wallAfter())) {
@@ -255,7 +267,9 @@ class NpcWarfare {
 
     /**
      * §6.7: OFFENSIVE and BALANCED lords attack the source village of whoever attacked them, once
-     * per grudge, if the estimate (with fresh intel) is a go.
+     * per grudge, if the estimate (with fresh intel) is a go. With lord banners on (09 §14.4,
+     * §14.5) the village's paladin at home goes along where the template says so, and its banner
+     * thieves at home if the intel saw a banner there.
      */
     private void retaliate(NpcTurn turn) {
         if (!turn.template().grudgeOpens()) {
@@ -280,13 +294,25 @@ class NpcWarfare {
             }
             Map<UnitType, Integer> army =
                     NpcTargeting.only(turn.available, turn.template().attackUnits());
+            Map<UnitType, Integer> extras =
+                    NpcBanners.retaliationExtras(
+                            turn.template(),
+                            turn.view.world(),
+                            intel,
+                            unitService.homeUnits(turn.villageId()).toMap());
+            if (!army.isEmpty() && extras.containsKey(UnitType.PALADIN)) {
+                army =
+                        NpcTargeting.plus(
+                                army, Map.of(UnitType.PALADIN, extras.get(UnitType.PALADIN)));
+            }
             int wall = intel.wall() == null ? 0 : intel.wall();
             BuildingType catapultTarget = wall > 0 ? BuildingType.WALL : BuildingType.BARRACKS;
             int level =
                     intel.buildings() == null
                             ? 0
                             : intel.buildings().getOrDefault(catapultTarget, 0);
-            if (army.isEmpty() || !estimateAttack(turn, army, intel, catapultTarget, level).go()) {
+            if (army.isEmpty()
+                    || !estimateAttack(turn, source, army, intel, catapultTarget, level).go()) {
                 // v1.3: too strong for what is at home now. The lord's village nearest the
                 // attacker decides: it lets the grudge go only if its whole army (home, out
                 // farming, in support; less the home guard) couldn't win either, else it gathers
@@ -306,7 +332,7 @@ class NpcWarfare {
                     if (whole.isEmpty()) {
                         continue;
                     }
-                    if (estimateAttack(turn, whole, intel, catapultTarget, level).go()) {
+                    if (estimateAttack(turn, source, whole, intel, catapultTarget, level).go()) {
                         turn.gathering = true;
                     } else {
                         retaliated(turn, playerId);
@@ -319,6 +345,15 @@ class NpcWarfare {
             }
             BuildingType sentTarget = army.containsKey(UnitType.CATAPULT) ? catapultTarget : null;
             Instant arrival = previewAttack(turn, source, army, sentTarget);
+            Map<UnitType, Integer> withThieves = withThieves(turn, army, extras);
+            if (withThieves != army) {
+                // thieves walk at infantry speed: without them if the slower army can't go now
+                Instant slower = previewAttack(turn, source, withThieves, sentTarget);
+                if (slower != null) {
+                    army = withThieves;
+                    arrival = slower;
+                }
+            }
             if (arrival == null) {
                 continue;
             }
@@ -327,6 +362,19 @@ class NpcWarfare {
             turn.memory.farmed.put(source.id(), arrival);
             retaliated(turn, playerId);
         }
+    }
+
+    /**
+     * The retaliation's army with the thieves of {@code extras} (09 §14.4), or {@code army} itself
+     * without any. The estimate leaves them out: they add no attack.
+     */
+    private static Map<UnitType, Integer> withThieves(
+            NpcTurn turn, Map<UnitType, Integer> army, Map<UnitType, Integer> extras) {
+        int thieves = extras.getOrDefault(UnitType.BANNER_THIEF, 0);
+        if (thieves < 1) {
+            return army;
+        }
+        return NpcTargeting.plus(army, Map.of(UnitType.BANNER_THIEF, thieves));
     }
 
     /** Whether this village is the lord's nearest one to {@code target} (ties: the lower id). */
@@ -546,7 +594,11 @@ class NpcWarfare {
                                                     0,
                                                     general.farmMargin(),
                                                     general.farmMaxLoss(),
-                                                    bulwark)
+                                                    bulwark,
+                                                    StandardEffect.NONE,
+                                                    0,
+                                                    StandardEffect.NONE,
+                                                    nightOf(turn, target, a))
                                             .go());
             if (army == null) {
                 continue;
@@ -629,6 +681,7 @@ class NpcWarfare {
 
     private Estimate estimateAttack(
             NpcTurn turn,
+            MapVillage target,
             Map<UnitType, Integer> army,
             Intel intel,
             BuildingType catapultTarget,
@@ -642,7 +695,34 @@ class NpcWarfare {
                 catapultTargetLevel,
                 turn.template().margin(),
                 turn.view.general().attackMaxLoss(),
-                bulwarkOf(turn, intel));
+                bulwarkOf(turn, intel),
+                standardOf(turn, intel),
+                villageBanners.effectOf(turn.village).war(),
+                villageBanners.standardEffectOf(
+                        turn.village, army.getOrDefault(UnitType.PALADIN, 0) > 0, turn.now),
+                nightOf(turn, target, army));
+    }
+
+    /**
+     * The night bonus the lord expects (1.4, 02-game-rules §8.1): the world's factor if the army,
+     * sent now, would arrive at night at an owned village (from its travel time, the village's
+     * Haste banner included); 1 otherwise.
+     */
+    private double nightOf(NpcTurn turn, MapVillage target, Map<UnitType, Integer> army) {
+        NightBonus night = nightBonus.current();
+        if (!night.enabled()
+                || target.barbarian()
+                || army.values().stream().noneMatch(c -> c > 0)) {
+            return 1;
+        }
+        long seconds =
+                Travel.withHaste(
+                        Travel.travelSeconds(
+                                turn.distanceTo(target),
+                                Travel.armyMinutesPerField(gameData, army),
+                                turn.view.world()),
+                        villageBanners.effectOf(turn.village).haste());
+        return night.factorAt(turn.now.plusSeconds(seconds), true);
     }
 
     /**
@@ -663,6 +743,16 @@ class NpcWarfare {
     /** The Bulwark the lord expects (02-game-rules §21.11); none while banners are off. */
     private double bulwarkOf(NpcTurn turn, Intel intel) {
         return turn.view.world().bannersEnabled() ? NpcTargeting.bulwark(intel, banners) : 0;
+    }
+
+    /**
+     * The paladin standard the lord expects the defenders to carry (1.4, 02-game-rules §21.18);
+     * none while banners are off.
+     */
+    private StandardEffect standardOf(NpcTurn turn, Intel intel) {
+        return turn.view.world().bannersEnabled()
+                ? NpcTargeting.standard(intel, banners)
+                : StandardEffect.NONE;
     }
 
     /**

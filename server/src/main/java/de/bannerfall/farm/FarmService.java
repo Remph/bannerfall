@@ -15,6 +15,7 @@ import de.bannerfall.movement.CommandService;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementDto;
 import de.bannerfall.movement.MovementRepository;
+import de.bannerfall.note.VillageNoteService;
 import de.bannerfall.player.Player;
 import de.bannerfall.rules.RecruitRules;
 import de.bannerfall.rules.Travel;
@@ -51,6 +52,7 @@ public class FarmService {
     public static final int MAX_TARGETS = 50;
 
     private final FarmTargetRepository targets;
+    private final FarmTemplateRepository templates;
     private final VillageRepository villages;
     private final VillageLocker locker;
     private final CommandService commandService;
@@ -60,9 +62,11 @@ public class FarmService {
     private final VillageBanners villageBanners;
     private final BannerBattleService bannerBattles;
     private final MovementRepository movements;
+    private final VillageNoteService villageNotes;
 
     FarmService(
             FarmTargetRepository targets,
+            FarmTemplateRepository templates,
             VillageRepository villages,
             VillageLocker locker,
             CommandService commandService,
@@ -71,8 +75,10 @@ public class FarmService {
             Clock clock,
             VillageBanners villageBanners,
             BannerBattleService bannerBattles,
-            MovementRepository movements) {
+            MovementRepository movements,
+            VillageNoteService villageNotes) {
         this.targets = targets;
+        this.templates = templates;
         this.villages = villages;
         this.locker = locker;
         this.commandService = commandService;
@@ -82,6 +88,7 @@ public class FarmService {
         this.villageBanners = villageBanners;
         this.bannerBattles = bannerBattles;
         this.movements = movements;
+        this.villageNotes = villageNotes;
     }
 
     /**
@@ -106,6 +113,8 @@ public class FarmService {
         }
         double haste = villageBanners.effectOf(source).haste(); // one lookup for the list
         BannerChances chances = new BannerChances(playerId, byId.values(), now); // and for all
+        Map<Long, FarmTemplateLetter> letters = letters(playerId);
+        Map<Long, String> notes = villageNotes.notesOn(playerId, byId.keySet());
         return entries.stream()
                 .map(
                         entry ->
@@ -115,23 +124,28 @@ public class FarmService {
                                         byId.get(entry.getTargetVillageId()),
                                         haste,
                                         chances,
+                                        letters,
+                                        notes,
                                         now))
                 .toList();
     }
 
     /**
-     * Adds a target with its template.
+     * Adds a target with what it is sent: one of the player's templates or its own units (1.4).
      *
-     * @throws ApiException 400 {@code VALIDATION} for a template that is empty, has nobles or a
-     *     count outside 0 … 30 000
-     * @throws NotFoundException {@code TARGET_NOT_FOUND} if there is no village at the coordinates
+     * @throws ApiException 400 {@code VALIDATION} for both or neither of units and template, own
+     *     units that are empty, have nobles or a count outside 0 … 30 000
+     * @throws NotFoundException {@code FARM_TEMPLATE_NOT_FOUND} for a template the player hasn't
+     *     made, {@code TARGET_NOT_FOUND} if there is no village at the coordinates
      * @throws GameRuleException {@code SAME_VILLAGE} / {@code OWN_VILLAGE} for the player's own
      *     villages, {@code ALREADY_IN_FARM_LIST}, {@code FARM_LIST_FULL}
      */
     @Transactional
     public FarmTargetDto add(long villageId, long playerId, FarmTargetRequest request) {
-        UnitCounts template = checkedTemplate(request.units());
+        checkChoice(request.units(), request.template());
         Village source = locker.lockOwned(villageId, playerId);
+        // after the lock: a template change holds it too, so the copy can't be outdated
+        Troops troops = troopsOf(playerId, request.units(), request.template());
         Coordinates at = request.target();
         Village target =
                 villages.findByXAndY(at.x(), at.y())
@@ -153,29 +167,39 @@ public class FarmService {
                     "A farm list has at most " + MAX_TARGETS + " targets");
         }
         Instant now = clock.instant();
-        FarmTarget entry = targets.save(new FarmTarget(villageId, target.getId(), template, now));
+        FarmTarget entry =
+                targets.save(
+                        new FarmTarget(
+                                villageId,
+                                target.getId(),
+                                troops.units(),
+                                troops.templateId(),
+                                now));
         return toDto(
                 source,
                 entry,
                 target,
                 villageBanners.effectOf(source).haste(),
                 new BannerChances(playerId, List.of(target), now),
+                letters(playerId),
+                villageNotes.notesOn(playerId, List.of(target.getId())),
                 now);
     }
 
     /**
-     * Replaces the template of a target.
+     * Changes what a target is sent: another template or own units.
      *
      * @throws ApiException 400 {@code VALIDATION} as for {@link #add}
-     * @throws NotFoundException {@code FARM_TARGET_NOT_FOUND}
+     * @throws NotFoundException {@code FARM_TARGET_NOT_FOUND}, {@code FARM_TEMPLATE_NOT_FOUND}
      */
     @Transactional
     public FarmTargetDto changeUnits(
-            long villageId, long targetId, long playerId, Map<UnitType, Integer> units) {
-        UnitCounts template = checkedTemplate(units);
+            long villageId, long targetId, long playerId, FarmUnitsRequest request) {
+        checkChoice(request.units(), request.template());
         Village source = locker.lockOwned(villageId, playerId);
         FarmTarget entry = find(villageId, targetId);
-        entry.setUnits(template);
+        Troops troops = troopsOf(playerId, request.units(), request.template());
+        entry.setUnits(troops.units(), troops.templateId());
         Village target = villages.findById(entry.getTargetVillageId()).orElseThrow();
         Instant now = clock.instant();
         return toDto(
@@ -184,6 +208,8 @@ public class FarmService {
                 target,
                 villageBanners.effectOf(source).haste(),
                 new BannerChances(playerId, List.of(target), now),
+                letters(playerId),
+                villageNotes.notesOn(playerId, List.of(target.getId())),
                 now);
     }
 
@@ -196,6 +222,97 @@ public class FarmService {
     public void remove(long villageId, long targetId, long playerId) {
         locker.lockOwned(villageId, playerId);
         targets.delete(find(villageId, targetId));
+    }
+
+    /** The player's templates (1.4), A to E as far as he has made them. */
+    @Transactional(readOnly = true)
+    public List<FarmTemplateDto> templates(long playerId) {
+        return templates.findByPlayerIdOrderByLetterAsc(playerId).stream()
+                .map(FarmTemplateDto::of)
+                .toList();
+    }
+
+    /**
+     * Makes or changes one of the player's templates (1.4). Every entry that uses it, in any of his
+     * villages, sends the new units from now on: the change holds the locks of all his villages, so
+     * no list is read or sent halfway.
+     *
+     * @throws ApiException 400 {@code VALIDATION} as for own units in {@link #add}
+     */
+    @Transactional
+    public FarmTemplateDto saveTemplate(
+            long playerId, FarmTemplateLetter letter, Map<UnitType, Integer> units) {
+        UnitCounts counts = checkedTemplate(units);
+        lockAllVillages(playerId);
+        FarmTemplate template = templates.findByPlayerIdAndLetter(playerId, letter).orElse(null);
+        if (template == null) {
+            template = templates.save(new FarmTemplate(playerId, letter, counts));
+        } else {
+            template.setUnits(counts);
+            for (FarmTarget entry : targets.findByTemplateId(template.getId())) {
+                entry.followTemplate(counts);
+            }
+        }
+        return FarmTemplateDto.of(template);
+    }
+
+    /**
+     * Deletes one of the player's templates (1.4). Its entries keep the units they have as their
+     * own.
+     *
+     * @throws NotFoundException {@code FARM_TEMPLATE_NOT_FOUND}
+     */
+    @Transactional
+    public void deleteTemplate(long playerId, FarmTemplateLetter letter) {
+        lockAllVillages(playerId);
+        FarmTemplate template =
+                templates
+                        .findByPlayerIdAndLetter(playerId, letter)
+                        .orElseThrow(
+                                () -> new NotFoundException(ErrorCode.FARM_TEMPLATE_NOT_FOUND));
+        for (FarmTarget entry : targets.findByTemplateId(template.getId())) {
+            entry.setUnits(entry.getUnits(), null);
+        }
+        templates.delete(template);
+    }
+
+    private void lockAllVillages(long playerId) {
+        locker.lock(villages.findIdsByPlayerId(playerId).toArray(Long[]::new));
+    }
+
+    /** The letters of the player's templates by id, for the entries' {@code template}. */
+    private Map<Long, FarmTemplateLetter> letters(long playerId) {
+        Map<Long, FarmTemplateLetter> letters = new HashMap<>();
+        for (FarmTemplate template : templates.findByPlayerIdOrderByLetterAsc(playerId)) {
+            letters.put(template.getId(), template.getLetter());
+        }
+        return letters;
+    }
+
+    /** What an entry sends: a copy of the units, and the template they come from (or null). */
+    private record Troops(UnitCounts units, Long templateId) {}
+
+    /** Exactly one of own units and a template (1.4); own units must be a valid template. */
+    private static void checkChoice(Map<UnitType, Integer> units, FarmTemplateLetter letter) {
+        if ((units == null) == (letter == null)) {
+            throw invalid("Either units or a template");
+        }
+        if (units != null) {
+            checkedTemplate(units);
+        }
+    }
+
+    private Troops troopsOf(
+            long playerId, Map<UnitType, Integer> units, FarmTemplateLetter letter) {
+        if (letter == null) {
+            return new Troops(checkedTemplate(units), null);
+        }
+        FarmTemplate template =
+                templates
+                        .findByPlayerIdAndLetter(playerId, letter)
+                        .orElseThrow(
+                                () -> new NotFoundException(ErrorCode.FARM_TEMPLATE_NOT_FOUND));
+        return new Troops(template.getUnits().copy(), template.getId());
     }
 
     /**
@@ -420,6 +537,8 @@ public class FarmService {
      * @param haste the source's Haste banner (02-game-rules §21.2), so the trip shown is the one
      *     the attack will take
      * @param chances the banner chances of this answer; the entry claims its pair if it has one
+     * @param letters the player's templates by id
+     * @param notes the player's village notes by village id (1.4)
      */
     private FarmTargetDto toDto(
             Village source,
@@ -427,6 +546,8 @@ public class FarmService {
             Village target,
             double haste,
             BannerChances chances,
+            Map<Long, FarmTemplateLetter> letters,
+            Map<Long, String> notes,
             Instant now) {
         UnitCounts units = entry.getUnits();
         double distance = Travel.distance(source.coordinates(), target.coordinates());
@@ -447,11 +568,13 @@ public class FarmService {
                 entry.getId(),
                 VillageRefDto.of(target),
                 units.toMap(),
+                entry.getTemplateId() == null ? null : letters.get(entry.getTemplateId()),
                 distance,
                 travelSeconds,
                 protectedUntil != null && protectedUntil.isAfter(now) ? protectedUntil : null,
                 entry.getLastSentAt(),
                 chances.nextRollAt(target),
-                bannerChance);
+                bannerChance,
+                notes.get(target.getId()));
     }
 }

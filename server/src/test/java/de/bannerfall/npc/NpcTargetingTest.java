@@ -16,6 +16,7 @@ import de.bannerfall.npc.NpcWorld.MapVillage;
 import de.bannerfall.report.BattleOutcome;
 import de.bannerfall.report.BattleReport;
 import de.bannerfall.rules.Production;
+import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.world.WorldSettings;
 import java.io.IOException;
@@ -85,6 +86,47 @@ class NpcTargetingTest {
         // 02 §21.2: the attacker loses 41 instead of 47 of his 100 axemen
         assertThat(plain.lossRatio()).isCloseTo(0.41, within(0.01));
         assertThat(bulwark.lossRatio()).isCloseTo(0.47, within(0.01));
+    }
+
+    @Test
+    void theNightBonusAtTheArrivalCanTurnTheEstimate() {
+        var axemen = Map.of(UnitType.AXEMAN, 100);
+        var spearmen = Map.of(UnitType.SPEARMAN, 100);
+
+        // 1.4, 02 §8.1: D = 2212.5 by day, 4425 at night against A = 4000
+        Estimate day =
+                NpcTargeting.estimate(
+                        DATA,
+                        axemen,
+                        spearmen,
+                        5,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        StandardEffect.NONE,
+                        0,
+                        StandardEffect.NONE,
+                        1);
+        Estimate night =
+                NpcTargeting.estimate(
+                        DATA,
+                        axemen,
+                        spearmen,
+                        5,
+                        null,
+                        0,
+                        1,
+                        1,
+                        0,
+                        StandardEffect.NONE,
+                        0,
+                        StandardEffect.NONE,
+                        2);
+
+        assertThat(day.go()).isTrue();
+        assertThat(night.go()).isFalse();
     }
 
     @Test
@@ -415,6 +457,53 @@ class NpcTargetingTest {
                 .isZero();
         assertThat(NpcTargeting.oath(scouted(null, 3), catalog)).isZero();
         assertThat(NpcTargeting.oath(null, catalog)).isZero();
+    }
+
+    /** 1.4 (02-game-rules §21.18): lords read a scouted standard at its own tier. */
+    @Test
+    void theStandardTheLordExpectsNeedsAScoutedPaladinAndHall() {
+        BannerCatalog catalog = banners();
+        var spearII = new BattleReport.ScoutedBanner(BannerType.SPEAR_STANDARD, 2);
+        var paladin = Map.of(UnitType.SPEARMAN, 100, UnitType.PALADIN, 1);
+
+        var expected = NpcTargeting.standard(withStandard(paladin, 1, spearII), catalog);
+        assertThat(expected.type()).isEqualTo(BannerType.SPEAR_STANDARD);
+        assertThat(expected.effectiveTier()).isEqualTo(2);
+        assertThat(expected.bonus()).isEqualTo(0.10);
+        // no paladin seen, no hall seen, no standard seen: none
+        assertThat(
+                        NpcTargeting.standard(
+                                withStandard(Map.of(UnitType.SPEARMAN, 100), 1, spearII), catalog))
+                .isEqualTo(StandardEffect.NONE);
+        assertThat(NpcTargeting.standard(withStandard(paladin, 0, spearII), catalog).works())
+                .isFalse();
+        assertThat(NpcTargeting.standard(withStandard(paladin, 1, null), catalog))
+                .isEqualTo(StandardEffect.NONE);
+        assertThat(NpcTargeting.standard(null, catalog)).isEqualTo(StandardEffect.NONE);
+
+        // and the estimate fights against it: 100 axemen lose more against the standard
+        var axemen = Map.of(UnitType.AXEMAN, 100);
+        Estimate plain = NpcTargeting.estimate(DATA, axemen, paladin, 0, null, 0, 1, 1, 0);
+        Estimate held = NpcTargeting.estimate(DATA, axemen, paladin, 0, null, 0, 1, 1, 0, expected);
+        assertThat(held.lossRatio()).isGreaterThan(plain.lossRatio());
+    }
+
+    private static Intel withStandard(
+            Map<UnitType, Integer> units, int hall, BattleReport.ScoutedBanner standard) {
+        return new Intel(
+                NOW,
+                null,
+                units,
+                0,
+                Map.of(BuildingType.BANNER_HALL, hall),
+                null,
+                null,
+                false,
+                null,
+                0,
+                null,
+                null,
+                standard);
     }
 
     /** v1.3: the loyalty grows back while the nobles walk, up to 100. */

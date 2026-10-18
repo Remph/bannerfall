@@ -45,7 +45,12 @@ export function ConquestDetails({ kind, report, villageId }: ConquestDetailsProp
                 </div>
               )}
             </dl>
-            {report.banner != null && <ConquestBanner banner={report.banner} won={won} />}
+            {report.banner != null && (
+              <ConquestBanner title={t.reports.conquestBanner} banner={report.banner} won={won} />
+            )}
+            {report.standard != null && (
+              <ConquestBanner title={t.reports.conquestStandard} banner={report.standard} won={won} />
+            )}
             {won && (
               <Link className={styles.action} to={`/v/${report.village.id}`}>
                 {t.reports.toVillage}
@@ -59,10 +64,10 @@ export function ConquestDetails({ kind, report, villageId }: ConquestDetailsProp
 }
 
 /**
- * The banner that flew in the village (M32b, 02-game-rules §21.6.1): into the conqueror's stash, or
- * left in the village (banners switched off, or an NPC lord took it).
+ * The banner that flew in the village (M32b, 02-game-rules §21.6.1), or its paladin standard (1.4):
+ * into the conqueror's stash, or left in the village (banners switched off, or an NPC lord took it).
  */
-function ConquestBanner({ banner, won }: { banner: ConqueredBanner; won: boolean }) {
+function ConquestBanner({ title, banner, won }: { title: string; banner: ConqueredBanner; won: boolean }) {
   const t = useT();
   const fate = won
     ? banner.toStash
@@ -73,7 +78,7 @@ function ConquestBanner({ banner, won }: { banner: ConqueredBanner; won: boolean
       : t.reports.lostBannerStays;
   return (
     <div className={styles.group}>
-      <h3 className={styles.groupTitle}>{t.reports.conquestBanner}</h3>
+      <h3 className={styles.groupTitle}>{title}</h3>
       <p className={styles.scoutedBanner}>
         <Banner type={banner.type} tier={banner.tier} size={20} decorative />
         {t.banners.label(t.banners.types[banner.type], banner.tier)}

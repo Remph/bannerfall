@@ -109,8 +109,9 @@ public class BuildService {
             throw new GameRuleException(
                     ErrorCode.REQUIREMENTS_NOT_MET, "Requirements for " + type + " are not met");
         }
-        // The banner hall only serves banners (02-game-rules §21.3): no new one while they are off.
-        if (type == BuildingType.BANNER_HALL && !world.bannersEnabled()) {
+        // The banner hall serves the banners and trains the paladin (02-game-rules §21.3): no new
+        // one in a world that has neither.
+        if (type == BuildingType.BANNER_HALL && !world.bannerHallAvailable()) {
             throw new GameRuleException(
                     ErrorCode.BANNERS_DISABLED, "Banners are switched off in this world");
         }
@@ -303,12 +304,14 @@ public class BuildService {
         int position = Math.min(queue.size() + 1, world.buildQueueMax());
         int surcharge = BuildRules.slotSurchargePercent(position, world.buildQueueSize());
 
-        // A world without banners (02-game-rules §21.3) has no use for the banner hall: it is left
-        // out of the list (and of what other upgrades unlock) unless one stands there already.
+        // A world without banners and paladins (02-game-rules §21.3) has no use for the banner
+        // hall: it is left out of the list (and of what other upgrades unlock) unless one stands
+        // there already.
         boolean banners = world.bannersEnabled();
+        boolean hall = world.bannerHallAvailable();
         List<BuildingInfoDto> result = new ArrayList<>();
         for (BuildingType type : BuildingType.values()) {
-            if (type == BuildingType.BANNER_HALL && !banners && current.get(type) == 0) {
+            if (type == BuildingType.BANNER_HALL && !hall && current.get(type) == 0) {
                 continue;
             }
             BuildingDef def = gameData.building(type);
@@ -327,7 +330,7 @@ public class BuildService {
                                         BuildRules.buildSeconds(def, nextLevel, hqLevel, world),
                                         banner.builders()),
                                 BuildingEffects.upgrade(type, queuedLevel, world, banner),
-                                unlockedBuildings(type, queued, banners),
+                                unlockedBuildings(type, queued, hall),
                                 unlockedUnits(type, queued, world.paladinMaxSlots() > 0, banners));
             }
             result.add(
@@ -348,11 +351,11 @@ public class BuildService {
      * not met with {@code queued} but are with one more level of {@code type} (M24).
      */
     private List<BuildingType> unlockedBuildings(
-            BuildingType type, Map<BuildingType, Integer> queued, boolean banners) {
+            BuildingType type, Map<BuildingType, Integer> queued, boolean hall) {
         Map<BuildingType, Integer> after = withOneMore(queued, type);
         List<BuildingType> unlocked = new ArrayList<>();
         for (BuildingType other : BuildingType.values()) {
-            if (other == BuildingType.BANNER_HALL && !banners) {
+            if (other == BuildingType.BANNER_HALL && !hall) {
                 continue;
             }
             Map<BuildingType, Integer> requires = gameData.building(other).requires();

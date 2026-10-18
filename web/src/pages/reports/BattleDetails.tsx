@@ -3,6 +3,7 @@ import type {
   BannerReport,
   BattleReport,
   DefenderSide,
+  DefenderStack,
   LoyaltyReport,
   ScoutingReport,
 } from '../../api/queries/reports';
@@ -13,7 +14,7 @@ import { Icon } from '../../components/Icon';
 import { UnitSummary } from '../../components/UnitSummary';
 import { UnitTable } from '../../components/UnitTable';
 import { percentPoints } from '../../game/banners';
-import { formatNumber, formatPercent, formatShare } from '../../game/format';
+import { formatFactor, formatNumber, formatPercent, formatShare } from '../../game/format';
 import { battleVerdict, builtBuildings, hasSupporters, unitRows, type ReportKind } from '../../game/reports';
 import { presentUnits } from '../../game/troops';
 import { sharedLevels, toLevelMap } from '../../game/unitLevels';
@@ -81,6 +82,13 @@ export function BattleDetails({ kind, battle, villageId }: BattleDetailsProps) {
         <Card title={t.reports.defender}>
           <div className={styles.cardBody}>
             <ReportVillage village={battle.defender} villageId={villageId} />
+            {/* 1.4 (02-game-rules §8.1): both copies say when the defence had the night bonus */}
+            {battle.nightBonus != null && (
+              <p className={styles.night}>
+                <Icon name="moon" />
+                {t.reports.nightBonus(formatFactor(battle.nightBonus, language))}
+              </p>
+            )}
             {battle.defenderSide === null ? (
               <p className={styles.muted}>{t.reports.nobodyCameBack}</p>
             ) : (
@@ -106,7 +114,14 @@ export function BattleDetails({ kind, battle, villageId }: BattleDetailsProps) {
         {battle.scouting !== null && !(defenderView && scoutsOnly) && (
           <ScoutingCard scouting={battle.scouting} defenderView={defenderView} />
         )}
-        {battle.banners != null && <BannersCard banners={battle.banners} />}
+        {(battle.banners != null || (battle.defenderSide?.stacks ?? []).some((stack) => stack.standard != null)) && (
+          <BannersCard
+            banners={battle.banners ?? null}
+            stacks={battle.defenderSide?.stacks ?? []}
+            villageId={villageId}
+            defenderId={battle.defender.id}
+          />
+        )}
       </div>
     </>
   );
@@ -247,6 +262,15 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
             </p>
           </div>
         )}
+        {scouting.standard != null && (
+          <div className={styles.group}>
+            <h3 className={styles.groupTitle}>{t.reports.scoutedStandard}</h3>
+            <p className={styles.scoutedBanner}>
+              <Banner type={scouting.standard.type} tier={scouting.standard.tier} size={20} decorative />
+              {t.banners.types[scouting.standard.type]}, {t.banners.tier(scouting.standard.tier)}
+            </p>
+          </div>
+        )}
         {buildings.length > 0 && (
           <div className={styles.group}>
             <h3 className={styles.groupTitle}>{t.reports.scoutedBuildings}</h3>
@@ -284,20 +308,89 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
   );
 }
 
+/** A report without a banner part (1.4: only its stacks carried standards). */
+const noBanners: BannerReport = {
+  attackBonus: null,
+  defenceBonus: null,
+  found: null,
+  theft: null,
+  stolen: null,
+  attackStandard: null,
+  foundStandard: null,
+  standardTheft: null,
+};
+
 /**
  * What banners did in the battle (M32b, 02-game-rules §21): the War and Bulwark bonuses the reader may
  * know, the banner the reader's side found, what the attacker's thieves did, or (defenders) the banner
- * they stole. The server leaves out what the reader's copy doesn't hold.
+ * they stole; since 1.4 the paladin standards: the attack's and each defending stack's, a standard
+ * found, and what the defenders' thieves did with the attack's. The server leaves out what the
+ * reader's copy doesn't hold.
  */
-function BannersCard({ banners }: { banners: BannerReport }) {
+function BannersCard({
+  banners: given,
+  stacks,
+  villageId,
+  defenderId,
+}: {
+  banners: BannerReport | null;
+  stacks: readonly DefenderStack[];
+  villageId: number | undefined;
+  defenderId: number;
+}) {
   const { t, language } = useI18n();
   const percent = (fraction: number) => t.reports.bonus(formatShare(percentPoints(fraction), language));
   const name = (banner: { type: BannerType; tier: number }) =>
     t.banners.label(t.banners.types[banner.type], banner.tier);
+  const banners = given ?? noBanners;
   const theft = banners.theft;
+  const standardTheft = banners.standardTheft;
+  const standard = (value: { type: BannerType; tier: number; effectiveTier: number }) =>
+    t.reports.standardState(name(value), value.effectiveTier, value.tier);
+  // 1.4: the standards the defending stacks carried; with supporters, each with its village
+  const defended = stacks.filter((stack) => stack.standard != null);
+  const supporters = hasSupporters(stacks, defenderId);
   return (
     <Card title={t.reports.bannersTitle}>
       <div className={styles.cardBody}>
+        {(banners.attackStandard !== null || defended.length > 0) && (
+          <dl className={styles.facts}>
+            {banners.attackStandard !== null && (
+              <div>
+                <dt>{t.reports.attackStandard}</dt>
+                <dd className={styles.scoutedBanner}>
+                  <Banner
+                    type={banners.attackStandard.type}
+                    tier={banners.attackStandard.tier}
+                    size={20}
+                    dormant={banners.attackStandard.effectiveTier === 0}
+                    decorative
+                  />
+                  {standard(banners.attackStandard)}
+                </dd>
+              </div>
+            )}
+            {defended.map(
+              (stack) =>
+                stack.standard != null && (
+                  <div key={stack.home.id}>
+                    <dt>{t.reports.defenderStandard}</dt>
+                    <dd className={styles.scoutedBanner}>
+                      <Banner
+                        type={stack.standard.type}
+                        tier={stack.standard.tier}
+                        size={20}
+                        dormant={stack.standard.effectiveTier === 0}
+                        decorative
+                      />
+                      {standard(stack.standard)}
+                      {supporters && <ReportVillage village={stack.home} villageId={villageId} />}
+                    </dd>
+                  </div>
+                ),
+            )}
+          </dl>
+        )}
         {(banners.attackBonus !== null || banners.defenceBonus !== null) && (
           <dl className={styles.facts}>
             {banners.attackBonus !== null && (
@@ -361,6 +454,51 @@ function BannersCard({ banners }: { banners: BannerReport }) {
             <Banner type={banners.stolen.type} tier={banners.stolen.tier} size={20} decorative />
             {t.reports.bannerStolen(name(banners.stolen))}
           </p>
+        )}
+        {banners.foundStandard !== null && (
+          <div className={styles.group}>
+            <h3 className={styles.groupTitle}>{t.reports.standardFound}</h3>
+            <p className={`${styles.scoutedBanner} ${styles.bannerWon}`}>
+              <Banner type={banners.foundStandard.type} tier={banners.foundStandard.tier} size={20} decorative />
+              {name(banners.foundStandard)}
+            </p>
+          </div>
+        )}
+        {standardTheft !== null && (
+          <>
+            {standardTheft.thieves != null && (
+              <dl className={styles.facts}>
+                <div>
+                  <dt>{t.reports.thieves}</dt>
+                  <dd>{t.reports.standardSurvivors(formatNumber(standardTheft.thieves, language))}</dd>
+                </div>
+                {standardTheft.chance != null && (
+                  <div>
+                    <dt>{t.reports.standardTheftChance}</dt>
+                    <dd>{formatShare(percentPoints(standardTheft.chance), language)}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            <p
+              className={[
+                styles.scoutedBanner,
+                // the attacker's copy only exists for a lost standard
+                standardTheft.thieves == null
+                  ? styles.bannerLost
+                  : standardTheft.stolen
+                    ? styles.bannerWon
+                    : styles.muted,
+              ].join(' ')}
+            >
+              <Banner type={standardTheft.standard.type} tier={standardTheft.standard.tier} size={20} decorative />
+              {standardTheft.thieves == null
+                ? t.reports.standardLost(name(standardTheft.standard))
+                : standardTheft.stolen
+                  ? t.reports.standardTaken(name(standardTheft.standard))
+                  : t.reports.standardKept(name(standardTheft.standard))}
+            </p>
+          </>
         )}
       </div>
     </Card>

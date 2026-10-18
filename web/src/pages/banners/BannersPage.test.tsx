@@ -85,6 +85,73 @@ describe('BannersPage', () => {
     expect(screen.getByText('You need three banners of the same tier (I or II) in your stash.')).toBeTruthy();
   });
 
+  // ---- paladin standards (1.4, 02-game-rules §21.18) ----
+
+  /** The fixture with an Axe standard III in the village and three Spear standards I in the stash. */
+  function withStandards(changes: Partial<(typeof banners)['villages'][number]> = {}) {
+    return {
+      ...banners,
+      banners: [
+        ...banners.banners,
+        { id: 6, type: 'AXE_STANDARD' as const, tier: 3, villageId: village.id, equippedAt: FIXTURE_NOW },
+        { id: 7, type: 'SPEAR_STANDARD' as const, tier: 1, villageId: null, equippedAt: null },
+        { id: 8, type: 'SPEAR_STANDARD' as const, tier: 1, villageId: null, equippedAt: null },
+        { id: 9, type: 'SWORD_STANDARD' as const, tier: 1, villageId: null, equippedAt: null },
+      ],
+      villages: banners.villages.map((entry) => ({
+        ...entry,
+        standardId: 6,
+        standardEffectiveTier: 1,
+        ...changes,
+      })),
+    };
+  }
+
+  function standardCard() {
+    return screen.getByRole('heading', { name: 'Paladin standard' }).closest('section') ?? document.body;
+  }
+
+  it('shows the standard of this village at the level of the paladin', () => {
+    open(withStandards());
+
+    const card = within(standardCard());
+    expect(card.getByText('Axe standard')).toBeTruthy();
+    expect(card.getByText('Tier III')).toBeTruthy();
+    expect(card.getByText(/Attack strength of the axemen it goes with \+5\s?%/)).toBeTruthy();
+    expect(card.getByText('Your paladin’s level caps it: the standard works as tier I.')).toBeTruthy();
+    expect(card.getByText(/Your paladin is at level 1/)).toBeTruthy();
+    expect(card.getByText(/banner thieves may take it/)).toBeTruthy();
+    expect(card.getByRole('button', { name: 'Take down' })).toHaveProperty('disabled', false);
+    // the village list names it too
+    expect(screen.getByText(/Harvest banner.*Axe standard/)).toBeTruthy();
+  });
+
+  it('keeps the standards apart in the stash and when fusing', () => {
+    open(withStandards());
+
+    expect(screen.getByRole('heading', { name: 'Village banners' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Paladin standards' })).toBeTruthy();
+    expect(screen.getByText('Standards, tier I (3)')).toBeTruthy();
+    // the banners' tier I group still counts only the banners
+    expect(screen.getByText('Tier I (3)')).toBeTruthy();
+  });
+
+  it('locks only the standard while an attack with a paladin from here is under way', () => {
+    open(withStandards({ standardLocked: true }));
+
+    expect(within(standardCard()).getByText(/the standard cannot be changed until it is over/)).toBeTruthy();
+    expect(within(standardCard()).getByRole('button', { name: 'Take down' })).toHaveProperty('disabled', true);
+    expect(within(slotCard()).getByRole('button', { name: 'Take down' })).toHaveProperty('disabled', false);
+    // the banners can still be swapped, the standards not
+    expect(screen.getAllByRole('button', { name: /^Swap in / })).toHaveLength(3);
+  });
+
+  it('has no standard card in a world without paladins and without standards', () => {
+    open({ ...banners, paladinsEnabled: false });
+
+    expect(screen.queryByRole('heading', { name: 'Paladin standard' })).toBeNull();
+  });
+
   it('speaks German', () => {
     open(banners, 'de');
 

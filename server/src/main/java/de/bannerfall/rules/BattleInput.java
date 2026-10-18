@@ -28,6 +28,12 @@ import java.util.Map;
  *     fraction; 0 without
  * @param defenceBonus the Bulwark banner of the target village at battle time, as a fraction; 0
  *     without
+ * @param attackerStandard the paladin standard the attack took along (1.4, 02-game-rules §21.18);
+ *     {@link StandardEffect#NONE} without
+ * @param defenderStandards the standard each defending stack carries at battle time, one entry per
+ *     entry of {@code defenderStacks}
+ * @param nightFactor the night bonus (1.4, 02-game-rules §8.1): multiplies the defence, 1 by day,
+ *     in a barbarian village and in a world without it
  */
 public record BattleInput(
         Map<UnitType, Integer> attacker,
@@ -39,7 +45,67 @@ public record BattleInput(
         UnitLevels attackerLevels,
         List<UnitLevels> defenderLevels,
         double attackBonus,
-        double defenceBonus) {
+        double defenceBonus,
+        StandardEffect attackerStandard,
+        List<StandardEffect> defenderStandards,
+        double nightFactor) {
+
+    /** A battle without the night bonus. */
+    public BattleInput(
+            Map<UnitType, Integer> attacker,
+            List<Map<UnitType, Integer>> defenderStacks,
+            int wallLevel,
+            BuildingType catapultTarget,
+            int catapultTargetLevel,
+            double luck,
+            UnitLevels attackerLevels,
+            List<UnitLevels> defenderLevels,
+            double attackBonus,
+            double defenceBonus,
+            StandardEffect attackerStandard,
+            List<StandardEffect> defenderStandards) {
+        this(
+                attacker,
+                defenderStacks,
+                wallLevel,
+                catapultTarget,
+                catapultTargetLevel,
+                luck,
+                attackerLevels,
+                defenderLevels,
+                attackBonus,
+                defenceBonus,
+                attackerStandard,
+                defenderStandards,
+                1);
+    }
+
+    /** A battle without paladin standards. */
+    public BattleInput(
+            Map<UnitType, Integer> attacker,
+            List<Map<UnitType, Integer>> defenderStacks,
+            int wallLevel,
+            BuildingType catapultTarget,
+            int catapultTargetLevel,
+            double luck,
+            UnitLevels attackerLevels,
+            List<UnitLevels> defenderLevels,
+            double attackBonus,
+            double defenceBonus) {
+        this(
+                attacker,
+                defenderStacks,
+                wallLevel,
+                catapultTarget,
+                catapultTargetLevel,
+                luck,
+                attackerLevels,
+                defenderLevels,
+                attackBonus,
+                defenceBonus,
+                StandardEffect.NONE,
+                defenderStacks.stream().map(stack -> StandardEffect.NONE).toList());
+    }
 
     /** A battle without banners. */
     public BattleInput(
@@ -122,6 +188,20 @@ public record BattleInput(
         if (!(attackBonus >= 0 && attackBonus < 1 && defenceBonus >= 0 && defenceBonus < 1)) {
             throw new IllegalArgumentException(
                     "banner bonuses must be in [0, 1): " + attackBonus + ", " + defenceBonus);
+        }
+        if (attackerStandard == null) {
+            throw new IllegalArgumentException("attackerStandard: NONE, not null");
+        }
+        if (defenderStandards.size() != defenderStacks.size()) {
+            throw new IllegalArgumentException(
+                    "one standard per defending stack: "
+                            + defenderStandards.size()
+                            + " for "
+                            + defenderStacks.size());
+        }
+        defenderStandards = List.copyOf(defenderStandards);
+        if (!(nightFactor >= 1)) {
+            throw new IllegalArgumentException("nightFactor must be at least 1: " + nightFactor);
         }
     }
 }

@@ -11,6 +11,7 @@ import { CostList } from '../../components/CostList';
 import { DevCheats } from '../../components/DevCheats';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { bannerHallAvailable } from '../../game/banners';
 import { byBuildingOrder } from '../../game/gameData';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
 import { useGameNow } from '../../game/serverTime';
@@ -62,7 +63,7 @@ function TownHall({ villageId }: { villageId: number }) {
     queueFull,
     now,
     // until the world is loaded the server has the last word (it refuses with BANNERS_DISABLED)
-    bannersEnabled: world?.bannersEnabled ?? true,
+    hallAvailable: world === undefined ? true : bannerHallAvailable(world),
   };
   // the server lists them in its enum order; shown in the UI's (the Banner Hall after the Workshop)
   const sorted = [...buildings.data].sort((a, b) => byBuildingOrder(a.building, b.building));
@@ -116,7 +117,7 @@ interface AvailableProps {
 /** Buildings whose requirements are met: what they cost next and the button to queue it. */
 function AvailableBuildings({ preview, buildings }: AvailableProps) {
   const t = useT();
-  const { village, stock, freePop, queueFull, now, bannersEnabled } = preview;
+  const { village, stock, freePop, queueFull, now, hallAvailable } = preview;
   const enqueue = useEnqueueBuild(village.id);
   const target = useLocation().hash.slice(1);
   // The server prices every next level at the next free place, so they all share the surcharge.
@@ -143,7 +144,7 @@ function AvailableBuildings({ preview, buildings }: AvailableProps) {
                     freePop={freePop}
                     queueFull={queueFull}
                     now={now}
-                    bannersEnabled={bannersEnabled}
+                    hallAvailable={hallAvailable}
                     pending={enqueue.isPending}
                     queueing={enqueue.isPending && enqueue.variables === info.building}
                     error={enqueue.isError && enqueue.variables === info.building ? enqueue.error : null}
@@ -193,7 +194,7 @@ interface NextLevelRowProps {
   freePop: number;
   queueFull: boolean;
   now: number;
-  bannersEnabled: boolean;
+  hallAvailable: boolean;
   /** Some upgrade is being queued right now (all buttons wait). */
   pending: boolean;
   /** This building's upgrade is being queued right now. */
@@ -204,10 +205,10 @@ interface NextLevelRowProps {
 
 /** Costs, population and build time of the next level, why it can't be queued yet, and the button. */
 function NextLevelRow(props: NextLevelRowProps) {
-  const { info, next, village, stock, freePop, queueFull, now, bannersEnabled, pending, queueing, error, onUpgrade } =
+  const { info, next, village, stock, freePop, queueFull, now, hallAvailable, pending, queueing, error, onUpgrade } =
     props;
   const { t, language } = useI18n();
-  const blocker = upgradeBlocker(info, village, freePop, queueFull, now, bannersEnabled);
+  const blocker = upgradeBlocker(info, village, freePop, queueFull, now, hallAvailable);
   const canQueue = blocker === null;
 
   // A Banner Hall in a world without banners (D11): no costs and no button that could only fail, just why.

@@ -1,6 +1,6 @@
 import type { Banners } from '../api/queries/banners';
 import type { Paladin } from '../api/queries/paladin';
-import type { Smithy } from '../api/queries/smithy';
+import type { HallTraining, Smithy } from '../api/queries/smithy';
 import type { Village } from '../api/queries/villages';
 
 /*
@@ -78,6 +78,13 @@ export const banners: Banners = {
     TREASURY: [0.1, 0.2, 0.3],
     PLUNDER: [0.1, 0.2, 0.3],
     OATH: [0.04, 0.08, 0.12],
+    SPEAR_STANDARD: [0.05, 0.1, 0.15],
+    SWORD_STANDARD: [0.05, 0.1, 0.15],
+    AXE_STANDARD: [0.05, 0.1, 0.15],
+    LANCE_STANDARD: [0.05, 0.1, 0.15],
+    KNIGHT_STANDARD: [0.04, 0.08, 0.12],
+    RAM_STANDARD: [0.1, 0.2, 0.3],
+    SIEGE_STANDARD: [0.1, 0.2, 0.3],
   },
   banners: [
     {
@@ -126,8 +133,14 @@ export const banners: Banners = {
       bannerId: 1,
       effectiveTier: 2,
       locked: false,
+      standardId: null,
+      standardEffectiveTier: 0,
+      standardLocked: false,
     },
   ],
+  paladinsEnabled: true,
+  paladinLevel: 1,
+  standardTheftEnabled: true,
 };
 
 export const smithy: Smithy = {
@@ -136,6 +149,7 @@ export const smithy: Smithy = {
   units: [
     {
       unit: 'SPEARMAN',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 18.0,
       carry: 25,
@@ -170,6 +184,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'SWORDSMAN',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 22.0,
       carry: 15,
@@ -218,6 +233,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'AXEMAN',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 18.0,
       carry: 10,
@@ -266,6 +282,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'SCOUT',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 9.0,
       carry: 0,
@@ -314,6 +331,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'LIGHT_CAVALRY',
+      trainedIn: 'SMITHY',
       attackType: 'CAVALRY',
       minutesPerField: 10.0,
       carry: 80,
@@ -367,6 +385,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'HEAVY_CAVALRY',
+      trainedIn: 'SMITHY',
       attackType: 'CAVALRY',
       minutesPerField: 11.0,
       carry: 50,
@@ -424,6 +443,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'RAM',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 30.0,
       carry: 0,
@@ -441,6 +461,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'CATAPULT',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 30.0,
       carry: 0,
@@ -458,6 +479,7 @@ export const smithy: Smithy = {
     },
     {
       unit: 'NOBLE',
+      trainedIn: 'SMITHY',
       attackType: 'INFANTRY',
       minutesPerField: 35.0,
       carry: 0,
@@ -475,34 +497,32 @@ export const smithy: Smithy = {
     },
     {
       unit: 'PALADIN',
+      trainedIn: 'BANNER_HALL',
       attackType: 'INFANTRY',
       minutesPerField: 14.0,
       carry: 0,
-      level: 1,
-      maxLevel: 1,
+      level: 2,
+      maxLevel: 3,
       stats: [
-        {
-          attack: 120,
-          defenseInfantry: 150,
-          defenseCavalry: 150,
-        },
+        { attack: 120, defenseInfantry: 150, defenseCavalry: 150 },
+        { attack: 126, defenseInfantry: 158, defenseCavalry: 158 },
+        { attack: 132, defenseInfantry: 165, defenseCavalry: 165 },
       ],
       researching: null,
       next: null,
     },
     {
       unit: 'BANNER_THIEF',
+      trainedIn: 'BANNER_HALL',
       attackType: 'INFANTRY',
       minutesPerField: 18.0,
       carry: 0,
       level: 1,
-      maxLevel: 1,
+      maxLevel: 3,
       stats: [
-        {
-          attack: 0,
-          defenseInfantry: 3,
-          defenseCavalry: 3,
-        },
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
       ],
       researching: null,
       next: null,
@@ -516,6 +536,69 @@ export const smithy: Smithy = {
     startAt: '2026-10-15T20:27:06.951Z',
     endAt: '2026-10-16T03:07:57.951Z',
   },
+};
+
+/** GET …/banner-hall (Hall training, 1.4): paladin at level 2 training level 3, thief at level 1. */
+export const hallTraining: HallTraining = {
+  hallLevel: 3,
+  units: [
+    {
+      unit: 'PALADIN',
+      trainedIn: 'BANNER_HALL',
+      attackType: 'INFANTRY',
+      minutesPerField: 2.333,
+      carry: 0,
+      level: 2,
+      maxLevel: 3,
+      stats: [
+        { attack: 120, defenseInfantry: 150, defenseCavalry: 150 },
+        { attack: 126, defenseInfantry: 158, defenseCavalry: 158 },
+        { attack: 132, defenseInfantry: 165, defenseCavalry: 165 },
+      ],
+      researching: {
+        id: 7,
+        villageId: 59,
+        unit: 'PALADIN',
+        level: 3,
+        startAt: '2026-10-15T20:27:06.951Z',
+        endAt: '2026-10-16T03:07:57.951Z',
+      },
+      next: null,
+    },
+    {
+      unit: 'BANNER_THIEF',
+      trainedIn: 'BANNER_HALL',
+      attackType: 'INFANTRY',
+      minutesPerField: 3.0,
+      carry: 0,
+      level: 1,
+      maxLevel: 3,
+      stats: [
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
+        { attack: 0, defenseInfantry: 3, defenseCavalry: 3 },
+      ],
+      researching: null,
+      next: {
+        level: 2,
+        cost: { wood: 2000, clay: 2400, iron: 3000 },
+        durationSeconds: 6746,
+        requires: [{ building: 'BANNER_HALL', level: 2 }],
+        missing: [],
+        affordable: true,
+        villageBusy: true,
+      },
+    },
+  ],
+  running: {
+    id: 7,
+    villageId: 59,
+    unit: 'PALADIN',
+    level: 3,
+    startAt: '2026-10-15T20:27:06.951Z',
+    endAt: '2026-10-16T03:07:57.951Z',
+  },
+  theftChancePerThief: [0.03, 0.04, 0.05],
 };
 
 export const paladin: Paladin = {

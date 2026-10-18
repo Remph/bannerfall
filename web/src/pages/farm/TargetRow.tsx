@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useChangeFarmUnits, useRemoveFarmTarget, useSendFarm, type FarmTarget } from '../../api/queries/farm';
+import {
+  troopsOfChoice,
+  useChangeFarmUnits,
+  useRemoveFarmTarget,
+  useSendFarm,
+  type FarmTarget,
+} from '../../api/queries/farm';
+import { useFarmTemplates } from '../../api/queries/farmTemplates';
+import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
@@ -14,7 +22,6 @@ import {
   farmSendEndsProtection,
   fitsHome,
   hasUnits,
-  templateOf,
   type SendAllNote,
   type SendAllSkipReason,
 } from '../../game/farm';
@@ -22,16 +29,20 @@ import {
   formatCoords,
   formatDecimal,
   formatDuration,
+  formatFactor,
   formatRecent,
   formatWhen,
   formatWhenExact,
 } from '../../game/format';
+import { unitsOfChoice } from '../../game/farmTemplates';
+import { nightBonusAt } from '../../game/nightBonus';
 import { serverNow } from '../../game/serverTime';
 import type { UnitMap } from '../../game/troops';
 import { useI18n } from '../../i18n';
 import { mapPath } from '../rally/rallyPaths';
 import styles from './Farm.module.css';
-import { TemplatePicker } from './TemplatePicker';
+import { TemplateLetterBadge } from './TemplateButtons';
+import { TemplateChoice } from './TemplateChoice';
 
 /** How long Send waits for the second tap (like deleting a report). */
 const ARMED_MS = 4000;
@@ -53,7 +64,8 @@ interface TargetRowProps {
  * the row says so like the rally point's confirmation, and Send takes two taps – the first turns it
  * into "Send anyway?", without a second it turns back after a few seconds. Barbarian villages stay
  * one tap. A small tag says when the player's banner chance against the target is used for the day
- * (02 §21.7): the targets without it are the ones worth a try for a banner.
+ * (02 §21.7): the targets without it are the ones worth a try for a banner. The player's own note on
+ * the village (1.4) is one muted line under the name: all barbarian villages share one name.
  */
 export function TargetRow({ villageId, target, home, note, sendingAll = false }: TargetRowProps) {
   const { t, language } = useI18n();
@@ -79,6 +91,12 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
   // serverNow(), not the ticking useGameNow(): up to 50 rows shouldn't re-render every second for a
   // protection that ends days later. A row rendered just before the end asks once too often at worst.
   const endsProtection = farmSendEndsProtection(Date.parse(me.protectedUntil), village.playerId, serverNow());
+  // the night bonus (1.4) at the arrival if sent now, as on the rally point's confirmation
+  const night = nightBonusAt(
+    useWorld().data?.nightBonus,
+    serverNow() + target.travelSeconds * 1000,
+    village.playerId !== null,
+  );
   // the same for the banner roll: the list is fetched again after every send
   const bannerRollBack = bannerRollBackAt(target.nextBannerRollAt, serverNow());
 
@@ -114,6 +132,14 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
               <Icon name="BANNER_HALL" /> {t.farm.bannerRollUsed(formatWhen(bannerRollBack, serverNow(), language))}
             </span>
           )}
+          {target.note !== null && (
+            // the player's own note on the village (1.4): written on the map, one line here
+            <span className={styles.villageNote}>
+              <Icon name="pencil" />
+              <span className="sr-only">{t.map.note.label}: </span>
+              <span className={styles.villageNoteText}>{target.note}</span>
+            </span>
+          )}
         </div>
         <div className={styles.rowActions}>
           <Button
@@ -143,7 +169,13 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
           />
         </div>
       </div>
-      <UnitSummary units={template} />
+      <div className={styles.targetUnits}>
+        <TemplateLetterBadge
+          letter={target.template}
+          label={target.template === null ? t.farm.ownUnits : t.farm.templateLabel(target.template)}
+        />
+        <UnitSummary units={template} />
+      </div>
       <p className={styles.meta}>
         {t.farm.trip(formatDecimal(target.distance, language), formatDuration(target.travelSeconds))}
         {sentByRun ? (
@@ -167,6 +199,11 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
         <p className={styles.warn}>{t.farm.protectedUntil(formatWhenExact(protectedUntil, serverNow(), language))}</p>
       )}
       {endsProtection && <p className={styles.notice}>{t.rally.endsProtection}</p>}
+      {night !== null && (
+        <p className={`${styles.notice} ${styles.nightNotice}`}>
+          <Icon name="moon" /> {t.rally.nightBonus(formatFactor(night, language))}
+        </p>
+      )}
       {!enough && !shortNote && <p className={styles.meta}>{t.farm.notEnough}</p>}
       {send.isSuccess && sentHere && (
         <p className={styles.sent} role="status">
@@ -206,14 +243,23 @@ interface EditSheetProps {
 function EditSheet({ open, villageId, target, home, onClose }: EditSheetProps) {
   const { t } = useI18n();
   const change = useChangeFarmUnits(villageId);
+  const templates = useFarmTemplates().data ?? [];
+  const [letter, setLetter] = useState(target.template);
   const [counts, setCounts] = useState<UnitMap>(target.units);
+  const units = unitsOfChoice(letter, templates, counts);
   return (
     <Sheet open={open} onClose={onClose} title={t.farm.editTitle(target.target.name ?? t.map.barbarianVillage)}>
       <div className={styles.body}>
-        <TemplatePicker
+        <TemplateChoice
+          templates={templates}
+          value={letter}
+          onChange={(next) => {
+            setLetter(next);
+            change.reset();
+          }}
           counts={counts}
           home={home}
-          onChange={(type, count) => {
+          onCounts={(type, count) => {
             setCounts((current) => ({ ...current, [type]: count }));
             change.reset();
           }}
@@ -225,8 +271,10 @@ function EditSheet({ open, villageId, target, home, onClose }: EditSheetProps) {
           </Button>
           <Button
             type="button"
-            disabled={!hasUnits(counts) || change.isPending}
-            onClick={() => change.mutate({ targetId: target.id, units: templateOf(counts) }, { onSuccess: onClose })}
+            disabled={!hasUnits(units) || change.isPending}
+            onClick={() =>
+              change.mutate({ targetId: target.id, troops: troopsOfChoice(letter, counts) }, { onSuccess: onClose })
+            }
           >
             {t.farm.save}
           </Button>

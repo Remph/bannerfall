@@ -87,6 +87,24 @@ class InvariantCheckTest {
                 .param(alice.villageId)
                 .update();
 
+        // 1.4: an entry that uses a template but sends other units
+        alice.browser
+                .put("/api/farm-templates/A", "{\"units\":{\"SPEARMAN\":5}}")
+                .andExpect(status().isOk());
+        jdbc.sql(
+                        "update farm_target set template_id = (select id from farm_template"
+                                + " where player_id = ?) where village_id = ?")
+                .params(alice.playerId, alice.villageId)
+                .update();
+        assertThat(counts()).isEqualTo(before);
+        jdbc.sql("update farm_target set u_spearman = 6 where village_id = ?")
+                .param(alice.villageId)
+                .update();
+        assertThat(counts("BAD_FARM_TARGET")).isEqualTo(before.get("BAD_FARM_TARGET") + 1);
+        jdbc.sql("update farm_target set u_spearman = 5 where village_id = ?")
+                .param(alice.villageId)
+                .update();
+
         deleteEventOf("movement", "MOVEMENT_ARRIVE", alice.villageId, "home_village_id");
         assertThat(counts("MOVEMENT_WITHOUT_EVENT"))
                 .isEqualTo(before.get("MOVEMENT_WITHOUT_EVENT") + 2);

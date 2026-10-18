@@ -18,6 +18,7 @@ class WorldController {
     private final RegisteredPlayersCount registeredPlayers;
     private final AppVersion appVersion;
     private final WorldOperator operator;
+    private final NightBonusService nightBonus;
 
     WorldController(
             WorldService worldService,
@@ -25,13 +26,15 @@ class WorldController {
             PlayerConnections connections,
             RegisteredPlayersCount registeredPlayers,
             AppVersion appVersion,
-            WorldOperator operator) {
+            WorldOperator operator,
+            NightBonusService nightBonus) {
         this.worldService = worldService;
         this.players = players;
         this.connections = connections;
         this.registeredPlayers = registeredPlayers;
         this.appVersion = appVersion;
         this.operator = operator;
+        this.nightBonus = nightBonus;
     }
 
     @GetMapping("/world")
@@ -80,7 +83,8 @@ class WorldController {
                 worldService.phase(),
                 worldService.opensAt(),
                 players.countRegisteredHumans(),
-                appVersion.get());
+                appVersion.get(),
+                WorldDto.NightBonusDto.of(nightBonus.current()));
     }
 
     /**

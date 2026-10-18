@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useRef } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { MapMovement, MapVillage } from '../../api/queries/map';
 import type { Village } from '../../api/queries/villages';
@@ -21,8 +21,10 @@ import { movementMarkers } from '../../game/mapMovements';
 import { gameTime, serverNow } from '../../game/serverTime';
 import { mapActions, rankActions, type MapAction, type MapActionKey } from './mapActions';
 import styles from './MapPage.module.css';
+import { FarmLine } from './FarmLine';
 import { KeepRow } from './KeepRow';
 import { MarkerIcon } from './MarkerIcon';
+import { NoteBox, NoteSheet } from './VillageNote';
 
 const ACTION_ICONS: Record<MapActionKey, IconName> = {
   open: 'village',
@@ -66,10 +68,20 @@ export function VillagePanel({
   const ref = useRef<HTMLElement>(null);
   const isCurrent = village.id === currentVillage.id;
   const actions = mapActions(village, kind, currentVillage.id);
-  const ready = actions.filter((action): action is Required<MapAction> => action.to !== undefined);
+  // the farm list has its own line in the panel (1.4)
+  const ready = actions.filter(
+    (action): action is Required<MapAction> => action.to !== undefined && action.key !== 'farm',
+  );
   const later = actions.filter((action) => action.to === undefined);
   // own villages never have one (the server sends null)
   const bannerRollBack = bannerRollBackAt(village.nextBannerRollAt, gameTime(serverNow()));
+  // the note sheet (1.4); every opening counts up, so the sheet starts from the saved note
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteOpenings, setNoteOpenings] = useState(0);
+  const openNote = () => {
+    setNoteOpenings((count) => count + 1);
+    setNoteOpen(true);
+  };
 
   // useEffectEvent: always calls the latest onCover, without restarting the observer on every render.
   const reportCover = useEffectEvent((panel: HTMLElement) =>
@@ -91,9 +103,10 @@ export function VillagePanel({
       ref={ref}
       className={docked ? `${styles.panel} ${styles.panelDocked}` : styles.panel}
       aria-labelledby={titleId}
-      // Escape closes the panel wherever the focus is in it (the map's own Escape needs the canvas focused)
+      // Escape closes the panel wherever the focus is in it (the map's own Escape needs the canvas focused);
+      // in one of its sheets (note, farm list) Escape closes only the sheet
       onKeyDown={(event) => {
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' && !(event.target instanceof Element && event.target.closest('dialog') !== null)) {
           onClose();
         }
       }}
@@ -104,8 +117,10 @@ export function VillagePanel({
           {village.name ?? (village.keep ? t.map.keep : t.map.barbarianVillage)}{' '}
           <span className={styles.coords}>{formatCoords(village.x, village.y)}</span>
         </h2>
+        {village.note === null && <IconButton icon="pencil" label={t.map.note.write} onClick={openNote} />}
         <IconButton icon="close" label={t.common.close} onClick={onClose} />
       </header>
+      {village.note !== null && <NoteBox note={village.note} onOpen={openNote} />}
       <dl className={styles.facts}>
         <div>
           <dt>{t.map.owner}</dt>
@@ -199,13 +214,21 @@ export function VillagePanel({
           </div>
         )}
       </dl>
-      {village.loyalty === null && <p className={styles.hint}>{t.map.loyaltyUnknownHint}</p>}
-      {kind === 'barbarian' && <p className={styles.hint}>{t.map.barbarianHint}</p>}
+      {/* the farm line and the buttons before the hints (1.4): on a phone they stay in view */}
+      {kind !== 'own' && <FarmLine key={village.id} village={village} currentVillage={currentVillage} />}
       {ready.length > 0 && <PanelActions actions={ready} />}
       {later.length > 0 && (
         // actions whose screen is not there (a village without an owner id): named, not yet buttons
         <p className={styles.later}>{t.map.comingSoon(later.map((action) => t.map.actions[action.key]).join(' · '))}</p>
       )}
+      {village.loyalty === null && <p className={styles.hint}>{t.map.loyaltyUnknownHint}</p>}
+      {kind === 'barbarian' && <p className={styles.hint}>{t.map.barbarianHint}</p>}
+      <NoteSheet
+        key={`${village.id}-${noteOpenings}`}
+        open={noteOpen}
+        village={village}
+        onClose={() => setNoteOpen(false)}
+      />
     </section>
   );
 }

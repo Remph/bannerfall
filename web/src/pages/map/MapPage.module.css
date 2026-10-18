@@ -329,6 +329,15 @@
   cursor: pointer;
 }
 
+.tooltipNote {
+  display: block;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 .tooltip {
   position: absolute;
   transform: translate(-50%, calc(-100% - 4px));
@@ -421,9 +430,13 @@
 }
 
 .hint {
-  margin: 0 var(--space-2) var(--space-3) 0;
+  margin: var(--space-3) var(--space-2) 0 0;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+}
+
+.hint + .hint {
+  margin-top: var(--space-2);
 }
 
 .tag {
@@ -685,6 +698,23 @@
   fill: var(--map-banner-used);
 }
 
+.noteIcon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  stroke: var(--map-outline);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.noteIcon path:first-child {
+  fill: var(--map-note);
+}
+
+.noteIcon path + path {
+  fill: none;
+}
+
 .marker circle {
   fill: var(--map-attack);
   stroke: var(--map-outline);
@@ -898,4 +928,88 @@
   color: var(--color-accent);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* ---------- the panel's farm line (1.4): template buttons, add to the farm list ---------- */
+.farmLine {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 var(--space-2) var(--space-3) 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+}
+
+.farmLineHead {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.farmLineNote {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* the night bonus (1.4): the templates that would arrive in it */
+.farmLineNight {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.farmLineSent {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  color: var(--color-success);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.farmLineSent svg {
+  width: 1em;
+  height: 1em;
+}
+
+.farmAdd,
+.farmListed {
+  justify-self: start;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.farmAdd:hover,
+.farmListed:hover {
+  text-decoration: underline;
+}
+
+.farmListed svg:last-child {
+  width: 1em;
+  height: 1em;
+}
+
+.farmSheet {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.farmSheetActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }

@@ -280,7 +280,8 @@ class NpcIntel {
                         old.outcome(),
                         failures,
                         leftAlone,
-                        old.banner());
+                        old.banner(),
+                        old.standard());
             }
             return new Intel(
                     at,
@@ -294,16 +295,19 @@ class NpcIntel {
                     BattleOutcome.DEFENDER_WON,
                     failures,
                     leftAlone,
-                    old == null ? null : old.banner());
+                    old == null ? null : old.banner(),
+                    old == null ? null : old.standard());
         }
         Map<UnitType, Integer> units = NpcTargeting.minus(side.units(), side.losses());
         Map<BuildingType, Integer> buildings = old == null ? null : old.buildings();
         BattleReport.ScoutedBanner banner = old == null ? null : old.banner();
+        BattleReport.ScoutedBanner standard = old == null ? null : old.standard();
         ResourceAmounts resources = null;
         BattleReport.ScoutingReport scouting = b.scouting();
         if (scouting != null && scouting.succeeded() && scouting.buildings() != null) {
             buildings = scouting.buildings();
             banner = scouting.banner(); // null: none flies there now
+            standard = scouting.standard(); // the paladin standard (1.4), likewise
             ResourceAmounts stock =
                     scouting.resources() == null ? ResourceAmounts.ZERO : scouting.resources();
             resources =
@@ -342,7 +346,8 @@ class NpcIntel {
                 b.outcome(),
                 failures,
                 leftAlone,
-                banner);
+                banner,
+                standard);
     }
 
     /**

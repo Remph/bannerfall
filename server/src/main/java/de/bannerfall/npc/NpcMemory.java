@@ -86,6 +86,8 @@ public record NpcMemory(
      * @param banner the banner the last successful scouting saw flying there (M32c, 02-game-rules
      *     §21.11); null if none flew there or the village was never scouted. Kept like {@code
      *     buildings} until the next successful scouting
+     * @param standard the paladin standard the last successful scouting saw equipped there (1.4,
+     *     §21.18); kept like {@code banner}
      */
     public record Intel(
             Instant at,
@@ -99,7 +101,38 @@ public record NpcMemory(
             BattleOutcome outcome,
             int scoutFailures,
             Instant leftAloneUntil,
-            BattleReport.ScoutedBanner banner) {
+            BattleReport.ScoutedBanner banner,
+            BattleReport.ScoutedBanner standard) {
+
+        /** Intel without a paladin standard (none seen, or from before 1.4). */
+        public Intel(
+                Instant at,
+                Long ownerId,
+                Map<UnitType, Integer> units,
+                Integer wall,
+                Map<BuildingType, Integer> buildings,
+                ResourceAmounts resources,
+                ResourceAmounts loot,
+                boolean lootFull,
+                BattleOutcome outcome,
+                int scoutFailures,
+                Instant leftAloneUntil,
+                BattleReport.ScoutedBanner banner) {
+            this(
+                    at,
+                    ownerId,
+                    units,
+                    wall,
+                    buildings,
+                    resources,
+                    loot,
+                    lootFull,
+                    outcome,
+                    scoutFailures,
+                    leftAloneUntil,
+                    banner,
+                    null);
+        }
 
         public Intel {
             units = units == null ? null : Map.copyOf(units);
@@ -126,7 +159,8 @@ public record NpcMemory(
                     outcome,
                     scoutFailures,
                     leftAloneUntil,
-                    banner);
+                    banner,
+                    standard);
         }
 
         /** The number of scouts seen there (0 if none or unknown). */

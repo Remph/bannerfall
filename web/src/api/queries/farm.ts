@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { Coords } from '../../game/coords';
+import type { TemplateLetter } from '../../game/farmTemplates';
+import { templateOf } from '../../game/farm';
 import type { UnitMap } from '../../game/troops';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
@@ -25,30 +27,42 @@ export function useFarmTargets(villageId: number) {
   });
 }
 
-/** POST …/farm-targets: add a target with its template (201). */
+/**
+ * What an entry sends (1.4): one of the player's templates, or its own units. The server takes
+ * exactly one of the two.
+ */
+export type FarmTroops = { template: TemplateLetter } | { units: UnitMap };
+
+function troopsBody(troops: FarmTroops) {
+  return 'template' in troops
+    ? { units: null, template: troops.template }
+    : { units: troops.units as Record<string, number>, template: null };
+}
+
+/** POST …/farm-targets: add a target with its template or own units (201). */
 export function useAddFarmTarget(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ target, units }: { target: Coords; units: UnitMap }) =>
+    mutationFn: ({ target, troops }: { target: Coords; troops: FarmTroops }) =>
       expectData(
         api.POST('/api/villages/{villageId}/farm-targets', {
           params: { path: { villageId } },
-          body: { target, units: units as Record<string, number> },
+          body: { target, ...troopsBody(troops) },
         }),
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: farmQueryKey(villageId) }),
   });
 }
 
-/** PUT …/farm-targets/{id}: a new template for a target. */
+/** PUT …/farm-targets/{id}: another template or own units for a target. */
 export function useChangeFarmUnits(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ targetId, units }: { targetId: number; units: UnitMap }) =>
+    mutationFn: ({ targetId, troops }: { targetId: number; troops: FarmTroops }) =>
       expectData(
         api.PUT('/api/villages/{villageId}/farm-targets/{targetId}', {
           params: { path: { villageId, targetId } },
-          body: { units: units as Record<string, number> },
+          body: troopsBody(troops),
         }),
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: farmQueryKey(villageId) }),
@@ -113,4 +127,9 @@ export function useSendAllFarm(villageId: number) {
       ),
     onSettled: () => refreshAfterSend(queryClient, villageId),
   });
+}
+
+/** The troops of a template choice (`TemplateChoice`): the template, or the own counts for `null`. */
+export function troopsOfChoice(letter: TemplateLetter | null, counts: UnitMap): FarmTroops {
+  return letter === null ? { units: templateOf(counts) } : { template: letter };
 }

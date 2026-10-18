@@ -16,11 +16,11 @@ function village(buildings: Record<string, number>, buildQueue: Village['buildQu
   return { id: 7, buildings, buildQueue } as unknown as Village;
 }
 
-function renderScene(data: Village, bannersOn = true) {
+function renderScene(data: Village, bannersOn = true, hallOn = bannersOn) {
   render(
     <I18nContext value={{ language: 'en', t: en, setLanguage: () => {} }}>
       <MemoryRouter>
-        <VillageScene village={data} layout={COMPACT} bannersOn={bannersOn} />
+        <VillageScene village={data} layout={COMPACT} bannersOn={bannersOn} hallOn={hallOn} />
       </MemoryRouter>
     </I18nContext>,
   );
@@ -45,7 +45,7 @@ describe('VillageScene', () => {
     expect(within(scene).getByRole('link', { name: 'Wall, Lv 1' }).getAttribute('href')).toBe('/v/7/hq#WALL');
   });
 
-  it('leaves the Banner Hall out on a world without banners unless one stands there', () => {
+  it('leaves the Banner Hall out on a world without banners and paladins unless one stands there', () => {
     renderScene(village({ ...allBuilt, BANNER_HALL: 0 }), false);
     expect(screen.queryByRole('link', { name: /Banner Hall/ })).toBeNull();
     expect(screen.queryByText('Banner Hall')).toBeNull();
@@ -57,6 +57,17 @@ describe('VillageScene', () => {
 
     renderScene(village({ ...allBuilt, BANNER_HALL: 0 }), true);
     expect(screen.getByRole('link', { name: 'Banner Hall, not built' })).toBeTruthy();
+  });
+
+  it('keeps the Banner Hall for the paladin on a world without banners and opens its recruiting tab', () => {
+    renderScene(village({ ...allBuilt, BANNER_HALL: 0 }), false, true);
+    expect(screen.getByRole('link', { name: 'Banner Hall, not built' })).toBeTruthy();
+    cleanup();
+
+    renderScene(village({ ...allBuilt, BANNER_HALL: 1 }), false, true);
+    expect(screen.getByRole('link', { name: 'Banner Hall, Lv 1' }).getAttribute('href')).toBe(
+      '/v/7/recruit/banner_hall',
+    );
   });
 
   it('shows the target level and a progress bar on the building being upgraded', () => {

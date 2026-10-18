@@ -1,10 +1,12 @@
 import type { IconName } from '../components/Icon';
+import { recruitPath } from '../pages/recruit/recruitPaths';
 
 /** The game's sections, in the order of the desktop tab row (05-frontend §3). */
 export type SectionKey =
   | 'village'
   | 'townHall'
   | 'recruit'
+  | 'bannerHall'
   | 'map'
   | 'rallyPoint'
   | 'farm'
@@ -33,6 +35,8 @@ export const sections: Record<SectionKey, Section> = {
   townHall: { key: 'townHall', icon: 'HEADQUARTERS', path: (villageId) => `/v/${villageId}/hq` },
   // opens the barracks (/v/:id/recruit/barracks); the link stays active for all recruiting buildings
   recruit: { key: 'recruit', icon: 'BARRACKS', path: (villageId) => `/v/${villageId}/recruit` },
+  // paladin training, banners and standards (1.4): only while the world has paladins or banners, see `visibleSections`
+  bannerHall: { key: 'bannerHall', icon: 'BANNER_HALL', path: (villageId) => bannerHallPath(villageId, true) },
   map: { key: 'map', icon: 'map', path: (villageId) => `/v/${villageId}/map` },
   rallyPoint: { key: 'rallyPoint', icon: 'troops', path: (villageId) => `/v/${villageId}/rally` },
   // the farm list of the village (M18)
@@ -42,22 +46,26 @@ export const sections: Record<SectionKey, Section> = {
   reports: { key: 'reports', icon: 'reports', path: () => '/reports', global: true },
   // private messages (M17): like the reports, the same for every village
   messages: { key: 'messages', icon: 'mail', path: () => '/messages', global: true },
-  ranking: { key: 'ranking', icon: 'RALLY_POINT', path: () => '/ranking', global: true },
+  ranking: { key: 'ranking', icon: 'ranking', path: () => '/ranking', global: true },
   // honours without any effect on the game (M16): the same for every village
   achievements: { key: 'achievements', icon: 'medal', path: () => '/achievements', global: true },
   // only shown while guilds are on, or to a member of one (M15a), see `visibleSections`
   guild: { key: 'guild', icon: 'guild', path: () => '/guild', global: true },
 };
 
-/** Desktop: all sections in one tab row. */
+/**
+ * Desktop: all sections in one tab row (1.4 order): the village's buildings, then its war pages
+ * (map, rally point, farm list), then the pages that are the same for every village.
+ */
 export const desktopSections: readonly SectionKey[] = [
   'village',
   'townHall',
   'recruit',
+  'bannerHall',
+  'market',
   'map',
   'rallyPoint',
   'farm',
-  'market',
   'reports',
   'messages',
   'ranking',
@@ -67,18 +75,32 @@ export const desktopSections: readonly SectionKey[] = [
 
 /** Phone: four tabs plus "More"; the rest is in the More sheet. */
 export const phoneTabs: readonly SectionKey[] = ['village', 'map', 'rallyPoint', 'reports'];
-export const moreSections: readonly SectionKey[] = [
-  'townHall',
-  'recruit',
-  'farm',
-  'market',
-  'messages',
-  'ranking',
-  'achievements',
-  'guild',
-];
 
-/** The sections without the ones that exist only if the host switched them on. */
-export function visibleSections(keys: readonly SectionKey[], showGuild: boolean): SectionKey[] {
-  return keys.filter((key) => key !== 'guild' || showGuild);
+/**
+ * The More sheet in the desktop's two groups (1.4): the village's pages, then the player's. The
+ * chat (a sheet, not a section) follows the messages.
+ */
+export const moreGroups: Readonly<Record<'village' | 'player', readonly SectionKey[]>> = {
+  village: ['townHall', 'recruit', 'bannerHall', 'market', 'farm'],
+  player: ['messages', 'ranking', 'achievements', 'guild'],
+};
+
+/** Which of the sections that exist only if the host switched them on are in the navigation. */
+export interface OptionalSections {
+  guild: boolean;
+  bannerHall: boolean;
+}
+
+/** The sections without the ones the host didn't switch on. */
+export function visibleSections(keys: readonly SectionKey[], shown: OptionalSections): SectionKey[] {
+  return keys.filter((key) => (key !== 'guild' || shown.guild) && (key !== 'bannerHall' || shown.bannerHall));
+}
+
+/**
+ * Where the Banner Hall item leads: the hall's page, or, in a world without banners where the hall
+ * only trains the paladin, the recruit screen's hall tab, like the building in the village picture
+ * (1.4, `buildingTarget`).
+ */
+export function bannerHallPath(villageId: number, bannersOn: boolean): string {
+  return bannersOn ? `/v/${villageId}/banners` : recruitPath(villageId, 'BANNER_HALL');
 }

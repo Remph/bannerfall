@@ -105,8 +105,9 @@
   white-space: nowrap;
 }
 
-/* narrow desktop windows: tighter tabs, so all of them fit without a sideways scroll bar (1.3) */
-@media (min-width: 1024px) and (max-width: 1279.98px) {
+/* narrow desktop windows: tighter tabs, so all of them fit without a sideways scroll bar (1.3; up to
+   1366 px since the Banner Hall tab, 1.4) */
+@media (min-width: 1024px) and (max-width: 1366px) {
   .desktopNav {
     gap: 0;
     padding: 0 var(--space-2);
@@ -115,6 +116,14 @@
   .navItem {
     padding-inline: 0.55rem;
     font-size: 0.95rem;
+  }
+}
+
+/* the narrowest desktop windows, with room for a Windows scroll bar and "99+" badges (1.4) */
+@media (min-width: 1024px) and (max-width: 1199.98px) {
+  .navItem {
+    padding-inline: 0.4rem;
+    font-size: 0.9rem;
   }
 }
 
@@ -165,6 +174,20 @@ a.navItem:hover {
 }
 
 /* ---------- More sheet (phone) ---------- */
+/* two groups (1.4): the village's pages, then the player's, each under a small heading */
+.moreGroups {
+  margin-bottom: var(--space-3);
+}
+
+.moreHeading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .moreList {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -172,6 +195,15 @@ a.navItem:hover {
   margin: 0 0 var(--space-3);
   padding: 0;
   list-style: none;
+}
+
+.moreList:last-child {
+  margin-bottom: 0;
+}
+
+/* an odd last tile takes the whole row, so a group never ends in a half-empty row */
+.moreList > li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .moreItem {
@@ -203,6 +235,7 @@ button.moreItem {
 }
 
 .moreIcon {
+  position: relative;
   grid-row: span 2;
   width: 2rem;
   height: 2rem;
@@ -219,6 +252,26 @@ button.moreItem {
   font-weight: 600;
 }
 
+/* unread messages and chat: on the icon's top right, like the tab bar's count; anchored on the
+   right, so "12" or "99+" grows over the icon instead of over the label */
+.moreBadge {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.25rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .soon {
   justify-self: start;
   padding: 0 0.5rem;
@@ -231,7 +284,7 @@ button.moreItem {
 
 @media (min-width: 1024px) {
   /* everything is in the tab row already */
-  .moreList {
+  .moreGroups {
     display: none;
   }
 }

@@ -486,12 +486,14 @@ class NpcLordFlowTest {
     }
 
     /**
-     * One round of a rich lord with Barracks 5, the given village points and a ledger far behind on
-     * troops, so the round recruits.
+     * One round of a rich lord with Barracks 5 and a Banner Hall (where the paladin trains since
+     * 1.4), the given village points and a ledger far behind on troops, so the round recruits.
      */
     private void midStageRound(long lordId, long villageId, int points) {
         makeRichAndEmptyTheQueue(villageId);
-        jdbc.sql("update village set b_barracks = 5, points = ? where id = ?")
+        jdbc.sql(
+                        "update village set b_headquarters = greatest(b_headquarters, 8),"
+                                + " b_barracks = 5, b_banner_hall = 1, points = ? where id = ?")
                 .params(points, villageId)
                 .update();
         transaction.executeWithoutResult(

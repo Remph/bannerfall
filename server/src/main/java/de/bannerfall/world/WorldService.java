@@ -338,8 +338,9 @@ public class WorldService {
      * next call on; running events keep their times.
      *
      * @return the settings as stored
-     * @throws ApiException {@code 400 VALIDATION} if {@code buildQueueMax < buildQueueSize} or
-     *     {@code marketExchangeRatio} lies between 0 and 1
+     * @throws ApiException {@code 400 VALIDATION} if {@code buildQueueMax < buildQueueSize}, {@code
+     *     marketExchangeRatio} lies between 0 and 1, or the night bonus would start and end at the
+     *     same hour
      */
     @Transactional
     public AdminWorldSettingsDto updateSettings(WorldSettingsUpdateRequest update) {
@@ -371,6 +372,14 @@ public class WorldService {
         }
         VillageNameLanguage namesBefore = row.toSettings().villageNameLanguage();
         row.apply(update);
+        WorldSettings applied = row.toSettings();
+        if (applied.nightBonusStartHour() == applied.nightBonusEndHour()) {
+            // a night of no hours; the switch turns the bonus off (the transaction rolls back)
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.VALIDATION,
+                    "nightBonusStartHour and nightBonusEndHour must differ");
+        }
         VillageNameLanguage names = row.toSettings().villageNameLanguage();
         if (names != namesBefore) {
             renameDefaultNames(namesBefore, names);

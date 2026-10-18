@@ -85,6 +85,7 @@
   --map-badge-ink: #fffaf0;
   --map-badge-ink-noble: #2a231b;
   --map-banner-used: #8f8672; /* the faded banner on a village whose banner chance is used (v1.3) */
+  --map-note: #fffaf0; /* the sheet of paper on a village with the player's own note (1.4) */
   /* the landscape under the villages (v1.3) */
   --map-tree: #7f9b5b;
   --map-tree-shade: #4b6237;
@@ -207,6 +208,7 @@
     --map-support: #3fa564;
     --map-return: #4a97d8;
     --map-banner-used: #cfc6b3;
+    --map-note: #efe6d0;
     /* the landscape (v1.3) */
     --map-tree: #4c6139;
     --map-tree-shade: #1c2617;
@@ -329,6 +331,7 @@
   --map-support: #3fa564;
   --map-return: #4a97d8;
   --map-banner-used: #cfc6b3;
+  --map-note: #efe6d0;
   /* the landscape (v1.3) */
   --map-tree: #4c6139;
   --map-tree-shade: #1c2617;

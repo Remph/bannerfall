@@ -1,6 +1,7 @@
 package de.bannerfall.research;
 
 import de.bannerfall.gamedata.AttackType;
+import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitStats;
 import de.bannerfall.gamedata.UnitType;
@@ -27,21 +28,26 @@ public record SmithyDto(
         @Schema(nullable = true) ResearchOrderDto running) {
 
     /**
+     * @param trainedIn where the unit's levels are researched: {@code SMITHY}, or {@code
+     *     BANNER_HALL} for the paladin and the banner thief (Hall training, 1.4; their levels count
+     *     with unit levels off too, and the smithy page offers no research for them)
      * @param attackType decides which defence value of the defender counts against this unit
      * @param minutesPerField how long the unit takes for one field in this world: {@code minutes
      *     per field ÷ (speed × unitSpeed)}, not rounded
      * @param carry loot capacity per unit
-     * @param level the player's level of the unit now (always 1 with levels off); a unit without
-     *     research steps has {@code maxLevel} 1
+     * @param level the player's level of the unit now (always 1 for a Smithy unit with levels off);
+     *     a unit without research steps has {@code maxLevel} 1
      * @param stats the stats of every level, {@code stats[0]} is level 1; one entry for a unit
      *     without levels
      * @param researching the research of this unit that is running anywhere (maybe in another
      *     village of the player); null if none
      * @param next the next level's research; null with levels off, without levels, at the top
-     *     level, and while this unit is being researched
+     *     level, while this unit is being researched, and on the page of the building that does not
+     *     research it
      */
     public record SmithyUnitDto(
             UnitType unit,
+            BuildingType trainedIn,
             AttackType attackType,
             double minutesPerField,
             int carry,
@@ -53,12 +59,13 @@ public record SmithyDto(
 
     /**
      * @param level the level the research reaches
-     * @param durationSeconds with the smithy level and world speed of right now
+     * @param durationSeconds with the level of the researching building and the world speed of
+     *     right now
      * @param requires everything the village needs: the unit's own requirements and the level's
      * @param missing what of that is not met yet, in building order
      * @param affordable the village's stock covers the cost
-     * @param villageBusy the village's smithy runs another research (the unit itself is not being
-     *     researched, else {@code next} would be null)
+     * @param villageBusy the village's researching building (smithy or hall) runs another research
+     *     (the unit itself is not being researched, else {@code next} would be null)
      */
     public record NextResearchDto(
             int level,

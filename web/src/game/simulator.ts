@@ -1,6 +1,13 @@
 import type { BattleReport, ReportItem } from '../api/queries/reports';
 import { tierOfEffect } from './banners';
-import { unitTypes, type BannerType, type BuildingType, type UnitType } from './gameData';
+import {
+  isStandard,
+  unitTypes,
+  type BannerType,
+  type BuildingType,
+  type StandardType,
+  type UnitType,
+} from './gameData';
 import { withoutZeros, type UnitMap } from './troops';
 import { highestLevels, levelsForRequest, toLevelMap, type UnitLevelMap } from './unitLevels';
 
@@ -32,6 +39,17 @@ export interface SimulatorForm {
   plunderTier: number;
   /** The tier of the Oath banner in the target village; 0 = none. The hall caps it. */
   oathTier: number;
+  /**
+   * 1.4 (02-game-rules §21.18): the paladin standard the attack carries and its own tier (0 = none).
+   * It works only with a paladin in the army, at most at his level.
+   */
+  attackerStandard: StandardType | null;
+  attackerStandardTier: number;
+  /** The standard of the defenders' paladin; it sleeps without a Banner Hall. */
+  defenderStandard: StandardType | null;
+  defenderStandardTier: number;
+  /** 1.4 (02-game-rules §8.1): the attack arrives during the night bonus; counts only in a world that has it. */
+  night: boolean;
 }
 
 export const emptyForm: SimulatorForm = {
@@ -48,6 +66,11 @@ export const emptyForm: SimulatorForm = {
   bannerHall: 0,
   plunderTier: 0,
   oathTier: 0,
+  attackerStandard: null,
+  attackerStandardTier: 0,
+  defenderStandard: null,
+  defenderStandardTier: 0,
+  night: false,
 };
 
 /** The banner fields of the form; a village flies one banner, so each side has two that exclude each other. */
@@ -113,6 +136,11 @@ export interface SimulatorBody {
   bannerHall: number | null;
   plunderTier: number | null;
   oathTier: number | null;
+  attackerStandard: StandardType | null;
+  attackerStandardTier: number | null;
+  defenderStandard: StandardType | null;
+  defenderStandardTier: number | null;
+  night: boolean | null;
 }
 
 export function hasUnit(units: UnitMap, type: UnitType): boolean {
@@ -139,7 +167,25 @@ export function toRequest(form: SimulatorForm): SimulatorBody {
     bannerHall: form.bannerHall > 0 ? form.bannerHall : null,
     plunderTier: form.plunderTier > 0 ? form.plunderTier : null,
     oathTier: form.oathTier > 0 ? form.oathTier : null,
+    // a standard only goes along with a paladin; the server checks that too
+    ...standardOf('attacker', form.attackerStandard, form.attackerStandardTier, form.attacker),
+    ...standardOf('defender', form.defenderStandard, form.defenderStandardTier, form.defender),
+    // the server ignores it in a world without the night bonus
+    night: form.night ? true : null,
   };
+}
+
+function standardOf<Side extends 'attacker' | 'defender'>(
+  side: Side,
+  type: StandardType | null,
+  tier: number,
+  units: UnitMap,
+): Record<`${Side}Standard`, StandardType | null> & Record<`${Side}StandardTier`, number | null> {
+  const carried = type !== null && tier > 0 && hasUnit(units, 'PALADIN');
+  return {
+    [`${side}Standard`]: carried ? type : null,
+    [`${side}StandardTier`]: carried ? tier : null,
+  } as Record<`${Side}Standard`, StandardType | null> & Record<`${Side}StandardTier`, number | null>;
 }
 
 /** Whether the attack can be simulated: at least one attacking unit. */
@@ -192,7 +238,10 @@ export function simulatableReports<T extends Pick<ReportItem, 'kind'>>(items: re
  *   Bulwark the defenders' copy names, in a hall just big enough for it. Turning the report's
  *   percent back into a tier needs the effect table (`effects`); without it they stay out. The Oath
  *   comes from a successful scouting only; a report never names the Plunder banner, so a War banner
- *   it names clears the Plunder field (one banner per village).
+ *   it names clears the Plunder field (one banner per village),
+ * - the paladin standards (1.4): the one the attack carried, and the defenders' from a successful
+ *   scouting or from the home stack of the defenders' copy, each at its own tier,
+ * - whether the battle had the night bonus (1.4), from a real attack only.
  */
 export function reportToForm(
   battle: BattleReport,
@@ -202,6 +251,7 @@ export function reportToForm(
   if (battle.outcome !== 'SCOUTS_ONLY') {
     form.attacker = toUnitMap(battle.attackerUnits);
     form.attackerLevels = toLevelMap(battle.attackerLevels);
+    form.night = battle.nightBonus != null;
   }
   const side = battle.defenderSide;
   if (side !== null) {
@@ -243,6 +293,17 @@ export function reportToForm(
     if (tier > 0) {
       form.oathTier = 0;
     }
+  }
+  const carried = battle.outcome !== 'SCOUTS_ONLY' ? battle.banners?.attackStandard : null;
+  if (carried != null && isStandard(carried.type)) {
+    form.attackerStandard = carried.type;
+    form.attackerStandardTier = carried.tier;
+  }
+  const defended =
+    scouted?.succeeded === true ? scouted.standard : side !== null ? (side.stacks[0]?.standard ?? null) : null;
+  if (defended != null && isStandard(defended.type)) {
+    form.defenderStandard = defended.type;
+    form.defenderStandardTier = defended.tier;
   }
   return form;
 }

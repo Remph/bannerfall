@@ -111,6 +111,98 @@
         }
       }
     },
+    "/api/villages/{id}/note" : {
+      "put" : {
+        "tags" : [ "village-note-controller" ],
+        "operationId" : "save",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VillageNoteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VillageNoteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recruit-templates/{letter}" : {
+      "put" : {
+        "tags" : [ "recruit-template-controller" ],
+        "operationId" : "save_1",
+        "parameters" : [ {
+          "name" : "letter",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecruitTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RecruitTemplateDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "recruit-template-controller" ],
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "letter",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/guilds/mine/description" : {
       "put" : {
         "tags" : [ "guild-controller" ],
@@ -135,6 +227,61 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/farm-templates/{letter}" : {
+      "put" : {
+        "tags" : [ "farm-template-controller" ],
+        "operationId" : "save_2",
+        "parameters" : [ {
+          "name" : "letter",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FarmTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FarmTemplateDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "farm-template-controller" ],
+        "operationId" : "delete_1",
+        "parameters" : [ {
+          "name" : "letter",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         }
       }
@@ -2715,6 +2862,33 @@
         }
       }
     },
+    "/api/villages/{villageId}/banner-hall" : {
+      "get" : {
+        "tags" : [ "research-controller" ],
+        "operationId" : "bannerHall",
+        "parameters" : [ {
+          "name" : "villageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HallTrainingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reports" : {
       "get" : {
         "tags" : [ "report-controller" ],
@@ -2792,7 +2966,7 @@
       },
       "delete" : {
         "tags" : [ "report-controller" ],
-        "operationId" : "delete",
+        "operationId" : "delete_2",
         "parameters" : [ {
           "name" : "reportId",
           "in" : "path",
@@ -2838,6 +3012,27 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/RecentRecipientsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recruit-templates" : {
+      "get" : {
+        "tags" : [ "recruit-template-controller" ],
+        "operationId" : "list_2",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RecruitTemplateDto"
+                  }
                 }
               }
             }
@@ -3229,6 +3424,27 @@
         }
       }
     },
+    "/api/farm-templates" : {
+      "get" : {
+        "tags" : [ "farm-template-controller" ],
+        "operationId" : "list_3",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FarmTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dev/fail" : {
       "get" : {
         "tags" : [ "dev-fail-controller" ],
@@ -3458,6 +3674,33 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AchievementsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/villages/{villageId}/standard" : {
+      "delete" : {
+        "tags" : [ "banner-controller" ],
+        "operationId" : "unequipStandard",
+        "parameters" : [ {
+          "name" : "villageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BannersDto"
                 }
               }
             }
@@ -3752,14 +3995,18 @@
         "type" : "object",
         "properties" : {
           "units" : {
-            "type" : "object",
+            "type" : [ "object", "null" ],
             "additionalProperties" : {
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "template" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "A", "B", "C", "D", "E" ]
           }
         },
-        "required" : [ "units" ]
+        "required" : [ "template", "units" ]
       },
       "FarmTargetDto" : {
         "type" : "object",
@@ -3777,6 +4024,10 @@
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "template" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "A", "B", "C", "D", "E" ]
           },
           "distance" : {
             "type" : "number",
@@ -3800,9 +4051,12 @@
           },
           "bannerChance" : {
             "type" : "boolean"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "bannerChance", "distance", "id", "lastSentAt", "nextBannerRollAt", "protectedUntil", "target", "travelSeconds", "units" ]
+        "required" : [ "bannerChance", "distance", "id", "lastSentAt", "nextBannerRollAt", "note", "protectedUntil", "target", "template", "travelSeconds", "units" ]
       },
       "VillageRefDto" : {
         "type" : "object",
@@ -3841,7 +4095,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           },
           "tier" : {
             "type" : "integer",
@@ -3890,9 +4144,20 @@
           },
           "locked" : {
             "type" : "boolean"
+          },
+          "standardId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "standardEffectiveTier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "standardLocked" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "bannerId", "effectiveTier", "hallLevel", "id", "locked", "name", "x", "y" ]
+        "required" : [ "bannerId", "effectiveTier", "hallLevel", "id", "locked", "name", "standardEffectiveTier", "standardId", "standardLocked", "x", "y" ]
       },
       "BannersDto" : {
         "type" : "object",
@@ -3925,9 +4190,80 @@
             "items" : {
               "$ref" : "#/components/schemas/BannerVillageDto"
             }
+          },
+          "paladinsEnabled" : {
+            "type" : "boolean"
+          },
+          "paladinLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "standardTheftEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "banners", "effects", "enabled", "hallMaxLevel", "villages" ]
+        "required" : [ "banners", "effects", "enabled", "hallMaxLevel", "paladinLevel", "paladinsEnabled", "standardTheftEnabled", "villages" ]
+      },
+      "VillageNoteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "text" ]
+      },
+      "VillageNoteDto" : {
+        "type" : "object",
+        "properties" : {
+          "villageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "text", "villageId" ]
+      },
+      "RecruitTemplateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 16,
+            "minLength" : 0,
+            "pattern" : "[^\\p{Cc}\\u2028\\u2029\\u202A-\\u202E\\u2066-\\u2069]*"
+          },
+          "units" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "name", "units" ]
+      },
+      "RecruitTemplateDto" : {
+        "type" : "object",
+        "properties" : {
+          "letter" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "units" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "letter", "name", "units" ]
       },
       "DescriptionRequest" : {
         "type" : "object",
@@ -4067,6 +4403,36 @@
           }
         },
         "required" : [ "guild", "invitations", "role" ]
+      },
+      "FarmTemplateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "units" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "units" ]
+      },
+      "FarmTemplateDto" : {
+        "type" : "object",
+        "properties" : {
+          "letter" : {
+            "type" : "string",
+            "enum" : [ "A", "B", "C", "D", "E" ]
+          },
+          "units" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "letter", "units" ]
       },
       "WorldSettingsUpdateRequest" : {
         "type" : "object",
@@ -4246,6 +4612,12 @@
             "maximum" : 3,
             "minimum" : 0
           },
+          "standardTheftEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "npcBannersEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
           "marketExchangeRatio" : {
             "type" : [ "number", "null" ],
             "format" : "double",
@@ -4283,9 +4655,30 @@
           "villageNameLanguage" : {
             "type" : [ "string", "null" ],
             "enum" : [ "EN", "DE" ]
+          },
+          "nightBonusEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "nightBonusStartHour" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "maximum" : 23,
+            "minimum" : 0
+          },
+          "nightBonusEndHour" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "maximum" : 23,
+            "minimum" : 0
+          },
+          "nightBonusFactor" : {
+            "type" : [ "number", "null" ],
+            "format" : "double",
+            "maximum" : 3,
+            "minimum" : 1.1
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "npcBannersEnabled", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "AdminWorldSettingsDto" : {
         "type" : "object",
@@ -4417,6 +4810,12 @@
             "type" : "number",
             "format" : "double"
           },
+          "standardTheftEnabled" : {
+            "type" : "boolean"
+          },
+          "npcBannersEnabled" : {
+            "type" : "boolean"
+          },
           "marketExchangeRatio" : {
             "type" : "number",
             "format" : "double"
@@ -4445,6 +4844,21 @@
             "type" : "string",
             "enum" : [ "EN", "DE" ]
           },
+          "nightBonusEnabled" : {
+            "type" : "boolean"
+          },
+          "nightBonusStartHour" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nightBonusEndHour" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nightBonusFactor" : {
+            "type" : "number",
+            "format" : "double"
+          },
           "phase" : {
             "type" : "string",
             "enum" : [ "PREGAME", "OPEN", "ENDED" ]
@@ -4462,7 +4876,7 @@
             "format" : "date-time"
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "speed", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "npcBannersEnabled", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "WorldOpeningRequest" : {
         "type" : "object",
@@ -4507,6 +4921,55 @@
           }
         },
         "required" : [ "action", "guildId" ]
+      },
+      "BannerVillage" : {
+        "type" : "object",
+        "properties" : {
+          "villageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "hall" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "banner" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Equipped"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "standard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Equipped"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "banner", "hall", "name", "standard", "villageId" ]
+      },
+      "Equipped" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "tier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "effectiveTier" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "effectiveTier", "tier", "type" ]
       },
       "NpcLordDto" : {
         "type" : "object",
@@ -4563,9 +5026,43 @@
           },
           "guildByAdmin" : {
             "type" : "boolean"
+          },
+          "paladinLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bannerVillages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BannerVillage"
+            }
+          },
+          "stash" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StashCount"
+            }
           }
         },
-        "required" : [ "boosted", "braked", "guildByAdmin", "guildId", "guildName", "guildTag", "lastThinkAt", "name", "nextThinkAt", "personality", "playerId", "points", "productionFactor", "template", "villageCount" ]
+        "required" : [ "bannerVillages", "boosted", "braked", "guildByAdmin", "guildId", "guildName", "guildTag", "lastThinkAt", "name", "nextThinkAt", "paladinLevel", "personality", "playerId", "points", "productionFactor", "stash", "template", "villageCount" ]
+      },
+      "StashCount" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "tier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "count", "tier", "type" ]
       },
       "Difficulty" : {
         "type" : "object",
@@ -4946,14 +5443,18 @@
             "$ref" : "#/components/schemas/Coordinates"
           },
           "units" : {
-            "type" : "object",
+            "type" : [ "object", "null" ],
             "additionalProperties" : {
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "template" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "A", "B", "C", "D", "E" ]
           }
         },
-        "required" : [ "target", "units" ]
+        "required" : [ "target", "template", "units" ]
       },
       "MovementDto" : {
         "type" : "object",
@@ -5156,7 +5657,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
             }
           }
         },
@@ -5211,7 +5712,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
             }
           }
         },
@@ -5359,9 +5860,32 @@
             "format" : "int32",
             "maximum" : 3,
             "minimum" : 0
+          },
+          "attackerStandard" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "attackerStandardTier" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "maximum" : 3,
+            "minimum" : 0
+          },
+          "defenderStandard" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "defenderStandardTier" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32",
+            "maximum" : 3,
+            "minimum" : 0
+          },
+          "night" : {
+            "type" : [ "boolean", "null" ]
           }
         },
-        "required" : [ "attacker", "attackerLevels", "bannerHall", "bulwarkTier", "catapultTarget", "catapultTargetLevel", "defender", "defenderLevels", "loyalty", "oathTier", "plunderTier", "wall", "warTier" ]
+        "required" : [ "attacker", "attackerLevels", "attackerStandard", "attackerStandardTier", "bannerHall", "bulwarkTier", "catapultTarget", "catapultTargetLevel", "defender", "defenderLevels", "defenderStandard", "defenderStandardTier", "loyalty", "night", "oathTier", "plunderTier", "wall", "warTier" ]
       },
       "LoyaltyOutlook" : {
         "type" : "object",
@@ -5484,9 +6008,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "standardTheft" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Theft"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "attack", "attackerLosses", "attackerSurvivors", "catapultTarget", "catapultTargetLevelAfter", "catapultTargetLevelBefore", "defenderLosses", "defenderSurvivors", "defense", "effectiveWall", "lootCapacity", "loyalty", "luck", "outcome", "scouting", "theft", "wallAfter", "wallBefore" ]
+        "required" : [ "attack", "attackerLosses", "attackerSurvivors", "catapultTarget", "catapultTargetLevelAfter", "catapultTargetLevelBefore", "defenderLosses", "defenderSurvivors", "defense", "effectiveWall", "lootCapacity", "loyalty", "luck", "outcome", "scouting", "standardTheft", "theft", "wallAfter", "wallBefore" ]
       },
       "Scouting" : {
         "type" : "object",
@@ -5533,9 +6064,49 @@
           "oathBonus" : {
             "type" : "number",
             "format" : "double"
+          },
+          "attackerStandard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Standard"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "defenderStandard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Standard"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "nightFactor" : {
+            "type" : "number",
+            "format" : "double"
           }
         },
-        "required" : [ "attackBonus", "defenceBonus", "oathBonus", "plunderBonus", "scenarios" ]
+        "required" : [ "attackBonus", "attackerStandard", "defenceBonus", "defenderStandard", "nightFactor", "oathBonus", "plunderBonus", "scenarios" ]
+      },
+      "Standard" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "tier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "effectiveTier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bonus" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "required" : [ "bonus", "effectiveTier", "tier", "type" ]
       },
       "Theft" : {
         "type" : "object",
@@ -5776,7 +6347,7 @@
         "properties" : {
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           },
           "tier" : {
             "type" : "integer",
@@ -5940,7 +6511,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           }
         },
         "required" : [ "bannerIds", "type" ]
@@ -6149,7 +6720,7 @@
         "properties" : {
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           },
           "tier" : {
             "type" : "integer",
@@ -6311,6 +6882,27 @@
           }
         },
         "required" : [ "name" ]
+      },
+      "NightBonusDto" : {
+        "type" : "object",
+        "properties" : {
+          "startHour" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "endHour" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "factor" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "zone" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "endHour", "factor", "startHour", "zone" ]
       },
       "WorldDto" : {
         "type" : "object",
@@ -6474,9 +7066,16 @@
           },
           "version" : {
             "type" : "string"
+          },
+          "nightBonus" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/NightBonusDto"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nobleMaxDistance", "npcDifficulty", "npcGuildMaxMembers", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "registeredPlayers", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
+        "required" : [ "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildMaxMembers", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "marketExchangeRatio", "name", "nightBonus", "nobleMaxDistance", "npcDifficulty", "npcGuildMaxMembers", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "registeredPlayers", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
       },
       "VictoryDto" : {
         "type" : "object",
@@ -6844,6 +7443,10 @@
             "type" : "string",
             "enum" : [ "SPEARMAN", "SWORDSMAN", "AXEMAN", "SCOUT", "LIGHT_CAVALRY", "HEAVY_CAVALRY", "RAM", "CATAPULT", "NOBLE", "PALADIN", "BANNER_THIEF" ]
           },
+          "trainedIn" : {
+            "type" : "string",
+            "enum" : [ "HEADQUARTERS", "BARRACKS", "STABLE", "WORKSHOP", "ACADEMY", "SMITHY", "RALLY_POINT", "MARKET", "WOODCUTTER", "CLAY_PIT", "IRON_MINE", "FARM", "WAREHOUSE", "HIDING_PLACE", "WALL", "BANNER_HALL" ]
+          },
           "attackType" : {
             "type" : "string",
             "enum" : [ "INFANTRY", "CAVALRY" ]
@@ -6885,7 +7488,7 @@
             } ]
           }
         },
-        "required" : [ "attackType", "carry", "level", "maxLevel", "minutesPerField", "next", "researching", "stats", "unit" ]
+        "required" : [ "attackType", "carry", "level", "maxLevel", "minutesPerField", "next", "researching", "stats", "trainedIn", "unit" ]
       },
       "UnitStats" : {
         "type" : "object",
@@ -7124,6 +7727,36 @@
         },
         "required" : [ "cost", "durationSeconds", "effects", "level", "pop", "surchargePercent", "unlocksBuildings", "unlocksUnits" ]
       },
+      "HallTrainingDto" : {
+        "type" : "object",
+        "properties" : {
+          "hallLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "units" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SmithyUnitDto"
+            }
+          },
+          "running" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ResearchOrderDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "theftChancePerThief" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "number",
+              "format" : "double"
+            }
+          }
+        },
+        "required" : [ "hallLevel", "running", "theftChancePerThief", "units" ]
+      },
       "ReportItemDto" : {
         "type" : "object",
         "properties" : {
@@ -7270,7 +7903,7 @@
         "properties" : {
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           },
           "tier" : {
             "type" : "integer",
@@ -7310,9 +7943,30 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "attackStandard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/StandardReport"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "foundStandard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ScoutedBanner"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "standardTheft" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/StandardTheftReport"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "attackBonus", "defenceBonus", "found", "stolen", "theft" ]
+        "required" : [ "attackBonus", "attackStandard", "defenceBonus", "found", "foundStandard", "standardTheft", "stolen", "theft" ]
       },
       "BattleReport" : {
         "allOf" : [ {
@@ -7393,9 +8047,13 @@
             "haulCapacity" : {
               "type" : [ "integer", "null" ],
               "format" : "int32"
+            },
+            "nightBonus" : {
+              "type" : [ "number", "null" ],
+              "format" : "double"
             }
           },
-          "required" : [ "attacker", "attackerLevels", "attackerLosses", "attackerUnits", "banners", "catapultTarget", "defender", "defenderSide", "haulCapacity", "loot", "loyalty", "luck", "outcome", "scouting" ]
+          "required" : [ "attacker", "attackerLevels", "attackerLosses", "attackerUnits", "banners", "catapultTarget", "defender", "defenderSide", "haulCapacity", "loot", "loyalty", "luck", "nightBonus", "outcome", "scouting" ]
         } ]
       },
       "ConqueredBanner" : {
@@ -7403,7 +8061,7 @@
         "properties" : {
           "type" : {
             "type" : "string",
-            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
           },
           "tier" : {
             "type" : "integer",
@@ -7436,9 +8094,16 @@
               }, {
                 "type" : "null"
               } ]
+            },
+            "standard" : {
+              "oneOf" : [ {
+                "$ref" : "#/components/schemas/ConqueredBanner"
+              }, {
+                "type" : "null"
+              } ]
             }
           },
-          "required" : [ "banner", "from", "newName", "village" ]
+          "required" : [ "banner", "from", "newName", "standard", "village" ]
         } ]
       },
       "DefenderSide" : {
@@ -7516,9 +8181,16 @@
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "standard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/StandardReport"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "home", "levels", "losses", "units" ]
+        "required" : [ "home", "levels", "losses", "standard", "units" ]
       },
       "LoyaltyReport" : {
         "type" : "object",
@@ -7625,9 +8297,54 @@
               "type" : "integer",
               "format" : "int32"
             }
+          },
+          "standard" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ScoutedBanner"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "away", "banner", "buildings", "resources", "succeeded" ]
+        "required" : [ "away", "banner", "buildings", "resources", "standard", "succeeded" ]
+      },
+      "StandardReport" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
+          },
+          "tier" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "effectiveTier" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "effectiveTier", "tier", "type" ]
+      },
+      "StandardTheftReport" : {
+        "type" : "object",
+        "properties" : {
+          "thieves" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "chance" : {
+            "type" : [ "number", "null" ],
+            "format" : "double"
+          },
+          "stolen" : {
+            "type" : "boolean"
+          },
+          "standard" : {
+            "$ref" : "#/components/schemas/ScoutedBanner"
+          }
+        },
+        "required" : [ "chance", "standard", "stolen", "thieves" ]
       },
       "SupportReport" : {
         "allOf" : [ {
@@ -8006,9 +8723,12 @@
           },
           "keep" : {
             "type" : "boolean"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "guildId", "guildTag", "id", "keep", "loyalty", "loyaltySeenAt", "name", "nextBannerRollAt", "npc", "playerId", "playerName", "points", "x", "y" ]
+        "required" : [ "guildId", "guildTag", "id", "keep", "loyalty", "loyaltySeenAt", "name", "nextBannerRollAt", "note", "npc", "playerId", "playerName", "points", "x", "y" ]
       },
       "MapMovementDto" : {
         "type" : "object",
@@ -8418,7 +9138,7 @@
           "properties" : {
             "bannerType" : {
               "type" : "string",
-              "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+              "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
             },
             "tier" : {
               "type" : "integer",
@@ -8439,7 +9159,7 @@
           "properties" : {
             "bannerType" : {
               "type" : "string",
-              "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH" ]
+              "enum" : [ "HARVEST", "BUILDERS", "DRILL", "WAR", "BULWARK", "HASTE", "TREASURY", "PLUNDER", "OATH", "SPEAR_STANDARD", "SWORD_STANDARD", "AXE_STANDARD", "LANCE_STANDARD", "KNIGHT_STANDARD", "RAM_STANDARD", "SIEGE_STANDARD" ]
             },
             "tier" : {
               "type" : "integer",
@@ -8707,7 +9427,7 @@
         "properties" : {
           "code" : {
             "type" : "string",
-            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE" ]
+            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
           },
           "detail" : {
             "type" : "string"

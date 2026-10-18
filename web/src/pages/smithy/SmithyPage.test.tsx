@@ -49,6 +49,16 @@ describe('SmithyPage', () => {
     expect(screen.queryByRole('button', { name: 'Research' })).toBeNull();
   });
 
+  it('sends the paladin and the thief to the Banner Hall for their levels (1.4)', () => {
+    open({ ...smithy, levelsEnabled: false });
+
+    // their levels count with unit levels off too: the paladin's badge and his three levels show
+    expect(screen.getByText('Lv 2 of 3')).toBeTruthy();
+    expect(screen.getAllByText('Its levels are trained in the Banner Hall.')).toHaveLength(2);
+    const links = screen.getAllByRole('link', { name: 'To the Banner Hall' });
+    expect(links[0]?.getAttribute('href')).toBe(`/v/${village.id}/recruit/banner_hall`);
+  });
+
   it('without a smithy points to the Town Hall', () => {
     open({ ...smithy, smithyLevel: 0 }, { ...village, buildings: { ...village.buildings, SMITHY: 0 } });
 

@@ -3,7 +3,7 @@ import { useT } from '../../i18n';
 import styles from './RecruitPage.module.css';
 
 /**
- * Under the paladin's name in the barracks (M31): a dot for every slot (filled when a paladin takes
+ * Under the paladin's name in the Banner Hall (M31, 1.4): a dot for every slot (filled when a paladin takes
  * it), how many are in use and when the next one opens (02-game-rules §5.5).
  */
 export function PaladinSlots() {

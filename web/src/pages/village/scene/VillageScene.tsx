@@ -30,16 +30,21 @@ export function VillageScene({
   village,
   layout,
   bannersOn,
+  hallOn,
 }: {
   village: Village;
   layout: SceneLayout;
+  /** The world's banners: without them the Banner Hall opens its recruiting tab (1.4). */
   bannersOn: boolean;
+  /** Whether the world lets a Banner Hall be built (`bannerHallAvailable`). */
+  hallOn: boolean;
 }) {
   const t = useT();
   const [focused, setFocused] = useState<BuildingType | null>(null);
   const levelOf = (type: BuildingType) => village.buildings[type] ?? 0;
-  // a world without banners has no use for the Banner Hall: left out unless one stands there (as in the list)
-  const shown = buildingTypes.filter((type) => type !== 'BANNER_HALL' || bannersOn || levelOf(type) > 0);
+  // a world without banners and paladins has no use for the Banner Hall: left out unless one stands there
+  // (as in the list)
+  const shown = buildingTypes.filter((type) => type !== 'BANNER_HALL' || hallOn || levelOf(type) > 0);
   const running = village.buildQueue[0];
   const wallLevel = levelOf('WALL');
   const stakes = useMemo(() => palisade(layout, wallLevel), [layout, wallLevel]);
@@ -60,7 +65,7 @@ export function VillageScene({
       <Link
         key={type}
         viewTransition
-        to={buildingTarget(village.id, type, level)}
+        to={buildingTarget(village.id, type, level, bannersOn)}
         className={s.place}
         aria-label={label(type)}
         data-building={type}
@@ -130,7 +135,7 @@ export function VillageScene({
             font: layout.font,
             name: t.buildings[type],
             faded: level === 0,
-            to: buildingTarget(village.id, type, level),
+            to: buildingTarget(village.id, type, level, bannersOn),
             focused: focused === type,
           };
           return running?.building === type ? (

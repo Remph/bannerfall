@@ -103,13 +103,19 @@ public class AdminCli implements Callable<Integer> {
                     "paladinMaxSlots",
                     "bannersEnabled",
                     "bannerDropFactor",
+                    "standardTheftEnabled",
+                    "npcBannersEnabled",
                     "marketExchangeRatio",
                     "victoryMode",
                     "dominationPercent",
                     "victoryHoldHours",
                     "keepCount",
                     "keepPercent",
-                    "villageNameLanguage");
+                    "villageNameLanguage",
+                    "nightBonusEnabled",
+                    "nightBonusStartHour",
+                    "nightBonusEndHour",
+                    "nightBonusFactor");
 
     /** Only in the pre-game (M14g): fixed once the world's content exists. */
     static final List<String> PREGAME_SETTINGS =
@@ -1205,7 +1211,13 @@ public class AdminCli implements Callable<Integer> {
                 }
                 Table table =
                         new Table(
-                                "Name", "Personality", "Points", "Villages", "Guild", "Next round");
+                                "Name",
+                                "Personality",
+                                "Points",
+                                "Villages",
+                                "Guild",
+                                "Banners",
+                                "Next round");
                 for (JsonNode lord : lords) {
                     String guild =
                             lord.path("guildTag").isString()
@@ -1220,11 +1232,34 @@ public class AdminCli implements Callable<Integer> {
                             lord.path("points").asInt(),
                             lord.path("villageCount").asInt(),
                             guild,
+                            banners(lord),
                             Json.time(lord, "nextThinkAt"));
                 }
                 table.print(cli.out());
                 return EXIT_OK;
             }
+        }
+
+        /**
+         * Lord banners in short (09-npc-lords §14.8): equipped ones, the stash and the paladin
+         * level, e.g. "2 up, 3 in stash, paladin 2".
+         */
+        private static String banners(JsonNode lord) {
+            int up = 0;
+            for (JsonNode village : lord.path("bannerVillages")) {
+                up +=
+                        (village.path("banner").isObject() ? 1 : 0)
+                                + (village.path("standard").isObject() ? 1 : 0);
+            }
+            int stash = 0;
+            for (JsonNode entry : lord.path("stash")) {
+                stash += entry.path("count").asInt();
+            }
+            return up
+                    + " up, "
+                    + stash
+                    + " in stash, paladin "
+                    + lord.path("paladinLevel").asInt(1);
         }
 
         @Command(name = "spawn", description = "A new NPC lord")
@@ -1435,7 +1470,15 @@ public class AdminCli implements Callable<Integer> {
             HASTE,
             TREASURY,
             PLUNDER,
-            OATH
+            OATH,
+            // paladin standards (1.4)
+            SPEAR_STANDARD,
+            SWORD_STANDARD,
+            AXE_STANDARD,
+            LANCE_STANDARD,
+            KNIGHT_STANDARD,
+            RAM_STANDARD,
+            SIEGE_STANDARD
         }
 
         @Command(name = "list", description = "A player's banners: stash and equipped")
@@ -1484,7 +1527,10 @@ public class AdminCli implements Callable<Integer> {
             @Parameters(index = "0", paramLabel = "PLAYER", description = "The player's name")
             String player;
 
-            @Parameters(index = "1", paramLabel = "TYPE", description = "HARVEST, WAR, ...")
+            @Parameters(
+                    index = "1",
+                    paramLabel = "TYPE",
+                    description = "HARVEST, WAR, ..., AXE_STANDARD, ...")
             Type type;
 
             @Parameters(index = "2", paramLabel = "TIER", description = "1, 2 or 3")

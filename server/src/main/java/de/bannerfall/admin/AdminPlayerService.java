@@ -13,6 +13,7 @@ import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.GameRuleException;
 import de.bannerfall.common.NotFoundException;
 import de.bannerfall.guild.GuildService;
+import de.bannerfall.note.VillageNoteService;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.village.ProfileVillageDto;
@@ -51,6 +52,7 @@ public class AdminPlayerService {
     private final GuildService guilds;
     private final AchievementService achievements;
     private final BannerService banners;
+    private final VillageNoteService notes;
     private final AdminAuditService audit;
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -64,6 +66,7 @@ public class AdminPlayerService {
             GuildService guilds,
             AchievementService achievements,
             BannerService banners,
+            VillageNoteService notes,
             AdminAuditService audit,
             JdbcClient jdbc,
             Clock clock) {
@@ -74,6 +77,7 @@ public class AdminPlayerService {
         this.guilds = guilds;
         this.achievements = achievements;
         this.banners = banners;
+        this.notes = notes;
         this.audit = audit;
         this.jdbc = jdbc;
         this.clock = clock;
@@ -182,8 +186,8 @@ public class AdminPlayerService {
     /**
      * The player's villages become barbarian ({@link BarbarianService#convertVillagesOf}); a
      * human's account is disabled (no login, no respawn), so the player leaves the ranking and
-     * can't come back. The rows stay: reports and chat messages point at them. An NPC lord ends up
-     * out of the game with no villages.
+     * can't come back. The rows stay: reports and chat messages point at them. His village notes go
+     * (1.4): nobody can read them any more. An NPC lord ends up out of the game with no villages.
      *
      * @param adminAccountId the caller; an admin can't delete himself. Null for the host token.
      * @throws GameRuleException {@code LAST_ADMIN} for the last admin who can log in (M14d review)
@@ -212,6 +216,7 @@ public class AdminPlayerService {
         int converted = barbarians.convertVillagesOf(playerId).size();
         guilds.removeBecauseGone(playerId);
         banners.destroyAllOf(playerId, "player deleted");
+        notes.deleteAllOf(playerId);
         audit.record(
                 "DELETE_PLAYER",
                 "player",

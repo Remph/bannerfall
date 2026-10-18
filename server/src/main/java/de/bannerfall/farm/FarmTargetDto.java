@@ -10,6 +10,8 @@ import java.util.Map;
  * One line of the farm list (04-api <i>Farm helper</i>).
  *
  * @param units the template: only the types that are sent
+ * @param template the player's template the entry uses (1.4), null for its own units; {@code units}
+ *     are that template's then
  * @param distance in fields, from the list's village
  * @param travelSeconds with the template's slowest unit
  * @param protectedUntil the target player's beginner protection (the client compares it with the
@@ -23,14 +25,17 @@ import java.util.Map;
  *     earlier entry of the list has the same pair (a player's villages share one), and the template
  *     can win one (not scouts alone, against barbarians at least {@code drops.minLoserPop}
  *     population). The entries "Send banner chances" sends.
+ * @param note the player's own note on the target village (1.4, 02-game-rules §23), null without
  */
 public record FarmTargetDto(
         long id,
         VillageRefDto target,
         Map<UnitType, Integer> units,
+        @Schema(nullable = true) FarmTemplateLetter template,
         double distance,
         long travelSeconds,
         @Schema(nullable = true) Instant protectedUntil,
         @Schema(nullable = true) Instant lastSentAt,
         @Schema(nullable = true) Instant nextBannerRollAt,
-        boolean bannerChance) {}
+        boolean bannerChance,
+        @Schema(nullable = true) String note) {}

@@ -70,6 +70,7 @@ export const en = {
     village: 'Village',
     townHall: 'Town Hall',
     recruit: 'Recruit',
+    bannerHall: 'Banner Hall',
     map: 'Map',
     rallyPoint: 'Rally Point',
     farm: 'Farm list',
@@ -83,6 +84,9 @@ export const en = {
     more: 'More',
     settings: 'Settings',
     chat: 'Chat',
+    /** The two groups of the phone's More sheet (1.4). */
+    moreVillage: 'Village',
+    morePlayer: 'Player',
   },
   settings: {
     loggedInAs: (name: string) => `Logged in as ${name}`,
@@ -189,6 +193,10 @@ export const en = {
         : `one slot, another ${perSlot === 1 ? 'for every village' : `for every ${perSlot} villages`}, up to ${max}`,
     banners: 'Banners',
     bannersValue: 'Banner Hall, equip and swap banners',
+    /** 1.4 (02-game-rules §8.1): "23:00–07:00", "2" */
+    nightBonus: 'Night bonus',
+    nightBonusValue: (hours: string, factor: string) =>
+      `${hours} German time: player and NPC lord villages defend ×${factor}`,
     /** v1.3 (02-game-rules §22): how the world is won, and its end date. */
     victory: 'Victory',
     victoryDomination: (percent: number, hours: number) => `${percent}% of all villages, held for ${hours} hours`,
@@ -358,6 +366,35 @@ export const en = {
     confirmCancel: 'Cancel research',
   },
 
+  /** Hall training (1.4): the Banner Hall trains the paladin's and the banner thief's levels. */
+  hallTraining: {
+    title: 'Hall training',
+    /** Which of the two the world has: the paladin (`paladin`), the thieves (banners on). */
+    intro: (paladin: boolean, thieves: boolean) =>
+      `The Banner Hall trains the levels of ${paladin && thieves ? 'the paladin and the banner thieves' : paladin ? 'the paladin' : 'the banner thieves'}. A level counts in all your villages, also in worlds without unit levels. One training at a time per Banner Hall.`,
+    paladinLevels: 'A higher level makes every paladin of yours a little stronger.',
+    thiefLevels: 'A higher level raises the chance of every surviving thief to steal a banner.',
+    /** Header of the thief's table: the chance one surviving thief adds. */
+    chancePerThief: 'Chance per thief',
+    /** Screen-reader name of the thief's table. */
+    chanceLabel: 'Chance per surviving thief at each level',
+    researchTitle: 'Training',
+    nothingRunning: 'Nothing is being trained in this Banner Hall.',
+    researching: (unit: string, level: number) => `${unit} to Lv ${level}`,
+    elsewhere: 'Being trained in another village of yours.',
+    next: (level: number) => `Train Lv ${level}`,
+    research: 'Train',
+    time: 'Training time',
+    costsLabel: 'Cost of the training',
+    busy: 'The Banner Hall of this village is busy with another training.',
+    cancel: (what: string) => `Cancel the training of ${what}`,
+    cancelTitle: 'Cancel the training?',
+    confirmCancel: 'Cancel training',
+    /** On the smithy page: the paladin's and thief's levels come from the hall. */
+    inTheHall: 'Its levels are trained in the Banner Hall.',
+    toHall: 'To the Banner Hall',
+  },
+
   townHall: {
     title: 'Town Hall',
     back: 'Village overview',
@@ -470,7 +507,47 @@ export const en = {
     /** Why "Recruit all" is grey while no field has a number (1.3). */
     enterCount: 'Enter a number for a unit first.',
   },
-  /** The paladin and his slots (M31, 02-game-rules §5.5): the counter under his name in the barracks. */
+  /** Recruit templates (1.4, 02-game-rules §5.2b): the row above the building tabs and its sheets. */
+  recruitTemplates: {
+    title: 'Templates',
+    count: (count: number) => (count === 1 ? '1 template' : `${count} templates`),
+    edit: 'Edit templates',
+    create: 'Create a template',
+    open: (letter: string, name: string) => `Template ${letter}: ${name}`,
+    planHint: 'Recruits what this village is still missing towards the goal, as far as the resources go right now.',
+    /** The plan table's first column, for screen readers. */
+    unit: 'Unit',
+    goal: 'Goal',
+    have: 'Have',
+    now: 'Now',
+    skip: {
+      reached: 'reached',
+      locked: 'locked',
+      queueFull: 'queue full',
+      slots: 'no free slot',
+    },
+    allReached: 'Goal reached: this village is missing nothing.',
+    tooPoor: 'Not enough for a single unit right now.',
+    loading: 'Counting the units away…',
+    total: 'Together:',
+    recruit: (count: number) => (count > 1 ? `Recruit (${count})` : 'Recruit'),
+    manageTitle: 'Recruit templates',
+    manageHint:
+      'They apply to all your villages. Tap a template on the recruit page to see what it recruits right now.',
+    newTemplate: (letter: string) => `Create template ${letter}`,
+    more: (letter: string) => `More for template ${letter}`,
+    change: 'Change',
+    remove: 'Delete',
+    editTitle: (letter: string) => `Template ${letter}`,
+    name: 'Name',
+    nameHint: 'Short, e.g. Attack or Defence',
+    goalLabel: 'Goal army per village',
+    fromVillage: "Take this village's army",
+    haveAmount: (amount: string) => `have ${amount}`,
+    countLabel: (unit: string) => `Goal for ${unit}`,
+    save: 'Save',
+  },
+  /** The paladin and his slots (M31, 02-game-rules §5.5): the counter under his name in the Banner Hall (1.4). */
   paladin: {
     slots: (used: number, slots: number) =>
       slots === 1 ? `${used} of 1 slot in use` : `${used} of ${slots} slots in use`,
@@ -494,6 +571,14 @@ export const en = {
       TREASURY: 'Treasury banner',
       PLUNDER: 'Plunder banner',
       OATH: 'Oath banner',
+      // 1.4: the paladin standards
+      SPEAR_STANDARD: 'Spear standard',
+      SWORD_STANDARD: 'Sword standard',
+      AXE_STANDARD: 'Axe standard',
+      LANCE_STANDARD: 'Lance standard',
+      KNIGHT_STANDARD: 'Knight standard',
+      RAM_STANDARD: 'Ram standard',
+      SIEGE_STANDARD: 'Siege standard',
     } satisfies Record<BannerType, string>,
     /** The text of a banner picture: "War banner, tier II". */
     label: (name: string, tier: number) => `${name}, tier ${tierName(tier)}`,
@@ -511,6 +596,13 @@ export const en = {
       TREASURY: (percent: string) => `Warehouse and hiding place capacity +${percent}`,
       PLUNDER: (percent: string) => `Carry capacity of units sent from here +${percent}`,
       OATH: (percent: string) => `Loyalty each enemy noble takes off −${percent}`,
+      SPEAR_STANDARD: (percent: string) => `Defence of the spearmen it goes with +${percent}`,
+      SWORD_STANDARD: (percent: string) => `Defence of the swordsmen it goes with +${percent}`,
+      AXE_STANDARD: (percent: string) => `Attack strength of the axemen it goes with +${percent}`,
+      LANCE_STANDARD: (percent: string) => `Attack strength of the light cavalry it goes with +${percent}`,
+      KNIGHT_STANDARD: (percent: string) => `Attack and defence of the heavy cavalry it goes with +${percent}`,
+      RAM_STANDARD: (percent: string) => `Wall damage of the rams it goes with +${percent}`,
+      SIEGE_STANDARD: (percent: string) => `Building damage of the catapults it goes with +${percent}`,
     } satisfies Record<BannerType, (percent: string) => string>,
     notBuilt: 'The Banner Hall is not built in this village yet. A banner needs it to fly here.',
     toTownHall: 'Build the Banner Hall in the Town Hall',
@@ -545,6 +637,10 @@ export const en = {
       'Banner thieves go along on attacks. If the attack wins without conquering the village, the thieves that survive try to steal the banner flying there: the more survive, the better the chance, and a big Banner Hall in that village makes it harder. They come home either way.',
     toRecruit: 'Train banner thieves',
     thievesNeedHall: 'Banner thieves are trained in the Banner Hall.',
+    /** 1.4: the paladin moved here from the barracks. */
+    paladinHere: 'The paladin is trained here as well.',
+    /** The link to the hall's recruiting tab in a world with the paladin (1.4). */
+    toRecruitWithPaladin: 'Train the paladin and banner thieves',
     equip: 'Raise here',
     swap: 'Swap in',
     equipping: 'Raising…',
@@ -558,7 +654,7 @@ export const en = {
     /** M32c: fusing three banners of a tier into one of the next. */
     fuseTitle: 'Fuse banners',
     fuseExplain:
-      'Three banners of the same tier from your stash become one banner of the next tier. You choose which of the three types it takes. The three are gone; tier III cannot be fused.',
+      'Three banners of the same tier from your stash become one banner of the next tier. You choose which of the three types it takes. The three are gone; tier III cannot be fused. Banners fuse only with banners, paladin standards only with standards.',
     fuseNone: 'You need three banners of the same tier (I or II) in your stash.',
     fuseTier: (tier: number, count: number) => `Tier ${tierName(tier)} (${count})`,
     fusePick: (count: number, needed: number) => `Choose ${needed} banners of one tier: ${count} of ${needed} chosen.`,
@@ -568,10 +664,27 @@ export const en = {
     fusing: 'Fusing…',
     fuseConfirmTitle: 'Fuse banners?',
     fuseConfirmText: (name: string, tier: number) =>
-      `The three banners become one: ${name}, tier ${tierName(tier)}. They are gone for good.`,
+      `The three become one: ${name}, tier ${tierName(tier)}. They are gone for good.`,
     fuseConfirm: 'Fuse',
     fused: (name: string, tier: number) => `Fused: ${name}, tier ${tierName(tier)}, is now in your stash.`,
     selectLabel: (name: string) => `Choose ${name} for fusing`,
+    /** 1.4 (02-game-rules §21.18): the paladin standards. */
+    fuseStandardTier: (tier: number, count: number) => `Standards, tier ${tierName(tier)} (${count})`,
+    standardSlotTitle: 'Paladin standard',
+    standardExplain:
+      'A standard goes with the paladins of this village: on an attack with a paladin, and on defence with every stack that has a paladin from here. It strengthens only the troops of that army or stack, flies beside the village banner and needs a Banner Hall in this village.',
+    paladinLevel: (level: number) =>
+      `Your paladin is at level ${level}: standards work up to tier ${tierName(level)}. Raise his level in the Banner Hall.`,
+    standardTheft: 'If an attack carrying a standard is beaten, the defender’s surviving banner thieves may take it.',
+    standardNoPaladins: 'This world has no paladin: standards stay in the stash and do nothing.',
+    standardEmpty: 'No standard in this village.',
+    standardEmptyHint: 'Equip one from your stash below.',
+    standardCappedAt: (tier: number) => `Your paladin’s level caps it: the standard works as tier ${tierName(tier)}.`,
+    standardLocked:
+      'An attack is on its way here, or one with a paladin from this village is under way: the standard cannot be changed until it is over.',
+    stashBanners: 'Village banners',
+    stashStandards: 'Paladin standards',
+    noStandard: 'no standard',
   },
   /** Dismissing units (02-game-rules §5.2a). */
   dismiss: {
@@ -673,6 +786,18 @@ export const en = {
     bannerChance: 'Banner chance',
     bannerChanceUsed: (when: string) => `used · back at ${when}`,
     bannerChanceLegend: 'Your banner chance used',
+    /** The player's own note on a village (1.4): panel, sheet, map legend. */
+    note: {
+      write: 'Write a note',
+      edit: (note: string) => `Your note: ${note}. Change it`,
+      title: (village: string) => `Note · ${village}`,
+      label: 'Your note',
+      placeholder: 'e.g. wall 3, spears only, good to farm',
+      onlyYou: 'Only you can see this note.',
+      count: (length: string, max: string) => `${length} / ${max}`,
+      delete: 'Delete',
+      legend: 'Your note',
+    },
     distance: 'Distance',
     fields: (amount: string) => `${amount} fields`,
     currentVillage: 'Your current village',
@@ -791,6 +916,10 @@ export const en = {
     arrival: 'Arrival',
     catapultTarget: 'Catapults aim at',
     endsProtection: 'Attacking ends your own beginner protection.',
+    /** The night bonus (1.4): the attack would arrive at night at an owned village. */
+    nightBonus: (factor: string) => `It arrives during the night bonus: the village defends ×${factor}.`,
+    /** The moon tag on an attack that arrives at night (1.4). */
+    nightTag: (factor: string) => `Night bonus ×${factor}`,
     paladinLeads: 'The paladin leads this support: all units walk at his speed.',
     back: 'Back',
     confirm: { ATTACK: 'Send attack', SUPPORT: 'Send support' } satisfies Record<CommandKind, string>,
@@ -883,6 +1012,9 @@ export const en = {
     clear: 'Clear',
     reportTitle: 'Report',
     levelLabel: (unit: string) => `Level of ${unit}`,
+    /** Hall training (1.4): the paladin's and the thieves' levels in a world without unit levels. */
+    hallLevelsHint:
+      'The paladin and banner thieves have levels from Hall training: choose theirs. “My units here”, “This village” and reports bring your own levels.',
     levelsHint:
       'Unit levels are on in this world: choose the level of each unit. “My units here”, “This village” and reports bring the levels of the real units.',
     reportLabel: 'Take numbers from a report',
@@ -963,6 +1095,23 @@ export const en = {
     ofSent: (survived: string, sent: string) => `${survived} of ${sent}`,
     theftChance: 'Chance to steal the banner',
     theftHint: 'If a banner flies there. A battle that conquers the village takes the banner with it anyway.',
+    /** 1.4 (02-game-rules §21.18): the paladin standards. */
+    attackerStandard: 'Paladin standard of the attack',
+    defenderStandard: 'Paladin standard of the defenders',
+    standardTier: 'Its tier',
+    standardHint:
+      'A standard works only with a paladin on that side, at most at his level; the defenders’ needs a Banner Hall.',
+    /** The result: "Axe standard: +5 % (works as tier I)" */
+    standardWorks: (percent: string, tier: number) => `${percent} (works as tier ${tierName(tier)})`,
+    standardAsleep: 'asleep',
+    /** 1.4 (02-game-rules §8.1): the switch in the defenders' card, "×2" */
+    night: (factor: string) => `The attack arrives at night (defence ×${factor})`,
+    /** "23:00–07:00" */
+    nightHint: (hours: string) =>
+      `The world’s night bonus: ${hours} German time. It doesn’t count in barbarian villages.`,
+    nightResult: 'Night bonus',
+    defenderThievesSurvive: 'Defenders’ banner thieves surviving',
+    standardTheftChance: 'Chance they take the standard',
   },
   /** Reports (05-frontend §3): the list and one report. */
   /** The market (05-frontend §3): send resources, offers, own offers, merchants on their way. */
@@ -1193,6 +1342,8 @@ export const en = {
     noDefenders: 'No troops defended the village.',
     levelsScouted: 'Your upgraded scouts saw the unit levels: the highest level of each unit is shown.',
     nobodyCameBack: 'None of your troops came back, so you learned nothing about the defenders.',
+    /** 1.4: "×2" */
+    nightBonus: (factor: string) => `Night bonus: the attack arrived at night, the village defended ×${factor}.`,
     luck: 'Luck',
     catapultTarget: 'Catapults aimed at',
     wall: 'Wall',
@@ -1209,6 +1360,7 @@ export const en = {
     scoutedResources: 'Resources (before the loot)',
     scoutedBuildings: 'Buildings',
     scoutedBanner: 'Banner',
+    scoutedStandard: 'Paladin standard in the village',
     /** Balancing round 2: the owner's own units in support elsewhere or on the way; only when at least 3 in 4 scouts survived. */
     scoutedAway: 'Away from the village',
     scoutedAwayNone: 'None of the owner’s troops are away from the village.',
@@ -1252,6 +1404,23 @@ export const en = {
       BATTLE_LOST: () => 'The attack was beaten off: your thieves had no chance.',
     } satisfies Record<TheftResult, (banner: string) => string>,
     bannerStolen: (banner: string) => `Enemy banner thieves stole your ${banner}.`,
+    /** 1.4 (02-game-rules §21.18): the paladin standards in a battle; `standard` is "Axe standard, tier II". */
+    attackStandard: 'Standard of the attack',
+    defenderStandard: 'Standard of the defenders',
+    standardState: (standard: string, effective: number, tier: number) =>
+      effective === 0
+        ? `${standard}: asleep`
+        : effective < tier
+          ? `${standard}: works as tier ${tierName(effective)}`
+          : standard,
+    standardFound: 'You found a paladin standard',
+    standardSurvivors: (survived: string) => `${survived} survived`,
+    standardTheftChance: 'Chance to take the standard',
+    standardTaken: (standard: string) =>
+      `Your banner thieves took the attacker’s ${standard}! It is in your stash now.`,
+    standardKept: (standard: string) => `Your banner thieves could not take the attacker’s ${standard}.`,
+    standardLost: (standard: string) => `The defenders’ banner thieves took your ${standard}.`,
+    conquestStandard: 'Paladin standard',
     conquestBanner: 'Banner',
     conquestBannerToStash: 'It is in your stash now.',
     conquestBannerAsleep: 'It stays in the village, asleep while banners are switched off.',
@@ -1319,6 +1488,9 @@ export const en = {
     sendTo: (target: string) => `Send the usual troops to ${target}`,
     /** The armed Send of a player's village while the sender is protected: the second tap sends. */
     sendAnyway: 'Send anyway?',
+    /** The night bonus (1.4) on the map's farm line, for the templates that would arrive in it: "A, C", "2" */
+    nightBonusWith: (letters: string, factor: string) =>
+      `With ${letters} the attack arrives during the night bonus: the village defends ×${factor}.`,
     edit: 'Edit',
     editTitle: (target: string) => `Troops for ${target}`,
     save: 'Save',
@@ -1350,6 +1522,36 @@ export const en = {
       OWN_VILLAGE: 'Skipped: this is your village now.',
       ENDS_OWN_PROTECTION: 'Skipped: the attack would end your own beginner protection.',
     },
+    /** Templates (1.4): A to E per player, shared by all villages; an entry uses one or its own units. */
+    parts: 'Farm list parts',
+    partTargets: 'Targets',
+    partTemplates: 'Templates',
+    templatesTitle: 'Templates',
+    templatesHint: 'For all your villages. Change one and every target using it sends the new troops.',
+    templateLabel: (letter: string) => `Template ${letter}`,
+    templateNew: (letter: string) => `Create template ${letter}`,
+    templateEditTitle: (letter: string) => `Template ${letter}`,
+    templateDelete: 'Delete',
+    templateUsed: (count: number) =>
+      count === 0
+        ? 'not used in this village'
+        : count === 1
+          ? 'used by 1 target here'
+          : `used by ${count} targets here`,
+    templateMore: (letter: string) => `More about template ${letter}`,
+    troops: 'Troops',
+    ownUnits: 'Own troops',
+    ownUnitsHint: "Only for this target; template changes don't touch it.",
+    pickTemplate: (letter: string) => `Use template ${letter}`,
+    farmWith: 'Farm with',
+    sendTemplate: (letter: string) => `Send template ${letter} now`,
+    templatesShort: 'Greyed out: not enough troops at home.',
+    noTemplates: 'No templates yet.',
+    createTemplates: 'Create templates',
+    onList: 'On the farm list',
+    addSheetTitle: (target: string) => `Add ${target} to the farm list`,
+    listOf: (village: string) => `Farm list of ${village}`,
+    fromTemplate: 'Template',
   },
   /** Private messages and the block list (M17). */
   messages: {
@@ -1601,6 +1803,7 @@ export const en = {
       BUILDING: 'Building',
       ARMY: 'Army',
       COMBAT: 'Combat',
+      DEFENCE: 'Defence',
       CONQUEST: 'Conquest',
       TRADE: 'Trade',
       SOCIAL: 'Social',
@@ -1644,7 +1847,10 @@ export const en = {
         description: 'Beat attacks on your villages. From the same village, one per day counts.',
       },
       PLUNDERER: { name: 'Plunderer', description: 'Loot resources in the attacks that count as wins.' },
-      MERCHANT_PRINCE: { name: 'Merchant Prince', description: 'Give resources away through accepted market offers.' },
+      MERCHANT_PRINCE: {
+        name: 'Merchant Prince',
+        description: 'Give resources away through accepted market offers, or pay them when you trade with the market.',
+      },
       VETERAN: { name: 'Veteran', description: 'Days since you registered.' },
       BANNER_COLLECTOR: { name: 'Banner Collector', description: 'Own banners at the same time, stash and flying.' },
       /** The achievement, not the unit of the same name. */
@@ -1653,6 +1859,31 @@ export const en = {
         description:
           'Take banners from other villages with thieves or by conquest. Each banner counts once, your own never.',
       },
+      PYRRHIC_VICTORY: {
+        name: 'Pyrrhic Victory',
+        description: 'Win an attack of at least 100 units and lose at least three quarters of them.',
+      },
+      AVENGER: {
+        name: 'Avenger',
+        description:
+          'Win an attack with at least 10 units on a village of the player who beat you within the last day.',
+      },
+      DEMOLISHER: {
+        name: 'Demolisher',
+        description: 'Take at least 5 levels off a building with your catapults in one attack.',
+      },
+      LUCKY_STRIKE: { name: 'Lucky Strike', description: 'Win an attack that you would have lost without luck.' },
+      SPY_CATCHER: { name: 'Spy Catcher', description: 'Every scout of an attack on your village dies.' },
+      LAST_STAND: {
+        name: 'Last Stand',
+        description: 'Beat an attack of at least 10 units that brought more units than stood in your village.',
+      },
+      BROTHERS_IN_ARMS: {
+        name: 'Brothers in Arms',
+        description: "Your support stands in another player's village when it beats an attack of at least 10 units.",
+      },
+      SLAYER: { name: 'Slayer', description: 'Kill enemy units in your attacks.' },
+      WARDEN: { name: 'Warden', description: 'Kill attacking units in your villages.' },
     },
   },
   /** /privacy: what the world stores, for guests and players alike. The host's name comes from GET /api/world/operator. */
@@ -1667,7 +1898,7 @@ export const en = {
     account:
       'Your player name and your password, which is stored only as a hash: it can’t be turned back into your password, not even by the host. Also when you registered and last logged in, your role, and a ban with its reason. No email address, no real name, no payment details.',
     gameTitle: 'Your game',
-    game: 'Villages, troops, buildings, reports, farm list, achievements and guild: everything the game needs to run. Your name, villages, points and guild are visible to the other players of this world (map, ranking, profile).',
+    game: 'Villages, troops, buildings, reports, farm list, notes on villages, achievements and guild: everything the game needs to run. Your name, villages, points and guild are visible to the other players of this world (map, ranking, profile). Your notes on villages are shown to nobody else, but like messages they are stored unencrypted on the server.',
     messagesTitle: 'Messages and chat',
     messages:
       'Private messages, the guild chat and the world chat are stored on the server, so they are still there next time. They are not encrypted there: the host can read them and can hide chat messages that break the rules.',
@@ -1684,7 +1915,7 @@ export const en = {
       'The data is needed to play (your account and game) and to protect the world against abuse (address limits and logs); in the terms of the GDPR, Art. 6(1)(b) and (f). It is kept as long as the world runs; the backups of the database are kept for 14 days unless the host keeps them longer.',
     rightsTitle: 'Your rights',
     rights:
-      'You may ask the host what is stored about you, and have it corrected or deleted. In the game, deleting means the host deletes your player: you can no longer log in and your villages become barbarian villages. Your account entry, your name and what you wrote stay, because old reports, messages and chat lines point to them. You may also complain to a data protection authority.',
+      'You may ask the host what is stored about you, and have it corrected or deleted. In the game, deleting means the host deletes your player: you can no longer log in and your villages become barbarian villages. Your account entry, your name and what you wrote stay, because old reports, messages and chat lines point to them; only your notes on villages are deleted. You may also complain to a data protection authority.',
     backToLogin: 'Log in',
     backToGame: 'Back to the game',
   },
@@ -1920,7 +2151,18 @@ export const en = {
       paladinMaxSlots: 'Most paladin slots (0 = no paladin)',
       bannersEnabled: 'Banners work (Banner Hall, equipping)',
       bannerDropFactor: 'Banner drop chance, as a factor (1 = normal, 0 = none)',
+      standardTheftEnabled: 'Defenders’ banner thieves can take the paladin standard of an attack they beat',
+      npcBannersEnabled: 'NPC lords use banners',
+      npcBannersHint:
+        'Lords find, fly and fuse banners and standards like players, train their paladin in the Banner Hall and take banner thieves on their revenge attacks. Off: what lords hold sleeps but can still be stolen or conquered.',
       marketExchangeRatio: 'Market exchange rate (1 for x; 0 = off, else 1 to 10)',
+      /** The night bonus (1.4). */
+      nightBonusEnabled: 'Night bonus: villages defend more strongly at night',
+      nightBonusStartHour: 'Night from (hour, German time)',
+      nightBonusEndHour: 'Night until (hour)',
+      nightBonusFactor: 'Defence at night, as a factor (1.1 to 3)',
+      nightBonusHint:
+        'Counts for attacks that arrive in these hours, in player and NPC lord villages, not in barbarian villages. Start and end must differ. Attacks already on their way get the bonus that holds when they arrive.',
       /** The language of the names the game gives villages (v1.3). */
       villageNameLanguage: 'Village names',
       villageNameLanguageHint:
@@ -2019,6 +2261,14 @@ export const en = {
       takeOut: 'Take out of the guild',
       found: 'Found a new lord guild',
       letChoose: 'Let it choose',
+      /** Lord banners (09-npc-lords §14.8). */
+      paladinLevel: (level: number) => `Paladin level ${level}`,
+      stash: (items: string) => `stash: ${items}`,
+      stashEmpty: 'stash empty',
+      times: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
+      asleep: 'asleep',
+      worksAt: (tier: string) => `works at ${tier}`,
+      bannersOff: 'Lord banners are off (world settings): what lords hold sleeps.',
     },
   },
   dev: {
@@ -2067,6 +2317,7 @@ export const en = {
     FARM_TARGET_NOT_FOUND: 'This target is not on the list any more.',
     ALREADY_IN_FARM_LIST: 'This village is on the list already.',
     FARM_LIST_FULL: 'The farm list is full. Remove a target first.',
+    FARM_TEMPLATE_NOT_FOUND: "That template doesn't exist (any more).",
     OWN_PLAYER: 'You cannot do that to yourself.',
     MESSAGE_RATE_LIMIT: 'You are writing too fast. Wait a second.',
     INBOX_FULL: 'This player has too many unread messages from you. Wait for an answer.',
@@ -2083,11 +2334,13 @@ export const en = {
     BANNER_NOT_FOUND: 'This banner does not exist or is not yours.',
     BANNER_NOT_IN_STASH: 'This banner already flies in a village. Take it down first.',
     BANNER_HALL_REQUIRED: 'This village needs a Banner Hall to fly a banner.',
-    BANNER_LOCKED: 'An attack is on its way to this village: banners cannot be changed until it has arrived.',
+    BANNER_LOCKED:
+      'An attack is on its way to this village, or for a standard one with a paladin from it is under way: this cannot be changed until it is over.',
     NO_BANNER_EQUIPPED: 'No banner flies in this village.',
     BANNER_TIERS_DIFFER: 'Only banners of the same tier can be fused.',
     BANNER_TIER_MAX: 'Tier III is the highest: these banners cannot be fused.',
     BANNER_FUSE_TYPE: 'The new banner takes the type of one of the three.',
+    BANNER_FAMILIES_DIFFER: 'Banners fuse only with banners, paladin standards only with standards.',
     PALADIN_DISABLED: 'There are no paladins in this world.',
     RESEARCH_BUSY: 'This smithy, or this unit, is already being researched. Wait until it is done.',
     RESEARCH_ORDER_NOT_FOUND: 'This research no longer exists. It may be done already.',
@@ -2095,6 +2348,7 @@ export const en = {
     BUILD_ORDER_NOT_FOUND: 'This build order no longer exists. It may have finished already.',
     ORDER_NOT_MOVABLE: 'Orders that have started cannot be moved, and nothing can go in front of them.',
     RECRUIT_ORDER_NOT_FOUND: 'This recruitment order no longer exists. Its units may be done already.',
+    RECRUIT_TEMPLATE_NOT_FOUND: "This template doesn't exist (any more).",
     DISMISS_ORDER_NOT_FOUND: 'This dismiss order no longer exists. Its units may be gone already.',
     DISMISS_LOCKED: 'An attack is on its way, so dismissing cannot be stopped now. Try again once it has arrived.',
     TARGET_NOT_FOUND: 'There is no village on this field.',

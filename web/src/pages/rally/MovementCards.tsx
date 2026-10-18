@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCancelMovement, type IncomingMovement, type Movement, type VillageRef } from '../../api/queries/troops';
+import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Countdown } from '../../components/Countdown';
@@ -9,7 +10,8 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon, type IconName } from '../../components/Icon';
 import { Sheet } from '../../components/Sheet';
 import { UnitSummary } from '../../components/UnitSummary';
-import { formatWhenExact } from '../../game/format';
+import { formatFactor, formatWhenExact } from '../../game/format';
+import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { canCancel, travelProgress, type MovementKind, type UnitMap } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
@@ -29,6 +31,7 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
   const t = useT();
   const now = useGameNow();
   const cancel = useCancelMovement(villageId);
+  const night = useWorld().data?.nightBonus;
   const [confirming, setConfirming] = useState<Movement | null>(null);
   // The error itself, not its text: the message is translated while rendering (language switch).
   const [error, setError] = useState<Error | null>(null);
@@ -61,6 +64,11 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
               arriveAt={movement.arriveAt}
               units={movement.units}
               currentVillageId={villageId}
+              night={
+                movement.kind === 'ATTACK'
+                  ? nightBonusAt(night, Date.parse(movement.arriveAt), movement.targetVillage.playerId !== null)
+                  : null
+              }
               action={
                 // disappears on the second the window closes (cancellableUntil is exclusive)
                 movement.cancellableUntil !== null && canCancel(movement, now) ? (
@@ -159,6 +167,7 @@ export function IncomingCard({ villageId, incoming }: { villageId: number; incom
   // the server hides the units of every attack except the player's own (a later wave on a village
   // he conquered meanwhile, it arrives like a support)
   const hidden = (movement: IncomingMovement) => movement.kind === 'ATTACK' && movement.units === null;
+  const night = useWorld().data?.nightBonus;
   return (
     <Card title={t.rally.incomingTitle} id="incoming">
       {incoming.some(hidden) && <p className={styles.incomingNote}>{t.rally.attacksHidden}</p>}
@@ -179,6 +188,8 @@ export function IncomingCard({ villageId, incoming }: { villageId: number; incom
               units={movement.units}
               currentVillageId={villageId}
               hostile={hidden(movement)}
+              // this village is the player's, so a foreign attack meets the night bonus if it lands at night
+              night={hidden(movement) ? nightBonusAt(night, Date.parse(movement.arriveAt), true) : null}
             />
           ))}
         </ul>
@@ -200,6 +211,8 @@ interface MovementLineProps {
   units: UnitMap | null;
   currentVillageId: number;
   hostile?: boolean;
+  /** The night bonus factor the attack will meet (1.4); null or left out without. */
+  night?: number | null;
   action?: ReactNode;
 }
 
@@ -211,7 +224,19 @@ const barStyles: Record<MovementKind, string | undefined> = {
 
 /** One movement: what and where, countdown and arrival time (to the second), progress, the units. */
 function MovementLine(props: MovementLineProps) {
-  const { kind, label, village, player, departAt, arriveAt, units, currentVillageId, hostile = false, action } = props;
+  const {
+    kind,
+    label,
+    village,
+    player,
+    departAt,
+    arriveAt,
+    units,
+    currentVillageId,
+    hostile = false,
+    night = null,
+    action,
+  } = props;
   const { t, language } = useI18n();
   const now = useGameNow();
   return (
@@ -228,6 +253,14 @@ function MovementLine(props: MovementLineProps) {
           <Countdown until={arriveAt} className={styles.countdown} />
           {' · '}
           {t.rally.arrivesAt(formatWhenExact(Date.parse(arriveAt), now, language))}
+          {night !== null && (
+            <>
+              {' · '}
+              <span className={styles.nightTag}>
+                <Icon name="moon" /> {t.rally.nightTag(formatFactor(night, language))}
+              </span>
+            </>
+          )}
         </span>
         {departAt !== undefined && (
           <span className={`${styles.moveBar} ${barStyles[kind] ?? ''}`} aria-hidden="true">

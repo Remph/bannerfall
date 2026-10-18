@@ -180,9 +180,9 @@ public class Village {
     }
 
     /**
-     * Adds whole amounts <b>without</b> looking at the warehouse capacity: only for the dev cheat.
-     * Game rules use {@link #receiveResources}. The caller has caught the village up; the anchor
-     * time stays.
+     * Adds whole amounts <b>without</b> looking at the warehouse capacity: only for the dev cheat
+     * and the paladin refund of 1.4 ({@code PaladinHallMove}). Game rules use {@link
+     * #receiveResources}. The caller has caught the village up; the anchor time stays.
      */
     public void addResources(ResourceAmounts amounts) {
         wood += amounts.wood();

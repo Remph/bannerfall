@@ -1,5 +1,5 @@
 /** Banners on the client (M32a, 02-game-rules §21): the server decides, this only reads its numbers. */
-import { bannerTypes, type BannerType } from './gameData';
+import { bannerTypes, isStandard, type BannerType } from './gameData';
 
 /** What the Banner Hall page needs of one banner. */
 export interface BannerLike {
@@ -7,6 +7,14 @@ export interface BannerLike {
   type: BannerType;
   tier: number;
   villageId: number | null;
+}
+
+/**
+ * Whether the Banner Hall can be built (1.4, 02-game-rules §21.3): it trains the paladin and serves the
+ * banners, so it is there while either of them is on.
+ */
+export function bannerHallAvailable(world: { bannersEnabled: boolean; paladinMaxSlots: number }): boolean {
+  return world.bannersEnabled || world.paladinMaxSlots > 0;
 }
 
 /** I, II, III: how the tiers are written (they have no words of their own, so both languages use it). */
@@ -19,6 +27,14 @@ export function effectiveTier(tier: number, hallLevel: number): number {
   return Math.max(0, Math.min(tier, hallLevel));
 }
 
+/**
+ * The tier a paladin standard works at (1.4, 02-game-rules §21.18): its own, but at most the player's
+ * paladin level; 0 (asleep) while its village has no Banner Hall.
+ */
+export function standardTier(tier: number, paladinLevel: number, hallLevel: number): number {
+  return hallLevel < 1 ? 0 : Math.max(0, Math.min(tier, paladinLevel));
+}
+
 /** The effect of a tier as a fraction (0.1 = 10 %); 0 for tier 0 or a tier the table does not have. */
 export function effectOfTier(effects: Partial<Record<BannerType, readonly number[]>>, type: BannerType, tier: number) {
   return tier < 1 ? 0 : (effects[type]?.[tier - 1] ?? 0);
@@ -29,11 +45,20 @@ export function percentPoints(fraction: number): number {
   return Math.round(fraction * 1000) / 10;
 }
 
-/** The banners in the stash (not flying anywhere): highest tier first, then in the order of the types. */
+/**
+ * The banners in the stash (not flying anywhere): the village banners before the paladin standards
+ * (1.4), each highest tier first, then in the order of the types.
+ */
 export function stashOf<T extends BannerLike>(banners: readonly T[]): T[] {
   return banners
     .filter((banner) => banner.villageId === null)
-    .sort((a, b) => b.tier - a.tier || bannerTypes.indexOf(a.type) - bannerTypes.indexOf(b.type) || a.id - b.id);
+    .sort(
+      (a, b) =>
+        Number(isStandard(a.type)) - Number(isStandard(b.type)) ||
+        b.tier - a.tier ||
+        bannerTypes.indexOf(a.type) - bannerTypes.indexOf(b.type) ||
+        a.id - b.id,
+    );
 }
 
 /**
@@ -58,24 +83,40 @@ export const FUSE_COUNT = 3;
 /** The highest tier: it can't be fused. */
 export const MAX_TIER = 3;
 
-/** The stash banners that can be fused, per tier (I and II), each list in stash order. */
-export function fusableByTier<T extends BannerLike>(stash: readonly T[]): { tier: number; banners: T[] }[] {
-  const tiers: { tier: number; banners: T[] }[] = [];
-  for (let tier = 1; tier < MAX_TIER; tier++) {
-    tiers.push({ tier, banners: stash.filter((banner) => banner.tier === tier && banner.villageId === null) });
+/**
+ * The stash banners that can be fused, per family and tier (I and II), each list in stash order: the
+ * village banners, then the paladin standards (1.4) if the stash holds any. Only one family fuses at
+ * a time (02-game-rules §21.18).
+ */
+export function fusableByTier<T extends BannerLike>(
+  stash: readonly T[],
+): { standard: boolean; tier: number; banners: T[] }[] {
+  const groups: { standard: boolean; tier: number; banners: T[] }[] = [];
+  const families = stash.some((banner) => isStandard(banner.type)) ? [false, true] : [false];
+  for (const standard of families) {
+    for (let tier = 1; tier < MAX_TIER; tier++) {
+      groups.push({
+        standard,
+        tier,
+        banners: stash.filter(
+          (banner) => banner.tier === tier && banner.villageId === null && isStandard(banner.type) === standard,
+        ),
+      });
+    }
   }
-  return tiers;
+  return groups;
 }
 
 /**
- * Picks or drops a banner for fusing: a banner of another tier starts a new choice, and no more than
- * {@link FUSE_COUNT} can be chosen.
+ * Picks or drops a banner for fusing: a banner of another tier or family (banner or standard) starts a
+ * new choice, and no more than {@link FUSE_COUNT} can be chosen.
  */
 export function toggleFuseChoice(chosen: readonly BannerLike[], banner: BannerLike): BannerLike[] {
   if (chosen.some((entry) => entry.id === banner.id)) {
     return chosen.filter((entry) => entry.id !== banner.id);
   }
-  if (chosen.length > 0 && chosen[0]?.tier !== banner.tier) {
+  const first = chosen[0];
+  if (first !== undefined && (first.tier !== banner.tier || isStandard(first.type) !== isStandard(banner.type))) {
     return [banner];
   }
   return chosen.length >= FUSE_COUNT ? [...chosen] : [...chosen, banner];

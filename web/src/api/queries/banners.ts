@@ -26,7 +26,10 @@ function applyBanners(queryClient: QueryClient, villageId: number, banners: Bann
   void queryClient.invalidateQueries({ queryKey: villageQueryKey(villageId) });
 }
 
-/** PUT /api/villages/{villageId}/banner/{bannerId}: put a banner of the stash into the slot (a swap if one flies there). */
+/**
+ * PUT /api/villages/{villageId}/banner/{bannerId}: put a banner of the stash into the slot (a swap if one
+ * flies there); a paladin standard goes into the standard slot (1.4).
+ */
 export function useEquipBanner(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -43,6 +46,16 @@ export function useUnequipBanner(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => expectData(api.DELETE('/api/villages/{villageId}/banner', { params: { path: { villageId } } })),
+    onSuccess: (banners) => applyBanners(queryClient, villageId, banners),
+    onError: () => void queryClient.invalidateQueries({ queryKey: bannersQueryKey }),
+  });
+}
+
+/** DELETE /api/villages/{villageId}/standard (1.4): take the paladin standard out of its slot into the stash. */
+export function useUnequipStandard(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => expectData(api.DELETE('/api/villages/{villageId}/standard', { params: { path: { villageId } } })),
     onSuccess: (banners) => applyBanners(queryClient, villageId, banners),
     onError: () => void queryClient.invalidateQueries({ queryKey: bannersQueryKey }),
   });

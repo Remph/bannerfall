@@ -1,7 +1,9 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.gamedata.BannerType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * One NPC lord as the admin sees it (04-api *Admin*). The personality is only ever sent here, never
@@ -13,6 +15,9 @@ import java.time.Instant;
  * @param boosted the rubber band raises its production
  * @param guildId / guildName / guildTag its guild (09 §13), null for none
  * @param guildByAdmin the admin placed it (§13.7): the forming leaves it alone
+ * @param paladinLevel its Hall-trained paladin level (lord banners, 09 §14.6); 1 untrained
+ * @param bannerVillages its villages with a banner or standard equipped (09 §14.8), oldest first
+ * @param stash its banners and standards in the stash, counted by type and tier
  */
 public record NpcLordDto(
         long playerId,
@@ -29,4 +34,31 @@ public record NpcLordDto(
         @Schema(nullable = true) Long guildId,
         @Schema(nullable = true) String guildName,
         @Schema(nullable = true) String guildTag,
-        boolean guildByAdmin) {}
+        boolean guildByAdmin,
+        int paladinLevel,
+        List<BannerVillage> bannerVillages,
+        List<StashCount> stash) {
+
+    /**
+     * A lord village with its banner and standard; each null if none is equipped.
+     *
+     * @param hall the village's Banner Hall level
+     */
+    public record BannerVillage(
+            long villageId,
+            String name,
+            int hall,
+            @Schema(nullable = true) Equipped banner,
+            @Schema(nullable = true) Equipped standard) {}
+
+    /**
+     * An equipped banner or standard.
+     *
+     * @param effectiveTier the tier it works at now: 0 while it sleeps (no hall, or lord banners
+     *     off)
+     */
+    public record Equipped(BannerType type, int tier, int effectiveTier) {}
+
+    /** How many banners of one type and tier the stash holds. */
+    public record StashCount(BannerType type, int tier, int count) {}
+}

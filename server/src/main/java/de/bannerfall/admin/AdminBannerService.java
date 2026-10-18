@@ -38,7 +38,7 @@ public class AdminBannerService {
     }
 
     /**
-     * The banners of a human player who can still play.
+     * The banners of a human player who can still play, or of an NPC lord.
      *
      * @throws NotFoundException {@code PLAYER_NOT_FOUND}
      */
@@ -49,7 +49,7 @@ public class AdminBannerService {
     }
 
     /**
-     * Gives the player a new banner in his stash.
+     * Gives the player (or an NPC lord) a new banner in the stash.
      *
      * @throws NotFoundException {@code PLAYER_NOT_FOUND}
      */
@@ -93,11 +93,18 @@ public class AdminBannerService {
         return banner;
     }
 
+    /**
+     * A human player who can still play, or an NPC lord (lord banners, 09-npc-lords §14.8: for
+     * tests and repairs).
+     */
     private Player activePlayer(long playerId) {
         Player player =
                 players.findById(playerId)
-                        .filter(p -> p.getAccountId() != null)
+                        .filter(p -> p.isNpc() || p.getAccountId() != null)
                         .orElseThrow(() -> new NotFoundException(ErrorCode.PLAYER_NOT_FOUND));
+        if (player.isNpc()) {
+            return player;
+        }
         accounts.findById(player.getAccountId())
                 .filter(account -> !account.isDisabled())
                 .orElseThrow(() -> new NotFoundException(ErrorCode.PLAYER_NOT_FOUND));

@@ -28,10 +28,12 @@ class MapQuery {
                    v.keep,
                    p.name as player_name, coalesce(p.npc, false) as npc,
                    t.id as guild_id, t.tag as guild_tag,
-                   s.loyalty as seen_loyalty, s.seen_at as loyalty_seen_at
+                   s.loyalty as seen_loyalty, s.seen_at as loyalty_seen_at,
+                   n.text as note
             from village v
             left join player p on p.id = v.player_id
             left join loyalty_sighting s on s.village_id = v.id and s.player_id = :me
+            left join village_note n on n.village_id = v.id and n.player_id = :me
             left join guild_member m on m.player_id = v.player_id
             left join guild t on t.id = m.guild_id
             where v.x >= :fromX and v.x < :toX and v.y >= :fromY and v.y < :toY
@@ -58,8 +60,9 @@ class MapQuery {
      * The villages on the fields {@code x … x+w−1} × {@code y … y+h−1}, ordered by row. The part of
      * the rectangle beyond the map edge simply has no villages. The loyalty of the asking player's
      * own villages is regenerated up to now on the fly (nothing is written: the map locks no
-     * village); for all others it is the last value he saw, if any (02-game-rules §10, M21). The
-     * used banner rolls come from one more query for the whole rectangle (v1.3).
+     * village); for all others it is the last value he saw, if any (02-game-rules §10, M21). His
+     * own notes come along (1.4, §23). The used banner rolls come from one more query for the whole
+     * rectangle (v1.3).
      */
     List<MapVillageDto> villagesIn(long me, int x, int y, int w, int h) {
         WorldSettings world = worldService.settings();
@@ -107,7 +110,8 @@ class MapQuery {
                                             rs.getObject("guild_id", Long.class),
                                             rs.getString("guild_tag"),
                                             null,
-                                            rs.getBoolean("keep"));
+                                            rs.getBoolean("keep"),
+                                            rs.getString("note"));
                                 })
                         .list();
         Map<String, Instant> rolls =
@@ -157,7 +161,8 @@ class MapQuery {
                         v.guildId(),
                         v.guildTag(),
                         nextBannerRollAt,
-                        v.keep());
+                        v.keep(),
+                        v.note());
     }
 
     /**

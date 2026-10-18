@@ -2,11 +2,14 @@ import { useId, useState } from 'react';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useCommandPreview, useSendCommand, type CommandRequest, type Movement } from '../../api/queries/troops';
+import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { Icon } from '../../components/Icon';
 import { UnitSummary } from '../../components/UnitSummary';
-import { formatDecimal, formatDuration, formatWhenExact } from '../../game/format';
+import { formatDecimal, formatDuration, formatFactor, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
+import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RallyPage.module.css';
@@ -32,6 +35,7 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
   const selectId = useId();
   const [catapultTarget, setCatapultTarget] = useState<BuildingType>('HEADQUARTERS');
   const preview = useCommandPreview(villageId, command);
+  const world = useWorld();
   const send = useSendCommand(villageId);
   const attack = command.kind === 'ATTACK';
   const withCatapults = attack && (command.units.CATAPULT ?? 0) > 0;
@@ -58,6 +62,11 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
   // nobles (02 §6).
   const endsProtection =
     Date.parse(me.protectedUntil) > now && (targetVillage.playerName !== null || (command.units.NOBLE ?? 0) > 0);
+  // the night bonus (1.4) at the arrival if it were sent now; barbarian villages never have it
+  const night =
+    attack && travelSeconds !== null
+      ? nightBonusAt(world.data?.nightBonus, now + travelSeconds * 1000, targetVillage.playerId !== null)
+      : null;
   return (
     <div className={styles.confirm}>
       <p className={styles.confirmTarget}>
@@ -107,6 +116,11 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
         </div>
       )}
       {attack && endsProtection && <p className={styles.notice}>{t.rally.endsProtection}</p>}
+      {night !== null && (
+        <p className={`${styles.notice} ${styles.nightNotice}`}>
+          <Icon name="moon" /> {t.rally.nightBonus(formatFactor(night, language))}
+        </p>
+      )}
       {errors.length > 0 && (
         <ul className={styles.errors} role="alert">
           {errors.map((code) => (

@@ -35,7 +35,10 @@ class BannerController {
         return bannerService.overview(playerService.idOf(me.accountId()));
     }
 
-    /** Equips (or swaps in) a banner of the stash; answers with the new overview. */
+    /**
+     * Equips (or swaps in) a banner of the stash; a paladin standard goes into the standard slot
+     * (1.4). Answers with the new overview.
+     */
     @PutMapping("/villages/{villageId}/banner/{bannerId}")
     BannersDto equip(
             @PathVariable long villageId,
@@ -56,5 +59,12 @@ class BannerController {
     @DeleteMapping("/villages/{villageId}/banner")
     BannersDto unequip(@PathVariable long villageId, @AuthenticationPrincipal AccountPrincipal me) {
         return bannerService.unequip(villageId, playerService.idOf(me.accountId()));
+    }
+
+    /** Takes the village's paladin standard into the stash (1.4); the new overview. */
+    @DeleteMapping("/villages/{villageId}/standard")
+    BannersDto unequipStandard(
+            @PathVariable long villageId, @AuthenticationPrincipal AccountPrincipal me) {
+        return bannerService.unequipStandard(villageId, playerService.idOf(me.accountId()));
     }
 }

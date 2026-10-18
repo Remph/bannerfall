@@ -149,8 +149,20 @@ class NpcWarfareFlowTest {
                         "update world_settings set npc_lord_count = 0, npc_difficulty = 'NORMAL',"
                                 + " npc_custom = null, speed = 1.0, barbarian_initial_count = 30,"
                                 + " barbarians_per_new_player = 0, npc_guilds_enabled = false,"
+                                + " night_bonus_enabled = false, night_bonus_start_hour = 23,"
+                                + " night_bonus_end_hour = 7, npc_banners_enabled = false,"
                                 + " guilds_enabled = ?")
                 .param(guildsWereOn)
+                .update();
+        worldService.reload();
+    }
+
+    private void nightBonus(int start, int end) {
+        jdbc.sql(
+                        "update world_settings set night_bonus_enabled = true,"
+                                + " night_bonus_start_hour = ?, night_bonus_end_hour = ?,"
+                                + " night_bonus_factor = 2.0")
+                .params(start, end)
                 .update();
         worldService.reload();
     }
@@ -305,6 +317,76 @@ class NpcWarfareFlowTest {
         assertThat(attacksTo(lord, human.villageId))
                 .singleElement()
                 .satisfies(at -> assertThat(berlinTime(at)).isEqualTo(LocalTime.of(7, 0)));
+    }
+
+    @Test
+    void theLordCountsTheNightBonusAtTheArrival() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        // 3 axemen, 1 of them the home guard: 2 (A = 80) against an empty village, D = 20 by
+        // day, a loss of 0.125; 40 at night, a loss of 0.354, above farm-max-loss 0.25. 3 fields:
+        // they arrive at 12:54.
+        units(village, Map.of(UnitType.AXEMAN, 3));
+        TestPlayer human = human(3, 0, true);
+
+        // the night (1.4, 02 §8.1) set to 15:00–16:00: by day at the arrival, sent
+        nightBonus(15, 16);
+        knows(lord, human.villageId, emptyIntel(clock.instant(), human.playerId));
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+
+        // set to 12:00–14:00: the raid would land in it, so the lord keeps its axemen home
+        nightBonus(12, 14);
+        deleteMovementsOf(lord);
+        units(village, Map.of(UnitType.AXEMAN, 3));
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                    m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
+                });
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).isEmpty();
+    }
+
+    @Test
+    void theLordsHasteBannerCountsForTheNightArrival() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        // the raid of the test above, 3.6 fields away: 64.9 minutes, at 13:05 by day; under a
+        // tier III Haste banner (15 %) 55.2 minutes, at 12:55, in a night of 12:00–13:00
+        units(village, Map.of(UnitType.AXEMAN, 3));
+        TestPlayer human = human(3, 2, true);
+        nightBonus(12, 13);
+        knows(lord, human.villageId, emptyIntel(clock.instant(), human.playerId));
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+
+        // the same raid with the banner flying (lord banners on, 1.4): the lord keeps them home
+        jdbc.sql("update world_settings set banners_enabled = true, npc_banners_enabled = true")
+                .update();
+        worldService.reload();
+        buildings(village, Map.of(BuildingType.BANNER_HALL, 3));
+        jdbc.sql(
+                        """
+                        insert into banner (owner_id, type, tier, equipped_village_id, equipped_at,
+                                            origin, created_at)
+                        values (?, 'HASTE', 3, ?, now(), 'GRANTED', now())
+                        """)
+                .params(lord, village)
+                .update();
+        deleteMovementsOf(lord);
+        units(village, Map.of(UnitType.AXEMAN, 3));
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                    m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
+                });
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).isEmpty();
     }
 
     @Test

@@ -98,7 +98,12 @@ public final class TestPlayer {
         return browser.get(villagePath() + "/smithy");
     }
 
-    /** POST a research of the unit's next level (M30). */
+    /** GET the Banner Hall's training: paladin and thief levels (Hall training, 1.4). */
+    public ResultActions bannerHall() throws Exception {
+        return browser.get(villagePath() + "/banner-hall");
+    }
+
+    /** POST a research of the unit's next level (M30), also a Banner Hall training (1.4). */
     public ResultActions research(UnitType unit) throws Exception {
         return browser.post(
                 villagePath() + "/research-orders", "{\"unit\":\"" + unit.name() + "\"}");

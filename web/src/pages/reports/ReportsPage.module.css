@@ -28,6 +28,14 @@
   color: var(--color-text-muted);
 }
 
+/* 1.4: the night bonus line in the defenders' card */
+.night {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
 /* ---------- the list ---------- */
 .listHead {
   display: flex;
@@ -498,6 +506,22 @@
   align-items: center;
   gap: var(--space-2);
   margin: 0;
+}
+
+/* the picture keeps its size beside a long line */
+.scoutedBanner > svg {
+  flex: none;
+}
+
+/* 1.4: a standard as the value of a fact: the picture inline before its text, both on the right */
+.facts dd.scoutedBanner {
+  display: block;
+}
+
+.facts dd.scoutedBanner > svg {
+  display: inline-block;
+  margin-right: var(--space-2);
+  vertical-align: middle;
 }
 
 /* M32b: a banner found or stolen by the reader, a banner the reader lost */

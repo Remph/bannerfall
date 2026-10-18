@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import type { BannerType } from '../game/gameData';
+import { isStandard, type BannerType } from '../game/gameData';
 import { useT } from '../i18n';
 
 /**
  * The look of a banner (02-game-rules §21.10): a hanging standard on a crossbar. The tier reads
  * without colour (straight edge and one pip / swallow-tail, tassels and two pips / gold finial,
  * long tassels and three pips), the type through an emblem on a field colour. One component draws
- * all 27, so dark mode needs no second set; a thin ink outline carries the shapes.
+ * all 27, so dark mode needs no second set; a thin ink outline carries the shapes. A paladin
+ * standard (1.4, §21.18) hangs from a staff that reaches below the cloth, and its cloth ends in a
+ * point; the tier reads from the same trim, tassels, finial and pips.
  */
 
 const INK = '#2b2118';
@@ -23,12 +25,20 @@ const looks: Record<BannerType, { field: string; emblem: string }> = {
   PLUNDER: { field: '#7a4a7a', emblem: '#ffffff' },
   // ivory is too light for a white emblem
   OATH: { field: '#efe6cf', emblem: '#5a4320' },
+  // the standards: darker fields, the emblem names the troops it serves
+  SPEAR_STANDARD: { field: '#2f5d50', emblem: '#ffffff' },
+  SWORD_STANDARD: { field: '#4a4f8c', emblem: '#ffffff' },
+  AXE_STANDARD: { field: '#8c2f39', emblem: '#ffffff' },
+  LANCE_STANDARD: { field: '#2f6f93', emblem: '#ffffff' },
+  KNIGHT_STANDARD: { field: '#3a3633', emblem: '#ffffff' },
+  RAM_STANDARD: { field: '#6b4a2b', emblem: '#ffffff' },
+  SIEGE_STANDARD: { field: '#6f6428', emblem: '#ffffff' },
 };
 
 /** The trim colour of a tier: bronze, silver, gold (the achievement tokens). */
 const trims = ['var(--badge-bronze, #a8683a)', 'var(--badge-silver, #8f9aa5)', 'var(--badge-gold, #c9951c)'] as const;
 
-/** Nine emblems on a 24 × 24 grid, drawn in the emblem colour; `field` is for cut-outs. */
+/** Sixteen emblems on a 24 × 24 grid, drawn in the emblem colour; `field` is for cut-outs. */
 const emblems: Record<BannerType, (emblem: string, field: string) => ReactNode> = {
   // an ear of wheat
   HARVEST: (e) => (
@@ -105,6 +115,65 @@ const emblems: Record<BannerType, (emblem: string, field: string) => ReactNode> 
       <path d="M4 21 H20" stroke={e} strokeWidth="2" strokeLinecap="round" />
     </>
   ),
+  // a spear
+  SPEAR_STANDARD: (e) => (
+    <>
+      <path d="M12 22 V7" stroke={e} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M12 1.5 L15.2 8 L8.8 8 Z" fill={e} />
+    </>
+  ),
+  // a sword, point up
+  SWORD_STANDARD: (e) => (
+    <>
+      <path d="M10.8 16 V5 L12 2.5 L13.2 5 V16 Z" fill={e} />
+      <path d="M7 16.2 H17 M12 16.5 V20.5" stroke={e} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="21.6" r="1.4" fill={e} />
+    </>
+  ),
+  // a double-headed axe
+  AXE_STANDARD: (e) => (
+    <>
+      <path d="M12 3 V22" stroke={e} strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 6 C16 4 19.5 7 19.5 11.5 C16.5 10.5 14 11 12 12.5 Z" fill={e} />
+      <path d="M12 6 C8 4 4.5 7 4.5 11.5 C7.5 10.5 10 11 12 12.5 Z" fill={e} />
+    </>
+  ),
+  // a lance with a pennon
+  LANCE_STANDARD: (e) => (
+    <>
+      <path d="M4 21.5 L19.5 3" stroke={e} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M16.2 7 L22 9.5 L14.6 10.6 Z" fill={e} />
+      <path d="M4.5 18 L7.5 21" stroke={e} strokeWidth="2.6" strokeLinecap="round" />
+    </>
+  ),
+  // a helmet with a visor slit
+  KNIGHT_STANDARD: (e, f) => (
+    <>
+      <path d="M6 21 V11 C6 6 8.5 3 12 3 C15.5 3 18 6 18 11 V21 Z" fill={e} />
+      <path d="M8.5 11.5 H15.5" stroke={f} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 14 V19" stroke={f} strokeWidth="1.2" strokeLinecap="round" />
+    </>
+  ),
+  // a ram on wheels
+  RAM_STANDARD: (e, f) => (
+    <>
+      <path d="M2.5 9 H18 V14 H2.5 Z M18 7.5 H21.5 V15.5 H18 Z" fill={e} />
+      <circle cx="7" cy="18.5" r="2.6" fill={e} />
+      <circle cx="15" cy="18.5" r="2.6" fill={e} />
+      <circle cx="7" cy="18.5" r="0.9" fill={f} />
+      <circle cx="15" cy="18.5" r="0.9" fill={f} />
+    </>
+  ),
+  // a catapult with its stone
+  SIEGE_STANDARD: (e) => (
+    <>
+      <path d="M3 18 H21 M6.5 17.5 L17 6.5" stroke={e} strokeWidth="2" strokeLinecap="round" />
+      <path d="M9 17.5 L12 11.5 L15 17.5" stroke={e} strokeWidth="1.6" strokeLinejoin="round" fill="none" />
+      <circle cx="18.6" cy="4.8" r="2.4" fill={e} />
+      <circle cx="6" cy="20.5" r="1.6" fill={e} />
+      <circle cx="18" cy="20.5" r="1.6" fill={e} />
+    </>
+  ),
 };
 
 interface BannerProps {
@@ -131,8 +200,15 @@ export function Banner({ type, tier, size = 56, dormant = false, decorative = fa
   const level = Math.min(3, Math.max(1, Math.round(tier)));
   const { field, emblem } = looks[type];
   const trim = trims[level - 1];
-  // the cloth hangs from y 10 down to 58; from tier II on its lower edge is a swallow-tail
-  const cloth = level === 1 ? 'M8 10 H40 V58 H8 Z' : 'M8 10 H40 V60 L33 54.5 L24 61 L15 54.5 L8 60 Z';
+  const standard = isStandard(type);
+  // the cloth hangs from y 10 down to 58; from tier II on its lower edge is a swallow-tail. A
+  // standard's cloth ends in a point instead, and its tassels hang from its shoulders.
+  const cloth = standard
+    ? 'M8 10 H40 V50 L24 62 L8 50 Z'
+    : level === 1
+      ? 'M8 10 H40 V58 H8 Z'
+      : 'M8 10 H40 V60 L33 54.5 L24 61 L15 54.5 L8 60 Z';
+  const tasselTop = standard ? 50 : 60;
   const pips = Array.from({ length: level }, (_, index) => 24 + (index - (level - 1) / 2) * 6.5);
   return (
     <svg
@@ -146,11 +222,15 @@ export function Banner({ type, tier, size = 56, dormant = false, decorative = fa
       focusable="false"
     >
       {level === 3 && <circle cx="24" cy="3.2" r="2.6" fill={trim} stroke={INK} strokeWidth="0.8" />}
-      <path d="M24 6 V10" stroke={INK} strokeWidth="2" />
+      {standard ? (
+        <path d="M24 6 V71" stroke="#8a6a3c" strokeWidth="2.2" strokeLinecap="round" />
+      ) : (
+        <path d="M24 6 V10" stroke={INK} strokeWidth="2" />
+      )}
       {level >= 2 && (
         <g stroke={trim} strokeWidth="2" strokeLinecap="round">
-          <path d={`M9 60 v${level === 3 ? 8 : 5}`} />
-          <path d={`M39 60 v${level === 3 ? 8 : 5}`} />
+          <path d={`M9 ${tasselTop} v${level === 3 ? 8 : 5}`} />
+          <path d={`M39 ${tasselTop} v${level === 3 ? 8 : 5}`} />
         </g>
       )}
       <path d={cloth} fill={field} stroke={trim} strokeWidth="3" strokeLinejoin="round" />

@@ -470,6 +470,21 @@
   font-weight: 700;
 }
 
+/* the night bonus (1.4): a moon tag on an attack that lands at night, and the send sheet's notice */
+.nightTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.nightNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .moveUnits {
   font-size: 0.9rem;
 }
@@ -677,4 +692,12 @@
 
 .onMap:hover {
   text-decoration: underline;
+}
+
+/* the farm templates (1.4): a tap fills the counts */
+.templateRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }

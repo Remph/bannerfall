@@ -36,6 +36,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/villages/{id}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recruit-templates/{letter}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["save_1"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guilds/mine/description": {
         parameters: {
             query?: never;
@@ -47,6 +79,22 @@ export interface paths {
         put: operations["describeGuild"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/farm-templates/{letter}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["save_2"];
+        post?: never;
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1348,6 +1396,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/villages/{villageId}/banner-hall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["bannerHall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -1374,7 +1438,7 @@ export interface paths {
         get: operations["open"];
         put?: never;
         post?: never;
-        delete: operations["delete"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1404,6 +1468,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["recentRecipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recruit-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1636,6 +1716,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/farm-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dev/fail": {
         parameters: {
             query?: never;
@@ -1807,6 +1903,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/villages/{villageId}/standard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["unequipStandard"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1995,7 +2107,9 @@ export interface components {
         FarmUnitsRequest: {
             units: {
                 [key: string]: number;
-            };
+            } | null;
+            /** @enum {string|null} */
+            template: "A" | "B" | "C" | "D" | "E" | null;
         };
         FarmTargetDto: {
             /** Format: int64 */
@@ -2004,6 +2118,8 @@ export interface components {
             units: {
                 [key: string]: number;
             };
+            /** @enum {string|null} */
+            template: "A" | "B" | "C" | "D" | "E" | null;
             /** Format: double */
             distance: number;
             /** Format: int64 */
@@ -2015,6 +2131,7 @@ export interface components {
             /** Format: date-time */
             nextBannerRollAt: string | null;
             bannerChance: boolean;
+            note: string | null;
         };
         VillageRefDto: {
             /** Format: int64 */
@@ -2032,7 +2149,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             /** Format: int64 */
@@ -2055,6 +2172,11 @@ export interface components {
             /** Format: int32 */
             effectiveTier: number;
             locked: boolean;
+            /** Format: int64 */
+            standardId: number | null;
+            /** Format: int32 */
+            standardEffectiveTier: number;
+            standardLocked: boolean;
         };
         BannersDto: {
             enabled: boolean;
@@ -2065,6 +2187,32 @@ export interface components {
             };
             banners: components["schemas"]["BannerDto"][];
             villages: components["schemas"]["BannerVillageDto"][];
+            paladinsEnabled: boolean;
+            /** Format: int32 */
+            paladinLevel: number;
+            standardTheftEnabled: boolean;
+        };
+        VillageNoteRequest: {
+            text: string;
+        };
+        VillageNoteDto: {
+            /** Format: int64 */
+            villageId: number;
+            text: string | null;
+        };
+        RecruitTemplateRequest: {
+            name: string;
+            units: {
+                [key: string]: number;
+            };
+        };
+        RecruitTemplateDto: {
+            /** @enum {string} */
+            letter: "A" | "B" | "C" | "D" | "E";
+            name: string;
+            units: {
+                [key: string]: number;
+            };
         };
         DescriptionRequest: {
             description: string;
@@ -2115,6 +2263,18 @@ export interface components {
             /** @enum {string|null} */
             role: "LEADER" | "MEMBER" | null;
             invitations: components["schemas"]["GuildInvitationDto"][];
+        };
+        FarmTemplateRequest: {
+            units: {
+                [key: string]: number;
+            };
+        };
+        FarmTemplateDto: {
+            /** @enum {string} */
+            letter: "A" | "B" | "C" | "D" | "E";
+            units: {
+                [key: string]: number;
+            };
         };
         WorldSettingsUpdateRequest: {
             name: string;
@@ -2174,6 +2334,8 @@ export interface components {
             bannersEnabled: boolean | null;
             /** Format: double */
             bannerDropFactor: number | null;
+            standardTheftEnabled: boolean | null;
+            npcBannersEnabled: boolean | null;
             /** Format: double */
             marketExchangeRatio: number | null;
             /** @enum {string|null} */
@@ -2188,6 +2350,13 @@ export interface components {
             keepPercent: number | null;
             /** @enum {string|null} */
             villageNameLanguage: "EN" | "DE" | null;
+            nightBonusEnabled: boolean | null;
+            /** Format: int32 */
+            nightBonusStartHour: number | null;
+            /** Format: int32 */
+            nightBonusEndHour: number | null;
+            /** Format: double */
+            nightBonusFactor: number | null;
         };
         AdminWorldSettingsDto: {
             name: string;
@@ -2249,6 +2418,8 @@ export interface components {
             bannersEnabled: boolean;
             /** Format: double */
             bannerDropFactor: number;
+            standardTheftEnabled: boolean;
+            npcBannersEnabled: boolean;
             /** Format: double */
             marketExchangeRatio: number;
             /** @enum {string} */
@@ -2263,6 +2434,13 @@ export interface components {
             keepPercent: number;
             /** @enum {string} */
             villageNameLanguage: "EN" | "DE";
+            nightBonusEnabled: boolean;
+            /** Format: int32 */
+            nightBonusStartHour: number;
+            /** Format: int32 */
+            nightBonusEndHour: number;
+            /** Format: double */
+            nightBonusFactor: number;
             /** @enum {string} */
             phase: "PREGAME" | "OPEN" | "ENDED";
             /** Format: date-time */
@@ -2290,6 +2468,23 @@ export interface components {
             /** Format: int64 */
             guildId: number | null;
         };
+        BannerVillage: {
+            /** Format: int64 */
+            villageId: number;
+            name: string;
+            /** Format: int32 */
+            hall: number;
+            banner: components["schemas"]["Equipped"] | null;
+            standard: components["schemas"]["Equipped"] | null;
+        };
+        Equipped: {
+            /** @enum {string} */
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
+            /** Format: int32 */
+            tier: number;
+            /** Format: int32 */
+            effectiveTier: number;
+        };
         NpcLordDto: {
             /** Format: int64 */
             playerId: number;
@@ -2314,6 +2509,18 @@ export interface components {
             guildName: string | null;
             guildTag: string | null;
             guildByAdmin: boolean;
+            /** Format: int32 */
+            paladinLevel: number;
+            bannerVillages: components["schemas"]["BannerVillage"][];
+            stash: components["schemas"]["StashCount"][];
+        };
+        StashCount: {
+            /** @enum {string} */
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
+            /** Format: int32 */
+            tier: number;
+            /** Format: int32 */
+            count: number;
         };
         Difficulty: {
             /** Format: double */
@@ -2474,7 +2681,9 @@ export interface components {
             target: components["schemas"]["Coordinates"];
             units: {
                 [key: string]: number;
-            };
+            } | null;
+            /** @enum {string|null} */
+            template: "A" | "B" | "C" | "D" | "E" | null;
         };
         MovementDto: {
             /** Format: int64 */
@@ -2553,7 +2762,7 @@ export interface components {
             attacks: components["schemas"]["TrainAttack"][];
         };
         TrainAttackPreviewDto: {
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER")[];
         };
         TrainPreviewDto: {
             targetVillage: components["schemas"]["VillageRefDto"];
@@ -2573,7 +2782,7 @@ export interface components {
             travelSeconds: number | null;
             /** Format: date-time */
             arriveAt: string | null;
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER")[];
         };
         BuildOrderRequest: {
             /** @enum {string} */
@@ -2631,6 +2840,15 @@ export interface components {
             plunderTier: number | null;
             /** Format: int32 */
             oathTier: number | null;
+            /** @enum {string|null} */
+            attackerStandard: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD" | null;
+            /** Format: int32 */
+            attackerStandardTier: number | null;
+            /** @enum {string|null} */
+            defenderStandard: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD" | null;
+            /** Format: int32 */
+            defenderStandardTier: number | null;
+            night: boolean | null;
         };
         LoyaltyOutlook: {
             /** Format: int32 */
@@ -2682,6 +2900,7 @@ export interface components {
             /** Format: int32 */
             lootCapacity: number;
             theft: components["schemas"]["Theft"] | null;
+            standardTheft: components["schemas"]["Theft"] | null;
         };
         Scouting: {
             /** Format: int32 */
@@ -2702,6 +2921,20 @@ export interface components {
             plunderBonus: number;
             /** Format: double */
             oathBonus: number;
+            attackerStandard: components["schemas"]["Standard"] | null;
+            defenderStandard: components["schemas"]["Standard"] | null;
+            /** Format: double */
+            nightFactor: number;
+        };
+        Standard: {
+            /** @enum {string} */
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
+            /** Format: int32 */
+            tier: number;
+            /** Format: int32 */
+            effectiveTier: number;
+            /** Format: double */
+            bonus: number;
         };
         Theft: {
             /** Format: int32 */
@@ -2786,7 +3019,7 @@ export interface components {
         };
         VillageBannerDto: {
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             /** Format: int32 */
@@ -2849,7 +3082,7 @@ export interface components {
         FuseBannersRequest: {
             bannerIds: number[];
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
         };
         RegisterRequest: {
             username: string;
@@ -2927,7 +3160,7 @@ export interface components {
         };
         BannerGrantRequest: {
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             reason: string | null;
@@ -2979,6 +3212,15 @@ export interface components {
         };
         RenameVillageRequest: {
             name: string;
+        };
+        NightBonusDto: {
+            /** Format: int32 */
+            startHour: number;
+            /** Format: int32 */
+            endHour: number;
+            /** Format: double */
+            factor: number;
+            zone: string;
         };
         WorldDto: {
             name: string;
@@ -3057,6 +3299,7 @@ export interface components {
             /** Format: int64 */
             registeredPlayers: number;
             version: string;
+            nightBonus: components["schemas"]["NightBonusDto"] | null;
         };
         VictoryDto: {
             /** @enum {string} */
@@ -3192,6 +3435,8 @@ export interface components {
             /** @enum {string} */
             unit: "SPEARMAN" | "SWORDSMAN" | "AXEMAN" | "SCOUT" | "LIGHT_CAVALRY" | "HEAVY_CAVALRY" | "RAM" | "CATAPULT" | "NOBLE" | "PALADIN" | "BANNER_THIEF";
             /** @enum {string} */
+            trainedIn: "HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL";
+            /** @enum {string} */
             attackType: "INFANTRY" | "CAVALRY";
             /** Format: double */
             minutesPerField: number;
@@ -3287,6 +3532,13 @@ export interface components {
             unlocksBuildings: ("HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL")[];
             unlocksUnits: ("SPEARMAN" | "SWORDSMAN" | "AXEMAN" | "SCOUT" | "LIGHT_CAVALRY" | "HEAVY_CAVALRY" | "RAM" | "CATAPULT" | "NOBLE" | "PALADIN" | "BANNER_THIEF")[];
         };
+        HallTrainingDto: {
+            /** Format: int32 */
+            hallLevel: number;
+            units: components["schemas"]["SmithyUnitDto"][];
+            running: components["schemas"]["ResearchOrderDto"] | null;
+            theftChancePerThief: number[] | null;
+        };
         ReportItemDto: {
             /** Format: int64 */
             id: number;
@@ -3340,7 +3592,7 @@ export interface components {
         };
         ScoutedBanner: {
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
         };
@@ -3352,6 +3604,9 @@ export interface components {
             found: components["schemas"]["ScoutedBanner"] | null;
             theft: components["schemas"]["TheftReport"] | null;
             stolen: components["schemas"]["ScoutedBanner"] | null;
+            attackStandard: components["schemas"]["StandardReport"] | null;
+            foundStandard: components["schemas"]["ScoutedBanner"] | null;
+            standardTheft: components["schemas"]["StandardTheftReport"] | null;
         };
         BattleReport: Omit<components["schemas"]["ReportPayload"], "type"> & {
             attacker: components["schemas"]["VillageRefDto"];
@@ -3378,6 +3633,8 @@ export interface components {
             banners: components["schemas"]["BannerReport"] | null;
             /** Format: int32 */
             haulCapacity: number | null;
+            /** Format: double */
+            nightBonus: number | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3387,7 +3644,7 @@ export interface components {
         };
         ConqueredBanner: {
             /** @enum {string} */
-            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             toStash: boolean;
@@ -3397,6 +3654,7 @@ export interface components {
             from: components["schemas"]["VillageRefDto"];
             newName: string;
             banner: components["schemas"]["ConqueredBanner"] | null;
+            standard: components["schemas"]["ConqueredBanner"] | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3435,6 +3693,7 @@ export interface components {
             levels: {
                 [key: string]: number;
             };
+            standard: components["schemas"]["StandardReport"] | null;
         };
         LoyaltyReport: {
             /** Format: int32 */
@@ -3466,6 +3725,23 @@ export interface components {
             away: {
                 [key: string]: number;
             } | null;
+            standard: components["schemas"]["ScoutedBanner"] | null;
+        };
+        StandardReport: {
+            /** @enum {string} */
+            type: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
+            /** Format: int32 */
+            tier: number;
+            /** Format: int32 */
+            effectiveTier: number;
+        };
+        StandardTheftReport: {
+            /** Format: int32 */
+            thieves: number | null;
+            /** Format: double */
+            chance: number | null;
+            stolen: boolean;
+            standard: components["schemas"]["ScoutedBanner"];
         };
         SupportReport: Omit<components["schemas"]["ReportPayload"], "type"> & {
             from: components["schemas"]["VillageRefDto"];
@@ -3623,6 +3899,7 @@ export interface components {
             /** Format: date-time */
             nextBannerRollAt: string | null;
             keep: boolean;
+            note: string | null;
         };
         MapMovementDto: {
             /** Format: int64 */
@@ -3795,7 +4072,7 @@ export interface components {
         };
         BannerFound: Omit<components["schemas"]["GameNotification"], "type"> & {
             /** @enum {string} */
-            bannerType: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            bannerType: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             village: components["schemas"]["VillageRefDto"];
@@ -3808,7 +4085,7 @@ export interface components {
         };
         BannerStolen: Omit<components["schemas"]["GameNotification"], "type"> & {
             /** @enum {string} */
-            bannerType: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH";
+            bannerType: "HARVEST" | "BUILDERS" | "DRILL" | "WAR" | "BULWARK" | "HASTE" | "TREASURY" | "PLUNDER" | "OATH" | "SPEAR_STANDARD" | "SWORD_STANDARD" | "AXE_STANDARD" | "LANCE_STANDARD" | "KNIGHT_STANDARD" | "RAM_STANDARD" | "SIEGE_STANDARD";
             /** Format: int32 */
             tier: number;
             village: components["schemas"]["VillageRefDto"];
@@ -3967,7 +4244,7 @@ export interface components {
         };
         ChatErrorDto: {
             /** @enum {string} */
-            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE";
+            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER";
             detail: string;
         };
     };
@@ -4050,6 +4327,78 @@ export interface operations {
             };
         };
     };
+    save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VillageNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VillageNoteDto"];
+                };
+            };
+        };
+    };
+    save_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter: "A" | "B" | "C" | "D" | "E";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecruitTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecruitTemplateDto"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter: "A" | "B" | "C" | "D" | "E";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     describeGuild: {
         parameters: {
             query?: never;
@@ -4071,6 +4420,52 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["MyGuildDto"];
                 };
+            };
+        };
+    };
+    save_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter: "A" | "B" | "C" | "D" | "E";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FarmTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FarmTemplateDto"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter: "A" | "B" | "C" | "D" | "E";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6177,6 +6572,28 @@ export interface operations {
             };
         };
     };
+    bannerHall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                villageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HallTrainingDto"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: {
@@ -6223,7 +6640,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6279,6 +6696,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RecentRecipientsDto"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecruitTemplateDto"][];
                 };
             };
         };
@@ -6599,6 +7036,26 @@ export interface operations {
             };
         };
     };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FarmTemplateDto"][];
+                };
+            };
+        };
+    };
     fail: {
         parameters: {
             query?: never;
@@ -6817,6 +7274,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AchievementsDto"];
+                };
+            };
+        };
+    };
+    unequipStandard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                villageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BannersDto"];
                 };
             };
         };

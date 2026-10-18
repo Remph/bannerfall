@@ -116,9 +116,9 @@ public class ConquestService {
                 conqueror,
                 worldService.settings().villageNameLanguage().defaultName(conqueror.getName()),
                 at);
-        // the banner flying there goes with the village (02-game-rules §21.6.1)
-        ConquestReport.ConqueredBanner banner =
-                bannerService.villageConquered(village, conqueror, at);
+        // the banner flying there and its paladin standard go with the village (02-game-rules
+        // §21.6.1, §21.18)
+        BannerService.Conquered banners = bannerService.villageConquered(village, conqueror, at);
         stayAsSupport(from, village, survivors);
 
         if (previousOwner != null) {
@@ -132,7 +132,12 @@ public class ConquestService {
         grantAchievements(conqueror, previousOwner);
 
         ConquestReport report =
-                new ConquestReport(before, VillageRefDto.of(from), village.getName(), banner);
+                new ConquestReport(
+                        before,
+                        VillageRefDto.of(from),
+                        village.getName(),
+                        banners.banner(),
+                        banners.standard());
         reportService.create(ReportKind.CONQUEST, at, report, conqueror.getId());
         reportService.create(ReportKind.VILLAGE_LOST, at, report, previousOwnerId);
         events.publishEvent(

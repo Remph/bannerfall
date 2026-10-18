@@ -38,7 +38,10 @@ type FieldName = Exclude<
   | 'npcGuildsEnabled'
   | 'unitLevelsEnabled'
   | 'bannersEnabled'
+  | 'standardTheftEnabled'
+  | 'npcBannersEnabled'
   | 'villageNameLanguage'
+  | 'nightBonusEnabled'
 >;
 
 function SettingsForm({
@@ -190,6 +193,50 @@ function SettingsForm({
         />
         {labels.bannersEnabled}
       </label>
+      <label className={styles.check}>
+        <input
+          type="checkbox"
+          checked={form.standardTheftEnabled}
+          onChange={(event) => {
+            setForm({ ...form, standardTheftEnabled: event.target.checked });
+            save.reset();
+          }}
+        />
+        {labels.standardTheftEnabled}
+      </label>
+      <div>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={form.npcBannersEnabled}
+            onChange={(event) => {
+              setForm({ ...form, npcBannersEnabled: event.target.checked });
+              save.reset();
+            }}
+          />
+          {labels.npcBannersEnabled}
+        </label>
+        <p className={styles.hint}>{labels.npcBannersHint}</p>
+      </div>
+      <div className={styles.form}>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={form.nightBonusEnabled}
+            onChange={(event) => {
+              setForm({ ...form, nightBonusEnabled: event.target.checked });
+              save.reset();
+            }}
+          />
+          {labels.nightBonusEnabled}
+        </label>
+        <div className={styles.fields}>
+          <TextField {...field('nightBonusStartHour', { type: 'number', step: '1', min: '0', max: '23' })} />
+          <TextField {...field('nightBonusEndHour', { type: 'number', step: '1', min: '0', max: '23' })} />
+          <TextField {...field('nightBonusFactor', { type: 'number', step: '0.1', min: '1.1', max: '3' })} />
+        </div>
+        <p className={styles.hint}>{labels.nightBonusHint}</p>
+      </div>
       {save.isError && <ErrorMessage>{errorMessage(t, save.error)}</ErrorMessage>}
       {save.isSuccess && <p className={styles.saved}>{labels.saved}</p>}
       <div>

@@ -1,0 +1,95 @@
+/* Farm templates (1.4): the letter badge and the template buttons (farm list, map panel, rally point). */
+.letter {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* an entry with its own units: the same slot, quiet */
+.letter.own {
+  background: var(--color-well);
+  color: var(--color-text-muted);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.button {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.25rem 0.75rem 0.25rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-well);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* armed (it ends the own beginner protection): the button asks before it sends */
+.button.armed {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  font-weight: 700;
+}
+
+.units {
+  gap: 0 var(--space-2);
+}
+
+.choice {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.choiceLabel {
+  font-weight: 600;
+}
+
+.choiceHint {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* the buttons' list and the "own troops" button share one wrapping row */
+.choice > .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.choice > .buttons > ul {
+  display: contents;
+}

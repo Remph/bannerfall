@@ -6,9 +6,11 @@ import de.bannerfall.common.RandomSource;
 import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.movement.CommandBanner;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.player.Player;
+import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.report.BattleReport;
 import de.bannerfall.report.TheftResult;
 import de.bannerfall.rules.BannerRules;
@@ -19,6 +21,7 @@ import de.bannerfall.world.WorldSettings;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -31,12 +34,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * What a battle does with banners after it is decided (02-game-rules §21.6.2, §21.7): the banner
- * thieves' roll and the drop roll of the winner. Called by {@code BattleService} in the battle's
- * transaction, which holds the locks of the attacker's home and the target. NPC lords neither steal
- * nor collect (§21.11): they never have thieves, and a lord that wins rolls nothing.
+ * thieves' roll and the drop roll of the winner, and for paladin standards (1.4, §21.18) the extra
+ * drop roll and the defenders' thieves' roll on a lost attack. Called by {@code BattleService} in
+ * the battle's transaction, which holds the locks of the attacker's home and the target. NPC lords
+ * collect and steal only while lord banners are on (1.4, 09-npc-lords §14): then a lord that wins
+ * rolls like a player, without toast or achievement; otherwise it rolls nothing.
  *
  * <p>Order of the dice in a battle: luck, the nobles' loyalty hits, then the theft roll (one draw),
- * then the drop roll (one draw, and two more for tier and type when it drops).
+ * then the drop roll (one draw, and two more for tier and type when it drops), then the standard
+ * drop roll (the same), then the defenders' standard theft roll (one draw).
  */
 @Service
 public class BannerBattleService {
@@ -53,6 +59,7 @@ public class BannerBattleService {
     private final ApplicationEventPublisher notifications;
     private final AchievementService achievements;
     private final GameData gameData;
+    private final PlayerRepository players;
 
     BannerBattleService(
             BannerRepository banners,
@@ -63,7 +70,8 @@ public class BannerBattleService {
             JdbcClient jdbc,
             ApplicationEventPublisher notifications,
             AchievementService achievements,
-            GameData gameData) {
+            GameData gameData,
+            PlayerRepository players) {
         this.banners = banners;
         this.events = events;
         this.catalog = catalog;
@@ -73,6 +81,7 @@ public class BannerBattleService {
         this.notifications = notifications;
         this.achievements = achievements;
         this.gameData = gameData;
+        this.players = players;
     }
 
     /**
@@ -117,17 +126,45 @@ public class BannerBattleService {
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<BattleReport.ScoutedBanner> rollDrop(
             Player winner, Loser loser, int loserPop, Village village, Instant at) {
+        return roll(winner, loser, loserPop, village, at, false);
+    }
+
+    /**
+     * The winner of a battle his own paladin fought in rolls once more, for a paladin standard
+     * (1.4, 02-game-rules §21.18): like {@link #rollDrop}, with the same chances and tier odds, the
+     * kind random among the seven, but with a pair window and a daily cap of its own. A standard
+     * counts for no banner achievement. The caller decides whether the winner's paladin fought.
+     *
+     * @return the standard that dropped, empty if none
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<BattleReport.ScoutedBanner> rollStandardDrop(
+            Player winner, Loser loser, int loserPop, Village village, Instant at) {
+        return roll(winner, loser, loserPop, village, at, true);
+    }
+
+    /** {@link #rollDrop} for a village banner or, with {@code standard}, a paladin standard. */
+    private Optional<BattleReport.ScoutedBanner> roll(
+            Player winner,
+            Loser loser,
+            int loserPop,
+            Village village,
+            Instant at,
+            boolean standard) {
         WorldSettings world = worldService.settings();
         BannerCatalog.Drops drops = catalog.drops();
+        List<BannerType> types = standard ? BannerType.standards() : BannerType.villageBanners();
+        // the standards' pair window is its own: their keys start with S
+        String pair = standard ? "S" + loser.key() : loser.key();
         if (!world.bannersEnabled()
                 || world.bannerDropFactor() <= 0
                 || winner == null
-                || winner.isNpc()
+                || (winner.isNpc() && !world.lordBanners())
                 || loserPop < drops.minLoserPop()
-                || events.countByKindAndToPlayerIdAndHappenedAtAfter(
-                                BannerEventKind.FOUND, winner.getId(), at.minus(DAY))
+                || events.countByKindAndToPlayerIdAndHappenedAtAfterAndTypeIn(
+                                BannerEventKind.FOUND, winner.getId(), at.minus(DAY), types)
                         >= drops.maxPerDay()
-                || !takePairRoll(winner.getId(), loser.key(), at, drops.pairHours())) {
+                || !takePairRoll(winner.getId(), pair, at, drops.pairHours())) {
             return Optional.empty();
         }
         double base = loser.barbarian() ? drops.barbarianChance() : drops.playerChance();
@@ -136,8 +173,7 @@ public class BannerBattleService {
             return Optional.empty();
         }
         int tier = BannerRules.dropTier(random.nextDouble(), drops.tierOdds());
-        BannerType[] types = BannerType.values();
-        BannerType type = types[random.nextInt(0, types.length - 1)];
+        BannerType type = types.get(random.nextInt(0, types.size() - 1));
 
         Banner banner =
                 banners.save(new Banner(winner.getId(), type, tier, BannerOrigin.FOUND, at));
@@ -150,8 +186,13 @@ public class BannerBattleService {
                         village.getId(),
                         at,
                         null));
-        achievements.grant(winner, Achievement.STANDARD_BEARER);
-        achievements.checkBanners(winner);
+        if (winner.isNpc()) {
+            return Optional.of(new BattleReport.ScoutedBanner(type, tier)); // no toast, no honour
+        }
+        if (!standard) {
+            achievements.grant(winner, Achievement.STANDARD_BEARER);
+            achievements.checkBanners(winner);
+        }
         notifications.publishEvent(
                 new PlayerNotification(
                         winner.getId(),
@@ -227,6 +268,7 @@ public class BannerBattleService {
      * @param attackerId the owner of the attacking units
      * @param sent thieves in the attack, at least one
      * @param survived thieves alive after the battle
+     * @param thiefLevel the attacker's thief level at the battle (Hall training, 1.4)
      * @param won the attacker won the main battle
      * @param conquered the battle conquers the village (its banner goes with the conquest)
      * @param hallLevel the target's Banner Hall after the battle (catapults may have hit it)
@@ -238,6 +280,7 @@ public class BannerBattleService {
             long attackerId,
             int sent,
             int survived,
+            int thiefLevel,
             boolean won,
             boolean conquered,
             int hallLevel,
@@ -258,7 +301,7 @@ public class BannerBattleService {
         Banner banner =
                 target.getPlayer() == null
                         ? null // barbarian villages carry no banner
-                        : banners.findByEquippedVillageId(target.getId()).orElse(null);
+                        : banners.findFlying(target.getId()).orElse(null);
         if (banner == null) {
             return theft(sent, survived, null, TheftResult.NO_BANNER, null);
         }
@@ -267,7 +310,7 @@ public class BannerBattleService {
                 BannerRules.theftChance(
                         survived,
                         hallLevel,
-                        rules.chancePerThief(),
+                        rules.perThief(thiefLevel),
                         rules.maxChance(),
                         rules.hallReductionPerLevel());
         var seen = new BattleReport.ScoutedBanner(banner.getType(), banner.getTier());
@@ -298,12 +341,105 @@ public class BannerBattleService {
                             new GameNotification.BannerStolen(
                                     banner.getType(), banner.getTier(), village, true)));
         }
-        notifications.publishEvent(
-                new PlayerNotification(
-                        attackerId,
-                        new GameNotification.BannerStolen(
-                                banner.getType(), banner.getTier(), village, false)));
+        if (!isNpc(attackerId)) { // lord thieves on a retaliation (09-npc-lords §14.4)
+            notifications.publishEvent(
+                    new PlayerNotification(
+                            attackerId,
+                            new GameNotification.BannerStolen(
+                                    banner.getType(), banner.getTier(), village, false)));
+        }
         return theft(sent, survived, chance, TheftResult.STOLEN, seen);
+    }
+
+    /**
+     * The defenders' thieves take the paladin standard of an attack they beat (1.4, 02-game-rules
+     * §21.18, admin setting {@code standardTheftEnabled}): after a lost attack that carried a
+     * standard, with at least one of the village owner's own thieves at home alive, one draw
+     * against {@code min(maxChance, 1 − (1 − c)^k)}, c by the defender's thief level, without the
+     * Hall reduction. On success the standard leaves the attacker's village for the defender's
+     * stash (a STOLEN line in the log) and both players get the BANNER_STOLEN toast. Nothing
+     * happens (null) with banners or the setting off, without a carried standard, against a
+     * barbarian village, against an NPC lord while lord banners are off (09-npc-lords §14.1),
+     * without a surviving thief, or when the standard is no longer where it was when the attack
+     * left (its village was conquered meanwhile). Standards count for no banner achievement. The
+     * battle holds the locks of both villages.
+     *
+     * @param carried the standard the attack took along; null without
+     * @param attackerId the owner of the attacking units
+     * @param attackerHomeId the village the attack came from, where the standard is equipped
+     * @param target the defended village
+     * @param survivors the village owner's own thieves at home that survived the battle
+     * @param thiefLevel the defender's thief level at the battle
+     * @return the roll for the reports; null if there was none
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public BattleReport.StandardTheftReport stealStandard(
+            CommandBanner.Standard carried,
+            long attackerId,
+            long attackerHomeId,
+            Village target,
+            int survivors,
+            int thiefLevel,
+            Instant at) {
+        WorldSettings world = worldService.settings();
+        Player defender = target.getPlayer();
+        if (!world.bannersEnabled()
+                || !world.standardTheftEnabled()
+                || carried == null
+                || defender == null
+                || (defender.isNpc() && !world.lordBanners())
+                || survivors <= 0) {
+            return null;
+        }
+        Banner standard =
+                banners.findById(carried.bannerId())
+                        .filter(
+                                banner ->
+                                        banner.getOwnerId() == attackerId
+                                                && Long.valueOf(attackerHomeId)
+                                                        .equals(banner.getEquippedVillageId()))
+                        .orElse(null);
+        if (standard == null) {
+            return null;
+        }
+        BannerCatalog.Theft rules = catalog.theft();
+        double chance =
+                BannerRules.theftChance(
+                        survivors, 0, rules.perThief(thiefLevel), rules.maxChance(), 0);
+        var seen = new BattleReport.ScoutedBanner(standard.getType(), standard.getTier());
+        if (random.nextDouble() >= chance) {
+            return new BattleReport.StandardTheftReport(survivors, chance, false, seen);
+        }
+        standard.passTo(defender.getId());
+        events.save(
+                new BannerEvent(
+                        standard,
+                        BannerEventKind.STOLEN,
+                        attackerId,
+                        defender.getId(),
+                        attackerHomeId,
+                        at,
+                        null));
+        VillageRefDto village = VillageRefDto.of(target);
+        if (!isNpc(attackerId)) {
+            notifications.publishEvent(
+                    new PlayerNotification(
+                            attackerId,
+                            new GameNotification.BannerStolen(
+                                    standard.getType(), standard.getTier(), village, true)));
+        }
+        if (!defender.isNpc()) {
+            notifications.publishEvent(
+                    new PlayerNotification(
+                            defender.getId(),
+                            new GameNotification.BannerStolen(
+                                    standard.getType(), standard.getTier(), village, false)));
+        }
+        return new BattleReport.StandardTheftReport(survivors, chance, true, seen);
+    }
+
+    private boolean isNpc(long playerId) {
+        return players.findById(playerId).map(Player::isNpc).orElse(false);
     }
 
     private static BattleReport.TheftReport theft(

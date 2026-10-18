@@ -21,6 +21,19 @@ export function formatNumber(value: number, language: Language): string {
   return format.format(Math.floor(value));
 }
 
+// Factors such as the night bonus: "2", "1.5" / "1,5".
+const factorFormats = new Map<Language, Intl.NumberFormat>();
+
+/** 2 → "2", 1.5 → "1.5" (en) / "1,5" (de): up to two decimals, none when whole. */
+export function formatFactor(value: number, language: Language): string {
+  let format = factorFormats.get(language);
+  if (format === undefined) {
+    format = new Intl.NumberFormat(locales[language], { maximumFractionDigits: 2 });
+    factorFormats.set(language, format);
+  }
+  return format.format(value);
+}
+
 // One decimal: distances on the map.
 const decimalFormats = new Map<Language, Intl.NumberFormat>();
 

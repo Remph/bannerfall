@@ -16,6 +16,23 @@ class BannerRulesTest {
     }
 
     @Test
+    void aStandardWorksUpToThePaladinLevelAndSleepsWithoutAHall() {
+        assertThat(BannerRules.standardTier(3, 1, 1)).isEqualTo(1);
+        assertThat(BannerRules.standardTier(2, 3, 1)).isEqualTo(2);
+        assertThat(BannerRules.standardTier(3, 3, 0)).isZero();
+        assertThat(BannerRules.standardTier(1, 0, 3)).isZero();
+    }
+
+    @Test
+    void boostedRamsAndCatapultsAreRoundedDown() {
+        assertThat(BannerRules.boosted(10, 0)).isEqualTo(10);
+        assertThat(BannerRules.boosted(10, 0.10)).isEqualTo(11);
+        assertThat(BannerRules.boosted(9, 0.10)).isEqualTo(9);
+        assertThat(BannerRules.boosted(20, 0.30)).isEqualTo(26);
+        assertThat(BannerRules.boosted(0, 0.30)).isZero();
+    }
+
+    @Test
     void aCapacityIsRoundedAfterTheBonus() {
         assertThat(BannerRules.capacity(1000, 0)).isEqualTo(1000);
         assertThat(BannerRules.capacity(1000, 0.10)).isEqualTo(1100);

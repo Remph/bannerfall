@@ -73,6 +73,7 @@ class AchievementFlowTest {
     private double luckRangeBefore;
     private int nobleMaxDistanceBefore;
     private double loyaltyRegenBefore;
+    private double unitSpeedBefore;
     private TestPlayer attacker;
     private TestPlayer defender;
     private Coordinates defenderAt;
@@ -83,6 +84,7 @@ class AchievementFlowTest {
         luckRangeBefore = worldService.settings().luckRange();
         nobleMaxDistanceBefore = worldService.settings().nobleMaxDistance();
         loyaltyRegenBefore = worldService.settings().loyaltyRegenPerHour();
+        unitSpeedBefore = worldService.settings().unitSpeed();
         jdbc.sql(
                         "update world_settings set luck_range = 0, noble_max_distance = 1000,"
                                 + " loyalty_regen_per_hour = 0")
@@ -102,8 +104,12 @@ class AchievementFlowTest {
         jdbc.sql("delete from game_event").update();
         jdbc.sql(
                         "update world_settings set luck_range = ?, noble_max_distance = ?,"
-                                + " loyalty_regen_per_hour = ?, guilds_enabled = false")
-                .params(luckRangeBefore, nobleMaxDistanceBefore, loyaltyRegenBefore)
+                            + " loyalty_regen_per_hour = ?, unit_speed = ?, guilds_enabled = false")
+                .params(
+                        luckRangeBefore,
+                        nobleMaxDistanceBefore,
+                        loyaltyRegenBefore,
+                        unitSpeedBefore)
                 .update();
         worldService.reload();
         guildService.setInviteInterval(Duration.ofMinutes(1));
@@ -131,7 +137,7 @@ class AchievementFlowTest {
         assertThat(
                         JsonPath.<List<Integer>>read(
                                 list, "$.achievements[?(@.key=='VICTOR')].thresholds[*]"))
-                .containsExactly(10, 50, 250);
+                .containsExactly(25, 250, 2500);
         assertThat(
                         JsonPath.<List<Integer>>read(
                                 list, "$.achievements[?(@.key=='VICTOR')].progress"))
@@ -298,6 +304,243 @@ class AchievementFlowTest {
                                 .query(Long.class)
                                 .single())
                 .isZero();
+    }
+
+    // ---- battles (1.4, 02 §19.1) ----
+
+    @Test
+    void slayerAndWardenCountTheKillsOfEveryBattleOnBothSides() throws Exception {
+        // 50 axemen (A 2000) beat 30 spearmen (D 470) and lose round(50 × 0.235^1.5) = 6
+        setUnits(defender, Map.of(UnitType.SPEARMAN, 30));
+        arriveAt(attackWithAxemen(50));
+        assertThat(counter(attacker, "SLAYER")).isEqualTo(30);
+        assertThat(counter(defender, "WARDEN")).isEqualTo(6);
+
+        // at once again, lost: 20 axemen (A 800) against 100 swordsmen (D 5020); no day filter,
+        // every kill counts
+        setUnits(defender, Map.of(UnitType.SWORDSMAN, 100));
+        arriveAt(attackWithAxemen(20));
+        assertThat(counter(attacker, "SLAYER")).isEqualTo(36);
+        assertThat(counter(defender, "WARDEN")).isEqualTo(26);
+        assertThat(earned(attacker)).doesNotContainKeys("PYRRHIC_VICTORY", "LUCKY_STRIKE");
+        assertThat(earned(defender)).doesNotContainKey("LAST_STAND");
+    }
+
+    @Test
+    void scoutsThatAllDieEarnSpyCatcherForTheVillagesOwner() throws Exception {
+        setUnits(defender, Map.of(UnitType.SCOUT, 5));
+        setUnits(attacker, Map.of(UnitType.SCOUT, 10));
+
+        // more scouts than the defender: some survive, nothing
+        arriveAt(attack("{\"SCOUT\":10}"));
+        assertThat(earned(defender)).doesNotContainKey("SPY_CATCHER");
+
+        setUnits(attacker, Map.of(UnitType.SCOUT, 5));
+        arriveAt(attack("{\"SCOUT\":5}"));
+        assertThat(earned(defender)).containsEntry("SPY_CATCHER", 1);
+        // the dead scouts count for Warden too
+        assertThat(counter(defender, "WARDEN")).isGreaterThanOrEqualTo(5);
+    }
+
+    @Test
+    void aWinThatCostsThreeQuartersOfAHundredUnitsIsAPyrrhicVictory() throws Exception {
+        // 100 axemen (A 4000) against 220 spearmen (D 3320): ratio 0.83^1.5 = 0.756, 76 die
+        setUnits(defender, Map.of(UnitType.SPEARMAN, 220));
+
+        arriveAt(attackWithAxemen(100));
+
+        assertThat(JsonPath.<String>read(attacker.newestReport("ATTACK"), "$.payload.outcome"))
+                .isEqualTo("ATTACKER_WON");
+        assertThat(earned(attacker)).containsEntry("PYRRHIC_VICTORY", 1);
+        assertThat(counter(attacker, "SLAYER")).isEqualTo(220);
+    }
+
+    @Test
+    void outnumberedDefendersHoldALastStandAndTheirSupportersAreBrothersInArms() throws Exception {
+        TestPlayer ally = TestPlayer.register(mockMvc);
+        // 5 own and 30 supporting swordsmen: D 1770 against 40 axemen (A 1600)
+        setUnits(defender, Map.of(UnitType.SWORDSMAN, 5));
+        jdbc.sql(
+                        "insert into unit_stack (home_village_id, location_village_id, u_swordsman)"
+                                + " values (?, ?, 30)")
+                .params(ally.villageId, defender.villageId)
+                .update();
+
+        arriveAt(attackWithAxemen(40));
+
+        assertThat(earned(defender)).containsEntry("SHIELD", 1).containsEntry("LAST_STAND", 1);
+        assertThat(earned(ally)).containsOnlyKeys("BROTHERS_IN_ARMS");
+        assertThat(earned(attacker)).doesNotContainKey("BROTHERS_IN_ARMS");
+    }
+
+    @Test
+    void beatingThePlayerWhoBeatYouWithinADayEarnsAvenger() throws Exception {
+        jdbc.sql("update player set protected_until = ? where id = ?")
+                .params(Timestamp.from(clock.instant().minusSeconds(1)), attacker.playerId)
+                .update();
+        // fast units: wherever the two villages lie, the answer arrives within the day
+        jdbc.sql("update world_settings set unit_speed = 100").update();
+        worldService.reload();
+        // the defender strikes first and wins against the attacker's empty village
+        setUnits(defender, Map.of(UnitType.AXEMAN, 20));
+        String json =
+                "{\"kind\":\"ATTACK\",\"target\":{\"x\":%d,\"y\":%d},\"units\":{\"AXEMAN\":20}}"
+                        .formatted(coordinates(attacker).x(), coordinates(attacker).y());
+        arriveAt(
+                Instant.parse(
+                        JsonPath.read(
+                                body(
+                                        defender.browser
+                                                .post(defender.villagePath() + "/commands", json)
+                                                .andExpect(status().isCreated())),
+                                "$.arriveAt")));
+        assertThat(earned(attacker)).doesNotContainKey("AVENGER");
+
+        // the answer: a counted win against him
+        arriveAt(attackWithAxemen(50));
+
+        assertThat(earned(attacker)).containsEntry("AVENGER", 1);
+        assertThat(earned(defender)).doesNotContainKey("AVENGER");
+    }
+
+    @Test
+    void anOldDefeatIsNoReasonForAvenger() throws Exception {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.executeWithoutResult(
+                status ->
+                        achievements.beaten(
+                                players.findById(attacker.playerId).orElseThrow(),
+                                players.findById(defender.playerId).orElseThrow(),
+                                clock.instant().minus(Duration.ofHours(25))));
+
+        arriveAt(attackWithAxemen(20));
+
+        assertThat(earned(attacker)).containsEntry("FIRST_BLOOD", 1).doesNotContainKey("AVENGER");
+    }
+
+    @Test
+    void catapultsThatTakeFiveLevelsOffABuildingEarnDemolisher() throws Exception {
+        jdbc.sql("update village set b_barracks = 10 where id = ?")
+                .param(defender.villageId)
+                .update();
+        // 4 + 2 × L catapults per level: 24 + 22 + 20 + 18 + 16 = 100 take the Barracks to 5
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 50, UnitType.CATAPULT, 100));
+
+        // the units' JSON is followed by the command's catapult target
+        arriveAt(attack("{\"AXEMAN\":50,\"CATAPULT\":100},\"catapultTarget\":\"BARRACKS\""));
+
+        assertThat(
+                        jdbc.sql("select b_barracks from village where id = ?")
+                                .param(defender.villageId)
+                                .query(Integer.class)
+                                .single())
+                .isEqualTo(5);
+        assertThat(earned(attacker)).containsEntry("DEMOLISHER", 1);
+    }
+
+    @Test
+    void wallLevelsTheRamsTakeAreNoDemolisher() throws Exception {
+        jdbc.sql("update village set b_wall = 10 where id = ?").param(defender.villageId).update();
+        // 2 + L rams per level: the 50 of 70 rams that surely survive take the wall to 5 or
+        // lower, then 14 catapults (4 + 2 L per level) take one level at most
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 100, UnitType.RAM, 70, UnitType.CATAPULT, 14));
+
+        arriveAt(attack("{\"AXEMAN\":100,\"RAM\":70,\"CATAPULT\":14},\"catapultTarget\":\"WALL\""));
+
+        assertThat(
+                        jdbc.sql("select b_wall from village where id = ?")
+                                .param(defender.villageId)
+                                .query(Integer.class)
+                                .single())
+                .isLessThanOrEqualTo(5);
+        assertThat(earned(attacker)).containsKey("BREACH").doesNotContainKey("DEMOLISHER");
+    }
+
+    @Test
+    void aWinThatOnlyLuckMadeEarnsLuckyStrike() throws Exception {
+        jdbc.sql("update world_settings set luck_range = 0.25").update();
+        worldService.reload();
+        // luck −0.25 + 0.5 × 0.6 = +5 %: 20 axemen hit with 840 instead of 800, 16 swordsmen
+        // hold 820
+        dice.use(FixedRandomSource.constant(0.6));
+        setUnits(defender, Map.of(UnitType.SWORDSMAN, 16));
+
+        arriveAt(attackWithAxemen(20));
+
+        assertThat(JsonPath.<String>read(attacker.newestReport("ATTACK"), "$.payload.outcome"))
+                .isEqualTo("ATTACKER_WON");
+        assertThat(earned(attacker)).containsEntry("LUCKY_STRIKE", 1);
+    }
+
+    @Test
+    void aWinThatLuckOnlyHelpedIsNoLuckyStrike() throws Exception {
+        jdbc.sql("update world_settings set luck_range = 0.25").update();
+        worldService.reload();
+        dice.use(FixedRandomSource.constant(0.99));
+        setUnits(defender, Map.of(UnitType.SWORDSMAN, 10));
+
+        arriveAt(attackWithAxemen(20));
+
+        assertThat(earned(attacker)).containsKey("FIRST_BLOOD").doesNotContainKey("LUCKY_STRIKE");
+    }
+
+    @Test
+    void whatTheMarketExchangeCostsCountsForMerchantPrince() throws Exception {
+        jdbc.sql(
+                        "update village set b_market = 5, b_warehouse = 20, wood = 5000,"
+                                + " clay = 5000, iron = 5000, resources_updated_at = ?"
+                                + " where id = ?")
+                .params(Timestamp.from(clock.instant()), attacker.villageId)
+                .update();
+
+        attacker.browser
+                .post(
+                        attacker.villagePath() + "/market/exchange",
+                        "{\"give\":\"WOOD\",\"receive\":\"IRON\",\"amount\":1000}")
+                .andExpect(status().isOk());
+
+        // 1000 iron at the default ratio 1.5 cost 1500 wood
+        assertThat(counter(attacker, "MERCHANT_PRINCE")).isEqualTo(1500);
+        assertThat(earned(attacker)).doesNotContainKey("FIRST_DEAL");
+    }
+
+    @Test
+    void aCounterAlreadyPastALoweredLevelGetsItAtTheNextLook() throws Exception {
+        // as if Bulwark had been 5 / 25 / 100 when the counter reached 4
+        jdbc.sql(
+                        "insert into achievement_counter (player_id, achievement, value)"
+                                + " values (?, 'BULWARK', 4)")
+                .param(defender.playerId)
+                .update();
+        assertThat(earned(defender)).isEmpty();
+
+        defender.browser.get("/api/achievements").andExpect(status().isOk());
+
+        assertThat(earned(defender)).containsEntry("BULWARK", 1);
+    }
+
+    @Test
+    void aLevelEarnedBeforeANumberWentUpStaysAtLogin() throws Exception {
+        // Victor silver at 60 wins under the old 10 / 50 / 250, now silver needs 250
+        jdbc.sql(
+                        "insert into achievement_counter (player_id, achievement, value)"
+                                + " values (?, 'VICTOR', 60)")
+                .param(attacker.playerId)
+                .update();
+        jdbc.sql(
+                        "insert into player_achievement (player_id, achievement, level, earned_at)"
+                                + " values (?, 'VICTOR', 1, ?), (?, 'VICTOR', 2, ?)")
+                .params(
+                        attacker.playerId,
+                        Timestamp.from(clock.instant()),
+                        attacker.playerId,
+                        Timestamp.from(clock.instant()))
+                .update();
+
+        attacker.browser.get("/api/achievements").andExpect(status().isOk());
+
+        assertThat(earned(attacker)).containsEntry("VICTOR", 2);
+        assertThat(levelRows(attacker, "VICTOR")).isEqualTo(2);
     }
 
     // ---- conquest ----
@@ -715,7 +958,7 @@ class AchievementFlowTest {
                         achievements.count(
                                 players.findById(attacker.playerId).orElseThrow(),
                                 Achievement.VICTOR,
-                                60));
+                                260));
         assertThat(earned(attacker)).isEqualTo(Map.of("VICTOR", 2));
 
         host.post("/api/admin/players/" + attacker.playerId + "/achievements/VICTOR/revoke", "{}")

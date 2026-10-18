@@ -1,5 +1,6 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingDef;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
@@ -33,7 +34,9 @@ class NpcTemplateValidation {
      * the steps before it (from the start levels); every building at its max level after the last
      * step; stages with ascending {@code below-points}, only the last without one, and shares in
      * 0..1; a mix for every stage with positive shares of units that can be recruited by the end of
-     * the build list (and no nobles, they are never in the mix); no unit in a unit list twice.
+     * the build list (and no nobles, they are never in the mix); no unit in a unit list twice; the
+     * banner and standard favourites name every type of their family once, thieves at least 0 and
+     * only with a Banner Hall step.
      */
     static List<String> problems(NpcTemplates templates, GameData data) {
         List<String> problems = new ArrayList<>();
@@ -92,9 +95,9 @@ class NpcTemplateValidation {
             }
         }
         for (BuildingType type : BuildingType.values()) {
-            // NPC lords have no banners (02-game-rules §21.1): they never build the banner hall
-            boolean notForLords = type == BuildingType.BANNER_HALL;
-            if (!notForLords && levels.get(type) != data.building(type).maxLevel()) {
+            // since 1.4 lords build the Banner Hall too: it trains their paladin (02-game-rules
+            // §5.5)
+            if (levels.get(type) != data.building(type).maxLevel()) {
                 problems.add(
                         name
                                 + ".build: "
@@ -141,7 +144,7 @@ class NpcTemplateValidation {
                 } else if (entry.getKey() == UnitType.PALADIN) {
                     problems.add(unit + ": paladins are never in the mix");
                 } else if (entry.getKey() == UnitType.BANNER_THIEF) {
-                    // lords don't use banners (02-game-rules §21.11)
+                    // lords keep thieves only through `thieves` (09-npc-lords §14.4)
                     problems.add(unit + ": banner thieves are never in the mix");
                 } else if (entry.getValue() == null || entry.getValue() <= 0) {
                     problems.add(unit + ": share must be > 0");
@@ -180,6 +183,31 @@ class NpcTemplateValidation {
             if (list.contains(UnitType.BANNER_THIEF)) {
                 problems.add(name + ": banner thieves are never in a unit list");
             }
+        }
+        checkFavourites(
+                name + ".banner-favourites",
+                template.bannerFavourites(),
+                BannerType.villageBanners(),
+                problems);
+        checkFavourites(
+                name + ".standard-favourites",
+                template.standardFavourites(),
+                BannerType.standards(),
+                problems);
+        if (template.thieves() < 0) {
+            problems.add(name + ".thieves must be >= 0");
+        } else if (template.thieves() > 0
+                && template.build().stream()
+                        .noneMatch(step -> step.containsKey(BuildingType.BANNER_HALL))) {
+            problems.add(name + ".thieves: needs a Banner Hall step in the build list");
+        }
+    }
+
+    /** Lord banners (09-npc-lords §14.3): every type of the family exactly once. */
+    private static void checkFavourites(
+            String name, List<BannerType> list, List<BannerType> family, List<String> problems) {
+        if (list.size() != family.size() || !list.containsAll(family)) {
+            problems.add(name + ": must name each of " + family + " once");
         }
     }
 

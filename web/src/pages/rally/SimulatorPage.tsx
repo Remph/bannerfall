@@ -17,8 +17,17 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { TextField } from '../../components/TextField';
 import { effectOfTier, effectiveTier, percentPoints } from '../../game/banners';
-import { formatShare, formatWhen } from '../../game/format';
-import { buildingTypes, unitTypes, type BuildingType, type UnitType } from '../../game/gameData';
+import { formatFactor, formatShare, formatWhen } from '../../game/format';
+import {
+  buildingTypes,
+  isStandard,
+  standardTypes,
+  unitTypes,
+  type BuildingType,
+  type StandardType,
+  type UnitType,
+} from '../../game/gameData';
+import { formatNightHours } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { levelChoices, ownLevels, type UnitLevelMap } from '../../game/unitLevels';
 import {
@@ -107,20 +116,26 @@ interface SimulatorProps {
 }
 
 function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const s = t.simulator;
   const village = useVillage(villageId);
   const troops = useTroops(villageId);
   // M30: with unit levels the units get a level field; the smithy tells the player's own levels
-  // and how many levels each unit has
+  // and how many levels each unit has. The paladin's and the thief's levels (Hall training, 1.4)
+  // come with it in every world: the smithy lists their top level also with unit levels off.
   const world = useWorld().data;
   const levelsOn = world?.unitLevelsEnabled === true;
   // M32c: with banners on, the War and Bulwark banners and the Banner Hall are inputs
   const bannersOn = world?.bannersEnabled === true;
   const banners = useBanners(bannersOn);
   const own = ownBanner(banners.data, villageId);
-  const smithy = useSmithy(villageId, levelsOn);
-  const maxLevels = levelsOn ? maxLevelsOf(smithy.data?.units) : {};
+  // 1.4: the paladin standards, in worlds with banners and paladins
+  const standardsOn = bannersOn && (world?.paladinMaxSlots ?? 0) > 0;
+  // 1.4: the switch only where the world has the night bonus (null = off)
+  const night = world?.nightBonus;
+  const ownStd = ownStandard(banners.data, villageId);
+  const smithy = useSmithy(villageId);
+  const maxLevels = maxLevelsOf(smithy.data?.units);
   const myLevels = smithy.data === undefined ? {} : ownLevels(smithy.data.units);
   // each building's highest level (game data, the same in every village): the level fields stop
   // there, since the server refuses a higher one
@@ -183,6 +198,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
       bulwarkTier: own?.type === 'BULWARK' ? own.tier : 0,
       oathTier: own?.type === 'OATH' ? own.tier : 0,
       bannerHall: village.data.buildings.BANNER_HALL ?? 0,
+      defenderStandard: ownStd?.type ?? null,
+      defenderStandardTier: ownStd?.tier ?? 0,
     });
   }
 
@@ -208,6 +225,7 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
         <h1>{s.title}</h1>
         <p className={styles.intro}>{s.intro}</p>
         {levelsOn && <p className={styles.intro}>{s.levelsHint}</p>}
+        {!levelsOn && Object.keys(maxLevels).length > 0 && <p className={styles.intro}>{s.hallLevelsHint}</p>}
       </header>
       <Card title={s.reportTitle}>
         <div className={styles.body}>
@@ -237,6 +255,9 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                     // the War or Plunder banner flying here, at the tier its hall lets it work
                     warTier: own?.type === 'WAR' ? own.effectiveTier : 0,
                     plunderTier: own?.type === 'PLUNDER' ? own.effectiveTier : 0,
+                    // the village's standard at its own tier: the paladin's level caps it
+                    attackerStandard: ownStd?.type ?? null,
+                    attackerStandardTier: ownStd?.tier ?? 0,
                   })
                 }
               >
@@ -246,7 +267,16 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 type="button"
                 variant="secondary"
                 size="small"
-                onClick={() => patch({ attacker: {}, attackerLevels: {}, warTier: 0, plunderTier: 0 })}
+                onClick={() =>
+                  patch({
+                    attacker: {},
+                    attackerLevels: {},
+                    warTier: 0,
+                    plunderTier: 0,
+                    attackerStandard: null,
+                    attackerStandardTier: 0,
+                  })
+                }
               >
                 {s.clear}
               </Button>
@@ -284,6 +314,15 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 />
               </>
             )}
+            {standardsOn && (
+              <StandardSelect
+                label={s.attackerStandard}
+                effects={banners.data?.effects}
+                type={form.attackerStandard}
+                tier={form.attackerStandardTier}
+                onChange={(attackerStandard, attackerStandardTier) => patch({ attackerStandard, attackerStandardTier })}
+              />
+            )}
           </div>
         </Card>
         <Card title={s.defenderTitle}>
@@ -302,7 +341,17 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 type="button"
                 variant="secondary"
                 size="small"
-                onClick={() => patch({ defender: {}, defenderLevels: {}, bulwarkTier: 0, oathTier: 0, bannerHall: 0 })}
+                onClick={() =>
+                  patch({
+                    defender: {},
+                    defenderLevels: {},
+                    bulwarkTier: 0,
+                    oathTier: 0,
+                    bannerHall: 0,
+                    defenderStandard: null,
+                    defenderStandardTier: 0,
+                  })
+                }
               >
                 {s.clear}
               </Button>
@@ -370,6 +419,34 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                   <p className={styles.muted}>{s.bulwarkCapped(effectiveTier(targetTier, form.bannerHall))}</p>
                 )}
               </>
+            )}
+            {standardsOn && (
+              <>
+                <StandardSelect
+                  label={s.defenderStandard}
+                  effects={banners.data?.effects}
+                  type={form.defenderStandard}
+                  tier={form.defenderStandardTier}
+                  onChange={(defenderStandard, defenderStandardTier) =>
+                    patch({ defenderStandard, defenderStandardTier })
+                  }
+                />
+                <p className={styles.muted}>{s.standardHint}</p>
+              </>
+            )}
+            {night != null && (
+              <div>
+                <label className={styles.check}>
+                  <input
+                    type="checkbox"
+                    checked={form.night}
+                    onChange={(event) => patch({ night: event.target.checked })}
+                  />
+                  <Icon name="moon" />
+                  {s.night(formatFactor(night.factor, language))}
+                </label>
+                <p className={styles.muted}>{s.nightHint(formatNightHours(night))}</p>
+              </div>
             )}
           </div>
         </Card>
@@ -544,6 +621,77 @@ function BannerTierSelect({
       </select>
     </div>
   );
+}
+
+/**
+ * A paladin standard (1.4, 02-game-rules §21.18): its kind and its own tier. The server caps the tier
+ * by that side's paladin level and, for the defenders, puts it to sleep without a Banner Hall.
+ */
+function StandardSelect({
+  label,
+  effects,
+  type,
+  tier,
+  onChange,
+}: {
+  label: string;
+  effects: Banners['effects'] | undefined;
+  type: StandardType | null;
+  tier: number;
+  onChange: (type: StandardType | null, tier: number) => void;
+}) {
+  const { t, language } = useI18n();
+  const id = useId();
+  const tierId = useId();
+  const tiers = Array.from({ length: MAX_BANNER_LEVEL }, (_, index) => index + 1);
+  return (
+    <div className={styles.fields}>
+      <div className={styles.select}>
+        <label htmlFor={id}>{label}</label>
+        <select
+          id={id}
+          value={type ?? ''}
+          onChange={(event) => {
+            const next = event.target.value === '' ? null : (event.target.value as StandardType);
+            onChange(next, next === null ? 0 : Math.max(1, tier));
+          }}
+        >
+          <option value="">{t.simulator.noBanner}</option>
+          {standardTypes.map((option) => (
+            <option key={option} value={option}>
+              {t.banners.types[option]}
+            </option>
+          ))}
+        </select>
+      </div>
+      {type !== null && (
+        <div className={styles.select}>
+          <label htmlFor={tierId}>{t.simulator.standardTier}</label>
+          <select id={tierId} value={tier} onChange={(event) => onChange(type, Number(event.target.value))}>
+            {tiers.map((option) => (
+              <option key={option} value={option}>
+                {effects === undefined
+                  ? t.banners.tier(option)
+                  : t.simulator.bannerTierOption(
+                      option,
+                      `+${formatShare(percentPoints(effectOfTier(effects, type, option)), language)}`,
+                    )}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The paladin standard equipped in the player's village `villageId`, at its own tier. */
+function ownStandard(banners: Banners | undefined, villageId: number) {
+  const row = banners?.villages.find((entry) => entry.id === villageId);
+  const standard = banners?.banners.find((entry) => entry.id === row?.standardId);
+  return standard === undefined || !isStandard(standard.type)
+    ? undefined
+    : { type: standard.type, tier: standard.tier };
 }
 
 /** The banner flying in the player's village `villageId`, with the tier it works at there. */

@@ -33,8 +33,14 @@ const settings: AdminWorldSettings = {
   paladinMaxSlots: 5,
   bannersEnabled: true,
   bannerDropFactor: 1,
+  standardTheftEnabled: true,
+  npcBannersEnabled: false,
   marketExchangeRatio: 1.5,
   villageNameLanguage: 'EN',
+  nightBonusEnabled: false,
+  nightBonusStartHour: 23,
+  nightBonusEndHour: 7,
+  nightBonusFactor: 2,
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
   barbarianWallMaxLevel: 5,
@@ -80,8 +86,14 @@ describe('worldFromForm', () => {
       paladinMaxSlots: 5,
       bannersEnabled: true,
       bannerDropFactor: 1,
+      standardTheftEnabled: true,
+      npcBannersEnabled: false,
       marketExchangeRatio: 1.5,
       villageNameLanguage: 'EN',
+      nightBonusEnabled: false,
+      nightBonusStartHour: 23,
+      nightBonusEndHour: 7,
+      nightBonusFactor: 2,
       barbarianWallsEnabled: null,
       barbarianWallStartDays: null,
       barbarianWallMaxLevel: null,
@@ -149,6 +161,21 @@ describe('worldFromForm', () => {
     expect(worldFromForm({ ...form, marketExchangeRatio: '0.5' })).toBeNull();
     expect(worldFromForm({ ...form, marketExchangeRatio: '10.5' })).toBeNull();
     expect(worldFromForm({ ...form, marketExchangeRatio: '' })).toBeNull();
+  });
+
+  it('sends the night bonus and refuses a night without hours or a factor out of range', () => {
+    const form = { ...worldToForm(settings), nightBonusEnabled: true };
+    expect(worldFromForm({ ...form, nightBonusStartHour: '0', nightBonusEndHour: '8' })).toMatchObject({
+      nightBonusEnabled: true,
+      nightBonusStartHour: 0,
+      nightBonusEndHour: 8,
+      nightBonusFactor: 2,
+    });
+    expect(worldFromForm({ ...form, nightBonusStartHour: '7' })).toBeNull();
+    expect(worldFromForm({ ...form, nightBonusEndHour: '24' })).toBeNull();
+    expect(worldFromForm({ ...form, nightBonusStartHour: '22.5' })).toBeNull();
+    expect(worldFromForm({ ...form, nightBonusFactor: '1' })).toBeNull();
+    expect(worldFromForm({ ...form, nightBonusFactor: '3' })?.nightBonusFactor).toBe(3);
   });
 
   it('sends the language of default village names', () => {

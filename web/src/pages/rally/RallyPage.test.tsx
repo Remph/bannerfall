@@ -29,7 +29,7 @@ const troops: Troops = {
 };
 
 /** The rally point, with a link like the header's attack badge above it. */
-function open(url = `/v/${village.id}/rally`, data: Troops = troops) {
+function open(url = `/v/${village.id}/rally`, data: Troops = troops, world: object = { mapSize: 100 }) {
   return renderPage({
     path: '/v/:villageId/rally',
     url,
@@ -42,7 +42,7 @@ function open(url = `/v/${village.id}/rally`, data: Troops = troops) {
     data: [
       [villageQueryKey(village.id), village],
       [troopsQueryKey(village.id), data],
-      [['world'], { mapSize: 100 }],
+      [['world'], world],
     ],
   });
 }
@@ -165,5 +165,47 @@ describe('RallyPage', () => {
     expect(bars).toHaveLength(2);
     // 10 of 20 minutes on the way
     expect((bars[0] as HTMLElement).style.transform).toMatch(/^scaleX\(0\.5/);
+  });
+
+  it('marks the attacks that land in the night bonus with the moon, not those on barbarians (1.4)', () => {
+    const hilltop = { id: 901, name: 'Hilltop', x: 52, y: 60, playerId: 7, playerName: 'Jonas' };
+    const home = { id: village.id, name: village.name, x: village.x, y: village.y, playerId: 1, playerName: 'Aldric' };
+    // 20:50 UTC is 22:50 in Germany (summer time)
+    const coming = {
+      id: 2,
+      kind: 'ATTACK' as const,
+      sourceVillage: hilltop,
+      sourcePlayerName: 'Jonas',
+      departAt: null,
+      arriveAt: '2026-10-15T20:50:00Z',
+      units: null,
+    };
+    const going = {
+      id: 5,
+      kind: 'ATTACK' as const,
+      sourceVillage: home,
+      targetVillage: hilltop,
+      homeVillage: home,
+      units: { SPEARMAN: 10 },
+      catapultTarget: null,
+      loot: { wood: 0, clay: 0, iron: 0 },
+      departAt: '2026-10-15T20:20:00Z',
+      arriveAt: '2026-10-15T20:50:00Z',
+      cancellableUntil: null,
+    };
+    const data = {
+      ...troops,
+      outgoing: [going, { ...going, id: 6, targetVillage: barbarians }],
+      incoming: [coming, { ...coming, id: 4, arriveAt: '2026-10-15T19:50:00Z' }],
+    };
+    const nightBonus = { startHour: 22, endHour: 7, factor: 2, zone: 'Europe/Berlin' };
+
+    open(undefined, data, { mapSize: 100, nightBonus });
+    // the one coming in at 22:50 and the own one on a player's village; not the barbarians, not 21:50
+    expect(screen.getAllByText('Night bonus ×2')).toHaveLength(2);
+    cleanup();
+
+    open(undefined, data, { mapSize: 100, nightBonus: null });
+    expect(screen.queryByText('Night bonus ×2')).toBeNull();
   });
 });

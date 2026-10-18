@@ -26,6 +26,12 @@ public class FarmTarget {
 
     @Embedded private UnitCounts units;
 
+    /**
+     * The player's template the entry uses (1.4), or null for its own units. {@link #units} is
+     * always the units it sends: a copy of the template's, changed with it.
+     */
+    private Long templateId;
+
     private Instant createdAt;
 
     /** When the helper last sent this template; null if never. */
@@ -33,15 +39,28 @@ public class FarmTarget {
 
     protected FarmTarget() {}
 
-    FarmTarget(long villageId, long targetVillageId, UnitCounts units, Instant createdAt) {
+    FarmTarget(
+            long villageId,
+            long targetVillageId,
+            UnitCounts units,
+            Long templateId,
+            Instant createdAt) {
         this.villageId = villageId;
         this.targetVillageId = targetVillageId;
         this.units = units;
+        this.templateId = templateId;
         this.createdAt = createdAt;
     }
 
-    void setUnits(UnitCounts units) {
+    /** What the entry sends from now on: a template's units (its id) or its own (null). */
+    void setUnits(UnitCounts units, Long templateId) {
         this.units = units;
+        this.templateId = templateId;
+    }
+
+    /** The template's new units, for an entry that uses it. */
+    void followTemplate(UnitCounts units) {
+        this.units = units.copy();
     }
 
     void sentAt(Instant now) {
@@ -62,6 +81,10 @@ public class FarmTarget {
 
     public UnitCounts getUnits() {
         return units;
+    }
+
+    public Long getTemplateId() {
+        return templateId;
     }
 
     public Instant getLastSentAt() {

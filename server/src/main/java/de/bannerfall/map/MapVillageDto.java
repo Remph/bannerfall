@@ -20,6 +20,8 @@ import java.time.Instant;
  *     Null when the roll is free, for his own villages and while banners or drops are off; the same
  *     as the farm list's tag
  * @param keep a banner keep (v1.3, 02-game-rules §22), whoever owns it
+ * @param note the asking player's own note on this village (1.4, 02-game-rules §23), null if he has
+ *     none
  */
 public record MapVillageDto(
         long id,
@@ -35,4 +37,5 @@ public record MapVillageDto(
         @Schema(nullable = true) Long guildId,
         @Schema(nullable = true) String guildTag,
         @Schema(nullable = true) Instant nextBannerRollAt,
-        boolean keep) {}
+        boolean keep,
+        @Schema(nullable = true) String note) {}

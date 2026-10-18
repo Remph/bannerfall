@@ -32,6 +32,12 @@ class ResearchController {
         return researchService.smithy(villageId, playerService.idOf(me.accountId()));
     }
 
+    @GetMapping("/banner-hall")
+    HallTrainingDto bannerHall(
+            @PathVariable long villageId, @AuthenticationPrincipal AccountPrincipal me) {
+        return researchService.hallTraining(villageId, playerService.idOf(me.accountId()));
+    }
+
     @PostMapping("/research-orders")
     @ResponseStatus(HttpStatus.CREATED)
     ResearchOrderDto start(

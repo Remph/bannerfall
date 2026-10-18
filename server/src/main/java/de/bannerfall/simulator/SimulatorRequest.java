@@ -1,5 +1,6 @@
 package de.bannerfall.simulator;
 
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.UnitType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,7 +24,8 @@ import java.util.Map;
  * @param loyalty the village's loyalty before the battle, 0 to 100; null means 100. Only used to
  *     tell what the surviving nobles would do
  * @param attackerLevels the research level of each attacking unit type (M30); null or a missing
- *     type means level 1. Ignored while the world has unit levels switched off
+ *     type means level 1. While the world has unit levels switched off only the paladin's and the
+ *     banner thief's count (Hall training, 1.4); the thief level sets the theft chance per thief
  * @param defenderLevels the same for the defending units
  * @param warTier the attacker's War banner (M32c, 02-game-rules §21.2) at the tier it works at in
  *     his village (the hall there caps it); null or 0 means none
@@ -38,6 +40,17 @@ import java.util.Map;
  *     together with {@code warTier}
  * @param oathTier the tier of the Oath banner flying in the target village, capped by the hall like
  *     the Bulwark; null or 0 means none. Not together with {@code bulwarkTier}
+ * @param attackerStandard the paladin standard of the attacker's village (1.4, 02-game-rules
+ *     §21.18); null means none. It only works with a paladin in the attack, at most at the
+ *     attacker's paladin level ({@code attackerLevels})
+ * @param attackerStandardTier its tier; null or 0 means none
+ * @param defenderStandard the standard of the defending village, for all defenders (the simulator
+ *     has one stack); works only with a paladin among the defenders, at most at the defender's
+ *     paladin level and only with a Banner Hall ({@code bannerHall})
+ * @param defenderStandardTier its tier; null or 0 means none
+ * @param night the attack arrives in the night bonus (1.4, 02-game-rules §8.1): the defence counts
+ *     with the world's factor; null means by day. Ignored while the world has no night bonus. The
+ *     simulator doesn't know whether the target is a barbarian village (which never gets it)
  */
 public record SimulatorRequest(
         @NotNull Map<UnitType, @NotNull @Min(0) @Max(MAX_UNITS) Integer> attacker,
@@ -54,7 +67,87 @@ public record SimulatorRequest(
         @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer bulwarkTier,
         @Schema(nullable = true) @Min(0) @Max(MAX_LEVEL) Integer bannerHall,
         @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer plunderTier,
-        @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer oathTier) {
+        @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer oathTier,
+        @Schema(nullable = true) BannerType attackerStandard,
+        @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer attackerStandardTier,
+        @Schema(nullable = true) BannerType defenderStandard,
+        @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer defenderStandardTier,
+        @Schema(nullable = true) Boolean night) {
+
+    /** A simulation by day. */
+    public SimulatorRequest(
+            Map<UnitType, Integer> attacker,
+            Map<UnitType, Integer> defender,
+            Integer wall,
+            BuildingType catapultTarget,
+            Integer catapultTargetLevel,
+            Integer loyalty,
+            Map<UnitType, Integer> attackerLevels,
+            Map<UnitType, Integer> defenderLevels,
+            Integer warTier,
+            Integer bulwarkTier,
+            Integer bannerHall,
+            Integer plunderTier,
+            Integer oathTier,
+            BannerType attackerStandard,
+            Integer attackerStandardTier,
+            BannerType defenderStandard,
+            Integer defenderStandardTier) {
+        this(
+                attacker,
+                defender,
+                wall,
+                catapultTarget,
+                catapultTargetLevel,
+                loyalty,
+                attackerLevels,
+                defenderLevels,
+                warTier,
+                bulwarkTier,
+                bannerHall,
+                plunderTier,
+                oathTier,
+                attackerStandard,
+                attackerStandardTier,
+                defenderStandard,
+                defenderStandardTier,
+                null);
+    }
+
+    /** A simulation without paladin standards. */
+    public SimulatorRequest(
+            Map<UnitType, Integer> attacker,
+            Map<UnitType, Integer> defender,
+            Integer wall,
+            BuildingType catapultTarget,
+            Integer catapultTargetLevel,
+            Integer loyalty,
+            Map<UnitType, Integer> attackerLevels,
+            Map<UnitType, Integer> defenderLevels,
+            Integer warTier,
+            Integer bulwarkTier,
+            Integer bannerHall,
+            Integer plunderTier,
+            Integer oathTier) {
+        this(
+                attacker,
+                defender,
+                wall,
+                catapultTarget,
+                catapultTargetLevel,
+                loyalty,
+                attackerLevels,
+                defenderLevels,
+                warTier,
+                bulwarkTier,
+                bannerHall,
+                plunderTier,
+                oathTier,
+                null,
+                null,
+                null,
+                null);
+    }
 
     /** Per unit type: far above any real army, far below an overflow of the sums. */
     public static final int MAX_UNITS = 1_000_000;

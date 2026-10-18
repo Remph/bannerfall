@@ -29,6 +29,8 @@ import de.bannerfall.rules.BattleResult;
 import de.bannerfall.rules.Combat;
 import de.bannerfall.rules.Loot;
 import de.bannerfall.rules.Loyalty;
+import de.bannerfall.rules.Siege;
+import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitStack;
@@ -39,6 +41,7 @@ import de.bannerfall.village.PointsService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageBannerDto;
 import de.bannerfall.village.VillageRefDto;
+import de.bannerfall.world.NightBonusService;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
@@ -83,6 +86,7 @@ public class BattleService {
     private final UnitLevelService unitLevels;
     private final VillageBanners villageBanners;
     private final BannerBattleService bannerBattles;
+    private final NightBonusService nightBonus;
 
     BattleService(
             UnitStackRepository stacks,
@@ -101,7 +105,8 @@ public class BattleService {
             LoyaltySightings sightings,
             UnitLevelService unitLevels,
             VillageBanners villageBanners,
-            BannerBattleService bannerBattles) {
+            BannerBattleService bannerBattles,
+            NightBonusService nightBonus) {
         this.stacks = stacks;
         this.movements = movements;
         this.scheduler = scheduler;
@@ -119,6 +124,7 @@ public class BattleService {
         this.unitLevels = unitLevels;
         this.villageBanners = villageBanners;
         this.bannerBattles = bannerBattles;
+        this.nightBonus = nightBonus;
     }
 
     /**
@@ -159,6 +165,8 @@ public class BattleService {
                 defenders.stream().map(stack -> stack.getUnits().toMap()).toList();
         List<VillageRefDto> stackHomes =
                 defenders.stream().map(stack -> VillageRefDto.of(stack.getHomeVillage())).toList();
+        List<Long> stackOwners =
+                defenders.stream().map(stack -> playerId(stack.getHomeVillage())).toList();
         List<Long> supporters =
                 defenders.stream()
                         .filter(stack -> !stack.isHome() && !stack.getUnits().isEmpty())
@@ -174,10 +182,27 @@ public class BattleService {
         Map<BuildingType, Integer> buildingsBefore = levels.toMap();
         ResourceAmounts stockBefore = target.floorResources();
         BattleReport.ScoutedBanner bannerBefore = scoutedBanner(target, world);
+        BattleReport.ScoutedBanner standardBefore =
+                villageBanners
+                        .equippedStandard(target)
+                        .map(b -> new BattleReport.ScoutedBanner(b.getType(), b.getTier()))
+                        .orElse(null);
         // Banners (02-game-rules §21.2): War, Plunder and Haste came along with the attack when it
         // left (the host's switch still turns them off), Bulwark and Oath are the target's now.
         CommandBanner trip = world.bannersEnabled() ? attack.getBanner() : CommandBanner.NONE;
         BannerEffect targetBanner = villageBanners.effectOf(target);
+        // Paladin standards (1.4, §21.18): the attack's came along like War, each defending stack
+        // carries its home village's standard now, if a paladin stands in it
+        StandardEffect attackStandard = villageBanners.effectOf(trip.standard());
+        List<StandardEffect> defenderStandards =
+                defenders.stream()
+                        .map(
+                                stack ->
+                                        villageBanners.standardEffectOf(
+                                                stack.getHomeVillage(),
+                                                stack.getUnits().get(UnitType.PALADIN) > 0,
+                                                at))
+                        .toList();
 
         BattleInput input =
                 new BattleInput(
@@ -197,7 +222,11 @@ public class BattleService {
                                                         stack.getHomeVillage().getPlayer(), at))
                                 .toList(),
                         trip.attack(),
-                        targetBanner.bulwark());
+                        targetBanner.bulwark(),
+                        attackStandard,
+                        defenderStandards,
+                        // the night bonus (1.4, §8.1) at the arrival, for an owned village
+                        nightBonus.current().factorAt(at, target.getPlayer() != null));
         BattleResult result = Combat.fight(gameData, input);
         // what good scouts see outside the village (§7.1), as it was when they arrived
         Map<UnitType, Integer> away =
@@ -235,12 +264,21 @@ public class BattleService {
                 target.spend(loot);
             }
         }
-        awardAchievements(attack, target, result, wallBefore, loot, at, world);
+        awardAchievements(attack, target, input, result, stackOwners, loot, at, world);
         BattleReport.LoyaltyReport loyaltySeen = loyaltySeen(attack, target, loyalty, result, at);
         boolean conquered = loyalty != null && loyalty.conquered();
         // before the owner changes: thieves steal from the defender, drops know who lost
-        BattleReport.TheftReport theft = steal(attack, target, result, conquered, at);
-        Found found = rollDrops(attack, target, defendingUnits, result, at);
+        BattleReport.TheftReport theft =
+                steal(
+                        attack,
+                        target,
+                        result,
+                        input.attackerLevels().get(UnitType.BANNER_THIEF),
+                        conquered,
+                        at);
+        Found found = rollDrops(attack, target, defenders, defendingUnits, result, at);
+        BattleReport.StandardTheftReport standardTheft =
+                stealStandard(attack, target, trip, defenders, input, result, at);
         if (!conquered) {
             sendSurvivorsHome(attack, result.attackerSurvivors(), loot, trip, at, world);
         }
@@ -265,9 +303,14 @@ public class BattleService {
                                 targetBanner.bulwark(),
                                 found.attacker(),
                                 found.defender(),
-                                theft),
+                                theft,
+                                BattleReports.standardOf(attackStandard),
+                                found.attackerStandard(),
+                                found.defenderStandard(),
+                                standardTheft),
                         haulCapacity,
-                        away),
+                        away,
+                        standardBefore),
                 defenderPlayerId,
                 supporters);
         if (conquered) {
@@ -299,29 +342,44 @@ public class BattleService {
     }
 
     /**
-     * Counted wins and defences, Plunderer and Breach (02-game-rules §19). Called after the battle
-     * is decided and the loot taken, before a conquest changes the owner: {@code target} still
-     * belongs to the defender. Scouting-only attacks and attacks of fewer than {@value
-     * AchievementService#MIN_UNITS_FOR_WIN} units count for nothing; a win or a defence against the
-     * same village counts once per {@code 24 h ÷ speed} for the same attacker. NPC lords earn
-     * nothing, so their battles leave no trace.
+     * Counted wins and defences, Plunderer and Breach (02-game-rules §19) and the battle
+     * achievements of 1.4 (§19.1). Called after the battle is decided and the loot taken, before a
+     * conquest changes the owner: {@code target} still belongs to the defender. Scouting-only
+     * attacks and attacks of fewer than {@value AchievementService#MIN_UNITS_FOR_WIN} units count
+     * for no win or defence; a win or a defence against the same village counts once per {@code 24
+     * h ÷ speed} for the same attacker. NPC lords earn nothing, so their battles leave no trace
+     * (only a lord's win is remembered for the Avenger of the human he beat). An attack on a
+     * village of the attacker's own (possible only if he took it while the attack was on its way)
+     * counts for nothing.
+     *
+     * @param stackOwners the player of each defending stack, in the order of {@code
+     *     input.defenderStacks()} (null for barbarians)
      */
     private void awardAchievements(
             Movement attack,
             Village target,
+            BattleInput input,
             BattleResult result,
-            int wallBefore,
+            List<Long> stackOwners,
             ResourceAmounts loot,
             Instant at,
             WorldSettings world) {
         Player attacker = attack.getHomeVillage().getPlayer();
         Player defender = target.getPlayer();
-        if (result.mainBattle() == null || attacker == null) {
+        if (attacker == null || (defender != null && defender.getId().equals(attacker.getId()))) {
             return;
         }
-        boolean enoughUnits =
-                attack.getUnits().toMap().values().stream().mapToInt(Integer::intValue).sum()
-                        >= AchievementService.MIN_UNITS_FOR_WIN;
+        int sent = total(input.attacker());
+        int attackerLost = total(result.attackerLosses());
+        killCounters(attacker, defender, result, stackOwners, attackerLost);
+        BattleResult.Scouting scouting = result.scouting();
+        if (scouting != null && scouting.sent() > 0 && scouting.lost() == scouting.sent()) {
+            achievements.grant(defender, Achievement.SPY_CATCHER);
+        }
+        if (result.mainBattle() == null) {
+            return;
+        }
+        boolean enoughUnits = sent >= AchievementService.MIN_UNITS_FOR_WIN;
         if (result.attackerWon()) {
             if (!attacker.isNpc()
                     && enoughUnits
@@ -330,9 +388,35 @@ public class BattleService {
                 achievements.grant(attacker, Achievement.FIRST_BLOOD);
                 achievements.count(attacker, Achievement.VICTOR, 1);
                 achievements.count(attacker, Achievement.PLUNDERER, loot.total());
+                if (achievements.avenges(attacker, defender, at, world.speed())) {
+                    achievements.grant(attacker, Achievement.AVENGER);
+                }
             }
-            if (attack.getUnits().get(UnitType.RAM) > 0 && result.wallAfter() < wallBefore) {
+            if (enoughUnits) {
+                achievements.beaten(defender, attacker, at);
+            }
+            if (attack.getUnits().get(UnitType.RAM) > 0 && result.wallAfter() < input.wallLevel()) {
                 achievements.grant(attacker, Achievement.BREACH);
+            }
+            if (sent >= AchievementService.PYRRHIC_MIN_UNITS && attackerLost * 4 >= sent * 3) {
+                achievements.grant(attacker, Achievement.PYRRHIC_VICTORY);
+            }
+            // aimed at the wall, the surviving rams work first: only what the catapults took
+            int beforeCatapults =
+                    input.catapultTarget() == BuildingType.WALL
+                            ? Siege.wallAfterRams(
+                                    input.wallLevel(),
+                                    result.attackerSurvivors().getOrDefault(UnitType.RAM, 0))
+                            : input.catapultTargetLevel();
+            if (input.catapultTarget() != null
+                    && beforeCatapults - result.catapultTargetLevelAfter()
+                            >= AchievementService.DEMOLISHER_LEVELS) {
+                achievements.grant(attacker, Achievement.DEMOLISHER);
+            }
+            // won with luck, lost without it: A / (1 + luck) is the strength without luck
+            BattleResult.MainBattle battle = result.mainBattle();
+            if (input.luck() > 0 && battle.attack() / (1 + input.luck()) <= battle.defense()) {
+                achievements.grant(attacker, Achievement.LUCKY_STRIKE);
             }
         } else if (defender != null
                 && !defender.isNpc()
@@ -341,7 +425,50 @@ public class BattleService {
                         attacker.getId(), target.getId(), "DEFENCE", at, world.speed())) {
             achievements.grant(defender, Achievement.SHIELD);
             achievements.count(defender, Achievement.BULWARK, 1);
+            int defending = input.defenderStacks().stream().mapToInt(BattleService::total).sum();
+            if (sent > defending) {
+                achievements.grant(defender, Achievement.LAST_STAND);
+            }
+            // every other player whose support stood there (the village's own stack is first)
+            for (int i = 0; i < stackOwners.size(); i++) {
+                Long owner = stackOwners.get(i);
+                if (owner != null
+                        && !owner.equals(defender.getId())
+                        && !owner.equals(attacker.getId())
+                        && total(input.defenderStacks().get(i)) > 0) {
+                    achievements.grant(owner, Achievement.BROTHERS_IN_ARMS);
+                }
+            }
         }
+    }
+
+    /**
+     * Slayer and Warden (02-game-rules §19.1): the attacker counts every defending unit that died,
+     * except his own support standing there; the village's owner counts every attacking unit that
+     * died, scouts included, whoever's units killed them.
+     */
+    private void killCounters(
+            Player attacker,
+            Player defender,
+            BattleResult result,
+            List<Long> stackOwners,
+            int attackerLost) {
+        int killed = 0;
+        for (int i = 0; i < result.defenderLosses().size(); i++) {
+            if (!attacker.getId().equals(stackOwners.get(i))) {
+                killed += total(result.defenderLosses().get(i));
+            }
+        }
+        if (killed > 0) {
+            achievements.count(attacker, Achievement.SLAYER, killed);
+        }
+        if (attackerLost > 0 && defender != null) {
+            achievements.count(defender, Achievement.WARDEN, attackerLost);
+        }
+    }
+
+    private static int total(Map<UnitType, Integer> units) {
+        return units.values().stream().mapToInt(Integer::intValue).sum();
     }
 
     /**
@@ -488,9 +615,16 @@ public class BattleService {
     /**
      * The banner thieves of the attack (02-game-rules §21.6.2); null without thieves or with
      * banners switched off. The target is still the defender's.
+     *
+     * @param thiefLevel the attacker's thief level at the arrival (Hall training, 1.4)
      */
     private BattleReport.TheftReport steal(
-            Movement attack, Village target, BattleResult result, boolean conquered, Instant at) {
+            Movement attack,
+            Village target,
+            BattleResult result,
+            int thiefLevel,
+            boolean conquered,
+            Instant at) {
         int sent = attack.getUnits().get(UnitType.BANNER_THIEF);
         if (sent == 0) {
             return null;
@@ -500,16 +634,24 @@ public class BattleService {
                 attack.getOwnerPlayerId(),
                 sent,
                 result.attackerSurvivors().getOrDefault(UnitType.BANNER_THIEF, 0),
+                thiefLevel,
                 result.attackerWon(),
                 conquered,
                 target.getBuildings().get(BuildingType.BANNER_HALL),
                 at);
     }
 
-    /** The banner a battle dropped, for the attacker or for the village owner (at most one). */
-    private record Found(BattleReport.ScoutedBanner attacker, BattleReport.ScoutedBanner defender) {
+    /**
+     * The banner and the paladin standard a battle dropped, for the attacker or for the village
+     * owner (at most one of each).
+     */
+    private record Found(
+            BattleReport.ScoutedBanner attacker,
+            BattleReport.ScoutedBanner defender,
+            BattleReport.ScoutedBanner attackerStandard,
+            BattleReport.ScoutedBanner defenderStandard) {
 
-        static final Found NONE = new Found(null, null);
+        static final Found NONE = new Found(null, null, null, null);
     }
 
     /**
@@ -517,10 +659,14 @@ public class BattleService {
      * owner of the village that held (not his supporters). The size filter looks at the losing
      * side: the attacker's army, or every unit that stood in the village; against barbarians at the
      * attacker's army. Scouting-only attacks roll nothing. The target is still the defender's.
+     *
+     * <p>If the winner's own paladin fought (in the attacking army, or in one of the village
+     * owner's stacks in the village), he rolls once more, for a paladin standard (1.4, §21.18).
      */
     private Found rollDrops(
             Movement attack,
             Village target,
+            List<UnitStack> defenders,
             List<Map<UnitType, Integer>> defendingUnits,
             BattleResult result,
             Instant at) {
@@ -536,23 +682,72 @@ public class BattleService {
                     defender == null
                             ? attackerPop
                             : defendingUnits.stream().mapToInt(this::population).sum();
-            return new Found(
-                    bannerBattles.rollDrop(attacker, loser, loserPop, target, at).orElse(null),
-                    null);
+            BattleReport.ScoutedBanner banner =
+                    bannerBattles.rollDrop(attacker, loser, loserPop, target, at).orElse(null);
+            BattleReport.ScoutedBanner standard =
+                    attack.getUnits().get(UnitType.PALADIN) > 0
+                            ? bannerBattles
+                                    .rollStandardDrop(attacker, loser, loserPop, target, at)
+                                    .orElse(null)
+                            : null;
+            return new Found(banner, null, standard, null);
         }
         if (defender == null) {
             return Found.NONE;
         }
-        return new Found(
-                null,
-                bannerBattles
-                        .rollDrop(
-                                defender,
-                                BannerBattleService.Loser.player(attack.getOwnerPlayerId()),
-                                attackerPop,
-                                target,
-                                at)
-                        .orElse(null));
+        BannerBattleService.Loser loser =
+                BannerBattleService.Loser.player(attack.getOwnerPlayerId());
+        BattleReport.ScoutedBanner banner =
+                bannerBattles.rollDrop(defender, loser, attackerPop, target, at).orElse(null);
+        boolean paladinFought = false;
+        for (int i = 0; i < defenders.size(); i++) {
+            Player owner = defenders.get(i).getHomeVillage().getPlayer();
+            paladinFought |=
+                    owner != null
+                            && owner.getId().equals(defender.getId())
+                            && defendingUnits.get(i).getOrDefault(UnitType.PALADIN, 0) > 0;
+        }
+        BattleReport.ScoutedBanner standard =
+                paladinFought
+                        ? bannerBattles
+                                .rollStandardDrop(defender, loser, attackerPop, target, at)
+                                .orElse(null)
+                        : null;
+        return new Found(null, banner, null, standard);
+    }
+
+    /**
+     * After a lost attack the village owner's own thieves at home may take the paladin standard the
+     * attack carried (1.4, 02-game-rules §21.18); null if there is no roll. The target is still the
+     * defender's.
+     */
+    private BattleReport.StandardTheftReport stealStandard(
+            Movement attack,
+            Village target,
+            CommandBanner trip,
+            List<UnitStack> defenders,
+            BattleInput input,
+            BattleResult result,
+            Instant at) {
+        if (trip.standard() == null
+                || result.mainBattle() == null
+                || result.attackerWon()
+                || defenders.isEmpty()
+                || !defenders.get(0).isHome()) {
+            return null;
+        }
+        // HOME_FIRST: the village's own units are the first stack
+        int thieves = input.defenderStacks().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
+        int survivors =
+                thieves - result.defenderLosses().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
+        return bannerBattles.stealStandard(
+                trip.standard(),
+                attack.getOwnerPlayerId(),
+                attack.getHomeVillage().getId(),
+                target,
+                survivors,
+                input.defenderLevels().get(0).get(UnitType.BANNER_THIEF),
+                at);
     }
 
     /** The population of these units (02-game-rules §5.3). */

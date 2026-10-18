@@ -23,6 +23,20 @@ npc:
       farm-radius: 12
       conquest-radius: 15
       nobles: 4
+      # lord banners (1.4, 09-npc-lords §14, only with the world setting npcBannersEnabled): which
+      # banner and standard a village flies (the favourite first), the thieves each village with a
+      # Banner Hall keeps for retaliations, and whether the paladin rides along on them
+      banner-favourites: [BULWARK, OATH, DRILL, HARVEST, BUILDERS, TREASURY, WAR, HASTE, PLUNDER]
+      standard-favourites:
+        - SPEAR_STANDARD
+        - SWORD_STANDARD
+        - KNIGHT_STANDARD
+        - AXE_STANDARD
+        - LANCE_STANDARD
+        - RAM_STANDARD
+        - SIEGE_STANDARD
+      thieves: 0
+      paladin-retaliates: false
       build:
         - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
         - { HEADQUARTERS: 2 }
@@ -43,6 +57,7 @@ npc:
         - { BARRACKS: 5, SMITHY: 5 }
         - { WALL: 6 }
         - { HEADQUARTERS: 10 }
+        - { BANNER_HALL: 1 }                             # 1.4: the paladin trains in the Banner Hall
         - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
         - { FARM: 10, WAREHOUSE: 10 }
         - { MARKET: 5 }
@@ -50,11 +65,11 @@ npc:
         - { WALL: 10 }
         - { BARRACKS: 10, SMITHY: 10 }
         - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
-        - { HEADQUARTERS: 15 }
+        - { HEADQUARTERS: 15, BANNER_HALL: 2 }
         - { FARM: 15, WAREHOUSE: 15 }
         - { SMITHY: 15, STABLE: 10 }                    # heavy cavalry
         - { WALL: 15, MARKET: 5 }
-        - { HEADQUARTERS: 20 }
+        - { HEADQUARTERS: 20, BANNER_HALL: 3 }
         - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }   # before the long Smithy 20 / Academy stretch (balancing round 2)
         - { SMITHY: 20 }
         - { MARKET: 10 }

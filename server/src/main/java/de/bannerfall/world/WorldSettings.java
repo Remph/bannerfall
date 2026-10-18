@@ -2,6 +2,8 @@ package de.bannerfall.world;
 
 import de.bannerfall.npc.NpcBalanceSettings;
 import de.bannerfall.npc.NpcDifficulty;
+import de.bannerfall.rules.NightBonus;
+import java.time.ZoneId;
 
 /**
  * The settings of 02-game-rules §1, one immutable snapshot. {@code WorldService} loads it from the
@@ -14,12 +16,18 @@ import de.bannerfall.npc.NpcDifficulty;
  * player one paladin slot at the start, one more per that many villages and at most {@code
  * paladinMaxSlots} (0 = no paladin in this world). {@code bannersEnabled} and {@code
  * bannerDropFactor} (M32, 02-game-rules §21.9) switch the banners on and scale the chance that a
- * won battle drops one (0 = no drops; the economy effects of a banner already in a village stay).
- * {@code marketExchangeRatio} (v1.3, 02-game-rules §12.1) is what trading with the market costs:
- * {@code ratio} of one resource for 1 of another (0 = no trading with the market). {@code
- * victoryMode}, {@code dominationPercent}, {@code victoryHoldHours}, {@code keepCount} and {@code
- * keepPercent} (v1.3, 02-game-rules §22) decide how the world is won. {@code villageNameLanguage}
- * (v1.3, 02-game-rules §2) is the language of the names the game gives villages.
+ * won battle drops one (0 = no drops; the economy effects of a banner already in a village stay);
+ * {@code standardTheftEnabled} (1.4, §21.18) lets the defenders' thieves take the paladin standard
+ * of an attack they beat; {@code npcBannersEnabled} (1.4, 09-npc-lords §14) lets NPC lords find,
+ * fly, fuse and lose banners and standards like players, only while banners are on. {@code
+ * marketExchangeRatio} (v1.3, 02-game-rules §12.1) is what trading with the market costs: {@code
+ * ratio} of one resource for 1 of another (0 = no trading with the market). {@code victoryMode},
+ * {@code dominationPercent}, {@code victoryHoldHours}, {@code keepCount} and {@code keepPercent}
+ * (v1.3, 02-game-rules §22) decide how the world is won. {@code villageNameLanguage} (v1.3,
+ * 02-game-rules §2) is the language of the names the game gives villages. {@code
+ * nightBonusEnabled}, {@code nightBonusStartHour}, {@code nightBonusEndHour} and {@code
+ * nightBonusFactor} (1.4, 02-game-rules §8.1) make owned villages defend more strongly against
+ * attacks that arrive at night.
  *
  * <p>Built by name through {@link Builder} (1.3); the canonical constructor is called only by
  * {@link Builder#build()}. {@code WorldSettingsTest} checks by reflection that every setting has
@@ -62,13 +70,19 @@ public record WorldSettings(
         int paladinMaxSlots,
         boolean bannersEnabled,
         double bannerDropFactor,
+        boolean standardTheftEnabled,
+        boolean npcBannersEnabled,
         double marketExchangeRatio,
         VictoryMode victoryMode,
         int dominationPercent,
         int victoryHoldHours,
         int keepCount,
         int keepPercent,
-        VillageNameLanguage villageNameLanguage) {
+        VillageNameLanguage villageNameLanguage,
+        boolean nightBonusEnabled,
+        int nightBonusStartHour,
+        int nightBonusEndHour,
+        double nightBonusFactor) {
 
     /**
      * The defaults of the table in 02-game-rules §1 (speed 1; the invite code is a placeholder):
@@ -121,13 +135,25 @@ public record WorldSettings(
                 .paladinMaxSlots(paladinMaxSlots)
                 .bannersEnabled(bannersEnabled)
                 .bannerDropFactor(bannerDropFactor)
+                .standardTheftEnabled(standardTheftEnabled)
+                .npcBannersEnabled(npcBannersEnabled)
                 .marketExchangeRatio(marketExchangeRatio)
                 .victoryMode(victoryMode)
                 .dominationPercent(dominationPercent)
                 .victoryHoldHours(victoryHoldHours)
                 .keepCount(keepCount)
                 .keepPercent(keepPercent)
-                .villageNameLanguage(villageNameLanguage);
+                .villageNameLanguage(villageNameLanguage)
+                .nightBonusEnabled(nightBonusEnabled)
+                .nightBonusStartHour(nightBonusStartHour)
+                .nightBonusEndHour(nightBonusEndHour)
+                .nightBonusFactor(nightBonusFactor);
+    }
+
+    /** The night bonus of this world (1.4, 02-game-rules §8.1), its hours read in {@code zone}. */
+    public NightBonus nightBonus(ZoneId zone) {
+        return new NightBonus(
+                nightBonusEnabled, nightBonusStartHour, nightBonusEndHour, nightBonusFactor, zone);
     }
 
     /** Same settings with another unit speed (tests, balancing). */
@@ -162,6 +188,22 @@ public record WorldSettings(
                 .paladinVillagesPerSlot(villagesPerSlot)
                 .paladinMaxSlots(maxSlots)
                 .build();
+    }
+
+    /**
+     * Whether the Banner Hall can be built (1.4, 02-game-rules §21.3): it trains the paladin since
+     * 1.4 and serves the banners, so it is there while either of them is on.
+     */
+    public boolean bannerHallAvailable() {
+        return bannersEnabled || paladinMaxSlots > 0;
+    }
+
+    /**
+     * Whether NPC lords take part in banners and standards (1.4, 09-npc-lords §14): the lord
+     * setting and the banners themselves are on.
+     */
+    public boolean lordBanners() {
+        return bannersEnabled && npcBannersEnabled;
     }
 
     /** Same settings with other banner settings (M32; tests, balancing). */
@@ -211,6 +253,8 @@ public record WorldSettings(
         private int paladinMaxSlots = 5;
         private boolean bannersEnabled = true;
         private double bannerDropFactor = 1.0;
+        private boolean standardTheftEnabled = true;
+        private boolean npcBannersEnabled = false;
         private double marketExchangeRatio = 1.5;
         private VictoryMode victoryMode = VictoryMode.DOMINATION;
         private int dominationPercent = 60;
@@ -218,6 +262,10 @@ public record WorldSettings(
         private int keepCount = 5;
         private int keepPercent = 51;
         private VillageNameLanguage villageNameLanguage = VillageNameLanguage.EN;
+        private boolean nightBonusEnabled = false;
+        private int nightBonusStartHour = 23;
+        private int nightBonusEndHour = 7;
+        private double nightBonusFactor = 2.0;
 
         private Builder() {}
 
@@ -396,6 +444,16 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder standardTheftEnabled(boolean value) {
+            this.standardTheftEnabled = value;
+            return this;
+        }
+
+        public Builder npcBannersEnabled(boolean value) {
+            this.npcBannersEnabled = value;
+            return this;
+        }
+
         public Builder marketExchangeRatio(double value) {
             this.marketExchangeRatio = value;
             return this;
@@ -428,6 +486,26 @@ public record WorldSettings(
 
         public Builder villageNameLanguage(VillageNameLanguage value) {
             this.villageNameLanguage = value;
+            return this;
+        }
+
+        public Builder nightBonusEnabled(boolean value) {
+            this.nightBonusEnabled = value;
+            return this;
+        }
+
+        public Builder nightBonusStartHour(int value) {
+            this.nightBonusStartHour = value;
+            return this;
+        }
+
+        public Builder nightBonusEndHour(int value) {
+            this.nightBonusEndHour = value;
+            return this;
+        }
+
+        public Builder nightBonusFactor(double value) {
+            this.nightBonusFactor = value;
             return this;
         }
 
@@ -468,13 +546,19 @@ public record WorldSettings(
                     paladinMaxSlots,
                     bannersEnabled,
                     bannerDropFactor,
+                    standardTheftEnabled,
+                    npcBannersEnabled,
                     marketExchangeRatio,
                     victoryMode,
                     dominationPercent,
                     victoryHoldHours,
                     keepCount,
                     keepPercent,
-                    villageNameLanguage);
+                    villageNameLanguage,
+                    nightBonusEnabled,
+                    nightBonusStartHour,
+                    nightBonusEndHour,
+                    nightBonusFactor);
         }
     }
 }

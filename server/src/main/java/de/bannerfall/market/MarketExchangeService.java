@@ -1,5 +1,7 @@
 package de.bannerfall.market;
 
+import de.bannerfall.achievement.Achievement;
+import de.bannerfall.achievement.AchievementService;
 import de.bannerfall.banner.VillageBanners;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.GameRuleException;
@@ -35,6 +37,7 @@ public class MarketExchangeService {
     private final VillageStateService stateService;
     private final VillageBanners villageBanners;
     private final WorldService worldService;
+    private final AchievementService achievements;
     private final Clock clock;
     private final ZoneId dayZone;
 
@@ -44,6 +47,7 @@ public class MarketExchangeService {
             VillageStateService stateService,
             VillageBanners villageBanners,
             WorldService worldService,
+            AchievementService achievements,
             Clock clock,
             @Value("${bannerfall.market.day-zone:Europe/Berlin}") String dayZone) {
         this.exchanges = exchanges;
@@ -51,6 +55,7 @@ public class MarketExchangeService {
         this.stateService = stateService;
         this.villageBanners = villageBanners;
         this.worldService = worldService;
+        this.achievements = achievements;
         this.clock = clock;
         this.dayZone = ZoneId.of(dayZone);
     }
@@ -101,6 +106,8 @@ public class MarketExchangeService {
         exchanges.save(
                 new MarketExchangeEntry(
                         villageId, request.give(), cost, request.receive(), amount, now));
+        // what the village pays counts like what an accepted offer gives (1.4, 02 §19.1)
+        achievements.count(village.getPlayer(), Achievement.MERCHANT_PRINCE, cost);
         return status(village, now);
     }
 

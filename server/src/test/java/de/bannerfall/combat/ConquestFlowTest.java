@@ -318,6 +318,42 @@ class ConquestFlowTest {
         assertThat(achievementLevel(defender, "COLOURS_LOST")).isEqualTo(1);
     }
 
+    @Test
+    void aStandardInAConqueredVillageGoesIntoTheStashWithTheBanner() throws Exception {
+        // 1.4 (02-game-rules §21.18): the standard has its own slot and moves like the banner
+        long banner = flyBanner(defender, defender.villageId, "WAR", 2);
+        long standard = flyBanner(defender, defender.villageId, "SPEAR_STANDARD", 1);
+        dice.use(FixedRandomSource.constant(HIGH_HIT));
+
+        arriveAt(attack(attacker, defender, "{\"AXEMAN\":10,\"NOBLE\":3}"));
+
+        assertThat(
+                        jdbc.sql(
+                                        "select owner_id || ':' || type || ':' ||"
+                                                + " coalesce(equipped_village_id::text, '-')"
+                                                + " from banner where id in (?, ?) order by id")
+                                .params(banner, standard)
+                                .query(String.class)
+                                .list())
+                .containsExactly(
+                        attacker.playerId + ":WAR:-", attacker.playerId + ":SPEAR_STANDARD:-");
+        Map<String, Object> moved = Map.of("type", "SPEAR_STANDARD", "tier", 1, "toStash", true);
+        assertThat(
+                        JsonPath.<Map<String, Object>>read(
+                                attacker.newestReport("CONQUEST"), "$.payload.standard"))
+                .isEqualTo(moved);
+        assertThat(
+                        JsonPath.<Map<String, Object>>read(
+                                defender.newestReport("VILLAGE_LOST"), "$.payload.standard"))
+                .isEqualTo(moved);
+        assertThat(attacker.bannersGainedIn("CONQUEST"))
+                .containsExactly(
+                        Map.of("type", "WAR", "tier", 2),
+                        Map.of("type", "SPEAR_STANDARD", "tier", 1));
+        // standards count for no banner achievement: the war banner alone made him a thief
+        assertThat(achievementLevel(attacker, "BANNER_THIEF")).isEqualTo(1);
+    }
+
     private int achievementLevel(TestPlayer player, String key) {
         return jdbc.sql(
                         "select coalesce(max(level), 0) from player_achievement where player_id = ?"

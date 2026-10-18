@@ -68,7 +68,31 @@ describe('toRequest', () => {
       bannerHall: null,
       plunderTier: null,
       oathTier: null,
+      attackerStandard: null,
+      attackerStandardTier: null,
+      defenderStandard: null,
+      defenderStandardTier: null,
+      night: null,
     });
+  });
+
+  it('sends a paladin standard only with a paladin on that side (1.4)', () => {
+    const form = {
+      ...emptyForm,
+      attacker: { AXEMAN: 10, PALADIN: 1 },
+      defender: { SPEARMAN: 10 },
+      attackerStandard: 'AXE_STANDARD' as const,
+      attackerStandardTier: 2,
+      defenderStandard: 'SPEAR_STANDARD' as const,
+      defenderStandardTier: 3,
+    };
+    expect(toRequest(form)).toMatchObject({
+      attackerStandard: 'AXE_STANDARD',
+      attackerStandardTier: 2,
+      defenderStandard: null,
+      defenderStandardTier: null,
+    });
+    expect(toRequest({ ...form, attackerStandardTier: 0 })).toMatchObject({ attackerStandard: null });
   });
 
   it('sends the banners and the hall only when set (M32c)', () => {
@@ -148,19 +172,23 @@ describe('canSimulate', () => {
   });
 });
 
+/** A report's banner part without the paladin standards of 1.4. */
+const noStandards = { attackStandard: null, foundStandard: null, standardTheft: null };
+
 describe('reportToForm with banners (M32c)', () => {
   const effects = { WAR: [0.03, 0.06, 0.1], BULWARK: [0.03, 0.06, 0.1] };
 
   it('takes the War banner the attack took along and the scouted Bulwark and hall', () => {
     const form = reportToForm(
       battle({
-        banners: { attackBonus: 0.06, defenceBonus: 0.03, found: null, theft: null, stolen: null },
+        banners: { attackBonus: 0.06, defenceBonus: 0.03, found: null, theft: null, stolen: null, ...noStandards },
         scouting: {
           succeeded: true,
           resources: null,
           buildings: { WALL: 3, BANNER_HALL: 1 },
           banner: { type: 'BULWARK', tier: 3 },
           away: null,
+          standard: null,
         },
       }),
       effects,
@@ -177,13 +205,16 @@ describe('reportToForm with banners (M32c)', () => {
           buildings: { BANNER_HALL: 2 },
           banner: { type: 'WAR', tier: 1 },
           away: null,
+          standard: null,
         },
       }),
       effects,
     );
     expect(scouted).toMatchObject({ warTier: 0, bulwarkTier: 0, bannerHall: 2 });
     const defence = reportToForm(
-      battle({ banners: { attackBonus: null, defenceBonus: 0.06, found: null, theft: null, stolen: null } }),
+      battle({
+        banners: { attackBonus: null, defenceBonus: 0.06, found: null, theft: null, stolen: null, ...noStandards },
+      }),
       effects,
     );
     expect(defence).toMatchObject({ bulwarkTier: 2, bannerHall: 2 });
@@ -198,13 +229,16 @@ describe('reportToForm with banners (M32c)', () => {
           buildings: { BANNER_HALL: 3 },
           banner: { type: 'OATH', tier: 2 },
           away: null,
+          standard: null,
         },
       }),
       effects,
     );
     expect(oath).toMatchObject({ oathTier: 2, bulwarkTier: 0, bannerHall: 3 });
     const named = reportToForm(
-      battle({ banners: { attackBonus: 0.06, defenceBonus: 0.06, found: null, theft: null, stolen: null } }),
+      battle({
+        banners: { attackBonus: 0.06, defenceBonus: 0.06, found: null, theft: null, stolen: null, ...noStandards },
+      }),
       effects,
     );
     expect(named).toMatchObject({ warTier: 2, plunderTier: 0, bulwarkTier: 2, oathTier: 0 });
@@ -212,7 +246,9 @@ describe('reportToForm with banners (M32c)', () => {
 
   it('leaves the banners out without the effect table', () => {
     const form = reportToForm(
-      battle({ banners: { attackBonus: 0.06, defenceBonus: null, found: null, theft: null, stolen: null } }),
+      battle({
+        banners: { attackBonus: 0.06, defenceBonus: null, found: null, theft: null, stolen: null, ...noStandards },
+      }),
     );
     expect(form.warTier).toBeUndefined();
     expect(form.bulwarkTier).toBeUndefined();
@@ -229,7 +265,15 @@ describe('reportToForm', () => {
       defenderLevels: {},
       wall: 3,
       loyalty: 80,
+      night: false,
     });
+  });
+
+  it('ticks the night switch for a battle with the night bonus, not for a scouting (1.4)', () => {
+    expect(reportToForm(battle({ nightBonus: 2 })).night).toBe(true);
+    expect(reportToForm(battle({ nightBonus: null })).night).toBe(false);
+    expect(reportToForm(battle({ outcome: 'SCOUTS_ONLY', nightBonus: null })).night).toBeUndefined();
+    expect(toRequest({ ...emptyForm, attacker: { AXEMAN: 1 }, night: true }).night).toBe(true);
   });
 
   it('takes the unit levels of that battle; the defender gets the highest level of its stacks (M30)', () => {
@@ -238,6 +282,7 @@ describe('reportToForm', () => {
       units: { SPEARMAN: 10 },
       losses: {},
       levels,
+      standard: null,
     });
     const form = reportToForm(
       battle({
@@ -313,6 +358,7 @@ describe('reportToForm', () => {
           buildings: { WALL: 8, HEADQUARTERS: 12 },
           banner: null,
           away: null,
+          standard: null,
         },
       }),
     );
@@ -367,5 +413,38 @@ describe('withBannerTier (D4)', () => {
   it('setting none clears nothing else', () => {
     const form = { ...emptyForm, warTier: 2 };
     expect(withBannerTier(form, 'plunderTier', 0)).toMatchObject({ warTier: 2, plunderTier: 0 });
+  });
+});
+
+describe('reportToForm with paladin standards (1.4)', () => {
+  it('takes the standard the attack carried and the one the scouts saw', () => {
+    const form = reportToForm(
+      battle({
+        banners: {
+          attackBonus: null,
+          defenceBonus: null,
+          found: null,
+          theft: null,
+          stolen: null,
+          attackStandard: { type: 'AXE_STANDARD', tier: 3, effectiveTier: 1 },
+          foundStandard: null,
+          standardTheft: null,
+        },
+        scouting: {
+          succeeded: true,
+          resources: null,
+          buildings: { BANNER_HALL: 1 },
+          banner: null,
+          away: null,
+          standard: { type: 'SPEAR_STANDARD', tier: 2 },
+        },
+      }),
+    );
+    expect(form).toMatchObject({
+      attackerStandard: 'AXE_STANDARD',
+      attackerStandardTier: 3,
+      defenderStandard: 'SPEAR_STANDARD',
+      defenderStandardTier: 2,
+    });
   });
 });

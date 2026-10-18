@@ -102,15 +102,24 @@ class ResearchFlowTest {
         assertThat(JsonPath.<Boolean>read(smithy, spear + ".next.affordable")).isTrue();
         assertThat(JsonPath.<List<?>>read(smithy, spear + ".next.missing")).isEmpty();
         assertThat(JsonPath.<Boolean>read(smithy, spear + ".next.villageBusy")).isFalse();
-        // the scout has level 2 only (an upgraded scout), siege, nobles and the paladin have none
+        assertThat(JsonPath.<String>read(smithy, spear + ".trainedIn")).isEqualTo("SMITHY");
+        // the scout has level 2 only (an upgraded scout), siege and nobles have none
         String scout = "$.units[3]";
         assertThat(JsonPath.<Integer>read(smithy, scout + ".maxLevel")).isEqualTo(2);
         assertThat(JsonPath.<List<Integer>>read(smithy, scout + ".stats[*].defenseInfantry"))
                 .containsExactly(2, 3);
         assertThat(JsonPath.<Integer>read(smithy, scout + ".next.level")).isEqualTo(2);
-        for (int i : new int[] {6, 7, 8, 9}) {
+        for (int i : new int[] {6, 7, 8}) {
             assertThat(JsonPath.<Integer>read(smithy, "$.units[" + i + "].maxLevel")).isEqualTo(1);
             assertThat((Object) JsonPath.read(smithy, "$.units[" + i + "].next")).isNull();
+        }
+        // the paladin and the thief have levels, trained in the Banner Hall (1.4): none offered
+        // here
+        for (int i : new int[] {9, 10}) {
+            String unit = "$.units[" + i + "]";
+            assertThat(JsonPath.<String>read(smithy, unit + ".trainedIn")).isEqualTo("BANNER_HALL");
+            assertThat(JsonPath.<Integer>read(smithy, unit + ".maxLevel")).isEqualTo(3);
+            assertThat((Object) JsonPath.read(smithy, unit + ".next")).isNull();
         }
     }
 
@@ -153,7 +162,8 @@ class ResearchFlowTest {
         String smithy = body(player.smithy().andExpect(status().isOk()));
 
         assertThat(JsonPath.<Boolean>read(smithy, "$.levelsEnabled")).isFalse();
-        for (int i = 0; i < 10; i++) {
+        // the nine Smithy units; the hall's paladin and thief keep their levels (1.4)
+        for (int i = 0; i < 9; i++) {
             String unit = "$.units[" + i + "]";
             assertThat(JsonPath.<Integer>read(smithy, unit + ".level")).isEqualTo(1);
             assertThat(JsonPath.<Integer>read(smithy, unit + ".maxLevel")).isEqualTo(1);
@@ -164,6 +174,7 @@ class ResearchFlowTest {
                 .containsExactly(40);
         assertThat(JsonPath.<List<Integer>>read(smithy, "$.units[8].stats[*].defenseInfantry"))
                 .containsExactly(100);
+        assertThat(JsonPath.<Integer>read(smithy, "$.units[9].maxLevel")).isEqualTo(3);
     }
 
     @Test
@@ -250,13 +261,6 @@ class ResearchFlowTest {
     @Test
     void aUnitWithoutLevelsCannotBeResearched() throws Exception {
         player.research(UnitType.NOBLE)
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("MAX_LEVEL_REACHED"));
-    }
-
-    @Test
-    void thePaladinHasNoLevelsToResearch() throws Exception {
-        player.research(UnitType.PALADIN)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("MAX_LEVEL_REACHED"));
     }

@@ -23,3 +23,13 @@ export function UsedBannerIcon() {
     </svg>
   );
 }
+
+/** The sheet of paper on a village with the player's own note (1.4), for the legend. */
+export function NoteIcon() {
+  return (
+    <svg className={styles.noteIcon} viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4 2 H9.5 L12 4.5 V14 H4 Z" />
+      <path d="M9.5 2 V4.5 H12 M6 9 H10 M6 11.5 H10" />
+    </svg>
+  );
+}

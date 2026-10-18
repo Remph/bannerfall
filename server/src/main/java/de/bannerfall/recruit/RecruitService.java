@@ -270,9 +270,9 @@ public class RecruitService {
     }
 
     /**
-     * The recruiting buildings in building order (the Banner Hall only while banners are on), each
-     * with its units and its queue (04-api). Locks the village and catches it up, so finished units
-     * are at home and the queues are current.
+     * The recruiting buildings in building order (the Banner Hall only while banners or paladins
+     * are on), each with its units and its queue (04-api). Locks the village and catches it up, so
+     * finished units are at home and the queues are current.
      */
     @Transactional
     public List<RecruitBuildingDto> recruitment(long villageId, long playerId) {
@@ -289,9 +289,9 @@ public class RecruitService {
 
         List<RecruitBuildingDto> result = new ArrayList<>();
         for (BuildingType building : GameData.RECRUITING_BUILDINGS) {
-            // a world without banners has no thieves to train (02-game-rules §21.9): no Banner
-            // Hall in the list, like the hall itself is hidden then
-            if (building == BuildingType.BANNER_HALL && !world.bannersEnabled()) {
+            // a world without banners and paladins has nobody to train there (02-game-rules
+            // §21.3): no Banner Hall in the list, like the hall itself is hidden then
+            if (building == BuildingType.BANNER_HALL && !world.bannerHallAvailable()) {
                 continue;
             }
             int level = levels.get(building);
@@ -301,8 +301,10 @@ public class RecruitService {
                 if (def.building() != building) {
                     continue;
                 }
-                // a world without paladins (02-game-rules §5.5) does not list him
-                if (type == UnitType.PALADIN && world.paladinMaxSlots() < 1) {
+                // a world without paladins (02-game-rules §5.5) does not list him, nor a world
+                // without banners the banner thief (§21.5)
+                if (type == UnitType.PALADIN && world.paladinMaxSlots() < 1
+                        || type == UnitType.BANNER_THIEF && !world.bannersEnabled()) {
                     continue;
                 }
                 List<Requirement> missing = BuildRules.missingRequirements(def.requires(), levels);

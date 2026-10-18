@@ -1,5 +1,6 @@
 package de.bannerfall.movement;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,6 +36,29 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
               and (p is null or m.ownerPlayerId <> p.id)
             """)
     long countIncomingAttacks(long villageId);
+
+    /**
+     * Attacks with a paladin that the village has sent and that haven't fought yet: while one is on
+     * the way, the village's paladin standard is locked (1.4, 02-game-rules §21.18).
+     */
+    @Query(
+            """
+            select count(m) from Movement m
+            where m.homeVillage.id = :villageId
+              and m.kind = de.bannerfall.movement.MovementKind.ATTACK
+              and m.units.paladin > 0
+            """)
+    long countPaladinAttacksUnderWay(long villageId);
+
+    /** {@link #countPaladinAttacksUnderWay} for several villages: the ids that have one. */
+    @Query(
+            """
+            select distinct m.homeVillage.id from Movement m
+            where m.homeVillage.id in :villageIds
+              and m.kind = de.bannerfall.movement.MovementKind.ATTACK
+              and m.units.paladin > 0
+            """)
+    List<Long> findVillagesWithPaladinAttacks(Collection<Long> villageIds);
 
     /**
      * The player's attacks still on the way, from any of his villages, with their targets and the

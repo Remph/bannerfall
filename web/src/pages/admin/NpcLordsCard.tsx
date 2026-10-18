@@ -13,6 +13,7 @@ import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import type { IconName } from '../../components/Icon';
 import { MoreMenu } from '../../components/MoreMenu';
+import { tierName } from '../../game/banners';
 import { formatDateTime, formatDecimal, formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
 import styles from './AdminPage.module.css';
@@ -25,9 +26,12 @@ const choiceIcons: Record<GuildChoice['action'], IconName> = {
   AUTO: 'returning',
 };
 
+type Equipped = NonNullable<NpcLord['bannerVillages'][number]['banner']>;
+
 /**
  * The NPC lords of the world, and a button per personality to spawn another one. While lord guilds
- * are on (09-npc-lords §13.7) also the lord guilds, and a "…" per lord to place it in one.
+ * are on (09-npc-lords §13.7) also the lord guilds, and a "…" per lord to place it in one. While
+ * banners are on, each lord's paladin level, equipped banners and stash (09-npc-lords §14.8).
  */
 export function NpcLordsCard() {
   const { t, language } = useI18n();
@@ -41,6 +45,33 @@ export function NpcLordsCard() {
   const guildsOn = settings !== undefined && settings.guildsEnabled && settings.npcGuildsEnabled;
   const maxMembers = settings === undefined ? 0 : Math.min(settings.npcGuildMaxMembers, settings.guildMaxMembers);
   const guilds = lordGuilds(lords.data ?? []);
+  const bannersOn = settings !== undefined && settings.bannersEnabled;
+  const lordBannersOn = bannersOn && settings.npcBannersEnabled;
+
+  /** While lord banners are off, only a lord that holds something gets the banner lines. */
+  function showsBanners(lord: NpcLord): boolean {
+    return bannersOn && (lordBannersOn || lord.stash.length > 0 || lord.bannerVillages.length > 0);
+  }
+
+  /** "Harvest banner II (works at I)". */
+  function equipped(item: Equipped): string {
+    const name = `${t.banners.types[item.type]} ${tierName(item.tier)}`;
+    if (item.effectiveTier === 0) {
+      return `${name} (${labels.asleep})`;
+    }
+    return item.effectiveTier < item.tier ? `${name} (${labels.worksAt(tierName(item.effectiveTier))})` : name;
+  }
+
+  function stash(lord: NpcLord): string {
+    if (lord.stash.length === 0) {
+      return labels.stashEmpty;
+    }
+    return labels.stash(
+      lord.stash
+        .map((entry) => labels.times(`${t.banners.types[entry.type]} ${tierName(entry.tier)}`, entry.count))
+        .join(', '),
+    );
+  }
 
   function choiceLabel(choice: GuildChoice): string {
     switch (choice.action) {
@@ -103,6 +134,9 @@ export function NpcLordsCard() {
           </section>
         )}
         {place.isError && <ErrorMessage>{errorMessage(t, place.error)}</ErrorMessage>}
+        {bannersOn && !lordBannersOn && lords.data !== undefined && lords.data.length > 0 && (
+          <p className={styles.hint}>{labels.bannersOff}</p>
+        )}
         <ul className={styles.lords}>
           {lords.data?.map((lord: NpcLord) => {
             const choices = guildsOn ? guildChoices(lord, guilds, maxMembers) : [];
@@ -139,6 +173,22 @@ export function NpcLordsCard() {
                       : labels.noGuild}
                     {lord.guildByAdmin && ` · ${labels.placed}`}
                   </p>
+                )}
+                {showsBanners(lord) && (
+                  <>
+                    <p className={styles.meta}>
+                      {labels.paladinLevel(lord.paladinLevel)} · {stash(lord)}
+                    </p>
+                    {lord.bannerVillages.map((village) => (
+                      <p key={village.villageId} className={styles.meta}>
+                        {village.name}:{' '}
+                        {[village.banner, village.standard]
+                          .filter((item): item is Equipped => item != null)
+                          .map(equipped)
+                          .join(' · ')}
+                      </p>
+                    ))}
+                  </>
                 )}
                 <p className={styles.meta}>
                   {lord.nextThinkAt == null

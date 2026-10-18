@@ -4,7 +4,9 @@ import {
   bannerTypes,
   buildingTypes,
   byBuildingOrder,
+  isStandard,
   recruitingBuildings,
+  standardTypes,
   unitTypes,
   type BannerType,
   type BuildingType,
@@ -29,6 +31,8 @@ describe('the lists match the server enums', () => {
   it('banners', () => {
     expectTypeOf<BannerType>().toEqualTypeOf<Schemas['BannerDto']['type']>();
     expect(new Set(bannerTypes).size).toBe(bannerTypes.length);
+    expect(bannerTypes).toHaveLength(16);
+    expect(bannerTypes.filter(isStandard)).toEqual([...standardTypes]);
   });
 });
 

@@ -42,11 +42,31 @@ public record BannerCatalog(
             int maxPerDay) {}
 
     /**
-     * @param chancePerThief chance one surviving thief steals the banner
+     * @param chancePerThief chance one surviving thief steals the banner, per thief level (Hall
+     *     training, 1.4): the first entry is level 1
      * @param maxChance the chance never goes above this
      * @param hallReductionPerLevel the target's Banner Hall makes it harder by this per level
      */
-    public record Theft(double chancePerThief, double maxChance, double hallReductionPerLevel) {}
+    public record Theft(
+            List<Double> chancePerThief, double maxChance, double hallReductionPerLevel) {
+
+        public Theft {
+            chancePerThief = chancePerThief == null ? List.of() : List.copyOf(chancePerThief);
+        }
+
+        /**
+         * The chance per surviving thief at a thief level; a level past the list counts as its last
+         * entry (so a changed banners.yml never breaks a trained level).
+         *
+         * @param thiefLevel 1 or more
+         */
+        public double perThief(int thiefLevel) {
+            if (thiefLevel < 1) {
+                throw new IllegalArgumentException("thief level must be at least 1: " + thiefLevel);
+            }
+            return chancePerThief.get(Math.min(thiefLevel, chancePerThief.size()) - 1);
+        }
+    }
 
     /**
      * @param bannersNeeded banners of one tier that make one of the next
@@ -114,10 +134,16 @@ public record BannerCatalog(
         if (theft == null) {
             problems.add("theft: missing");
         } else {
+            boolean ascending = !theft.chancePerThief().isEmpty();
+            double previous = 0;
+            for (double chance : theft.chancePerThief()) {
+                ascending &= chance > previous && chance < 1;
+                previous = chance;
+            }
             check(
                     problems,
-                    theft.chancePerThief() > 0 && theft.chancePerThief() < 1,
-                    "theft.chance-per-thief must be in (0, 1)");
+                    ascending,
+                    "theft.chance-per-thief must be one or more ascending chances in (0, 1)");
             check(
                     problems,
                     theft.maxChance() > 0 && theft.maxChance() <= 1,

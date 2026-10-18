@@ -16,6 +16,7 @@ export function buildingTarget(
   villageId: number,
   type: BuildingType,
   level: number,
+  bannersOn = true,
 ): { pathname: string; hash?: string } {
   if (type === 'HEADQUARTERS') {
     return { pathname: `/v/${villageId}/hq` };
@@ -34,8 +35,9 @@ export function buildingTarget(
       // M30: what every unit can do and, with unit levels, the research
       return { pathname: smithyPath(villageId) };
     }
-    if (type === 'BANNER_HALL') {
-      // M32a: the stash and the slot of this village
+    if (type === 'BANNER_HALL' && bannersOn) {
+      // M32a: the stash and the slot of this village; without banners it only trains the paladin
+      // (1.4), so it opens its recruiting tab below
       return { pathname: bannersPath(villageId) };
     }
     const recruiting = recruitingBuildings.find((building) => building === type);

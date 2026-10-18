@@ -1,16 +1,18 @@
 # Levels of the achievements that have them: docs/plan/02-game-rules.md §19 (the rulebook wins if
-# they ever disagree). Bronze, silver, gold = the value that earns level 1, 2, 3. Draft numbers, to
-# be tuned with play data; changing them needs a new image but no migration (levels already
-# earned stay earned).
+# they ever disagree). Bronze, silver, gold = the value that earns level 1, 2, 3. Tuned in 1.4 with
+# the numbers of a running world; changing them needs a new image but no migration (levels already
+# earned stay earned, and a counter already past a lowered number gets the level at the next login).
 achievements:
   levels:
-    GROWTH: [1000, 3500, 12500]            # player points (1000, 5000, 20000 before the points growth of 1.15)
+    GROWTH: [1000, 5000, 30000]            # player points (1000, 3500, 12500 until 1.3; 1000, 5000, 20000 before the points growth of 1.15)
     LANDLORD: [3, 8, 15]                   # villages owned at the same time
-    STANDING_ARMY: [200, 2000, 10000]      # units finished in recruit orders (no scouts, no nobles)
-    VICTOR: [10, 50, 250]                  # counted attack wins
-    BULWARK: [5, 25, 100]                  # counted successful defences
+    STANDING_ARMY: [200, 2500, 20000]      # units finished in recruit orders (no scouts, no nobles; 200, 2000, 10000 until 1.3)
+    VICTOR: [25, 250, 2500]                # counted attack wins, farm runs included (10, 50, 250 until 1.3)
+    BULWARK: [3, 15, 50]                   # counted successful defences (5, 25, 100 until 1.3)
     PLUNDERER: [20000, 200000, 2000000]    # resources looted in counted wins
-    MERCHANT_PRINCE: [10000, 100000, 1000000]  # resources given through accepted market offers
-    VETERAN: [7, 30, 100]                  # days since registering
+    MERCHANT_PRINCE: [10000, 100000, 1000000]  # resources given through accepted market offers or paid at the market exchange (1.4)
+    VETERAN: [7, 30, 180]                  # days since registering (7, 30, 100 until 1.3)
     BANNER_COLLECTOR: [3, 10, 25]          # banners owned at the same time (02 §21.8)
     BANNER_THIEF: [1, 5, 20]               # distinct banners taken from other players' villages
+    SLAYER: [250, 2500, 25000]             # enemy units killed by your attacks (1.4, 02 §19.1)
+    WARDEN: [100, 1000, 10000]             # attacking units killed in your villages (1.4)

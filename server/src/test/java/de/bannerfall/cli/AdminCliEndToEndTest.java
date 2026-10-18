@@ -392,12 +392,18 @@ class AdminCliEndToEndTest {
                 s.paladinMaxSlots(),
                 s.bannersEnabled(),
                 s.bannerDropFactor(),
+                s.standardTheftEnabled(),
+                s.npcBannersEnabled(),
                 s.marketExchangeRatio(),
                 s.victoryMode(),
                 s.dominationPercent(),
                 s.victoryHoldHours(),
                 s.keepCount(),
                 s.keepPercent(),
-                s.villageNameLanguage());
+                s.villageNameLanguage(),
+                s.nightBonusEnabled(),
+                s.nightBonusStartHour(),
+                s.nightBonusEndHour(),
+                s.nightBonusFactor());
     }
 }

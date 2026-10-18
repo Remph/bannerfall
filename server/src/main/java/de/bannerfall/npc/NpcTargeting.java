@@ -9,6 +9,7 @@ import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.npc.NpcWorld.MapVillage;
 import de.bannerfall.report.BattleOutcome;
+import de.bannerfall.report.BattleReport;
 import de.bannerfall.rules.BannerRules;
 import de.bannerfall.rules.Barbarians;
 import de.bannerfall.rules.BattleInput;
@@ -16,6 +17,7 @@ import de.bannerfall.rules.BattleResult;
 import de.bannerfall.rules.Combat;
 import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.Production;
+import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.rules.UnitLevels;
 import de.bannerfall.world.WorldSettings;
@@ -115,7 +117,7 @@ public final class NpcTargeting {
      * @param catapultTarget null if the attack has no catapults
      * @param catapultTargetLevel its level as far as the lord knows (the wall for {@code WALL})
      * @param defenceBonus the Bulwark banner the lord knows of ({@link #bulwark}), 0 without; the
-     *     lord's own attacks never carry a War banner (02-game-rules §21.11)
+     *     lord's own War banner only counts with lord banners on (09-npc-lords §14.7)
      */
     public static Estimate estimate(
             GameData data,
@@ -127,6 +129,106 @@ public final class NpcTargeting {
             double margin,
             double maxLoss,
             double defenceBonus) {
+        return estimate(
+                data,
+                attackers,
+                defenders,
+                wall,
+                catapultTarget,
+                catapultTargetLevel,
+                margin,
+                maxLoss,
+                defenceBonus,
+                StandardEffect.NONE);
+    }
+
+    /**
+     * Like the other {@code estimate}, with the paladin standard the lord expects the defenders to
+     * carry ({@link #standard}, 1.4), and no banner of the lord's own.
+     */
+    public static Estimate estimate(
+            GameData data,
+            Map<UnitType, Integer> attackers,
+            Map<UnitType, Integer> defenders,
+            int wall,
+            BuildingType catapultTarget,
+            int catapultTargetLevel,
+            double margin,
+            double maxLoss,
+            double defenceBonus,
+            StandardEffect defenderStandard) {
+        return estimate(
+                data,
+                attackers,
+                defenders,
+                wall,
+                catapultTarget,
+                catapultTargetLevel,
+                margin,
+                maxLoss,
+                defenceBonus,
+                defenderStandard,
+                0,
+                StandardEffect.NONE);
+    }
+
+    /**
+     * Like the other {@code estimate}, with the lord's own War banner and the standard its paladin
+     * carries along (lord banners, 09-npc-lords §14.7): the lord knows its own villages.
+     *
+     * @param attackBonus the War banner of the sending village, 0 without
+     * @param attackerStandard the standard the army takes along, {@link StandardEffect#NONE}
+     *     without a paladin in it
+     */
+    public static Estimate estimate(
+            GameData data,
+            Map<UnitType, Integer> attackers,
+            Map<UnitType, Integer> defenders,
+            int wall,
+            BuildingType catapultTarget,
+            int catapultTargetLevel,
+            double margin,
+            double maxLoss,
+            double defenceBonus,
+            StandardEffect defenderStandard,
+            double attackBonus,
+            StandardEffect attackerStandard) {
+        return estimate(
+                data,
+                attackers,
+                defenders,
+                wall,
+                catapultTarget,
+                catapultTargetLevel,
+                margin,
+                maxLoss,
+                defenceBonus,
+                defenderStandard,
+                attackBonus,
+                attackerStandard,
+                1);
+    }
+
+    /**
+     * Like the other {@code estimate}, with the night bonus the defenders get at the attack's
+     * arrival (1.4, 02-game-rules §8.1).
+     *
+     * @param nightFactor multiplies the defence; 1 by day and at barbarians
+     */
+    public static Estimate estimate(
+            GameData data,
+            Map<UnitType, Integer> attackers,
+            Map<UnitType, Integer> defenders,
+            int wall,
+            BuildingType catapultTarget,
+            int catapultTargetLevel,
+            double margin,
+            double maxLoss,
+            double defenceBonus,
+            StandardEffect defenderStandard,
+            double attackBonus,
+            StandardEffect attackerStandard,
+            double nightFactor) {
         if (attackers.values().stream().noneMatch(c -> c > 0)) {
             return Estimate.NO;
         }
@@ -153,8 +255,11 @@ public final class NpcTargeting {
                                 0,
                                 UnitLevels.NONE,
                                 List.of(UnitLevels.NONE),
-                                0,
-                                defenceBonus));
+                                attackBonus,
+                                defenceBonus,
+                                attackerStandard,
+                                List.of(defenderStandard),
+                                nightFactor));
         if (!result.attackerWon()) {
             return new Estimate(false, 1, wall);
         }
@@ -180,6 +285,29 @@ public final class NpcTargeting {
                         : intel.buildings().getOrDefault(BuildingType.BANNER_HALL, 0);
         int tier = BannerRules.effectiveTier(intel.banner().tier(), hall);
         return tier == 0 ? 0 : catalog.effect(BannerType.BULWARK, tier);
+    }
+
+    /**
+     * The paladin standard the lord expects the defenders to carry (1.4, 02-game-rules §21.18): the
+     * one his last successful scouting saw equipped there, if a paladin was among the defenders he
+     * saw and the scouted Banner Hall lets it work. The lord can't know the owner's paladin level,
+     * so he takes the standard's own tier, the safe side. None seen: none.
+     */
+    public static StandardEffect standard(Intel intel, BannerCatalog catalog) {
+        if (intel == null
+                || intel.standard() == null
+                || intel.units() == null
+                || intel.units().getOrDefault(UnitType.PALADIN, 0) == 0) {
+            return StandardEffect.NONE;
+        }
+        int hall =
+                intel.buildings() == null
+                        ? 0
+                        : intel.buildings().getOrDefault(BuildingType.BANNER_HALL, 0);
+        BattleReport.ScoutedBanner seen = intel.standard();
+        int tier = BannerRules.standardTier(seen.tier(), seen.tier(), hall);
+        return new StandardEffect(
+                seen.type(), seen.tier(), tier, tier == 0 ? 0 : catalog.effect(seen.type(), tier));
     }
 
     // ---- who may be attacked (§6.4) ----
@@ -539,6 +667,14 @@ public final class NpcTargeting {
                 result.put(type, count);
             }
         }
+        return result;
+    }
+
+    /** {@code a + b} per type, in a new map. */
+    public static Map<UnitType, Integer> plus(Map<UnitType, Integer> a, Map<UnitType, Integer> b) {
+        Map<UnitType, Integer> result = new EnumMap<>(UnitType.class);
+        result.putAll(a);
+        b.forEach((type, count) -> result.merge(type, count, Integer::sum));
         return result;
     }
 

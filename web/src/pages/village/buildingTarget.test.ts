@@ -14,6 +14,10 @@ describe('buildingTarget', () => {
     expect(buildingTarget(7, 'BANNER_HALL', 2)).toEqual({ pathname: '/v/7/banners' });
   });
 
+  it('opens the recruiting tab of the Banner Hall in a world without banners (1.4: it trains the paladin)', () => {
+    expect(buildingTarget(7, 'BANNER_HALL', 1, false)).toEqual({ pathname: '/v/7/recruit/banner_hall' });
+  });
+
   it('opens the Town Hall itself without a highlight', () => {
     expect(buildingTarget(7, 'HEADQUARTERS', 5)).toEqual({ pathname: '/v/7/hq' });
   });

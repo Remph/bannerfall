@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.bannerfall.TestGameData;
+import de.bannerfall.rules.ResearchRules;
 import java.util.EnumMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,7 @@ class GameDataTest {
                     RAM           | WORKSHOP | WORKSHOP:1           |   300 |   200 |   200 |   5 |   2 |  20 |  50 | INFANTRY | 30 |  0 |  4800
                     CATAPULT      | WORKSHOP | WORKSHOP:2;SMITHY:12 |   320 |   400 |   100 |   8 | 100 | 100 |  50 | INFANTRY | 30 |  0 |  7200
                     NOBLE         | ACADEMY  | ACADEMY:1            | 40000 | 50000 | 50000 | 100 |  30 | 100 |  50 | INFANTRY | 35 |  0 | 10800
-                    PALADIN       | BARRACKS | BARRACKS:5           |  1000 |  1000 |  1000 |  10 | 120 | 150 | 150 | INFANTRY | 14 |  0 | 21600
+                    PALADIN       | BANNER_HALL | BANNER_HALL:1     |  1000 |  1000 |  1000 |  10 | 120 | 150 | 150 | INFANTRY | 14 |  0 | 10800
                     BANNER_THIEF  | BANNER_HALL | BANNER_HALL:1     |   100 |   120 |   150 |   2 |   0 |   3 |   3 | INFANTRY | 18 |  0 |  1500
                     """)
     void unitsMatchTheRulebook(
@@ -149,13 +150,44 @@ class GameDataTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @CsvSource({"RAM", "CATAPULT", "NOBLE", "PALADIN", "BANNER_THIEF"})
-    void siegeNobleAndPaladinHaveNoLevels(UnitType type) {
+    @CsvSource({"RAM", "CATAPULT", "NOBLE"})
+    void siegeAndNoblesHaveNoLevels(UnitType type) {
         var def = data.unit(type);
 
         assertThat(def.levels()).isEmpty();
         assertThat(def.maxLevel()).isEqualTo(1);
         assertThat(def.stats(1)).isEqualTo(def.stats(3));
+    }
+
+    @Test
+    void thePaladinTrainsSmallStepsInTheBannerHall() {
+        var def = data.unit(UnitType.PALADIN);
+
+        // Hall training (1.4, 02-game-rules §5.4): +5 % and +10 %, 5 and 15 times his cost
+        assertThat(def.stats(2)).isEqualTo(new UnitStats(126, 158, 158));
+        assertThat(def.stats(3)).isEqualTo(new UnitStats(132, 165, 165));
+        assertThat(def.levelDef(2).cost()).isEqualTo(def.cost().times(5));
+        assertThat(def.levelDef(3).cost()).isEqualTo(def.cost().times(15));
+        assertThat(def.levelDef(2).baseSeconds()).isEqualTo(12 * 3600);
+        assertThat(def.levelDef(3).baseSeconds()).isEqualTo(30 * 3600);
+        assertThat(def.levelDef(2).requires()).isEqualTo(Map.of(BuildingType.BANNER_HALL, 2));
+        assertThat(def.levelDef(3).requires()).isEqualTo(Map.of(BuildingType.BANNER_HALL, 3));
+        assertThat(ResearchRules.building(def)).isEqualTo(BuildingType.BANNER_HALL);
+    }
+
+    @Test
+    void theBannerThiefsLevelsKeepHisValues() {
+        var def = data.unit(UnitType.BANNER_THIEF);
+
+        // his levels raise the theft chance (banners.yml), not his values
+        assertThat(def.maxLevel()).isEqualTo(3);
+        assertThat(def.stats(3)).isEqualTo(def.stats(1));
+        assertThat(def.levelDef(2).cost()).isEqualTo(def.cost().times(20));
+        assertThat(def.levelDef(3).cost()).isEqualTo(def.cost().times(50));
+        assertThat(def.levelDef(3).requires()).isEqualTo(Map.of(BuildingType.BANNER_HALL, 3));
+        assertThat(ResearchRules.building(def)).isEqualTo(BuildingType.BANNER_HALL);
+        assertThat(ResearchRules.building(data.unit(UnitType.SPEARMAN)))
+                .isEqualTo(BuildingType.SMITHY);
     }
 
     @Test

@@ -58,6 +58,7 @@ export const de: Dictionary = {
     village: 'Dorf',
     townHall: 'Rathaus',
     recruit: 'Rekrutieren',
+    bannerHall: 'Bannerhalle',
     map: 'Karte',
     rallyPoint: 'Sammelplatz',
     farm: 'Farmliste',
@@ -71,6 +72,9 @@ export const de: Dictionary = {
     more: 'Mehr',
     settings: 'Einstellungen',
     chat: 'Chat',
+    /** The two groups of the phone's More sheet (1.4). */
+    moreVillage: 'Dorf',
+    morePlayer: 'Spieler',
   },
   settings: {
     loggedInAs: (name: string) => `Angemeldet als ${name}`,
@@ -174,6 +178,9 @@ export const de: Dictionary = {
         : `ein Platz, ein weiterer ${perSlot === 1 ? 'je Dorf' : `je ${perSlot} Dörfer`}, bis zu ${max}`,
     banners: 'Banner',
     bannersValue: 'Bannerhalle, Banner hissen und tauschen',
+    nightBonus: 'Nachtbonus',
+    nightBonusValue: (hours: string, factor: string) =>
+      `${hours} deutsche Zeit: Dörfer von Spielern und NPC-Fürsten verteidigen sich ×${factor}`,
     victory: 'Sieg',
     victoryDomination: (percent: number, hours: number) => `${percent} % aller Dörfer, ${hours} Stunden lang gehalten`,
     victoryKeeps: (needed: number, count: number, hours: number) =>
@@ -331,6 +338,31 @@ export const de: Dictionary = {
     confirmCancel: 'Erforschung abbrechen',
   },
 
+  /** Hallentraining (1.4): Die Bannerhalle trainiert die Stufen von Paladin und Bannerdieb. */
+  hallTraining: {
+    title: 'Hallentraining',
+    intro: (paladin: boolean, thieves: boolean) =>
+      `Die Bannerhalle trainiert die Stufen ${paladin && thieves ? 'des Paladins und der Bannerdiebe' : paladin ? 'des Paladins' : 'der Bannerdiebe'}. Eine Stufe gilt in allen deinen Dörfern, auch in Welten ohne Einheitenstufen. Je Bannerhalle läuft ein Training gleichzeitig.`,
+    paladinLevels: 'Eine höhere Stufe macht jeden deiner Paladine etwas stärker.',
+    thiefLevels: 'Eine höhere Stufe erhöht die Chance jedes überlebenden Diebes, ein Banner zu stehlen.',
+    chancePerThief: 'Chance je Dieb',
+    chanceLabel: 'Chance je überlebendem Dieb auf jeder Stufe',
+    researchTitle: 'Training',
+    nothingRunning: 'In dieser Bannerhalle wird nichts trainiert.',
+    researching: (unit: string, level: number) => `${unit} auf Stufe ${level}`,
+    elsewhere: 'Wird in einem anderen deiner Dörfer trainiert.',
+    next: (level: number) => `Stufe ${level} trainieren`,
+    research: 'Trainieren',
+    time: 'Trainingszeit',
+    costsLabel: 'Kosten des Trainings',
+    busy: 'Die Bannerhalle dieses Dorfes trainiert gerade etwas anderes.',
+    cancel: (what: string) => `Training von ${what} abbrechen`,
+    cancelTitle: 'Training abbrechen?',
+    confirmCancel: 'Training abbrechen',
+    inTheHall: 'Ihre Stufen werden in der Bannerhalle trainiert.',
+    toHall: 'Zur Bannerhalle',
+  },
+
   townHall: {
     title: 'Rathaus',
     back: 'Dorfübersicht',
@@ -423,7 +455,46 @@ export const de: Dictionary = {
         : `Nur noch ${free} freie Plätze in der Schleife: fülle weniger Felder aus.`,
     enterCount: 'Gib bei einer Einheit eine Anzahl ein.',
   },
-  /** Der Paladin und seine Plätze (M31, 02-game-rules §5.5): der Zähler unter seinem Namen in der Kaserne. */
+  /** Rekrutier-Vorlagen (1.4, 02-game-rules §5.2b): die Zeile über den Gebäude-Tabs und ihre Sheets. */
+  recruitTemplates: {
+    title: 'Vorlagen',
+    count: (count: number) => (count === 1 ? '1 Vorlage' : `${count} Vorlagen`),
+    edit: 'Vorlagen bearbeiten',
+    create: 'Vorlage anlegen',
+    open: (letter: string, name: string) => `Vorlage ${letter}: ${name}`,
+    planHint: 'Rekrutiert, was diesem Dorf zum Ziel noch fehlt, so viel wie die Rohstoffe jetzt hergeben.',
+    unit: 'Einheit',
+    goal: 'Ziel',
+    have: 'Hast',
+    now: 'Jetzt',
+    skip: {
+      reached: 'erreicht',
+      locked: 'noch gesperrt',
+      queueFull: 'Schleife voll',
+      slots: 'kein Platz frei',
+    },
+    allReached: 'Ziel erreicht: diesem Dorf fehlt nichts.',
+    tooPoor: 'Für keine einzige Einheit reicht es gerade.',
+    loading: 'Die Truppen unterwegs werden gezählt …',
+    total: 'Zusammen:',
+    recruit: (count: number) => (count > 1 ? `Rekrutieren (${count})` : 'Rekrutieren'),
+    manageTitle: 'Rekrutier-Vorlagen',
+    manageHint:
+      'Gelten für alle deine Dörfer. Ein Tipp auf eine Vorlage beim Rekrutieren zeigt, was sie gerade rekrutiert.',
+    newTemplate: (letter: string) => `Vorlage ${letter} anlegen`,
+    more: (letter: string) => `Mehr zu Vorlage ${letter}`,
+    change: 'Ändern',
+    remove: 'Löschen',
+    editTitle: (letter: string) => `Vorlage ${letter}`,
+    name: 'Name',
+    nameHint: 'Kurz, z. B. Angriff oder Verteidigung',
+    goalLabel: 'Zielarmee pro Dorf',
+    fromVillage: 'Armee dieses Dorfs übernehmen',
+    haveAmount: (amount: string) => `hast ${amount}`,
+    countLabel: (unit: string) => `Ziel für ${unit}`,
+    save: 'Speichern',
+  },
+  /** Der Paladin und seine Plätze (M31, 02-game-rules §5.5): der Zähler unter seinem Namen in der Bannerhalle (1.4). */
   paladin: {
     slots: (used: number, slots: number) =>
       slots === 1 ? `${used} von 1 Platz belegt` : `${used} von ${slots} Plätzen belegt`,
@@ -446,6 +517,13 @@ export const de: Dictionary = {
       TREASURY: 'Schatzbanner',
       PLUNDER: 'Beutebanner',
       OATH: 'Treuebanner',
+      SPEAR_STANDARD: 'Speerstandarte',
+      SWORD_STANDARD: 'Schwertstandarte',
+      AXE_STANDARD: 'Axtstandarte',
+      LANCE_STANDARD: 'Lanzenstandarte',
+      KNIGHT_STANDARD: 'Ritterstandarte',
+      RAM_STANDARD: 'Rammbockstandarte',
+      SIEGE_STANDARD: 'Belagerungsstandarte',
     },
     label: (name: string, tier: number) => `${name}, Stufe ${tierName(tier)}`,
     tier: (tier: number) => `Stufe ${tierName(tier)}`,
@@ -460,6 +538,14 @@ export const de: Dictionary = {
       TREASURY: (percent: string) => `Fassungsvermögen von Speicher und Versteck +${percent}`,
       PLUNDER: (percent: string) => `Tragekraft der Einheiten, die von hier ausgehen, +${percent}`,
       OATH: (percent: string) => `Zustimmung, die jeder feindliche Adelige abzieht, −${percent}`,
+      SPEAR_STANDARD: (percent: string) => `Verteidigung der Speerträger, mit denen sie zieht, +${percent}`,
+      SWORD_STANDARD: (percent: string) => `Verteidigung der Schwertkämpfer, mit denen sie zieht, +${percent}`,
+      AXE_STANDARD: (percent: string) => `Angriffsstärke der Axtkämpfer, mit denen sie zieht, +${percent}`,
+      LANCE_STANDARD: (percent: string) => `Angriffsstärke der Leichten Kavallerie, mit der sie zieht, +${percent}`,
+      KNIGHT_STANDARD: (percent: string) =>
+        `Angriff und Verteidigung der Schweren Kavallerie, mit der sie zieht, +${percent}`,
+      RAM_STANDARD: (percent: string) => `Mauerschaden der Rammböcke, mit denen sie zieht, +${percent}`,
+      SIEGE_STANDARD: (percent: string) => `Gebäudeschaden der Katapulte, mit denen sie zieht, +${percent}`,
     },
     notBuilt: 'In diesem Dorf steht noch keine Bannerhalle. Ein Banner braucht sie, um hier zu wehen.',
     toTownHall: 'Bannerhalle im Rathaus bauen',
@@ -492,6 +578,10 @@ export const de: Dictionary = {
       'Bannerdiebe ziehen mit Angriffen mit. Gewinnt der Angriff, ohne das Dorf zu erobern, versuchen die überlebenden Diebe, das Banner zu stehlen, das dort weht: Je mehr überleben, desto besser die Chance, und eine große Bannerhalle in dem Dorf macht es schwerer. Heim kommen sie in jedem Fall.',
     toRecruit: 'Bannerdiebe ausbilden',
     thievesNeedHall: 'Bannerdiebe werden in der Bannerhalle ausgebildet.',
+    /** 1.4: der Paladin ist aus der Kaserne hierher gezogen. */
+    paladinHere: 'Auch der Paladin wird hier ausgebildet.',
+    /** Der Link zum Rekrutieren der Halle in einer Welt mit Paladin (1.4). */
+    toRecruitWithPaladin: 'Paladin und Bannerdiebe ausbilden',
     equip: 'Hier hissen',
     swap: 'Austauschen',
     equipping: 'Wird gehisst…',
@@ -504,7 +594,7 @@ export const de: Dictionary = {
     open: (name: string) => `Bannerhalle von ${name} öffnen`,
     fuseTitle: 'Banner verschmelzen',
     fuseExplain:
-      'Drei Banner derselben Stufe aus deinem Vorrat werden zu einem Banner der nächsten Stufe. Du wählst, welche der drei Arten es annimmt. Die drei sind danach fort; Stufe III kann nicht verschmolzen werden.',
+      'Drei Banner derselben Stufe aus deinem Vorrat werden zu einem Banner der nächsten Stufe. Du wählst, welche der drei Arten es annimmt. Die drei sind danach fort; Stufe III kann nicht verschmolzen werden. Banner verschmelzen nur mit Bannern, Paladin-Standarten nur mit Standarten.',
     fuseNone: 'Du brauchst drei Banner derselben Stufe (I oder II) in deinem Vorrat.',
     fuseTier: (tier: number, count: number) => `Stufe ${tierName(tier)} (${count})`,
     fusePick: (count: number, needed: number) => `Wähle ${needed} Banner einer Stufe: ${count} von ${needed} gewählt.`,
@@ -514,11 +604,29 @@ export const de: Dictionary = {
     fusing: 'Wird verschmolzen…',
     fuseConfirmTitle: 'Banner verschmelzen?',
     fuseConfirmText: (name: string, tier: number) =>
-      `Die drei Banner werden zu einem ${name} der Stufe ${tierName(tier)}. Sie sind danach für immer fort.`,
+      `Aus den dreien wird eins: ${name}, Stufe ${tierName(tier)}. Sie sind danach für immer fort.`,
     fuseConfirm: 'Verschmelzen',
     fused: (name: string, tier: number) =>
-      `Verschmolzen: Ein ${name} der Stufe ${tierName(tier)} liegt in deinem Vorrat.`,
+      `Verschmolzen: ${name}, Stufe ${tierName(tier)}, liegt jetzt in deinem Vorrat.`,
     selectLabel: (name: string) => `${name} zum Verschmelzen wählen`,
+    fuseStandardTier: (tier: number, count: number) => `Standarten, Stufe ${tierName(tier)} (${count})`,
+    standardSlotTitle: 'Paladin-Standarte',
+    standardExplain:
+      'Eine Standarte zieht mit den Paladinen dieses Dorfes: bei einem Angriff mit Paladin und in der Verteidigung bei jedem Trupp, in dem ein Paladin von hier steht. Sie stärkt nur die Truppen dieses Heeres oder Trupps, weht neben dem Dorfbanner und braucht eine Bannerhalle in diesem Dorf.',
+    paladinLevel: (level: number) =>
+      `Dein Paladin hat Stufe ${level}: Standarten wirken bis Stufe ${tierName(level)}. Seine Stufe steigt in der Bannerhalle.`,
+    standardTheft:
+      'Wird ein Angriff mit Standarte zurückgeschlagen, können die überlebenden Bannerdiebe des Verteidigers sie an sich nehmen.',
+    standardNoPaladins: 'Diese Welt hat keinen Paladin: Standarten bleiben im Vorrat und bewirken nichts.',
+    standardEmpty: 'In diesem Dorf ist keine Standarte.',
+    standardEmptyHint: 'Setze unten eine aus deinem Vorrat ein.',
+    standardCappedAt: (tier: number) =>
+      `Die Stufe deines Paladins begrenzt sie: Die Standarte wirkt wie Stufe ${tierName(tier)}.`,
+    standardLocked:
+      'Ein Angriff ist hierher unterwegs, oder einer mit einem Paladin aus diesem Dorf: Die Standarte kann erst danach gewechselt werden.',
+    stashBanners: 'Dorfbanner',
+    stashStandards: 'Paladin-Standarten',
+    noStandard: 'keine Standarte',
   },
   /** Entlassen von Truppen (02-game-rules §5.2a). */
   dismiss: {
@@ -603,6 +711,17 @@ export const de: Dictionary = {
     bannerChance: 'Bannerchance',
     bannerChanceUsed: (when: string) => `genutzt · wieder ab ${when}`,
     bannerChanceLegend: 'Deine Bannerchance genutzt',
+    note: {
+      write: 'Notiz schreiben',
+      edit: (note: string) => `Deine Notiz: ${note}. Ändern`,
+      title: (village: string) => `Notiz · ${village}`,
+      label: 'Deine Notiz',
+      placeholder: 'z. B. Wall 3, nur Speere – gut zum Farmen',
+      onlyYou: 'Nur du siehst diese Notiz.',
+      count: (length: string, max: string) => `${length} / ${max}`,
+      delete: 'Löschen',
+      legend: 'Deine Notiz',
+    },
     distance: 'Entfernung',
     fields: (amount: string) => `${amount} Felder`,
     currentVillage: 'Dein aktuelles Dorf',
@@ -708,6 +827,8 @@ export const de: Dictionary = {
     arrival: 'Ankunft',
     catapultTarget: 'Katapulte zielen auf',
     endsProtection: 'Ein Angriff beendet deinen eigenen Anfängerschutz.',
+    nightBonus: (factor: string) => `Er kommt im Nachtbonus an: Das Dorf verteidigt sich ×${factor}.`,
+    nightTag: (factor: string) => `Nachtbonus ×${factor}`,
     paladinLeads: 'Der Paladin führt diese Unterstützung an: Alle Einheiten laufen in seinem Tempo.',
     back: 'Zurück',
     confirm: { ATTACK: 'Angriff schicken', SUPPORT: 'Unterstützung schicken' },
@@ -783,6 +904,8 @@ export const de: Dictionary = {
     clear: 'Leeren',
     reportTitle: 'Bericht',
     levelLabel: (unit: string) => `Stufe: ${unit}`,
+    hallLevelsHint:
+      'Paladin und Bannerdiebe haben Stufen aus dem Hallentraining: Wähle ihre Stufe. „Meine Truppen hier“, „Dieses Dorf“ und Berichte übernehmen deine eigenen Stufen.',
     levelsHint:
       'Einheitenstufen sind in dieser Welt aktiv: Wähle die Stufe jeder Einheit. „Meine Truppen hier“, „Dieses Dorf“ und Berichte übernehmen die Stufen der echten Einheiten.',
     reportLabel: 'Zahlen aus einem Bericht übernehmen',
@@ -857,6 +980,19 @@ export const de: Dictionary = {
     ofSent: (survived: string, sent: string) => `${survived} von ${sent}`,
     theftChance: 'Chance, das Banner zu stehlen',
     theftHint: 'Falls dort ein Banner weht. Ein Kampf, der das Dorf erobert, nimmt das Banner ohnehin mit.',
+    attackerStandard: 'Paladin-Standarte des Angriffs',
+    defenderStandard: 'Paladin-Standarte der Verteidiger',
+    standardTier: 'Ihre Stufe',
+    standardHint:
+      'Eine Standarte wirkt nur mit einem Paladin auf dieser Seite, höchstens in seiner Stufe; die der Verteidiger braucht eine Bannerhalle.',
+    standardWorks: (percent: string, tier: number) => `${percent} (wirkt wie Stufe ${tierName(tier)})`,
+    standardAsleep: 'schläft',
+    night: (factor: string) => `Der Angriff kommt nachts an (Verteidigung ×${factor})`,
+    nightHint: (hours: string) =>
+      `Der Nachtbonus dieser Welt: ${hours} deutsche Zeit. In Barbarendörfern gilt er nicht.`,
+    nightResult: 'Nachtbonus',
+    defenderThievesSurvive: 'Überlebende Bannerdiebe der Verteidiger',
+    standardTheftChance: 'Chance, dass sie die Standarte nehmen',
   },
   /** Der Markt (05-frontend §3): Rohstoffe schicken, Angebote, eigene Angebote, Händler unterwegs. */
   market: {
@@ -1060,6 +1196,7 @@ export const de: Dictionary = {
     noDefenders: 'Keine Truppen haben das Dorf verteidigt.',
     levelsScouted: 'Deine aufgerüsteten Späher haben die Stufen gesehen: Gezeigt wird die höchste Stufe jeder Einheit.',
     nobodyCameBack: 'Keine deiner Truppen ist zurückgekehrt, daher weißt du nichts über die Verteidiger.',
+    nightBonus: (factor: string) => `Nachtbonus: Der Angriff kam nachts an, das Dorf verteidigte sich ×${factor}.`,
     luck: 'Glück',
     catapultTarget: 'Katapulte zielten auf',
     wall: 'Wall',
@@ -1075,6 +1212,7 @@ export const de: Dictionary = {
     scoutedResources: 'Rohstoffe (vor der Plünderung)',
     scoutedBuildings: 'Gebäude',
     scoutedBanner: 'Banner',
+    scoutedStandard: 'Paladin-Standarte im Dorf',
     scoutedAway: 'Außerhalb des Dorfes',
     scoutedAwayNone: 'Keine Truppen des Besitzers sind außerhalb des Dorfes.',
     scoutedTroops: 'Die gesehenen Truppen stehen in der Tabelle des Verteidigers.',
@@ -1113,6 +1251,22 @@ export const de: Dictionary = {
       BATTLE_LOST: () => 'Der Angriff wurde abgewehrt: Deine Diebe hatten keine Chance.',
     },
     bannerStolen: (banner: string) => `Feindliche Bannerdiebe haben dein ${banner} gestohlen.`,
+    attackStandard: 'Standarte des Angriffs',
+    defenderStandard: 'Standarte der Verteidiger',
+    standardState: (standard: string, effective: number, tier: number) =>
+      effective === 0
+        ? `${standard}: schläft`
+        : effective < tier
+          ? `${standard}: wirkt wie Stufe ${tierName(effective)}`
+          : standard,
+    standardFound: 'Du hast eine Paladin-Standarte gefunden',
+    standardSurvivors: (survived: string) => `${survived} überlebt`,
+    standardTheftChance: 'Chance auf die Standarte',
+    standardTaken: (standard: string) =>
+      `Deine Bannerdiebe haben dem Angreifer die ${standard} abgenommen! Sie liegt jetzt in deinem Vorrat.`,
+    standardKept: (standard: string) => `Deine Bannerdiebe konnten dem Angreifer die ${standard} nicht abnehmen.`,
+    standardLost: (standard: string) => `Die Bannerdiebe der Verteidiger haben dir die ${standard} abgenommen.`,
+    conquestStandard: 'Paladin-Standarte',
     conquestBanner: 'Banner',
     conquestBannerToStash: 'Es liegt jetzt in deinem Vorrat.',
     conquestBannerAsleep: 'Es bleibt im Dorf und schläft, solange Banner ausgeschaltet sind.',
@@ -1174,6 +1328,8 @@ export const de: Dictionary = {
     send: 'Schicken',
     sendTo: (target: string) => `Die üblichen Truppen zu ${target} schicken`,
     sendAnyway: 'Trotzdem schicken?',
+    nightBonusWith: (letters: string, factor: string) =>
+      `Mit ${letters} kommt der Angriff im Nachtbonus an: Das Dorf verteidigt sich ×${factor}.`,
     edit: 'Ändern',
     editTitle: (target: string) => `Truppen für ${target}`,
     save: 'Speichern',
@@ -1201,6 +1357,32 @@ export const de: Dictionary = {
       OWN_VILLAGE: 'Übersprungen: das ist jetzt dein Dorf.',
       ENDS_OWN_PROTECTION: 'Übersprungen: der Angriff würde deinen Anfängerschutz beenden.',
     },
+    /** Vorlagen (1.4): A bis E pro Spieler, für alle Dörfer; ein Ziel nutzt eine oder eigene Truppen. */
+    parts: 'Teile der Farmliste',
+    partTargets: 'Ziele',
+    partTemplates: 'Vorlagen',
+    templatesTitle: 'Vorlagen',
+    templatesHint: 'Für alle deine Dörfer. Änderst du eine, schicken alle Ziele damit die neuen Truppen.',
+    templateLabel: (letter: string) => `Vorlage ${letter}`,
+    templateNew: (letter: string) => `Vorlage ${letter} anlegen`,
+    templateEditTitle: (letter: string) => `Vorlage ${letter}`,
+    templateDelete: 'Löschen',
+    templateUsed: (count: number) =>
+      count === 0 ? 'in diesem Dorf nicht benutzt' : count === 1 ? 'hier für 1 Ziel' : `hier für ${count} Ziele`,
+    templateMore: (letter: string) => `Mehr zu Vorlage ${letter}`,
+    troops: 'Truppen',
+    ownUnits: 'Eigene Truppen',
+    ownUnitsHint: 'Nur für dieses Ziel; Änderungen an Vorlagen betreffen es nicht.',
+    pickTemplate: (letter: string) => `Vorlage ${letter} nehmen`,
+    farmWith: 'Farmen mit',
+    sendTemplate: (letter: string) => `Vorlage ${letter} jetzt schicken`,
+    templatesShort: 'Ausgegraut: dafür fehlen Truppen im Dorf.',
+    noTemplates: 'Noch keine Vorlagen.',
+    createTemplates: 'Vorlagen anlegen',
+    onList: 'Auf der Farmliste',
+    addSheetTitle: (target: string) => `${target} zur Farmliste`,
+    listOf: (village: string) => `Farmliste von ${village}`,
+    fromTemplate: 'Vorlage',
   },
   /** Private Nachrichten und die Sperrliste (M17). */
   messages: {
@@ -1448,6 +1630,7 @@ export const de: Dictionary = {
       BUILDING: 'Aufbau',
       ARMY: 'Heer',
       COMBAT: 'Kampf',
+      DEFENCE: 'Verteidigung',
       CONQUEST: 'Eroberung',
       TRADE: 'Handel',
       SOCIAL: 'Gemeinschaft',
@@ -1500,7 +1683,11 @@ export const de: Dictionary = {
         description: 'Schlage Angriffe auf deine Dörfer zurück. Vom selben Dorf zählt einer pro Tag.',
       },
       PLUNDERER: { name: 'Plünderer', description: 'Erbeute Rohstoffe in den Angriffen, die als Sieg zählen.' },
-      MERCHANT_PRINCE: { name: 'Handelsfürst', description: 'Gib Rohstoffe über angenommene Marktangebote ab.' },
+      MERCHANT_PRINCE: {
+        name: 'Handelsfürst',
+        description:
+          'Gib Rohstoffe über angenommene Marktangebote ab oder bezahle sie, wenn du mit dem Markt tauschst.',
+      },
       VETERAN: { name: 'Veteran', description: 'Tage seit deiner Registrierung.' },
       BANNER_COLLECTOR: {
         name: 'Bannersammler',
@@ -1511,6 +1698,36 @@ export const de: Dictionary = {
         description:
           'Nimm Banner aus fremden Dörfern, mit Dieben oder durch Eroberung. Jedes Banner zählt einmal, deine eigenen nie.',
       },
+      PYRRHIC_VICTORY: {
+        name: 'Pyrrhussieg',
+        description: 'Gewinne einen Angriff mit mindestens 100 Einheiten und verliere mindestens drei Viertel davon.',
+      },
+      AVENGER: {
+        name: 'Vergeltung',
+        description:
+          'Gewinne einen Angriff mit mindestens 10 Einheiten auf ein Dorf des Spielers, der dich innerhalb des letzten Tages besiegt hat.',
+      },
+      DEMOLISHER: {
+        name: 'Abrissbirne',
+        description: 'Nimm einem Gebäude mit deinen Katapulten in einem Angriff mindestens 5 Stufen.',
+      },
+      LUCKY_STRIKE: {
+        name: 'Glückstreffer',
+        description: 'Gewinne einen Angriff, den du ohne Glück verloren hättest.',
+      },
+      SPY_CATCHER: { name: 'Spionjäger', description: 'Alle Späher eines Angriffs auf dein Dorf sterben.' },
+      LAST_STAND: {
+        name: 'Letzte Bastion',
+        description:
+          'Schlage einen Angriff mit mindestens 10 Einheiten zurück, der mehr Einheiten brachte, als in deinem Dorf standen.',
+      },
+      BROTHERS_IN_ARMS: {
+        name: 'Waffenbrüder',
+        description:
+          'Deine Unterstützung steht im Dorf eines anderen Spielers, wenn es einen Angriff mit mindestens 10 Einheiten zurückschlägt.',
+      },
+      SLAYER: { name: 'Bezwinger', description: 'Töte feindliche Einheiten in deinen Angriffen.' },
+      WARDEN: { name: 'Wächter', description: 'Töte angreifende Einheiten in deinen Dörfern.' },
     },
   },
   privacy: {
@@ -1524,7 +1741,7 @@ export const de: Dictionary = {
     account:
       'Dein Spielername und dein Passwort, das nur als Hash gespeichert ist: Daraus lässt sich dein Passwort nicht zurückgewinnen, auch nicht vom Betreiber. Außerdem, wann du dich registriert und zuletzt angemeldet hast, deine Rolle und eine Sperre mit ihrem Grund. Keine E-Mail-Adresse, kein echter Name, keine Zahlungsdaten.',
     gameTitle: 'Dein Spiel',
-    game: 'Dörfer, Truppen, Gebäude, Berichte, Farmliste, Erfolge und Gilde: alles, was das Spiel zum Laufen braucht. Dein Name, deine Dörfer, Punkte und Gilde sind für die anderen Spieler dieser Welt sichtbar (Karte, Rangliste, Profil).',
+    game: 'Dörfer, Truppen, Gebäude, Berichte, Farmliste, Notizen zu Dörfern, Erfolge und Gilde: alles, was das Spiel zum Laufen braucht. Dein Name, deine Dörfer, Punkte und Gilde sind für die anderen Spieler dieser Welt sichtbar (Karte, Rangliste, Profil). Deine Notizen zu Dörfern sieht sonst niemand, aber wie Nachrichten liegen sie unverschlüsselt auf dem Server.',
     messagesTitle: 'Nachrichten und Chat',
     messages:
       'Private Nachrichten, der Gilden-Chat und der Welt-Chat werden auf dem Server gespeichert, damit sie beim nächsten Mal noch da sind. Dort sind sie nicht verschlüsselt: Der Betreiber kann sie lesen und Chat-Nachrichten ausblenden, die gegen die Regeln verstoßen.',
@@ -1541,7 +1758,7 @@ export const de: Dictionary = {
       'Die Daten sind zum Spielen nötig (dein Konto und dein Spiel) und um die Welt vor Missbrauch zu schützen (Adress-Grenzen und Protokolle); im Sinne der DSGVO Art. 6 Abs. 1 lit. b und f. Sie bleiben, solange die Welt läuft; die Sicherungen der Datenbank werden 14 Tage aufbewahrt, sofern der Betreiber sie nicht länger behält.',
     rightsTitle: 'Deine Rechte',
     rights:
-      'Du kannst den Betreiber fragen, was über dich gespeichert ist, und es berichtigen oder löschen lassen. Im Spiel heißt Löschen: Der Betreiber löscht deinen Spieler, du kannst dich nicht mehr anmelden und deine Dörfer werden zu Barbarendörfern. Dein Kontoeintrag, dein Name und was du geschrieben hast bleiben, weil alte Berichte, Nachrichten und Chat-Zeilen darauf verweisen. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.',
+      'Du kannst den Betreiber fragen, was über dich gespeichert ist, und es berichtigen oder löschen lassen. Im Spiel heißt Löschen: Der Betreiber löscht deinen Spieler, du kannst dich nicht mehr anmelden und deine Dörfer werden zu Barbarendörfern. Dein Kontoeintrag, dein Name und was du geschrieben hast bleiben, weil alte Berichte, Nachrichten und Chat-Zeilen darauf verweisen; nur deine Notizen zu Dörfern werden gelöscht. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.',
     backToLogin: 'Anmelden',
     backToGame: 'Zurück zum Spiel',
   },
@@ -1782,7 +1999,18 @@ export const de: Dictionary = {
       paladinMaxSlots: 'Höchstens so viele Paladin-Plätze (0 = kein Paladin)',
       bannersEnabled: 'Banner wirken (Bannerhalle, Hissen)',
       bannerDropFactor: 'Chance auf Banner-Beute als Faktor (1 = normal, 0 = keine)',
+      standardTheftEnabled:
+        'Bannerdiebe der Verteidiger können die Paladin-Standarte eines zurückgeschlagenen Angriffs nehmen',
+      npcBannersEnabled: 'NPC-Fürsten nutzen Banner',
+      npcBannersHint:
+        'Fürsten finden, hissen und verschmelzen Banner und Standarten wie Spieler, bilden ihren Paladin in der Bannerhalle aus und nehmen Bannerdiebe auf ihre Racheangriffe mit. Aus: Was Fürsten besitzen, ruht, kann aber weiterhin gestohlen oder erobert werden.',
       marketExchangeRatio: 'Tauschkurs des Marktes (1 für x; 0 = aus, sonst 1 bis 10)',
+      nightBonusEnabled: 'Nachtbonus: Dörfer verteidigen sich nachts stärker',
+      nightBonusStartHour: 'Nacht ab (Stunde, deutsche Zeit)',
+      nightBonusEndHour: 'Nacht bis (Stunde)',
+      nightBonusFactor: 'Verteidigung nachts als Faktor (1,1 bis 3)',
+      nightBonusHint:
+        'Gilt für Angriffe, die in diesen Stunden ankommen, in Dörfern von Spielern und NPC-Fürsten, nicht in Barbarendörfern. Beginn und Ende müssen sich unterscheiden. Angriffe, die schon unterwegs sind, bekommen den Bonus, der bei ihrer Ankunft gilt.',
       villageNameLanguage: 'Dorfnamen',
       villageNameLanguageHint:
         "Neue Dörfer heißen „Dorf von Ben“ oder „Ben's village“. Speichern mit der anderen Sprache benennt jedes Dorf um, das noch seinen Standardnamen trägt; Namen von Spielern bleiben.",
@@ -1876,6 +2104,14 @@ export const de: Dictionary = {
       takeOut: 'Aus der Gilde nehmen',
       found: 'Neue Fürstengilde gründen',
       letChoose: 'Selbst wählen lassen',
+      /** Fürstenbanner (09-npc-lords §14.8). */
+      paladinLevel: (level: number) => `Paladin Stufe ${level}`,
+      stash: (items: string) => `Vorrat: ${items}`,
+      stashEmpty: 'Vorrat leer',
+      times: (name: string, count: number) => (count === 1 ? name : `${name} ×${count}`),
+      asleep: 'ruht',
+      worksAt: (tier: string) => `wirkt auf ${tier}`,
+      bannersOff: 'Fürstenbanner sind aus (Welteinstellungen): Was Fürsten besitzen, ruht.',
     },
   },
   dev: {
@@ -1922,6 +2158,7 @@ export const de: Dictionary = {
     FARM_TARGET_NOT_FOUND: 'Dieses Ziel steht nicht mehr auf der Liste.',
     ALREADY_IN_FARM_LIST: 'Dieses Dorf steht schon auf der Liste.',
     FARM_LIST_FULL: 'Die Farmliste ist voll. Entferne zuerst ein Ziel.',
+    FARM_TEMPLATE_NOT_FOUND: 'Diese Vorlage gibt es nicht (mehr).',
     OWN_PLAYER: 'Das kannst du bei dir selbst nicht tun.',
     MESSAGE_RATE_LIMIT: 'Du schreibst zu schnell. Warte eine Sekunde.',
     INBOX_FULL: 'Dieser Spieler hat zu viele ungelesene Nachrichten von dir. Warte auf eine Antwort.',
@@ -1939,11 +2176,12 @@ export const de: Dictionary = {
     BANNER_NOT_IN_STASH: 'Dieses Banner weht schon in einem Dorf. Hole es zuerst ein.',
     BANNER_HALL_REQUIRED: 'Dieses Dorf braucht eine Bannerhalle, damit ein Banner wehen kann.',
     BANNER_LOCKED:
-      'Ein Angriff ist auf dem Weg zu diesem Dorf: Banner können erst nach seiner Ankunft gewechselt werden.',
+      'Ein Angriff ist auf dem Weg zu diesem Dorf, oder bei einer Standarte einer mit einem Paladin aus diesem Dorf unterwegs: Das kann erst danach geändert werden.',
     NO_BANNER_EQUIPPED: 'In diesem Dorf weht kein Banner.',
     BANNER_TIERS_DIFFER: 'Nur Banner derselben Stufe können verschmolzen werden.',
     BANNER_TIER_MAX: 'Stufe III ist die höchste: Diese Banner können nicht verschmolzen werden.',
     BANNER_FUSE_TYPE: 'Das neue Banner nimmt die Art eines der drei an.',
+    BANNER_FAMILIES_DIFFER: 'Banner verschmelzen nur mit Bannern, Paladin-Standarten nur mit Standarten.',
     PALADIN_DISABLED: 'In dieser Welt gibt es keine Paladine.',
     RESEARCH_BUSY: 'Diese Schmiede oder diese Einheit wird schon erforscht. Warte, bis es fertig ist.',
     RESEARCH_ORDER_NOT_FOUND: 'Diese Erforschung gibt es nicht mehr. Vielleicht ist sie schon fertig.',
@@ -1951,6 +2189,7 @@ export const de: Dictionary = {
     BUILD_ORDER_NOT_FOUND: 'Diesen Bauauftrag gibt es nicht mehr. Vielleicht ist er schon fertig.',
     ORDER_NOT_MOVABLE: 'Begonnene Aufträge lassen sich nicht verschieben, und nichts kann vor sie.',
     RECRUIT_ORDER_NOT_FOUND: 'Diesen Rekrutierungsauftrag gibt es nicht mehr. Vielleicht ist er schon fertig.',
+    RECRUIT_TEMPLATE_NOT_FOUND: 'Diese Vorlage gibt es nicht (mehr).',
     DISMISS_ORDER_NOT_FOUND: 'Diese Entlassung gibt es nicht mehr. Vielleicht sind die Einheiten schon weg.',
     DISMISS_LOCKED:
       'Ein Angriff ist unterwegs, deshalb lässt sich die Entlassung jetzt nicht stoppen. Versuche es nach seiner Ankunft erneut.',

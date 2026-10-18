@@ -25,7 +25,8 @@ export type UpgradeBlocker =
 /**
  * What stands between the player and the next level of `info`, or null if it can be queued now (or
  * there is no next level). Mirrors the checks of POST …/build-orders, in the order the Town Hall
- * has always shown them. `bannersEnabled` is the world's setting.
+ * has always shown them. `hallAvailable`: whether the world lets a Banner Hall be built (banners or
+ * paladins on, `bannerHallAvailable`).
  */
 export function upgradeBlocker(
   info: BuildingInfo,
@@ -33,15 +34,15 @@ export function upgradeBlocker(
   freePop: number,
   queueFull: boolean,
   nowMs: number,
-  bannersEnabled: boolean,
+  hallAvailable: boolean,
 ): UpgradeBlocker | null {
   const next = info.next;
   if (next === null) {
     return null;
   }
   // First, unlike on the server: requirements, a free slot or resources would never make it possible,
-  // only the host switching banners on again.
-  if (info.building === 'BANNER_HALL' && !bannersEnabled) {
+  // only the host switching banners or paladins on again.
+  if (info.building === 'BANNER_HALL' && !hallAvailable) {
     return { kind: 'bannersDisabled' };
   }
   if (!info.requirementsMet) {

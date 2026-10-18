@@ -16,8 +16,8 @@ export interface PreviewContext {
   freePop: number;
   queueFull: boolean;
   now: number;
-  /** The world's setting: without banners no Banner Hall can be built (D11). */
-  bannersEnabled: boolean;
+  /** Without banners and paladins no Banner Hall can be built (D11, 1.4: `bannerHallAvailable`). */
+  hallAvailable: boolean;
 }
 
 interface BodyProps {
@@ -43,7 +43,7 @@ export function UpgradePreviewBody({ info, context }: BodyProps) {
     context.freePop,
     context.queueFull,
     context.now,
-    context.bannersEnabled,
+    context.hallAvailable,
   );
   const unlocks = [
     ...[...next.unlocksBuildings].sort(byBuildingOrder).map((building) => t.buildings[building]),

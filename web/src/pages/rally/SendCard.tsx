@@ -32,6 +32,8 @@ import { TrainConfirm } from './TrainConfirm';
 import styles from './RallyPage.module.css';
 import { targetFromSearch } from './rallyPaths';
 import { UnitPicker } from './UnitPicker';
+import { useFarmTemplates } from '../../api/queries/farmTemplates';
+import { TemplateButtons } from '../farm/TemplateButtons';
 import { useTargetVillage } from './useTargetVillage';
 import { villageLabel } from './villageLabel';
 
@@ -69,6 +71,7 @@ export function SendCard({ village, home }: SendCardProps) {
   const [target, setTarget] = useState(() => targetFromSearch(searchParams));
   const [targetError, setTargetError] = useState<string | undefined>();
   const [counts, setCounts] = useState<UnitMap>({});
+  const templates = useFarmTemplates().data ?? [];
   const [unitsError, setUnitsError] = useState(false);
   // the confirmation sheet is open while there is a command to confirm
   const [command, setCommand] = useState<ToConfirm | null>(null);
@@ -219,6 +222,21 @@ export function SendCard({ village, home }: SendCardProps) {
           <p className={styles.muted}>{t.rally.noTroops}</p>
         ) : (
           <div className={styles.units}>
+            {templates.length > 0 && (
+              <div className={styles.templateRow}>
+                <span className={styles.muted}>{t.farm.fromTemplate}</span>
+                <TemplateButtons
+                  templates={templates}
+                  home={available}
+                  label={t.farm.pickTemplate}
+                  onPick={(template) => {
+                    setCounts(template.units);
+                    setUnitsError(false);
+                    setSent(null);
+                  }}
+                />
+              </div>
+            )}
             <div className={styles.quick}>
               <Button
                 type="button"

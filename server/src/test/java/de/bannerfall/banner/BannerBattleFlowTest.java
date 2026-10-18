@@ -405,8 +405,8 @@ class BannerBattleFlowTest {
         // day's walk apart, so "a minute before now" would already be out of the 24 hours
         for (int i = 0; i < 8; i++) {
             jdbc.sql(
-                            "insert into banner_event (banner_id, kind, to_player_id, happened_at)"
-                                    + " values (0, 'FOUND', ?, ?)")
+                            "insert into banner_event (banner_id, kind, type, tier, to_player_id,"
+                                    + " happened_at) values (0, 'FOUND', 'WAR', 1, ?, ?)")
                     .params(attacker.playerId, Timestamp.from(arrival.minusSeconds(60)))
                     .update();
         }
@@ -486,17 +486,21 @@ class BannerBattleFlowTest {
         assertThat(
                         JsonPath.<List<String>>read(
                                 recruitment, "$[?(@.building == 'BANNER_HALL')].units[*].unit"))
-                .containsExactly("BANNER_THIEF");
+                .containsExactly("PALADIN", "BANNER_THIEF");
         assertThat(
                         JsonPath.<List<Boolean>>read(
                                 recruitment,
-                                "$[?(@.building == 'BANNER_HALL')].units[0].available"))
+                                "$[?(@.building == 'BANNER_HALL')].units[1].available"))
                 .containsExactly(true);
         attacker.recruit(UnitType.BANNER_THIEF, 2).andExpect(status().isCreated());
 
         setBanners(false, 1.0);
-        assertThat(JsonPath.<List<String>>read(body(attacker.recruitment()), "$[*].building"))
-                .doesNotContain("BANNER_HALL");
+        // the hall stays for the paladin (1.4), but trains no thieves
+        assertThat(
+                        JsonPath.<List<String>>read(
+                                body(attacker.recruitment()),
+                                "$[?(@.building == 'BANNER_HALL')].units[*].unit"))
+                .containsExactly("PALADIN");
         attacker.recruit(UnitType.BANNER_THIEF, 1)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BANNERS_DISABLED"));

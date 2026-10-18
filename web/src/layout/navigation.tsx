@@ -1,25 +1,39 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useMatch } from 'react-router';
 import { useUnreadMessages } from '../api/queries/messages';
 import { useUnreadReports } from '../api/queries/reports';
 import { useMyGuild } from '../api/queries/guilds';
 import { useWorld } from '../api/queries/world';
 import { Icon } from '../components/Icon';
+import { bannerHallAvailable } from '../game/banners';
 import { badgeText } from '../game/reports';
 import { guildSectionVisible } from '../game/guilds';
 import { useT } from '../i18n';
 import { useChatUnread } from '../realtime/chatSeen';
 import styles from './navigation.module.css';
-import { desktopSections, moreSections, phoneTabs, sections, visibleSections, type SectionKey } from './sections';
+import {
+  desktopSections,
+  moreGroups,
+  phoneTabs,
+  bannerHallPath,
+  sections,
+  visibleSections,
+  type OptionalSections,
+  type SectionKey,
+} from './sections';
 
 /**
- * Whether the guild section is in the navigation: while the host has guilds switched on, and for
- * the members of an existing guild even when it is off, so they keep their way to it (M15a).
+ * Which optional sections are in the navigation. The guild: while the host has guilds switched on,
+ * and for the members of an existing guild even when it is off, so they keep their way to it
+ * (M15a). The Banner Hall: while it can be built, i.e. paladins or banners are on (1.4).
  */
-function useGuildSectionVisible(): boolean {
-  const enabled = useWorld().data?.guildsEnabled === true;
+function useOptionalSections(): OptionalSections {
+  const world = useWorld().data;
   const guild = useMyGuild().data?.guild;
-  return guildSectionVisible(enabled, guild !== null && guild !== undefined);
+  return {
+    guild: guildSectionVisible(world?.guildsEnabled === true, guild !== null && guild !== undefined),
+    bannerHall: world !== undefined && bannerHallAvailable(world),
+  };
 }
 
 interface SectionLinkProps {
@@ -41,16 +55,20 @@ interface SectionLinkProps {
  */
 function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = false, children }: SectionLinkProps) {
   const t = useT();
-  // the warehouse (M22), smithy (M30) and Banner Hall (M32a) pages have no entry of their own: they are part of the village overview, so that tab stays lit
+  // the warehouse (M22) and smithy (M30) pages have no entry of their own: they are part of the village overview, so that tab stays lit
   const onWarehouse = useMatch('/v/:villageId/warehouse') !== null;
   const onSmithy = useMatch('/v/:villageId/smithy') !== null;
-  const onBanners = useMatch('/v/:villageId/banners') !== null;
+  // without banners the Banner Hall item opens the recruit screen's hall tab; there it is lit, not Recruit (1.4)
+  const bannersOn = useWorld().data?.bannersEnabled !== false;
+  const onHallTab = useMatch('/v/:villageId/recruit/banner_hall') !== null;
   const { pathname } = useLocation();
   const section = sections[sectionKey];
   const target =
-    section.path !== undefined && (villageId !== undefined || section.global === true)
-      ? section.path(villageId ?? 0)
-      : undefined;
+    sectionKey === 'bannerHall' && villageId !== undefined
+      ? bannerHallPath(villageId, bannersOn)
+      : section.path !== undefined && (villageId !== undefined || section.global === true)
+        ? section.path(villageId ?? 0)
+        : undefined;
   if (target === undefined) {
     return (
       <span className={className} aria-disabled="true" title={t.common.comingSoon}>
@@ -64,9 +82,16 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
     );
   }
   const viewTransition = onNavigate === undefined && pathname !== target;
-  if (sectionKey === 'village' && (onWarehouse || onSmithy || onBanners)) {
+  if (sectionKey === 'village' && (onWarehouse || onSmithy)) {
     return (
       <Link viewTransition={viewTransition} to={target} className={className} aria-current="page" onClick={onNavigate}>
+        {children}
+      </Link>
+    );
+  }
+  if (sectionKey === 'recruit' && !bannersOn && onHallTab) {
+    return (
+      <Link viewTransition={viewTransition} to={target} className={className} onClick={onNavigate}>
         {children}
       </Link>
     );
@@ -162,8 +187,7 @@ function MoreBadge({ className }: { className: string | undefined }) {
  */
 export function DesktopNav({ villageId }: { villageId: number | undefined }) {
   const t = useT();
-  const guildVisible = useGuildSectionVisible();
-  const keys = visibleSections(desktopSections, guildVisible);
+  const keys = visibleSections(desktopSections, useOptionalSections());
   const firstGlobal = keys.find((key) => sections[key].global === true);
   return (
     <nav className={styles.desktopNav} aria-label={t.nav.label}>
@@ -222,42 +246,55 @@ interface MoreLinksProps {
   onOpenChat: () => void;
 }
 
-/** Phone: the sections that don't fit into the tab bar (inside the More sheet), and the chat. */
+/**
+ * Phone: the sections that don't fit into the tab bar (inside the More sheet), and the chat, in
+ * the desktop's two groups: the village's pages, then the player's (1.4). Unread counts sit on the
+ * icon, like in the tab bar, so a long label never wraps under them.
+ */
 export function MoreLinks({ villageId, onNavigate, onOpenChat }: MoreLinksProps) {
   const t = useT();
-  const guildVisible = useGuildSectionVisible();
+  const shown = useOptionalSections();
+  const headingId = useId();
+  const item = (key: SectionKey) => (
+    <li key={key}>
+      <SectionLink sectionKey={key} villageId={villageId} className={styles.moreItem} onNavigate={onNavigate} showSoon>
+        <span className={styles.moreIcon}>
+          <Icon name={sections[key].icon} />
+          {key === 'messages' && <MessagesBadge className={styles.moreBadge} />}
+        </span>
+        <span className={styles.moreLabel}>{t.nav[key]}</span>
+      </SectionLink>
+    </li>
+  );
   return (
-    <ul className={styles.moreList}>
-      {visibleSections(moreSections, guildVisible).map((key) => (
-        <li key={key}>
-          <SectionLink
-            sectionKey={key}
-            villageId={villageId}
-            className={styles.moreItem}
-            onNavigate={onNavigate}
-            showSoon
-          >
-            <span className={styles.moreIcon}>
-              <Icon name={sections[key].icon} />
-            </span>
-            <span className={styles.moreLabel}>
-              {t.nav[key]}
-              {key === 'messages' && <MessagesBadge className={styles.badge} />}
-            </span>
-          </SectionLink>
-        </li>
-      ))}
-      <li>
-        <button type="button" className={styles.moreItem} onClick={onOpenChat} aria-haspopup="dialog">
-          <span className={styles.moreIcon}>
-            <Icon name="chat" />
-          </span>
-          <span className={styles.moreLabel}>
-            {t.nav.chat}
-            <ChatBadge className={styles.badge} />
-          </span>
-        </button>
-      </li>
-    </ul>
+    <div className={styles.moreGroups}>
+      <h3 id={`${headingId}-village`} className={styles.moreHeading}>
+        {t.nav.moreVillage}
+      </h3>
+      <ul className={styles.moreList} aria-labelledby={`${headingId}-village`}>
+        {visibleSections(moreGroups.village, shown).map(item)}
+      </ul>
+      <h3 id={`${headingId}-player`} className={styles.moreHeading}>
+        {t.nav.morePlayer}
+      </h3>
+      <ul className={styles.moreList} aria-labelledby={`${headingId}-player`}>
+        {visibleSections(moreGroups.player, shown).flatMap((key) =>
+          key === 'messages'
+            ? [
+                item(key),
+                <li key="chat">
+                  <button type="button" className={styles.moreItem} onClick={onOpenChat} aria-haspopup="dialog">
+                    <span className={styles.moreIcon}>
+                      <Icon name="chat" />
+                      <ChatBadge className={styles.moreBadge} />
+                    </span>
+                    <span className={styles.moreLabel}>{t.nav.chat}</span>
+                  </button>
+                </li>,
+              ]
+            : [item(key)],
+        )}
+      </ul>
+    </div>
   );
 }

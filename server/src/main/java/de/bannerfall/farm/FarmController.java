@@ -53,7 +53,7 @@ class FarmController {
             @Valid @RequestBody FarmUnitsRequest body,
             @AuthenticationPrincipal AccountPrincipal me) {
         return farmService.changeUnits(
-                villageId, targetId, playerService.idOf(me.accountId()), body.units());
+                villageId, targetId, playerService.idOf(me.accountId()), body);
     }
 
     @DeleteMapping("/{targetId}")

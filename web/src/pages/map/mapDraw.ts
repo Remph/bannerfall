@@ -132,6 +132,8 @@ export interface MapColors {
   badgeInkNoble: string;
   /** The faded banner of a village whose banner chance the player used (v1.3). */
   bannerUsed: string;
+  /** The sheet of paper on a village with the player's own note (1.4). */
+  note: string;
   /** The landscape (v1.3): broadleaf crowns, their shade and light, and firs. */
   tree: string;
   treeShade: string;
@@ -167,6 +169,7 @@ export function readMapColors(element: Element): MapColors {
     badgeInk: color('badge-ink'),
     badgeInkNoble: color('badge-ink-noble'),
     bannerUsed: color('banner-used'),
+    note: color('note'),
     tree: color('tree'),
     treeShade: color('tree-shade'),
     treeLight: color('tree-light'),
@@ -717,6 +720,9 @@ function drawVillages(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fie
     }
     if (village.keep && tile < HOUSES_MIN_TILE) {
       drawKeepStar(ctx, middle, tile, colors);
+    }
+    if (village.note !== null) {
+      drawNoteMark(ctx, middle, tile, colors);
     }
   }
 }
@@ -1530,6 +1536,61 @@ function drawUsedBanner(ctx: CanvasRenderingContext2D, middle: Point, tile: numb
   ctx.fillStyle = colors.bannerUsed;
   ctx.fill();
   ctx.globalAlpha = 1;
+  ctx.stroke();
+}
+
+/** The note's sheet of paper, in tiles: right and bottom edge from the field's middle, its width. */
+const NOTE_MARK = { edge: 0.46, width: 0.24, minWidth: 8, dot: 0.16, dotAt: 0.32 } as const;
+
+/**
+ * A village with the player's own note (1.4, 02-game-rules §23): a small sheet of paper with a
+ * folded corner at the bottom right of the field, the one corner nothing else uses (used banner
+ * and movement badges top left, NPC pennant and return badge top right, folded line badges bottom
+ * left). Far out, where villages are squares, a paper-coloured dot.
+ */
+function drawNoteMark(ctx: CanvasRenderingContext2D, middle: Point, tile: number, colors: MapColors): void {
+  ctx.lineWidth = Math.max(1, tile / 40);
+  ctx.strokeStyle = colors.outline;
+  ctx.fillStyle = colors.note;
+  if (tile < HOUSES_MIN_TILE) {
+    ctx.beginPath();
+    ctx.arc(
+      middle.x + tile * NOTE_MARK.dotAt,
+      middle.y + tile * NOTE_MARK.dotAt,
+      Math.max(2, tile * NOTE_MARK.dot),
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+    ctx.stroke();
+    return;
+  }
+  const width = Math.max(NOTE_MARK.minWidth, tile * NOTE_MARK.width);
+  const height = width * 1.2;
+  const right = middle.x + tile * NOTE_MARK.edge;
+  const bottom = middle.y + tile * NOTE_MARK.edge;
+  const left = right - width;
+  const top = bottom - height;
+  const fold = width * 0.35;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(left, top);
+  ctx.lineTo(right - fold, top);
+  ctx.lineTo(right, top + fold);
+  ctx.lineTo(right, bottom);
+  ctx.lineTo(left, bottom);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // the folded corner and two lines of writing
+  ctx.beginPath();
+  ctx.moveTo(right - fold, top);
+  ctx.lineTo(right - fold, top + fold);
+  ctx.lineTo(right, top + fold);
+  for (const share of [0.5, 0.72]) {
+    ctx.moveTo(left + width * 0.2, top + height * share);
+    ctx.lineTo(right - width * 0.2, top + height * share);
+  }
   ctx.stroke();
 }
 

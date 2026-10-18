@@ -44,29 +44,31 @@ class AchievementCatalogTest {
                 assertThat(catalog.levels()).doesNotContainKey(achievement);
             }
         }
-        // 25 of v1.1 and the six banner ones of M32c (02 §21.8)
-        assertThat(Achievement.values()).hasSize(31);
+        // 25 of v1.1, the six banner ones of M32c (02 §21.8) and the nine battle ones of 1.4
+        assertThat(Achievement.values()).hasSize(40);
         assertThat(java.util.Arrays.stream(Achievement.values()).filter(Achievement::leveled))
-                .hasSize(10);
+                .hasSize(12);
     }
 
     @Test
-    void theDraftThresholdsOfTheRulebook() {
+    void theThresholdsOfTheRulebook() {
         AchievementCatalog catalog = real();
 
-        assertThat(catalog.thresholds(Achievement.GROWTH)).containsExactly(1000L, 3500L, 12500L);
+        assertThat(catalog.thresholds(Achievement.GROWTH)).containsExactly(1000L, 5000L, 30000L);
         assertThat(catalog.thresholds(Achievement.LANDLORD)).containsExactly(3L, 8L, 15L);
         assertThat(catalog.thresholds(Achievement.STANDING_ARMY))
-                .containsExactly(200L, 2000L, 10000L);
-        assertThat(catalog.thresholds(Achievement.VICTOR)).containsExactly(10L, 50L, 250L);
-        assertThat(catalog.thresholds(Achievement.BULWARK)).containsExactly(5L, 25L, 100L);
+                .containsExactly(200L, 2500L, 20000L);
+        assertThat(catalog.thresholds(Achievement.VICTOR)).containsExactly(25L, 250L, 2500L);
+        assertThat(catalog.thresholds(Achievement.BULWARK)).containsExactly(3L, 15L, 50L);
         assertThat(catalog.thresholds(Achievement.PLUNDERER))
                 .containsExactly(20000L, 200000L, 2000000L);
         assertThat(catalog.thresholds(Achievement.MERCHANT_PRINCE))
                 .containsExactly(10000L, 100000L, 1000000L);
-        assertThat(catalog.thresholds(Achievement.VETERAN)).containsExactly(7L, 30L, 100L);
+        assertThat(catalog.thresholds(Achievement.VETERAN)).containsExactly(7L, 30L, 180L);
         assertThat(catalog.thresholds(Achievement.BANNER_COLLECTOR)).containsExactly(3L, 10L, 25L);
         assertThat(catalog.thresholds(Achievement.BANNER_THIEF)).containsExactly(1L, 5L, 20L);
+        assertThat(catalog.thresholds(Achievement.SLAYER)).containsExactly(250L, 2500L, 25000L);
+        assertThat(catalog.thresholds(Achievement.WARDEN)).containsExactly(100L, 1000L, 10000L);
     }
 
     @Test
@@ -74,11 +76,11 @@ class AchievementCatalogTest {
         AchievementCatalog catalog = real();
 
         assertThat(catalog.levelFor(Achievement.VICTOR, 0)).isZero();
-        assertThat(catalog.levelFor(Achievement.VICTOR, 9)).isZero();
-        assertThat(catalog.levelFor(Achievement.VICTOR, 10)).isEqualTo(1);
-        assertThat(catalog.levelFor(Achievement.VICTOR, 49)).isEqualTo(1);
-        assertThat(catalog.levelFor(Achievement.VICTOR, 50)).isEqualTo(2);
-        assertThat(catalog.levelFor(Achievement.VICTOR, 250)).isEqualTo(3);
+        assertThat(catalog.levelFor(Achievement.VICTOR, 24)).isZero();
+        assertThat(catalog.levelFor(Achievement.VICTOR, 25)).isEqualTo(1);
+        assertThat(catalog.levelFor(Achievement.VICTOR, 249)).isEqualTo(1);
+        assertThat(catalog.levelFor(Achievement.VICTOR, 250)).isEqualTo(2);
+        assertThat(catalog.levelFor(Achievement.VICTOR, 2500)).isEqualTo(3);
         assertThat(catalog.levelFor(Achievement.VICTOR, 1_000_000)).isEqualTo(3);
     }
 

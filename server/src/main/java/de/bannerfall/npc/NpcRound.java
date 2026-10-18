@@ -39,7 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * checked the lord and scheduled the next round. Every step is a short transaction of its own
  * ({@code REQUIRES_NEW}), loading what it needs fresh: reading the reports into memory, then one
  * transaction per village (so a village that fails is rolled back and logged, and the round goes on
- * with the next) – defend, build and recruit, attack – then the finish step.
+ * with the next) – defend, fly the best banners, build and recruit, attack – then the finish step
+ * and fusing banners (lord banners, 09 §14.3).
  */
 @Component
 public class NpcRound {
@@ -65,6 +66,7 @@ public class NpcRound {
     private final MovementRepository movements;
     private final GameData gameData;
     private final NpcGuilds guilds;
+    private final NpcBanners banners;
 
     NpcRound(
             PlatformTransactionManager transactionManager,
@@ -85,7 +87,8 @@ public class NpcRound {
             ReportRepository reports,
             MovementRepository movements,
             GameData gameData,
-            NpcGuilds guilds) {
+            NpcGuilds guilds,
+            NpcBanners banners) {
         this.tx = new TransactionTemplate(transactionManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.brains = brains;
@@ -106,6 +109,7 @@ public class NpcRound {
         this.movements = movements;
         this.gameData = gameData;
         this.guilds = guilds;
+        this.banners = banners;
     }
 
     /**
@@ -133,6 +137,7 @@ public class NpcRound {
             }
         }
         step(playerId, "the finish step", () -> finish(playerId, now));
+        step(playerId, "the fusing step", () -> fuse(playerId));
         step(playerId, "the guild step", () -> guilds.form(playerId));
     }
 
@@ -270,7 +275,8 @@ public class NpcRound {
     /**
      * §3 step 2: lock the village together with the home villages of the lord's own support stacks
      * in it (the withdraw step sends those home, and {@code returnStack} locks both villages of a
-     * stack), bring it forward, then defend, build and recruit, attack.
+     * stack), bring it forward, then defend, fly the best banners (09 §14.3), build and recruit,
+     * attack.
      */
     private void villageTurn(NpcTurn.View view, long villageId, Instant now) {
         long playerId = view.lordId();
@@ -305,6 +311,7 @@ public class NpcRound {
                         view, village, now, memory, lockedIds, world.ownAttackTargets(playerId));
 
         defence.run(turn);
+        banners.fly(turn);
         turn.wantsNobles = warfare.wantsNobles(turn);
         double bonus = memory.build().anyGrudgeAt(now) ? view.template().grudgeTroopBonus() : 0;
         NpcMemory.Ledger ledger =
@@ -319,6 +326,12 @@ public class NpcRound {
         memory.ledger.put(villageId, ledger);
         warfare.attack(turn);
         brain.setMemory(memory.build());
+    }
+
+    /** Lord banners (09 §14.3): the stash's triples fused, in a step of its own. */
+    private void fuse(long playerId) {
+        NpcBrain brain = brains.findById(playerId).orElseThrow();
+        banners.fuse(playerId, templates.of(brain.getPersonality()));
     }
 
     /**

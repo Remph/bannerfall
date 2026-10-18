@@ -15,6 +15,7 @@ export type ConquestReport = components['schemas']['ConquestReport'];
 export type TradeReport = components['schemas']['TradeReport'];
 export type LoyaltyReport = components['schemas']['LoyaltyReport'];
 export type DefenderSide = components['schemas']['DefenderSide'];
+export type DefenderStack = components['schemas']['DefenderStack'];
 export type ScoutingReport = components['schemas']['ScoutingReport'];
 export type BannerReport = components['schemas']['BannerReport'];
 export type ConqueredBanner = components['schemas']['ConqueredBanner'];

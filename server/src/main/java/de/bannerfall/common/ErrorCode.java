@@ -45,6 +45,8 @@ public enum ErrorCode {
      * Cancelling a recruit order the village doesn't have (any more), e.g. all its units are done.
      */
     RECRUIT_ORDER_NOT_FOUND,
+    /** Deleting a recruit template the player doesn't have (any more) (404, 1.4). */
+    RECRUIT_TEMPLATE_NOT_FOUND,
 
     // Dismissing units
     /**
@@ -227,6 +229,8 @@ public enum ErrorCode {
     ALREADY_IN_FARM_LIST,
     /** The village's farm list has 50 targets (409). */
     FARM_LIST_FULL,
+    /** The player has no farm template with that letter (404, 1.4). */
+    FARM_TEMPLATE_NOT_FOUND,
 
     // Unit levels (M30)
     /** Researching a unit level while the host has unit levels switched off (409). */
@@ -260,7 +264,9 @@ public enum ErrorCode {
     BANNER_HALL_REQUIRED,
     /**
      * Equipping, swapping or unequipping while an attack is on its way to the village: a defender
-     * can't hide the banner in the stash or pull a better one out at the last minute (409).
+     * can't hide the banner in the stash or pull a better one out at the last minute (409). A
+     * paladin standard is also locked while an attack with a paladin from the village is under way
+     * (1.4).
      */
     BANNER_LOCKED,
     /** Unequipping from a village that flies no banner (409). */
@@ -270,5 +276,10 @@ public enum ErrorCode {
     /** Fusing banners of the highest tier: there is no tier above III (409, M32c). */
     BANNER_TIER_MAX,
     /** Fusing into a type none of the three banners has (409, M32c). */
-    BANNER_FUSE_TYPE
+    BANNER_FUSE_TYPE,
+    /**
+     * Fusing village banners with paladin standards: the three must be of one family (409, 1.4,
+     * 02-game-rules §21.18).
+     */
+    BANNER_FAMILIES_DIFFER
 }

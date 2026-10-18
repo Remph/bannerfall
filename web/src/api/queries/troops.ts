@@ -1,4 +1,12 @@
-import { skipToken, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  skipToken,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { refetchDelayMs } from '../../game/buildQueue';
 import { serverNow } from '../../game/serverTime';
@@ -59,7 +67,19 @@ function refreshTroops(queryClient: QueryClient, villageId: number): Promise<unk
  * when the sheet closes (`gcTime: 0`). Only a missing target village is an error (404).
  */
 export function useCommandPreview(villageId: number, request: CommandRequest | undefined) {
-  return useQuery({
+  return useQuery(previewQuery(villageId, request));
+}
+
+/**
+ * The previews of several commands at once, e.g. one per farm template on the map (1.4: when each
+ * would arrive, for the night bonus); none are asked for while `enabled` is false.
+ */
+export function useCommandPreviews(villageId: number, requests: CommandRequest[], enabled: boolean) {
+  return useQueries({ queries: requests.map((request) => previewQuery(villageId, enabled ? request : undefined)) });
+}
+
+function previewQuery(villageId: number, request: CommandRequest | undefined) {
+  return queryOptions({
     queryKey: [...previewQueryKey, villageId, request],
     queryFn:
       request === undefined

@@ -34,6 +34,8 @@ import java.util.Map;
  *     nothing (and in reports from before M32b)
  * @param haulCapacity what the surviving attackers could carry, Plunder banner included (1.3), only
  *     in the attacker's copy and only when they took loot; null otherwise and in older reports
+ * @param nightBonus the night bonus factor the defence had (1.4, 02-game-rules §8.1), e.g. {@code
+ *     2.0}, in every copy; null by day, without a main battle and in older reports
  */
 public record BattleReport(
         VillageRefDto attacker,
@@ -49,8 +51,43 @@ public record BattleReport(
         ResourceAmounts loot,
         @Schema(nullable = true) LoyaltyReport loyalty,
         @Schema(nullable = true) BannerReport banners,
-        @Schema(nullable = true) Integer haulCapacity)
+        @Schema(nullable = true) Integer haulCapacity,
+        @Schema(nullable = true) Double nightBonus)
         implements ReportPayload {
+
+    /** A battle report without the night bonus. */
+    public BattleReport(
+            VillageRefDto attacker,
+            VillageRefDto defender,
+            BattleOutcome outcome,
+            Double luck,
+            Map<UnitType, Integer> attackerUnits,
+            Map<UnitType, Integer> attackerLosses,
+            Map<UnitType, Integer> attackerLevels,
+            BuildingType catapultTarget,
+            DefenderSide defenderSide,
+            ScoutingReport scouting,
+            ResourceAmounts loot,
+            LoyaltyReport loyalty,
+            BannerReport banners,
+            Integer haulCapacity) {
+        this(
+                attacker,
+                defender,
+                outcome,
+                luck,
+                attackerUnits,
+                attackerLosses,
+                attackerLevels,
+                catapultTarget,
+                defenderSide,
+                scouting,
+                loot,
+                loyalty,
+                banners,
+                haulCapacity,
+                null);
+    }
 
     /** A battle report without the haul capacity (the defenders' copies, tests). */
     public BattleReport(
@@ -162,7 +199,7 @@ public record BattleReport(
                 attacker,
                 defender,
                 outcome,
-                bannersGained(),
+                bannersGained(kind),
                 mainBattle ? loot : null,
                 losses,
                 kind == ReportKind.ATTACK && fullHaul());
@@ -178,10 +215,12 @@ public record BattleReport(
 
     /**
      * The banners the recipient's side gained in this battle: the one it found, the one its thieves
-     * stole. Each copy only holds what its recipient may know (a supporter's copy has no found
-     * banner, the defenders' copy no theft), so the payload alone decides.
+     * stole, and the same for paladin standards (1.4). Each copy only holds what its recipient may
+     * know (a supporter's copy has no found banner, the defenders' copy no theft), so the payload
+     * alone decides; only the standard theft is in both copies, a gain for the defenders and a loss
+     * for the attacker.
      */
-    private List<ScoutedBanner> bannersGained() {
+    private List<ScoutedBanner> bannersGained(ReportKind kind) {
         if (banners == null) {
             return List.of();
         }
@@ -189,9 +228,16 @@ public record BattleReport(
         if (banners.found() != null) {
             gained.add(banners.found());
         }
+        if (banners.foundStandard() != null) {
+            gained.add(banners.foundStandard());
+        }
         TheftReport theft = banners.theft();
         if (theft != null && theft.result() == TheftResult.STOLEN && theft.banner() != null) {
             gained.add(theft.banner());
+        }
+        StandardTheftReport standardTheft = banners.standardTheft();
+        if (kind == ReportKind.DEFENSE && standardTheft != null && standardTheft.stolen()) {
+            gained.add(standardTheft.standard());
         }
         return List.copyOf(gained);
     }
@@ -257,16 +303,28 @@ public record BattleReport(
      * @param home the village they belong to (snapshot)
      * @param levels the research levels (above 1) of these unit types, those of their owner (M30);
      *     empty with unit levels off and in reports from before M30
+     * @param standard the paladin standard the stack carried (1.4, 02-game-rules §21.18): its home
+     *     village's, with a paladin in the stack; null without (and in reports from before 1.4)
      */
     public record DefenderStack(
             VillageRefDto home,
             Map<UnitType, Integer> units,
             Map<UnitType, Integer> losses,
-            Map<UnitType, Integer> levels) {
+            Map<UnitType, Integer> levels,
+            @Schema(nullable = true) StandardReport standard) {
 
         public DefenderStack(
                 VillageRefDto home, Map<UnitType, Integer> units, Map<UnitType, Integer> losses) {
             this(home, units, losses, Map.of());
+        }
+
+        /** Without a standard. */
+        public DefenderStack(
+                VillageRefDto home,
+                Map<UnitType, Integer> units,
+                Map<UnitType, Integer> losses,
+                Map<UnitType, Integer> levels) {
+            this(home, units, losses, levels, null);
         }
 
         public DefenderStack {
@@ -299,17 +357,30 @@ public record BattleReport(
      *     elsewhere and on the way (balancing round 2, 02-game-rules §7.1); only in the attacker's
      *     copy, only if scouting succeeded and at least 75 % of the scouts survived the scouting
      *     phase, else null (empty: nothing away)
+     * @param standard the paladin standard equipped in the village (1.4, §21.18); like {@code
+     *     banner}
      */
     public record ScoutingReport(
             boolean succeeded,
             @Schema(nullable = true) ResourceAmounts resources,
             @Schema(nullable = true) Map<BuildingType, Integer> buildings,
             @Schema(nullable = true) ScoutedBanner banner,
-            @Schema(nullable = true) Map<UnitType, Integer> away) {
+            @Schema(nullable = true) Map<UnitType, Integer> away,
+            @Schema(nullable = true) ScoutedBanner standard) {
 
         public ScoutingReport {
             buildings = buildings == null ? null : ReportMaps.buildings(buildings);
             away = away == null ? null : ReportMaps.units(away);
+        }
+
+        /** A scouting report without the paladin standard. */
+        public ScoutingReport(
+                boolean succeeded,
+                ResourceAmounts resources,
+                Map<BuildingType, Integer> buildings,
+                ScoutedBanner banner,
+                Map<UnitType, Integer> away) {
+            this(succeeded, resources, buildings, banner, away, null);
         }
 
         /** A scouting report without the units away. */
@@ -326,6 +397,30 @@ public record BattleReport(
     public record ScoutedBanner(BannerType type, int tier) {}
 
     /**
+     * A paladin standard that an army or a defending stack carried into the battle (1.4,
+     * 02-game-rules §21.18).
+     *
+     * @param tier its own tier
+     * @param effectiveTier the tier it worked at (at most the owner's paladin level); 0 = asleep
+     */
+    public record StandardReport(BannerType type, int tier, int effectiveTier) {}
+
+    /**
+     * The defenders' thieves and the standard of an attack they beat (1.4, §21.18).
+     *
+     * @param thieves the village owner's own thieves at home that survived; null in the attacker's
+     *     copy
+     * @param chance the chance of the roll; null in the attacker's copy
+     * @param stolen the thieves took it: it is in the defender's stash now
+     * @param standard the standard
+     */
+    public record StandardTheftReport(
+            @Schema(nullable = true) Integer thieves,
+            @Schema(nullable = true) Double chance,
+            boolean stolen,
+            ScoutedBanner standard) {}
+
+    /**
      * The banner block (M32b, 02-game-rules §21.9). Each part is null when it says nothing.
      *
      * @param attackBonus the War banner the attack took along, as a fraction (both copies: the
@@ -336,13 +431,32 @@ public record BattleReport(
      *     owner's in the defenders' copy (02-game-rules §21.7)
      * @param theft what the attacker's banner thieves did (his copy only)
      * @param stolen the village's banner that thieves took (the defenders' copy only)
+     * @param attackStandard the paladin standard the attack carried (1.4, 02-game-rules §21.18;
+     *     both copies, like the War banner)
+     * @param foundStandard the standard the recipient's side found, like {@code found}
+     * @param standardTheft the defenders' thieves' roll for the attack's standard after a lost
+     *     attack: the full roll in the village owner's copy, in the attacker's copy only when they
+     *     took it
      */
     public record BannerReport(
             @Schema(nullable = true) Double attackBonus,
             @Schema(nullable = true) Double defenceBonus,
             @Schema(nullable = true) ScoutedBanner found,
             @Schema(nullable = true) TheftReport theft,
-            @Schema(nullable = true) ScoutedBanner stolen) {
+            @Schema(nullable = true) ScoutedBanner stolen,
+            @Schema(nullable = true) StandardReport attackStandard,
+            @Schema(nullable = true) ScoutedBanner foundStandard,
+            @Schema(nullable = true) StandardTheftReport standardTheft) {
+
+        /** A banner block without paladin standards. */
+        public BannerReport(
+                Double attackBonus,
+                Double defenceBonus,
+                ScoutedBanner found,
+                TheftReport theft,
+                ScoutedBanner stolen) {
+            this(attackBonus, defenceBonus, found, theft, stolen, null, null, null);
+        }
 
         /** Null instead of a block that says nothing. */
         public static BannerReport orNull(
@@ -351,14 +465,38 @@ public record BattleReport(
                 ScoutedBanner found,
                 TheftReport theft,
                 ScoutedBanner stolen) {
+            return orNull(attackBonus, defenceBonus, found, theft, stolen, null, null, null);
+        }
+
+        /** Null instead of a block that says nothing, with the paladin standards. */
+        public static BannerReport orNull(
+                Double attackBonus,
+                Double defenceBonus,
+                ScoutedBanner found,
+                TheftReport theft,
+                ScoutedBanner stolen,
+                StandardReport attackStandard,
+                ScoutedBanner foundStandard,
+                StandardTheftReport standardTheft) {
             if (attackBonus == null
                     && defenceBonus == null
                     && found == null
                     && theft == null
-                    && stolen == null) {
+                    && stolen == null
+                    && attackStandard == null
+                    && foundStandard == null
+                    && standardTheft == null) {
                 return null;
             }
-            return new BannerReport(attackBonus, defenceBonus, found, theft, stolen);
+            return new BannerReport(
+                    attackBonus,
+                    defenceBonus,
+                    found,
+                    theft,
+                    stolen,
+                    attackStandard,
+                    foundStandard,
+                    standardTheft);
         }
     }
 

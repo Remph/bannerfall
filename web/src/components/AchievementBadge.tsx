@@ -15,6 +15,8 @@ const glyphs: Record<AchievementCategory, ReactNode> = {
   BUILDING: <path d="M4 11 L12 4 L20 11 V20 H4 Z M10 20 V14 H14 V20" {...glyphStroke} />,
   ARMY: <path d="M12 3 L19 6 V12 C19 16.5 15.5 19.5 12 21 C8.5 19.5 5 16.5 5 12 V6 Z" {...glyphStroke} />,
   COMBAT: <path d="M5 5 L19 19 M19 5 L5 19 M4 8 L8 4 M16 20 L20 16 M20 8 L16 4 M8 20 L4 16" {...glyphStroke} />,
+  // a stretch of wall with a closed gate (1.4)
+  DEFENCE: <path d="M4 20 V8 H7 V5 H10 V8 H14 V5 H17 V8 H20 V20 Z M10 20 V15 H14 V20" {...glyphStroke} />,
   CONQUEST: <path d="M7 21 V4 M7 5 H18 L15 9 L18 13 H7" {...glyphStroke} />,
   // a standard hanging from its crossbar (M32c)
   BANNER: <path d="M4 4 H20 M7 4 V18 L12 15 L17 18 V4 M12 8 V11" {...glyphStroke} />,

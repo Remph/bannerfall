@@ -19,6 +19,9 @@ function lord(playerId: number, points: number, guild: [number, string, string] 
     guildName: guild?.[1] ?? null,
     guildTag: guild?.[2] ?? null,
     guildByAdmin: byAdmin,
+    paladinLevel: 1,
+    bannerVillages: [],
+    stash: [],
   };
 }
 

@@ -153,7 +153,8 @@ public class InvariantCheck {
     /**
      * Farm list entries the API can't make (02-game-rules §18): a template with a count outside 0 …
      * 30 000, no unit at all, a noble, the paladin or a banner thief, an entry that targets its own
-     * village, and lists with more than 50 entries.
+     * village, and lists with more than 50 entries; templates (1.4) under the same rules, and
+     * entries whose units aren't their template's or whose template is another player's.
      */
     private static String badFarmTargets() {
         List<String> columns =
@@ -172,7 +173,19 @@ public class InvariantCheck {
                 + " or village_id = target_village_id"
                 + " union all select 'farm list of village ' || village_id from farm_target"
                 + " group by village_id having count(*) > "
-                + FarmService.MAX_TARGETS;
+                + FarmService.MAX_TARGETS
+                // 1.4: the same rules for templates, and an entry sends its template's units
+                + " union all select 'farm template ' || id from farm_template where "
+                + outOfRange
+                + " or "
+                + String.join(" + ", columns)
+                + " = 0 or u_noble > 0 or u_paladin > 0 or u_banner_thief > 0"
+                + " union all select 'farm target ' || t.id || ' (template)' from farm_target t"
+                + " join farm_template p on p.id = t.template_id where "
+                + columns.stream()
+                        .map(c -> "t." + c + " <> p." + c)
+                        .collect(Collectors.joining(" or "))
+                + " or p.player_id <> (select player_id from village v where v.id = t.village_id)";
     }
 
     private static String anyUnitNegative() {

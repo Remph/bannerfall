@@ -6,11 +6,13 @@ import {
   useEquipBanner,
   useFuseBanners,
   useUnequipBanner,
+  useUnequipStandard,
   type BannerVillage,
   type Banners,
   type OwnBanner,
 } from '../../api/queries/banners';
 import { useVillage } from '../../api/queries/villages';
+import { useWorld } from '../../api/queries/world';
 import { BackLink } from '../../components/BackLink';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
@@ -27,11 +29,12 @@ import {
   groupStash,
   percentPoints,
   stashOf,
+  standardTier,
   toggleFuseChoice,
   type BannerLike,
 } from '../../game/banners';
 import { formatShare } from '../../game/format';
-import type { BannerType } from '../../game/gameData';
+import { isStandard, type BannerType } from '../../game/gameData';
 import { prefersReducedMotion } from '../../game/motion';
 import { useI18n } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -42,7 +45,7 @@ import { bannersPath } from './bannerPaths';
 
 /**
  * /v/:villageId/banners – the Banner Hall (M32a, 02-game-rules §21): the banner that flies in this
- * village, the stash of the player and his other villages. Reached from the village overview only;
+ * village, its paladin standard (1.4, §21.18), the stash of the player and his other villages. Reached from the village overview only;
  * it has no tab of its own.
  */
 export function BannersPage() {
@@ -86,10 +89,39 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
   const s = t.banners;
   const equip = useEquipBanner(villageId);
   const unequip = useUnequipBanner(villageId);
+  const unequipStandard = useUnequipStandard(villageId);
   const stash = stashOf(data.banners);
-  const flying = data.banners.find((banner) => banner.villageId === villageId) ?? null;
-  const busy = equip.isPending || unequip.isPending;
-  const error = equip.error ?? unequip.error;
+  const bannerStash = stash.filter((banner) => !isStandard(banner.type));
+  const standardStash = stash.filter((banner) => isStandard(banner.type));
+  const flying = data.banners.find((banner) => banner.id === here.bannerId) ?? null;
+  const standard = data.banners.find((banner) => banner.id === here.standardId) ?? null;
+  const busy = equip.isPending || unequip.isPending || unequipStandard.isPending;
+  const error = equip.error ?? unequip.error ?? unequipStandard.error;
+  // 1.4: the paladin trains in the hall too, in worlds that have him
+  const paladins = (useWorld().data?.paladinMaxSlots ?? 0) > 0;
+  // the standard's card shows in worlds with paladins, and wherever a standard is to be had
+  const showStandards = data.paladinsEnabled || standard !== null || standardStash.length > 0;
+
+  const stashRows = (banners: OwnBanner[]) => (
+    <ul className={styles.stash}>
+      {groupStash(banners).map(({ banner, count }) => {
+        const ofStandard = isStandard(banner.type);
+        return (
+          <StashRow
+            key={banner.id}
+            banner={banner}
+            count={count}
+            data={data}
+            here={here}
+            swapping={(ofStandard ? standard : flying) !== null}
+            pending={equip.isPending && equip.variables === banner.id}
+            disabled={busy || !data.enabled || here.hallLevel === 0 || (ofStandard && !data.paladinsEnabled)}
+            onEquip={() => equip.mutate(banner.id)}
+          />
+        );
+      })}
+    </ul>
+  );
 
   return (
     <div className={styles.page}>
@@ -122,28 +154,54 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
         </div>
       </Card>
 
+      {showStandards && (
+        <Card title={s.standardSlotTitle}>
+          <div className={styles.body}>
+            {here.standardLocked && (
+              <p className={styles.lockChip}>
+                <Icon name="lock" />
+                {s.standardLocked}
+              </p>
+            )}
+            <StandardSlot
+              data={data}
+              here={here}
+              standard={standard}
+              busy={busy}
+              onUnequip={() => unequipStandard.mutate()}
+            />
+            {data.paladinsEnabled ? (
+              <>
+                <p className={styles.hint}>{s.standardExplain}</p>
+                <p className={styles.hint}>{s.paladinLevel(data.paladinLevel)}</p>
+                {data.standardTheftEnabled && <p className={styles.hint}>{s.standardTheft}</p>}
+              </>
+            ) : (
+              <p className={styles.hint}>{s.standardNoPaladins}</p>
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card title={s.stashTitle(stash.length)}>
         <div className={styles.body}>
           <p className={styles.hint}>{s.stashExplain}</p>
         </div>
         {stash.length === 0 ? (
           <p className={styles.empty}>{s.stashEmpty}</p>
+        ) : standardStash.length === 0 ? (
+          stashRows(bannerStash)
         ) : (
-          <ul className={styles.stash}>
-            {groupStash(stash).map(({ banner, count }) => (
-              <StashRow
-                key={banner.id}
-                banner={banner}
-                count={count}
-                data={data}
-                here={here}
-                swapping={flying !== null}
-                pending={equip.isPending && equip.variables === banner.id}
-                disabled={busy || !data.enabled || here.hallLevel === 0}
-                onEquip={() => equip.mutate(banner.id)}
-              />
-            ))}
-          </ul>
+          <>
+            {bannerStash.length > 0 && (
+              <>
+                <h3 className={styles.stashGroup}>{s.stashBanners}</h3>
+                {stashRows(bannerStash)}
+              </>
+            )}
+            <h3 className={styles.stashGroup}>{s.stashStandards}</h3>
+            {stashRows(standardStash)}
+          </>
         )}
       </Card>
 
@@ -153,10 +211,11 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
         <Card title={s.thievesTitle}>
           <div className={styles.body}>
             <p className={styles.hint}>{s.thievesExplain}</p>
+            {paladins && <p className={styles.hint}>{s.paladinHere}</p>}
             {here.hallLevel > 0 ? (
               <p>
                 <Link className={styles.link} to={recruitPath(villageId, 'BANNER_HALL')}>
-                  {s.toRecruit}
+                  {paladins ? s.toRecruitWithPaladin : s.toRecruit}
                 </Link>
               </p>
             ) : (
@@ -169,7 +228,13 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
       <Card title={s.villagesTitle}>
         <ul className={styles.villages}>
           {data.villages.map((entry) => (
-            <VillageRow key={entry.id} entry={entry} data={data} current={entry.id === villageId} />
+            <VillageRow
+              key={entry.id}
+              entry={entry}
+              data={data}
+              current={entry.id === villageId}
+              showStandards={showStandards}
+            />
           ))}
         </ul>
       </Card>
@@ -230,6 +295,59 @@ function Slot({
   );
 }
 
+/** The paladin standard of this village (1.4, §21.18): what it does at the paladin's level, or the empty slot. */
+function StandardSlot({
+  data,
+  here,
+  standard,
+  busy,
+  onUnequip,
+}: {
+  data: Banners;
+  here: BannerVillage;
+  standard: OwnBanner | null;
+  busy: boolean;
+  onUnequip: () => void;
+}) {
+  const { t } = useI18n();
+  const s = t.banners;
+  const percent = usePercent();
+  if (standard === null) {
+    return (
+      <div className={styles.slot}>
+        <div className={styles.emptySlot} aria-hidden="true" />
+        <div className={styles.slotText}>
+          <strong>{s.standardEmpty}</strong>
+          <span className={styles.hint}>{here.hallLevel === 0 ? s.needsHall : s.standardEmptyHint}</span>
+        </div>
+      </div>
+    );
+  }
+  const type = standard.type;
+  // the server's number: 0 without a hall, without paladins or with banners switched off
+  const effective = here.standardEffectiveTier;
+  return (
+    <div className={styles.slot}>
+      <Banner type={type} tier={standard.tier} size={56} dormant={effective === 0} decorative />
+      <div className={styles.slotText}>
+        <strong>{s.types[type]}</strong>
+        <span>{s.tier(standard.tier)}</span>
+        {effective === 0 ? (
+          here.hallLevel === 0 && <span className={styles.hint}>{s.sleeping}</span>
+        ) : (
+          <>
+            <span>{s.effects[type](percent(effectOfTier(data.effects, type, effective)))}</span>
+            <span className={styles.hint}>{effective < standard.tier ? s.standardCappedAt(effective) : s.working}</span>
+          </>
+        )}
+      </div>
+      <Button type="button" size="small" variant="secondary" disabled={busy || here.standardLocked} onClick={onUnequip}>
+        {s.unequip}
+      </Button>
+    </div>
+  );
+}
+
 interface StashRowProps {
   banner: OwnBanner;
   /** Banners of this type and tier in the stash (one row for all of them). */
@@ -243,15 +361,21 @@ interface StashRowProps {
 }
 
 /**
- * One type and tier of the stash: what it does at its tier, what it would do in this village's hall,
- * and the button (none while an attack locks the slot: the lock above says why).
+ * One type and tier of the stash: what it does at its tier, what it would do in this village's hall
+ * (a standard: at the paladin's level), and the button (none while its slot is locked: the lock above
+ * says why).
  */
 function StashRow({ banner, count, data, here, swapping, pending, disabled, onEquip }: StashRowProps) {
   const { t } = useI18n();
   const s = t.banners;
   const percent = usePercent();
   const type = banner.type;
-  const effective = effectiveTier(banner.tier, here.hallLevel);
+  const standard = isStandard(type);
+  // a standard is capped by the paladin's level, a banner by the hall (§21.18, §21.2)
+  const effective = standard
+    ? standardTier(banner.tier, data.paladinLevel, here.hallLevel)
+    : effectiveTier(banner.tier, here.hallLevel);
+  const locked = standard ? here.standardLocked : here.locked;
   const name = s.types[type];
   return (
     <li className={styles.stashRow}>
@@ -263,9 +387,11 @@ function StashRow({ banner, count, data, here, swapping, pending, disabled, onEq
         </strong>
         <span>{s.tier(banner.tier)}</span>
         <span>{s.effects[type](percent(effectOfTier(data.effects, type, banner.tier)))}</span>
-        {here.hallLevel > 0 && effective < banner.tier && <span className={styles.hint}>{s.cappedAt(effective)}</span>}
+        {here.hallLevel > 0 && effective < banner.tier && (
+          <span className={styles.hint}>{standard ? s.standardCappedAt(effective) : s.cappedAt(effective)}</span>
+        )}
       </div>
-      {!here.locked && (
+      {!locked && (
         <Button
           type="button"
           size="small"
@@ -285,7 +411,7 @@ const FUSE_MS = 2900;
 
 /**
  * Fusing (M32c, 02-game-rules §21.4.2): choose three stash banners of one tier, pick the type the
- * new one takes, confirm. The banners are buttons that toggle (`aria-pressed`), grouped by tier.
+ * new one takes, confirm. Paladin standards fuse only with standards (1.4, §21.18). The banners are buttons that toggle (`aria-pressed`), grouped by tier.
  * Once fused, the three fly together into the new one over the card (1.3, not with reduced motion).
  */
 function FuseCard({ stash }: { stash: OwnBanner[] }) {
@@ -370,8 +496,12 @@ function FuseCard({ stash }: { stash: OwnBanner[] }) {
           <>
             <p className={styles.hint}>{s.fusePick(present.length, FUSE_COUNT)}</p>
             {groups.map((group) => (
-              <div key={group.tier} className={styles.fuseGroup}>
-                <h3 className={styles.fuseTier}>{s.fuseTier(group.tier, group.banners.length)}</h3>
+              <div key={`${group.standard ? 'standard' : 'banner'}-${group.tier}`} className={styles.fuseGroup}>
+                <h3 className={styles.fuseTier}>
+                  {group.standard
+                    ? s.fuseStandardTier(group.tier, group.banners.length)
+                    : s.fuseTier(group.tier, group.banners.length)}
+                </h3>
                 {group.banners.length < FUSE_COUNT ? (
                   <p className={styles.hint}>{s.fuseTooFew(FUSE_COUNT)}</p>
                 ) : (
@@ -449,11 +579,22 @@ function asBannerLike(banner: OwnBanner): BannerLike {
   return { id: banner.id, type: banner.type, tier: banner.tier, villageId: banner.villageId ?? null };
 }
 
-/** One of the player's villages: its hall, its banner, and a link to its page. */
-function VillageRow({ entry, data, current }: { entry: BannerVillage; data: Banners; current: boolean }) {
+/** One of the player's villages: its hall, its banner, its standard (1.4), and a link to its page. */
+function VillageRow({
+  entry,
+  data,
+  current,
+  showStandards,
+}: {
+  entry: BannerVillage;
+  data: Banners;
+  current: boolean;
+  showStandards: boolean;
+}) {
   const { t } = useI18n();
   const s = t.banners;
   const banner = data.banners.find((candidate) => candidate.id === entry.bannerId) ?? null;
+  const standard = data.banners.find((candidate) => candidate.id === entry.standardId) ?? null;
   const content = (
     <>
       {banner === null ? (
@@ -470,6 +611,19 @@ function VillageRow({ entry, data, current }: { entry: BannerVillage; data: Bann
             {s.types[banner.type]}
             {/* the picture is decorative here, so its tier is read from this text */}
             <span className="sr-only">, {s.tier(banner.tier)}</span>
+          </>
+        )}
+        {showStandards && (
+          <>
+            {' · '}
+            {standard === null ? (
+              s.noStandard
+            ) : (
+              <>
+                {s.types[standard.type]}
+                <span className="sr-only">, {s.tier(standard.tier)}</span>
+              </>
+            )}
           </>
         )}{' '}
         · {s.hallShort(entry.hallLevel)}

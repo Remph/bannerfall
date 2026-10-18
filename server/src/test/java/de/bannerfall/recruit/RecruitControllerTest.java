@@ -419,7 +419,7 @@ class RecruitControllerTest {
                 .andExpect(jsonPath("$[0].level").value(0))
                 .andExpect(
                         jsonPath("$[0].units[*].unit")
-                                .value(contains("SPEARMAN", "SWORDSMAN", "AXEMAN", "PALADIN")))
+                                .value(contains("SPEARMAN", "SWORDSMAN", "AXEMAN")))
                 .andExpect(jsonPath("$[0].queue").isEmpty())
                 .andExpect(jsonPath("$[1].building").value("STABLE"))
                 .andExpect(
@@ -429,9 +429,11 @@ class RecruitControllerTest {
                 .andExpect(jsonPath("$[2].units[*].unit").value(contains("RAM", "CATAPULT")))
                 .andExpect(jsonPath("$[3].building").value("ACADEMY"))
                 .andExpect(jsonPath("$[3].units[*].unit").value(contains("NOBLE")))
-                // M32b: the Banner Hall trains the banner thief (banners are on by default)
+                // M32b: the Banner Hall trains the banner thief (banners are on by default), and
+                // since 1.4 the paladin
                 .andExpect(jsonPath("$[4].building").value("BANNER_HALL"))
-                .andExpect(jsonPath("$[4].units[*].unit").value(contains("BANNER_THIEF")));
+                .andExpect(
+                        jsonPath("$[4].units[*].unit").value(contains("PALADIN", "BANNER_THIEF")));
     }
 
     @Test

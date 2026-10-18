@@ -59,8 +59,8 @@ export const recruitingBuildings = [
 
 export type RecruitingBuilding = (typeof recruitingBuildings)[number];
 
-/** The nine banner types in the order of 02-game-rules §21.1 (server: BannerType). */
-export const bannerTypes = [
+/** The nine village banner types in the order of 02-game-rules §21.1 (server: BannerType). */
+export const villageBannerTypes = [
   'HARVEST',
   'BUILDERS',
   'DRILL',
@@ -72,4 +72,25 @@ export const bannerTypes = [
   'OATH',
 ] as const;
 
+/** The seven paladin standards (1.4, 02-game-rules §21.18), in the server's order after the banners. */
+export const standardTypes = [
+  'SPEAR_STANDARD',
+  'SWORD_STANDARD',
+  'AXE_STANDARD',
+  'LANCE_STANDARD',
+  'KNIGHT_STANDARD',
+  'RAM_STANDARD',
+  'SIEGE_STANDARD',
+] as const;
+
+/** Every type the server knows: the village banners, then the paladin standards. */
+export const bannerTypes = [...villageBannerTypes, ...standardTypes] as const;
+
+export type StandardType = (typeof standardTypes)[number];
+
 export type BannerType = (typeof bannerTypes)[number];
+
+/** Whether a type is a paladin standard (it flies in its own slot and fuses only with standards). */
+export function isStandard(type: BannerType): type is StandardType {
+  return (standardTypes as readonly BannerType[]).includes(type);
+}

@@ -1,20 +1,32 @@
 package de.bannerfall.npc;
 
+import de.bannerfall.banner.Banner;
+import de.bannerfall.banner.BannerRepository;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.GameRuleException;
 import de.bannerfall.common.NotFoundException;
+import de.bannerfall.gamedata.BuildingType;
+import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.guild.GuildRefDto;
 import de.bannerfall.guild.GuildRepository;
 import de.bannerfall.guild.GuildService;
 import de.bannerfall.npc.NpcBalanceSettings.Difficulty;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
+import de.bannerfall.research.UnitLevelService;
+import de.bannerfall.rules.BannerRules;
+import de.bannerfall.village.Village;
+import de.bannerfall.village.VillageRepository;
 import de.bannerfall.world.WorldService;
+import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -36,6 +48,10 @@ public class NpcAdminService {
     private final GuildService guildService;
     private final GuildRepository guilds;
     private final NpcGuilds npcGuilds;
+    private final BannerRepository banners;
+    private final VillageRepository villages;
+    private final UnitLevelService unitLevels;
+    private final Clock clock;
 
     NpcAdminService(
             PlayerRepository players,
@@ -46,7 +62,11 @@ public class NpcAdminService {
             JdbcClient jdbc,
             GuildService guildService,
             GuildRepository guilds,
-            NpcGuilds npcGuilds) {
+            NpcGuilds npcGuilds,
+            BannerRepository banners,
+            VillageRepository villages,
+            UnitLevelService unitLevels,
+            Clock clock) {
         this.players = players;
         this.brains = brains;
         this.lordService = lordService;
@@ -56,6 +76,10 @@ public class NpcAdminService {
         this.guildService = guildService;
         this.guilds = guilds;
         this.npcGuilds = npcGuilds;
+        this.banners = banners;
+        this.villages = villages;
+        this.unitLevels = unitLevels;
+        this.clock = clock;
     }
 
     /** All lords, newest first. */
@@ -216,6 +240,7 @@ public class NpcAdminService {
 
     private NpcLordDto dto(Player lord, NpcBrain brain, Instant nextThinkAt) {
         NpcMemory.Stance stance = brain.getMemory().stance();
+        int paladinLevel = unitLevels.levelsOf(lord, clock.instant()).get(UnitType.PALADIN);
         GuildRefDto guild = guilds.findRefOf(lord.getId()).orElse(null);
         return new NpcLordDto(
                 lord.getId(),
@@ -232,6 +257,77 @@ public class NpcAdminService {
                 guild == null ? null : guild.id(),
                 guild == null ? null : guild.name(),
                 guild == null ? null : guild.tag(),
-                brain.isGuildByAdmin());
+                brain.isGuildByAdmin(),
+                paladinLevel,
+                bannerVillages(lord, paladinLevel),
+                stash(lord.getId()));
+    }
+
+    /** The lord's villages with something equipped (09 §14.8). */
+    private List<NpcLordDto.BannerVillage> bannerVillages(Player lord, int paladinLevel) {
+        Map<Long, List<Banner>> equipped = new HashMap<>();
+        for (Banner banner : banners.findByOwnerIdOrderByIdAsc(lord.getId())) {
+            if (banner.isEquipped()) {
+                equipped.computeIfAbsent(banner.getEquippedVillageId(), id -> new ArrayList<>())
+                        .add(banner);
+            }
+        }
+        if (equipped.isEmpty()) {
+            return List.of();
+        }
+        boolean works = worldService.settings().lordBanners();
+        List<NpcLordDto.BannerVillage> rows = new ArrayList<>();
+        for (Village village : villages.findByPlayerIdOrderByIdAsc(lord.getId())) {
+            List<Banner> here = equipped.get(village.getId());
+            if (here == null) {
+                continue;
+            }
+            int hall = village.getBuildings().get(BuildingType.BANNER_HALL);
+            NpcLordDto.Equipped flying = null;
+            NpcLordDto.Equipped standard = null;
+            for (Banner banner : here) {
+                int effective =
+                        !works
+                                ? 0
+                                : banner.isStandard()
+                                        ? BannerRules.standardTier(
+                                                banner.getTier(), paladinLevel, hall)
+                                        : BannerRules.effectiveTier(banner.getTier(), hall);
+                var row = new NpcLordDto.Equipped(banner.getType(), banner.getTier(), effective);
+                if (banner.isStandard()) {
+                    standard = row;
+                } else {
+                    flying = row;
+                }
+            }
+            rows.add(
+                    new NpcLordDto.BannerVillage(
+                            village.getId(), village.getName(), hall, flying, standard));
+        }
+        return rows;
+    }
+
+    /** The stash counted by type and tier: banners before standards, then by tier and type. */
+    private List<NpcLordDto.StashCount> stash(long lordId) {
+        Map<String, NpcLordDto.StashCount> counts = new TreeMap<>();
+        for (Banner banner : banners.findByOwnerIdOrderByIdAsc(lordId)) {
+            if (banner.isEquipped()) {
+                continue;
+            }
+            String key = banner.getType() + ":" + banner.getTier();
+            NpcLordDto.StashCount before = counts.get(key);
+            counts.put(
+                    key,
+                    new NpcLordDto.StashCount(
+                            banner.getType(),
+                            banner.getTier(),
+                            before == null ? 1 : before.count() + 1));
+        }
+        return counts.values().stream()
+                .sorted(
+                        Comparator.comparing((NpcLordDto.StashCount c) -> c.type().isStandard())
+                                .thenComparingInt(NpcLordDto.StashCount::tier)
+                                .thenComparing(NpcLordDto.StashCount::type))
+                .toList();
     }
 }

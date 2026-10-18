@@ -15,6 +15,23 @@ public final class BannerRules {
         return Math.max(0, Math.min(tier, hallLevel));
     }
 
+    /**
+     * The tier a paladin standard works at (1.4, 02-game-rules §21.18): its own, but at most the
+     * owner's paladin level; 0 (asleep) while its village has no Banner Hall.
+     */
+    public static int standardTier(int tier, int paladinLevel, int hallLevel) {
+        return hallLevel < 1 ? 0 : Math.max(0, Math.min(tier, paladinLevel));
+    }
+
+    /**
+     * Rams or catapults with a paladin standard's damage bonus (02-game-rules §21.18): they count
+     * as {@code floor(count × (1 + bonus))} of their kind.
+     */
+    public static int boosted(int count, double bonus) {
+        // the tiny tolerance keeps exact products (10 × 1.1 = 11) from falling below a whole number
+        return bonus == 0 ? count : (int) Math.floor(count * (1 + bonus) + 1e-9);
+    }
+
     /** A capacity with a bonus: {@code round(base × (1 + bonus))}. */
     public static int capacity(int base, double bonus) {
         return bonus == 0 ? base : (int) Math.round(base * (1 + bonus));

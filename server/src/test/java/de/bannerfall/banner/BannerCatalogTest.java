@@ -7,6 +7,7 @@ import de.bannerfall.gamedata.BannerType;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /** banners.yml (02-game-rules §21.2): the numbers of the file and the rules that guard it. */
@@ -14,7 +15,8 @@ class BannerCatalogTest {
 
     private static final BannerCatalog.Drops DROPS =
             new BannerCatalog.Drops(0.10, 0.015, List.of(70, 25, 5), 30, 24, 8);
-    private static final BannerCatalog.Theft THEFT = new BannerCatalog.Theft(0.03, 0.85, 0.10);
+    private static final BannerCatalog.Theft THEFT =
+            new BannerCatalog.Theft(List.of(0.03, 0.04, 0.05), 0.85, 0.10);
     private static final BannerCatalog.Fusing FUSING = new BannerCatalog.Fusing(3);
 
     private static Map<BannerType, List<Double>> effects() {
@@ -26,8 +28,8 @@ class BannerCatalogTest {
     }
 
     @Test
-    void theNineTypesInTheOrderOfTheRulebook() {
-        assertThat(BannerType.values())
+    void theNineTypesAndTheSevenStandardsInTheOrderOfTheRulebook() {
+        assertThat(BannerType.villageBanners())
                 .extracting(Enum::name)
                 .containsExactly(
                         "HARVEST",
@@ -39,6 +41,23 @@ class BannerCatalogTest {
                         "TREASURY",
                         "PLUNDER",
                         "OATH");
+        // the paladin standards (1.4) come after them, so no stored type changes its place
+        assertThat(BannerType.standards())
+                .extracting(Enum::name)
+                .containsExactly(
+                        "SPEAR_STANDARD",
+                        "SWORD_STANDARD",
+                        "AXE_STANDARD",
+                        "LANCE_STANDARD",
+                        "KNIGHT_STANDARD",
+                        "RAM_STANDARD",
+                        "SIEGE_STANDARD");
+        assertThat(BannerType.values())
+                .containsExactlyElementsOf(
+                        Stream.concat(
+                                        BannerType.villageBanners().stream(),
+                                        BannerType.standards().stream())
+                                .toList());
     }
 
     @Test
@@ -95,9 +114,25 @@ class BannerCatalogTest {
 
     @Test
     void theHallMustLeaveSomeChanceOfTheft() {
-        var theft = new BannerCatalog.Theft(0.03, 0.85, 0.40);
+        var theft = new BannerCatalog.Theft(List.of(0.03), 0.85, 0.40);
 
         assertThatThrownBy(() -> new BannerCatalog(effects(), DROPS, theft, FUSING))
                 .hasMessageContaining("hall-reduction");
+    }
+
+    @Test
+    void theChancePerThiefRisesWithTheThiefLevel() {
+        assertThat(THEFT.perThief(1)).isEqualTo(0.03);
+        assertThat(THEFT.perThief(3)).isEqualTo(0.05);
+        // a level past the list counts as its last entry
+        assertThat(THEFT.perThief(4)).isEqualTo(0.05);
+    }
+
+    @Test
+    void theChancesPerThiefMustAscend() {
+        var theft = new BannerCatalog.Theft(List.of(0.03, 0.03), 0.85, 0.10);
+
+        assertThatThrownBy(() -> new BannerCatalog(effects(), DROPS, theft, FUSING))
+                .hasMessageContaining("chance-per-thief");
     }
 }

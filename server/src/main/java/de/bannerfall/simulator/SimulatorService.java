@@ -15,6 +15,8 @@ import de.bannerfall.rules.BattleResult;
 import de.bannerfall.rules.Combat;
 import de.bannerfall.rules.Loot;
 import de.bannerfall.rules.Loyalty;
+import de.bannerfall.rules.ResearchRules;
+import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.UnitLevels;
 import de.bannerfall.world.WorldService;
 import java.util.ArrayList;
@@ -46,8 +48,8 @@ public class SimulatorService {
      * The battle with the luck at its worst, at none and at its best.
      *
      * @throws GameRuleException {@code EMPTY_COMMAND} without an attacking unit
-     * @throws ApiException 400 {@code VALIDATION} for a level above the building's maximum, or two
-     *     banners for one village (War and Plunder, Bulwark and Oath)
+     * @throws ApiException 400 {@code VALIDATION} for a level above the building's maximum, two
+     *     banners for one village (War and Plunder, Bulwark and Oath), or a standard that is none
      */
     public SimulationDto simulate(SimulatorRequest request) {
         Map<UnitType, Integer> attacker = units(request.attacker());
@@ -80,10 +82,11 @@ public class SimulatorService {
         }
         int loyalty = request.loyalty() == null ? (int) Loyalty.MAX : request.loyalty();
 
-        // unit levels (M30) only count in a world that has them; the sides' own maps otherwise
+        // unit levels (M30) only count in a world that has them, the levels trained in the Banner
+        // Hall (paladin, banner thief; 1.4) in every world
         boolean levelsOn = worldService.settings().unitLevelsEnabled();
-        UnitLevels attackerLevels = levelsOn ? levels(request.attackerLevels()) : UnitLevels.NONE;
-        UnitLevels defenderLevels = levelsOn ? levels(request.defenderLevels()) : UnitLevels.NONE;
+        UnitLevels attackerLevels = levels(request.attackerLevels(), levelsOn);
+        UnitLevels defenderLevels = levels(request.defenderLevels(), levelsOn);
 
         // banners (M32c) like in a real battle: War of the attacker's village, Bulwark capped by
         // the target's hall (02-game-rules §21.2); nothing while the world has them off
@@ -116,6 +119,35 @@ public class SimulatorService {
         int thieves = attacker.getOrDefault(UnitType.BANNER_THIEF, 0);
         boolean theft = bannersOn && thieves > 0;
 
+        // paladin standards (1.4, §21.18): only with a paladin on that side, at most at that side's
+        // paladin level; the defenders' sleeps without a Banner Hall
+        StandardEffect attackStandard =
+                bannersOn
+                        ? standard(
+                                request.attackerStandard(),
+                                request.attackerStandardTier(),
+                                attacker,
+                                attackerLevels,
+                                1)
+                        : StandardEffect.NONE;
+        StandardEffect defenceStandard =
+                bannersOn
+                        ? standard(
+                                request.defenderStandard(),
+                                request.defenderStandardTier(),
+                                defender,
+                                defenderLevels,
+                                hall)
+                        : StandardEffect.NONE;
+        boolean standardTheft =
+                attackStandard.type() != null && worldService.settings().standardTheftEnabled();
+
+        // the night bonus (1.4, §8.1) when the player says the attack lands at night
+        double nightFactor =
+                Boolean.TRUE.equals(request.night()) && worldService.settings().nightBonusEnabled()
+                        ? worldService.settings().nightBonusFactor()
+                        : 1;
+
         double luckRange = worldService.settings().luckRange();
         List<Double> lucks = luckRange > 0 ? List.of(-luckRange, 0.0, luckRange) : List.of(0.0);
         List<SimulationDto.Scenario> scenarios = new ArrayList<>();
@@ -131,7 +163,10 @@ public class SimulatorService {
                             attackerLevels,
                             List.of(defenderLevels),
                             attackBonus,
-                            defenceBonus);
+                            defenceBonus,
+                            attackStandard,
+                            List.of(defenceStandard),
+                            nightFactor);
             BattleResult result = Combat.fight(gameData, input);
             scenarios.add(
                     scenario(
@@ -140,10 +175,77 @@ public class SimulatorService {
                             loyalty,
                             oathBonus,
                             plunderBonus,
-                            theft ? theft(input, result, thieves, hall) : null));
+                            theft ? theft(input, result, thieves, hall) : null,
+                            standardTheft ? standardTheft(input, result) : null));
         }
         return new SimulationDto(
-                List.copyOf(scenarios), attackBonus, defenceBonus, plunderBonus, oathBonus);
+                List.copyOf(scenarios),
+                attackBonus,
+                defenceBonus,
+                plunderBonus,
+                oathBonus,
+                standardDto(attackStandard),
+                standardDto(defenceStandard),
+                nightFactor);
+    }
+
+    /**
+     * One side's paladin standard (§21.18): none without a type, a tier or a paladin on that side.
+     *
+     * @param hall the Banner Hall of the standard's village (1 where the simulator doesn't ask)
+     * @throws ApiException 400 {@code VALIDATION} for a type that is no paladin standard
+     */
+    private StandardEffect standard(
+            BannerType type,
+            Integer tier,
+            Map<UnitType, Integer> units,
+            UnitLevels levels,
+            int hall) {
+        if (type == null || !positive(tier)) {
+            return StandardEffect.NONE;
+        }
+        if (!type.isStandard()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, type + " is no paladin standard");
+        }
+        if (units.getOrDefault(UnitType.PALADIN, 0) == 0) {
+            return StandardEffect.NONE;
+        }
+        int effective =
+                BannerRules.standardTier(tier, levels.get(UnitType.PALADIN), Math.max(0, hall));
+        return new StandardEffect(type, tier, effective, effect(type, effective));
+    }
+
+    private static SimulationDto.Standard standardDto(StandardEffect standard) {
+        return standard.type() == null
+                ? null
+                : new SimulationDto.Standard(
+                        standard.type(),
+                        standard.tier(),
+                        standard.effectiveTier(),
+                        standard.bonus());
+    }
+
+    /**
+     * 02-game-rules §21.18: after a lost attack the defenders' surviving thieves may take the
+     * attack's standard, without the hall's reduction; null if the attacker wins.
+     */
+    private SimulationDto.Theft standardTheft(BattleInput input, BattleResult result) {
+        if (result.mainBattle() == null || result.attackerWon()) {
+            return null;
+        }
+        int sent = input.defenderStacks().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
+        int survived = sent - result.defenderLosses().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
+        BannerCatalog.Theft rules = banners.theft();
+        return new SimulationDto.Theft(
+                sent,
+                survived,
+                BannerRules.theftChance(
+                        survived,
+                        0,
+                        rules.perThief(input.defenderLevels().get(0).get(UnitType.BANNER_THIEF)),
+                        rules.maxChance(),
+                        0));
     }
 
     private static boolean positive(Integer tier) {
@@ -183,7 +285,7 @@ public class SimulatorService {
                 BannerRules.theftChance(
                         survived,
                         hall,
-                        rules.chancePerThief(),
+                        rules.perThief(input.attackerLevels().get(UnitType.BANNER_THIEF)),
                         rules.maxChance(),
                         rules.hallReductionPerLevel()));
     }
@@ -194,7 +296,8 @@ public class SimulatorService {
             int loyalty,
             double oath,
             double plunder,
-            SimulationDto.Theft theft) {
+            SimulationDto.Theft theft,
+            SimulationDto.Theft standardTheft) {
         BattleResult.MainBattle battle = result.mainBattle();
         BattleOutcome outcome =
                 battle == null
@@ -238,7 +341,8 @@ public class SimulatorService {
                                 scouting.succeeded()),
                 outlook(result, loyalty, oath),
                 Loot.capacity(gameData, result.attackerSurvivors(), plunder),
-                theft);
+                theft,
+                standardTheft);
     }
 
     /**
@@ -273,8 +377,18 @@ public class SimulatorService {
         return oath == 0 ? hit : Math.round(hit * (1 - oath));
     }
 
-    private static UnitLevels levels(Map<UnitType, Integer> levels) {
-        return levels == null ? UnitLevels.NONE : new UnitLevels(levels);
+    /** A side's levels; with unit levels off only those of the Banner Hall's units (1.4). */
+    private UnitLevels levels(Map<UnitType, Integer> levels, boolean levelsOn) {
+        if (levels == null) {
+            return UnitLevels.NONE;
+        }
+        UnitLevels all = new UnitLevels(levels);
+        return levelsOn
+                ? all
+                : all.only(
+                        type ->
+                                ResearchRules.building(gameData.unit(type))
+                                        == BuildingType.BANNER_HALL);
     }
 
     /** The counts above 0 only, in the canonical order. */

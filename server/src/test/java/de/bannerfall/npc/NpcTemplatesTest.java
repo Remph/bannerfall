@@ -3,6 +3,7 @@ package de.bannerfall.npc;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import de.bannerfall.TestGameData;
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
@@ -78,11 +79,45 @@ class NpcTemplatesTest {
     }
 
     @Test
-    void theBannerHallNeedsNoStepBecauseLordsCollectNoBanners() {
-        // lords use no banners (M32, 02-game-rules §21.8): the hall is no part of their build
-        assertThat(base().build().stream().flatMap(step -> step.keySet().stream()))
-                .doesNotContain(BuildingType.BANNER_HALL);
+    void lordsBuildTheBannerHallForTheirPaladin() {
+        // since 1.4 the paladin trains in the Banner Hall (02-game-rules §5.5): Hall 1 right after
+        // Town Hall 10, Hall 2 with Town Hall 15, Hall 3 with Town Hall 20
+        for (NpcPersonality personality : NpcPersonality.values()) {
+            NpcTemplates.Template template = TEMPLATES.of(personality);
+            List<Map<BuildingType, Integer>> build = template.build();
+            int hq10 = stepOf(build, BuildingType.HEADQUARTERS, 10);
+            assertThat(build.get(hq10 + 1)).isEqualTo(Map.of(BuildingType.BANNER_HALL, 1));
+            assertThat(build.get(stepOf(build, BuildingType.HEADQUARTERS, 15)))
+                    .containsEntry(BuildingType.BANNER_HALL, 2);
+            assertThat(build.get(stepOf(build, BuildingType.HEADQUARTERS, 20)))
+                    .containsEntry(BuildingType.BANNER_HALL, 3);
+        }
         assertThat(NpcTemplateValidation.problems(TEMPLATES, DATA)).isEmpty();
+    }
+
+    @Test
+    void withoutABannerHallTheStepsLeaveItOut() {
+        NpcTemplates.Template template = base();
+
+        List<Map<BuildingType, Integer>> steps = template.buildSteps(false);
+
+        assertThat(steps.stream().flatMap(step -> step.keySet().stream()))
+                .doesNotContain(BuildingType.BANNER_HALL);
+        // the step with only the hall is gone, the Town Hall steps keep their Town Hall
+        assertThat(steps).hasSize(template.build().size() - 1);
+        assertThat(steps.get(stepOf(steps, BuildingType.HEADQUARTERS, 15)))
+                .isEqualTo(Map.of(BuildingType.HEADQUARTERS, 15));
+        assertThat(template.buildSteps(true)).isEqualTo(template.build());
+    }
+
+    private static int stepOf(
+            List<Map<BuildingType, Integer>> build, BuildingType type, int level) {
+        for (int i = 0; i < build.size(); i++) {
+            if (Integer.valueOf(level).equals(build.get(i).get(type))) {
+                return i;
+            }
+        }
+        throw new AssertionError(type + " " + level + " is no step");
     }
 
     @Test
@@ -129,8 +164,8 @@ class NpcTemplatesTest {
     }
 
     @Test
-    void lordsNeverTrainOrSendBannerThieves() {
-        // NPC lords don't use banners (M32b, 02-game-rules §21.11)
+    void bannerThievesAreNeverInTheMixOrAUnitList() {
+        // lords keep thieves only through the template's `thieves` (09-npc-lords §14.4)
         NpcTemplates.Template base = base();
         Map<String, Map<UnitType, Integer>> mix = new java.util.HashMap<>(base.mix());
         mix.put("LATE", Map.of(UnitType.BANNER_THIEF, 5, UnitType.SPEARMAN, 95));
@@ -152,11 +187,90 @@ class NpcTemplatesTest {
                         base.farmRadius(),
                         base.conquestRadius(),
                         base.nobles(),
-                        base.build());
+                        base.build(),
+                        base.bannerFavourites(),
+                        base.standardFavourites(),
+                        base.thieves(),
+                        base.paladinRetaliates());
 
         assertThat(problems(withThieves))
                 .anyMatch(p -> p.contains("mix.LATE.BANNER_THIEF: banner thieves are never"))
                 .anyMatch(p -> p.contains("banner thieves are never in a unit list"));
+    }
+
+    @Test
+    void theBannerFieldsBindAsDocumented() {
+        NpcTemplates.Template offensive = TEMPLATES.of(NpcPersonality.OFFENSIVE);
+        NpcTemplates.Template defensive = TEMPLATES.of(NpcPersonality.DEFENSIVE);
+        assertThat(offensive.bannerFavourites().getFirst()).isEqualTo(BannerType.WAR);
+        assertThat(offensive.standardFavourites().getFirst()).isEqualTo(BannerType.AXE_STANDARD);
+        assertThat(offensive.thieves()).isEqualTo(10);
+        assertThat(offensive.paladinRetaliates()).isTrue();
+        assertThat(TEMPLATES.of(NpcPersonality.BALANCED).bannerFavourites().getFirst())
+                .isEqualTo(BannerType.HARVEST);
+        assertThat(defensive.bannerFavourites().getFirst()).isEqualTo(BannerType.BULWARK);
+        assertThat(defensive.thieves()).isZero();
+        assertThat(defensive.paladinRetaliates()).isFalse();
+
+        assertThat(offensive.rank(BannerType.WAR)).isZero();
+        assertThat(offensive.rank(BannerType.OATH)).isEqualTo(8);
+        assertThat(offensive.rank(BannerType.SIEGE_STANDARD)).isEqualTo(6);
+    }
+
+    @Test
+    void favouritesNameEveryTypeOnce() {
+        NpcTemplates.Template b = base();
+        List<BannerType> twice = new ArrayList<>(b.bannerFavourites());
+        twice.set(1, twice.get(0));
+        List<BannerType> short_ = b.standardFavourites().subList(0, 6);
+
+        assertThat(problems(withBanners(b, twice, short_, b.thieves(), b.build())))
+                .anyMatch(p -> p.startsWith("BALANCED.banner-favourites: must name each"))
+                .anyMatch(p -> p.startsWith("BALANCED.standard-favourites: must name each"));
+        assertThat(problems(withBanners(b, List.of(), List.of(), b.thieves(), b.build())))
+                .hasSize(2);
+    }
+
+    @Test
+    void thievesNeedAHallStepAndAreNeverNegative() {
+        NpcTemplates.Template b = base();
+        List<Map<BuildingType, Integer>> withoutHall = new ArrayList<>();
+        for (Map<BuildingType, Integer> step : b.build()) {
+            Map<BuildingType, Integer> copy = new EnumMap<>(BuildingType.class);
+            copy.putAll(step);
+            copy.remove(BuildingType.BANNER_HALL);
+            if (!copy.isEmpty()) {
+                withoutHall.add(copy);
+            }
+        }
+
+        assertThat(
+                        problems(
+                                withBanners(
+                                        b,
+                                        b.bannerFavourites(),
+                                        b.standardFavourites(),
+                                        -1,
+                                        b.build())))
+                .contains("BALANCED.thieves must be >= 0");
+        assertThat(
+                        problems(
+                                withBanners(
+                                        b,
+                                        b.bannerFavourites(),
+                                        b.standardFavourites(),
+                                        10,
+                                        withoutHall)))
+                .contains("BALANCED.thieves: needs a Banner Hall step in the build list");
+        assertThat(
+                        problems(
+                                withBanners(
+                                        b,
+                                        b.bannerFavourites(),
+                                        b.standardFavourites(),
+                                        0,
+                                        withoutHall)))
+                .noneMatch(p -> p.contains("thieves"));
     }
 
     @Test
@@ -191,7 +305,11 @@ class NpcTemplatesTest {
                         b.farmRadius(),
                         b.conquestRadius(),
                         b.nobles(),
-                        build));
+                        build,
+                        b.bannerFavourites(),
+                        b.standardFavourites(),
+                        b.thieves(),
+                        b.paladinRetaliates()));
     }
 
     private static NpcTemplates.Template withStages(
@@ -213,7 +331,11 @@ class NpcTemplatesTest {
                 b.farmRadius(),
                 b.conquestRadius(),
                 b.nobles(),
-                b.build());
+                b.build(),
+                b.bannerFavourites(),
+                b.standardFavourites(),
+                b.thieves(),
+                b.paladinRetaliates());
     }
 
     private static NpcTemplates.Template withMix(
@@ -235,7 +357,41 @@ class NpcTemplatesTest {
                 b.farmRadius(),
                 b.conquestRadius(),
                 b.nobles(),
-                b.build());
+                b.build(),
+                b.bannerFavourites(),
+                b.standardFavourites(),
+                b.thieves(),
+                b.paladinRetaliates());
+    }
+
+    private static NpcTemplates.Template withBanners(
+            NpcTemplates.Template b,
+            List<BannerType> bannerFavourites,
+            List<BannerType> standardFavourites,
+            int thieves,
+            List<Map<BuildingType, Integer>> build) {
+        return new NpcTemplates.Template(
+                b.stages(),
+                b.mix(),
+                b.farmUnits(),
+                b.attackUnits(),
+                b.supportUnits(),
+                b.homeGuard(),
+                b.supportShare(),
+                b.margin(),
+                b.villageRatio(),
+                b.humanPlayerRatio(),
+                b.grudgeOpens(),
+                b.grudgeTroopBonus(),
+                b.conquersPlayers(),
+                b.farmRadius(),
+                b.conquestRadius(),
+                b.nobles(),
+                build,
+                bannerFavourites,
+                standardFavourites,
+                thieves,
+                b.paladinRetaliates());
     }
 
     /** The problems of a BALANCED template replaced by {@code template}. */

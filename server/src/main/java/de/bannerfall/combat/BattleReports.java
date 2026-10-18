@@ -9,6 +9,7 @@ import de.bannerfall.report.ReportKind;
 import de.bannerfall.report.TheftResult;
 import de.bannerfall.rules.BattleInput;
 import de.bannerfall.rules.BattleResult;
+import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.UnitLevels;
 import de.bannerfall.village.VillageRefDto;
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ final class BattleReports {
      * @param stockBefore the target's stock rounded down, before the loot
      * @param buildingsBefore the target's building levels before the battle
      * @param bannerBefore the banner flying in the target before the battle (M32); null if none
+     * @param standardBefore the paladin standard equipped in the target before the battle (1.4);
+     *     null if none
      * @param loot what the attackers took
      * @param loyalty what surviving nobles did; null without
      * @param loyaltySeen what the attacker learns about the loyalty (02-game-rules §10): the same
@@ -70,7 +73,42 @@ final class BattleReports {
             BattleReport.LoyaltyReport loyaltySeen,
             Banners banners,
             Integer haulCapacity,
-            Map<UnitType, Integer> away) {
+            Map<UnitType, Integer> away,
+            BattleReport.ScoutedBanner standardBefore) {
+
+        /** A battle without the target's paladin standard. */
+        Battle(
+                VillageRefDto attacker,
+                VillageRefDto defender,
+                BattleInput input,
+                BattleResult result,
+                List<VillageRefDto> stackHomes,
+                ResourceAmounts stockBefore,
+                Map<BuildingType, Integer> buildingsBefore,
+                BattleReport.ScoutedBanner bannerBefore,
+                ResourceAmounts loot,
+                BattleReport.LoyaltyReport loyalty,
+                BattleReport.LoyaltyReport loyaltySeen,
+                Banners banners,
+                Integer haulCapacity,
+                Map<UnitType, Integer> away) {
+            this(
+                    attacker,
+                    defender,
+                    input,
+                    result,
+                    stackHomes,
+                    stockBefore,
+                    buildingsBefore,
+                    bannerBefore,
+                    loot,
+                    loyalty,
+                    loyaltySeen,
+                    banners,
+                    haulCapacity,
+                    away,
+                    null);
+        }
 
         /** A battle without the units away. */
         Battle(
@@ -182,15 +220,53 @@ final class BattleReports {
      * @param attackerFound the banner the attacker found; null if none
      * @param defenderFound the banner the village owner found; null if none
      * @param theft what the attacker's thieves did; null without thieves
+     * @param attackStandard the paladin standard the attack carried (1.4, §21.18); null without
+     * @param attackerFoundStandard the standard the attacker found; null if none
+     * @param defenderFoundStandard the standard the village owner found; null if none
+     * @param standardTheft the defenders' thieves' roll for the attack's standard; null without
      */
     record Banners(
             double attackBonus,
             double defenceBonus,
             BattleReport.ScoutedBanner attackerFound,
             BattleReport.ScoutedBanner defenderFound,
-            BattleReport.TheftReport theft) {
+            BattleReport.TheftReport theft,
+            BattleReport.StandardReport attackStandard,
+            BattleReport.ScoutedBanner attackerFoundStandard,
+            BattleReport.ScoutedBanner defenderFoundStandard,
+            BattleReport.StandardTheftReport standardTheft) {
 
         static final Banners NONE = new Banners(0, 0, null, null, null);
+
+        /** Without paladin standards. */
+        Banners(
+                double attackBonus,
+                double defenceBonus,
+                BattleReport.ScoutedBanner attackerFound,
+                BattleReport.ScoutedBanner defenderFound,
+                BattleReport.TheftReport theft) {
+            this(
+                    attackBonus,
+                    defenceBonus,
+                    attackerFound,
+                    defenderFound,
+                    theft,
+                    null,
+                    null,
+                    null,
+                    null);
+        }
+
+        /**
+         * What the attacker learns of the defenders' standard theft: only that they took his
+         * standard (his army died, it tells nothing more).
+         */
+        BattleReport.StandardTheftReport standardLost() {
+            return standardTheft != null && standardTheft.stolen()
+                    ? new BattleReport.StandardTheftReport(
+                            null, null, true, standardTheft.standard())
+                    : null;
+        }
 
         /** The banner the thieves took; null if they took none. */
         BattleReport.ScoutedBanner stolen() {
@@ -223,7 +299,8 @@ final class BattleReports {
                             succeeded ? battle.stockBefore() : null,
                             succeeded ? battle.buildingsBefore() : null,
                             succeeded ? battle.bannerBefore() : null,
-                            seesAway(result.scouting()) ? battle.away() : null);
+                            seesAway(result.scouting()) ? battle.away() : null,
+                            succeeded ? battle.standardBefore() : null);
         }
         Banners banners = battle.banners();
         // the Bulwark is part of what a successful scout saw (the banner itself is)
@@ -238,7 +315,10 @@ final class BattleReports {
                         sawBanner ? bonus(banners.defenceBonus()) : null,
                         banners.attackerFound(),
                         banners.theft(),
-                        null),
+                        null,
+                        banners.attackStandard(),
+                        banners.attackerFoundStandard(),
+                        banners.standardLost()),
                 battle.haulCapacity());
     }
 
@@ -285,8 +365,19 @@ final class BattleReports {
                         bonus(banners.defenceBonus()),
                         owner ? banners.defenderFound() : null,
                         null,
-                        owner ? banners.stolen() : null),
+                        owner ? banners.stolen() : null,
+                        banners.attackStandard(),
+                        owner ? banners.defenderFoundStandard() : null,
+                        owner ? banners.standardTheft() : null),
                 null);
+    }
+
+    /** A paladin standard for the report (1.4); null without one. */
+    static BattleReport.StandardReport standardOf(StandardEffect standard) {
+        return standard.type() == null
+                ? null
+                : new BattleReport.StandardReport(
+                        standard.type(), standard.tier(), standard.effectiveTier());
     }
 
     /** A bonus for the report: null for 0, so a battle without banners shows none. */
@@ -317,7 +408,11 @@ final class BattleReports {
                 battle.loot(),
                 loyalty,
                 banners,
-                haulCapacity);
+                haulCapacity,
+                // the night bonus (1.4, §8.1) only matters in a main battle; both copies show it
+                result.mainBattle() != null && input.nightFactor() > 1
+                        ? input.nightFactor()
+                        : null);
     }
 
     /** The levels above 1 of the unit types that are in {@code units} (M30). */
@@ -371,7 +466,8 @@ final class BattleReports {
                                 battle.stackHomes().get(i),
                                 stackUnits,
                                 stackLosses,
-                                levelsOf(stackUnits, input.defenderLevels().get(i))));
+                                levelsOf(stackUnits, input.defenderLevels().get(i)),
+                                standardOf(input.defenderStandards().get(i))));
             }
         }
         boolean catapults = input.catapultTarget() != null;

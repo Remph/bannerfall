@@ -5,7 +5,10 @@
 # stats, never the same twice in a row); cost = 20x and 50x the unit's recruit cost; base-seconds = research time at
 # Smithy level 1 and world speed 1 (12 h and 30 h; the smithy level and the speed shorten it); requires = what the
 # village that researches needs besides the unit's own requirements (Smithy 10 for level 2, Smithy 15 for level 3).
-# A unit without a levels list has no levels (ram, catapult, noble, paladin); the scout has level 2 only.
+# A unit without a levels list has no levels (ram, catapult, noble); the scout has level 2 only.
+# Hall training (1.4, 02-game-rules §5.4): the levels of the Banner Hall's own units (paladin, banner thief) are trained
+# in the Banner Hall instead of researched in the Smithy, also with unit levels off; base-seconds count at Banner Hall
+# level 1, and requires names the hall level (2 for level 2, 3 for level 3).
 gamedata:
   units:
     SPEARMAN:
@@ -190,9 +193,11 @@ gamedata:
       minutes-per-field: 35
       carry: 0
       base-seconds: 10800
+    # 1.4 (02-game-rules §5.5): trained in the Banner Hall, no longer in the Barracks (6 h base before). Small level
+    # steps on purpose (+5 % and +10 %); level cost 5x and 15x his recruit cost.
     PALADIN:
-      building: BARRACKS
-      requires: { BARRACKS: 5 }
+      building: BANNER_HALL
+      requires: { BANNER_HALL: 1 }
       cost: { wood: 1000, clay: 1000, iron: 1000 }
       pop: 10
       attack: 120
@@ -201,9 +206,23 @@ gamedata:
       attack-type: INFANTRY
       minutes-per-field: 14
       carry: 0
-      base-seconds: 21600
-    # M32b (02-game-rules §21.5): steals the banner of a village after a won battle; no levels, adds nothing
-    # to a fight (attack 0) and dies in it like a scout. Recruited in the Banner Hall.
+      base-seconds: 10800
+      levels:
+        - attack: 126
+          defense-infantry: 158
+          defense-cavalry: 158
+          cost: { wood: 5000, clay: 5000, iron: 5000 }
+          base-seconds: 43200
+          requires: { BANNER_HALL: 2 }
+        - attack: 132
+          defense-infantry: 165
+          defense-cavalry: 165
+          cost: { wood: 15000, clay: 15000, iron: 15000 }
+          base-seconds: 108000
+          requires: { BANNER_HALL: 3 }
+    # M32b (02-game-rules §21.5): steals the banner of a village after a won battle; adds nothing to a fight
+    # (attack 0) and dies in it like a scout. Recruited in the Banner Hall. Its levels (1.4) keep the stats and
+    # raise the theft chance per thief instead (banners.yml theft.chance-per-thief).
     BANNER_THIEF:
       building: BANNER_HALL
       requires: { BANNER_HALL: 1 }
@@ -216,3 +235,16 @@ gamedata:
       minutes-per-field: 18
       carry: 0
       base-seconds: 1500
+      levels:
+        - attack: 0
+          defense-infantry: 3
+          defense-cavalry: 3
+          cost: { wood: 2000, clay: 2400, iron: 3000 }
+          base-seconds: 43200
+          requires: { BANNER_HALL: 2 }
+        - attack: 0
+          defense-infantry: 3
+          defense-cavalry: 3
+          cost: { wood: 5000, clay: 6000, iron: 7500 }
+          base-seconds: 108000
+          requires: { BANNER_HALL: 3 }

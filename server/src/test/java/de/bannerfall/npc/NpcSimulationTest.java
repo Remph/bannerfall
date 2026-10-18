@@ -54,7 +54,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * written to {@code build/simulation/}. Balance variants (v1.3): {@code -PsimWalls=true} (barbarian
  * walls with the default settings), {@code -PsimFarmShare=…} and {@code -PsimFarmRest=…} (a CUSTOM
  * difficulty: NORMAL with these farm values), {@code -PsimFarmCooldown=…} (minutes, overrides
- * {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file name).
+ * {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file name). Lord
+ * guilds: {@code -PsimLordGuilds=true}; lord banners (1.4, 09 §14): {@code -PsimLordBanners=true}.
  */
 @Tag("simulation")
 @IntegrationTest
@@ -84,6 +85,7 @@ class NpcSimulationTest {
     private final String farmRest = System.getProperty("simulation.farmRest");
     private final String label = System.getProperty("simulation.label", "");
     private final boolean lordGuilds = Boolean.getBoolean("simulation.lordGuilds");
+    private final boolean lordBanners = Boolean.getBoolean("simulation.lordBanners");
 
     /** The days (at speed 3) at which the lords' points are noted. */
     private static final int[] CHECKPOINTS = {5, 10, 20, 30, 40};
@@ -110,7 +112,8 @@ class NpcSimulationTest {
                                 + " npc_think_minutes = 20, npc_difficulty = 'NORMAL',"
                                 + " npc_custom = null, initialized_at = null,"
                                 + " barbarians_per_new_player = 0, barbarian_walls_enabled = false,"
-                                + " guilds_enabled = false, npc_guilds_enabled = false")
+                                + " guilds_enabled = false, npc_guilds_enabled = false,"
+                                + " npc_banners_enabled = false")
                 .update();
         worldService.reload();
     }
@@ -679,7 +682,68 @@ class NpcSimulationTest {
                 balance.difficulty().attacksPerHumanPerDay(),
                 balance.difficulty().attacksPerPlayerPerDay(),
                 events,
-                playerConquests);
+                playerConquests,
+                bannerLines());
+    }
+
+    /**
+     * Lord banners (09 §14.9): what each lord holds by family and tier (equipped ones counted too),
+     * its paladin level, and the finds and thefts of the run.
+     */
+    private List<String> bannerLines() {
+        List<String> lines = new ArrayList<>();
+        jdbc.sql(
+                        """
+                        select p.name,
+                          count(*) filter (where b.type not like '%\\_STANDARD' and b.tier = 1) as b1,
+                          count(*) filter (where b.type not like '%\\_STANDARD' and b.tier = 2) as b2,
+                          count(*) filter (where b.type not like '%\\_STANDARD' and b.tier = 3) as b3,
+                          count(*) filter (where b.type like '%\\_STANDARD') as std,
+                          count(*) filter (where b.equipped_village_id is not null) as up,
+                          coalesce((select max(r.level) from research_order r
+                                    where r.player_id = p.id and r.unit = 'PALADIN'), 1) as paladin
+                        from player p left join banner b on b.owner_id = p.id
+                        where p.npc group by p.id, p.name order by p.id
+                        """)
+                .query(
+                        (rs, row) ->
+                                lines.add(
+                                        String.format(
+                                                Locale.ROOT,
+                                                "  %-20s banners I/II/III %d/%d/%d, standards %d,"
+                                                        + " equipped %d, paladin level %d",
+                                                rs.getString("name"),
+                                                rs.getInt("b1"),
+                                                rs.getInt("b2"),
+                                                rs.getInt("b3"),
+                                                rs.getInt("std"),
+                                                rs.getInt("up"),
+                                                rs.getInt("paladin"))))
+                .list();
+        Map<String, Integer> kinds = new java.util.TreeMap<>();
+        jdbc.sql(
+                        """
+                        select e.kind || case
+                                 when f.npc and t.npc then ' lord->lord'
+                                 when f.npc and t.id is null then ' lord->gone'
+                                 when f.npc then ' lord->human'
+                                 when t.npc then ' ->lord'
+                                 else '' end as k, count(*) as n
+                        from banner_event e
+                        left join player f on f.id = e.from_player_id
+                        left join player t on t.id = e.to_player_id
+                        where e.kind in ('FOUND', 'STOLEN', 'FUSED', 'CONQUERED')
+                          and (f.npc or t.npc)
+                        group by k
+                        """)
+                .query(
+                        (rs, row) -> {
+                            kinds.put(rs.getString("k"), rs.getInt("n"));
+                            return null;
+                        })
+                .list();
+        lines.add("  banner log of lords: " + kinds);
+        return lines;
     }
 
     private String popExpression(String prefix) {
@@ -720,7 +784,8 @@ class NpcSimulationTest {
             int humanCap,
             int lordCap,
             Map<String, Integer> events,
-            List<String> playerConquests) {
+            List<String> playerConquests,
+            List<String> bannerLines) {
 
         String render() {
             StringBuilder out = new StringBuilder();
@@ -822,6 +887,8 @@ class NpcSimulationTest {
                     .append(playerConquests.isEmpty() ? " none\n" : "\n");
             playerConquests.forEach(c -> out.append("  ").append(c).append('\n'));
             out.append("events handled: ").append(events).append('\n');
+            out.append("lord banners:\n");
+            bannerLines.forEach(line -> out.append(line).append('\n'));
             out.append(
                     String.format(
                             Locale.ROOT,
@@ -1007,6 +1074,8 @@ class NpcSimulationTest {
                 .param(lordGuilds)
                 .param(lordGuilds)
                 .update();
+        // lord banners (09 §14): -PsimLordBanners=true
+        jdbc.sql("update world_settings set npc_banners_enabled = ?").param(lordBanners).update();
         if (farmShare != null || farmRest != null) {
             NpcBalanceSettings.Difficulty normal =
                     balance.general().difficulties().get(NpcDifficulty.NORMAL);

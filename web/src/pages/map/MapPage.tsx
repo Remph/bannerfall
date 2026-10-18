@@ -56,7 +56,7 @@ import { AXIS_TOP, badgeRadius, drawMap, readMapColors } from './mapDraw';
 import { loadLegendOpen, saveLegendOpen } from './mapLegendStorage';
 import styles from './MapPage.module.css';
 import { loadShowLines, loadShowMovements, saveShowLines, saveShowMovements } from './mapMovementsStorage';
-import { MarkerIcon, UsedBannerIcon } from './MarkerIcon';
+import { MarkerIcon, NoteIcon, UsedBannerIcon } from './MarkerIcon';
 import { OverviewMap } from './OverviewMap';
 import { useDevicePixelRatio } from './useDevicePixelRatio';
 import { useCameraMotion } from './useCameraMotion';
@@ -745,6 +745,10 @@ function MapToolbar({
           {t.map.bannerChanceLegend}
         </li>
       )}
+      <li>
+        <NoteIcon />
+        {t.map.note.legend}
+      </li>
     </ul>
   );
 
@@ -873,7 +877,10 @@ function LayerRow({ label, hint, on, onToggle }: { label: string; hint: string; 
   );
 }
 
-/** Desktop extra: name, owner and points above the village under the mouse. Nothing depends on it. */
+/**
+ * Desktop extra: name, owner and points above the village under the mouse, and the first line of
+ * the player's note (1.4). Nothing depends on it.
+ */
 function MapTooltip({ village, position }: { village: MapVillage; position: Point }) {
   const { t, language } = useI18n();
   return (
@@ -883,6 +890,7 @@ function MapTooltip({ village, position }: { village: MapVillage; position: Poin
       <br />
       {village.guildTag != null && `${bracketTag(village.guildTag)} `}
       {village.playerName ?? t.map.noOwner} · {t.village.points(formatNumber(village.points, language))}
+      {village.note !== null && <span className={styles.tooltipNote}>{village.note.split('\n')[0]}</span>}
     </div>
   );
 }

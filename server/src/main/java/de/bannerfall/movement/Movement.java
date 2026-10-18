@@ -1,7 +1,9 @@
 package de.bannerfall.movement;
 
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.ResourceAmounts;
+import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.village.Village;
 import jakarta.persistence.Embedded;
@@ -62,6 +64,15 @@ public class Movement {
     private double bannerCarry;
     private double bannerHaste;
 
+    /** The paladin standard an attack took along (1.4, §21.18); all null without one. */
+    private Long standardBannerId;
+
+    @Enumerated(EnumType.STRING)
+    private BannerType standardType;
+
+    private Short standardTier;
+    private Short standardEffectiveTier;
+
     /** RETURN only. */
     private int lootWood;
 
@@ -100,6 +111,13 @@ public class Movement {
         this.bannerAttack = banner.attack();
         this.bannerCarry = banner.carry();
         this.bannerHaste = banner.haste();
+        CommandBanner.Standard standard = banner.standard();
+        if (standard != null) {
+            this.standardBannerId = standard.bannerId();
+            this.standardType = standard.type();
+            this.standardTier = (short) standard.tier();
+            this.standardEffectiveTier = (short) standard.effectiveTier();
+        }
         this.departAt = departAt;
         this.arriveAt = arriveAt;
         this.createdAt = createdAt;
@@ -161,7 +179,8 @@ public class Movement {
                 units,
                 catapultTarget,
                 ResourceAmounts.ZERO,
-                banner,
+                // only paladins carry a standard (§21.18)
+                banner.forUnits(units.get(UnitType.PALADIN) > 0),
                 departAt,
                 arriveAt,
                 departAt);
@@ -304,13 +323,35 @@ public class Movement {
         return units;
     }
 
+    /**
+     * Takes every unit of {@code type} out of the movement (1.4: paladins without a Banner Hall,
+     * {@code PaladinHallMove}); the arrival stays as it is.
+     *
+     * @return how many there were
+     */
+    public int removeAll(UnitType type) {
+        int count = units.get(type);
+        units.set(type, 0);
+        return count;
+    }
+
     public BuildingType getCatapultTarget() {
         return catapultTarget;
     }
 
     /** The source's War, Plunder and Haste when the command left; NONE before M32b. */
     public CommandBanner getBanner() {
-        return new CommandBanner(bannerAttack, bannerCarry, bannerHaste);
+        return new CommandBanner(
+                bannerAttack,
+                bannerCarry,
+                bannerHaste,
+                standardType == null
+                        ? null
+                        : new CommandBanner.Standard(
+                                standardBannerId,
+                                standardType,
+                                standardTier,
+                                standardEffectiveTier));
     }
 
     public ResourceAmounts getLoot() {

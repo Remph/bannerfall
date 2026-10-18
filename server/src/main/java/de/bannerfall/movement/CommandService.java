@@ -7,6 +7,7 @@ import de.bannerfall.common.GameRuleException;
 import de.bannerfall.common.NotFoundException;
 import de.bannerfall.event.EventScheduler;
 import de.bannerfall.event.GameEventKind;
+import de.bannerfall.farm.FarmTargetRepository;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
@@ -70,6 +71,7 @@ public class CommandService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final VillageBanners villageBanners;
+    private final FarmTargetRepository farmTargets;
 
     CommandService(
             MovementRepository movements,
@@ -85,7 +87,8 @@ public class CommandService {
             WorldService worldService,
             ApplicationEventPublisher events,
             Clock clock,
-            VillageBanners villageBanners) {
+            VillageBanners villageBanners,
+            FarmTargetRepository farmTargets) {
         this.movements = movements;
         this.stacks = stacks;
         this.villages = villages;
@@ -100,6 +103,7 @@ public class CommandService {
         this.events = events;
         this.clock = clock;
         this.villageBanners = villageBanners;
+        this.farmTargets = farmTargets;
     }
 
     /**
@@ -417,8 +421,13 @@ public class CommandService {
         MovementKind kind = request.kind().toMovementKind();
         UnitCounts units = UnitCounts.of(request.units());
         double distance = Travel.distance(source.coordinates(), target.coordinates());
-        // War, Plunder and Haste as the source's banner gives them right now (02-game-rules §21.2)
-        CommandBanner banner = CommandBanner.of(kind, villageBanners.effectOf(source));
+        // War, Plunder and Haste as the source's banner gives them right now (02-game-rules §21.2),
+        // and its paladin standard for an attack with a paladin (1.4, §21.18)
+        CommandBanner banner =
+                CommandBanner.of(
+                        kind,
+                        villageBanners.effectOf(source),
+                        villageBanners.standard(source, now).orElse(null));
 
         Long travelSeconds = null;
         Instant arriveAt = null;
@@ -505,6 +514,8 @@ public class CommandService {
         if (target.getPlayer() != null || nobles) {
             playerService.endProtection(playerId, now);
         }
+        // the farm list's "last sent" counts every attack, also from the map or the rally point
+        farmTargets.markSent(source.getId(), target.getId(), now);
         VillageRefDto sourceRef = VillageRefDto.of(source);
         PlayerNotification.toOwnerOf(
                 target,
@@ -541,7 +552,10 @@ public class CommandService {
                         .orElseThrow(() -> new NotFoundException(ErrorCode.TARGET_NOT_FOUND));
         double distance = Travel.distance(source.coordinates(), target.coordinates());
         CommandBanner banner =
-                CommandBanner.of(MovementKind.ATTACK, villageBanners.effectOf(source));
+                CommandBanner.of(
+                        MovementKind.ATTACK,
+                        villageBanners.effectOf(source),
+                        villageBanners.standard(source, now).orElse(null));
         List<UnitCounts> armies =
                 request.attacks().stream().map(attack -> UnitCounts.of(attack.units())).toList();
 

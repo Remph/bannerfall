@@ -2,7 +2,7 @@ import type { SimulatedBattle, Simulation } from '../../api/queries/simulator';
 import { Card } from '../../components/Card';
 import { UnitTable } from '../../components/UnitTable';
 import { percentPoints } from '../../game/banners';
-import { formatNumber, formatPercent, formatShare } from '../../game/format';
+import { formatFactor, formatNumber, formatPercent, formatShare } from '../../game/format';
 import { unitRows } from '../../game/reports';
 import type { SimulatorBody } from '../../game/simulator';
 import type { UnitMap } from '../../game/troops';
@@ -37,7 +37,10 @@ export function SimulatorResult({ simulation, request }: SimulatorResultProps) {
   );
 }
 
-/** The banners the battles were fought with (M32c; Plunder and Oath since D4); nothing without. */
+/**
+ * The banners the battles were fought with (M32c; Plunder and Oath since D4; the paladin standards
+ * since 1.4) and the night bonus (1.4); nothing without.
+ */
 function BannerBonuses({ simulation }: { simulation: Simulation }) {
   const { t, language } = useI18n();
   const s = t.simulator;
@@ -46,10 +49,22 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
     simulation.attackBonus <= 0 &&
     simulation.defenceBonus <= 0 &&
     simulation.plunderBonus <= 0 &&
-    simulation.oathBonus <= 0
+    simulation.oathBonus <= 0 &&
+    simulation.attackerStandard === null &&
+    simulation.defenderStandard === null &&
+    simulation.nightFactor <= 1
   ) {
     return null;
   }
+  // 1.4: a paladin standard, at the tier it worked at
+  const standard = (value: NonNullable<Simulation['attackerStandard']>) => (
+    <div>
+      <dt>{t.banners.types[value.type]}</dt>
+      <dd>
+        {value.effectiveTier === 0 ? s.standardAsleep : s.standardWorks(percent(value.bonus), value.effectiveTier)}
+      </dd>
+    </div>
+  );
   return (
     <dl className={styles.facts}>
       {simulation.attackBonus > 0 && (
@@ -74,6 +89,14 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
         <div>
           <dt>{s.oathBonus}</dt>
           <dd>{percent(simulation.oathBonus, '−')}</dd>
+        </div>
+      )}
+      {simulation.attackerStandard !== null && standard(simulation.attackerStandard)}
+      {simulation.defenderStandard !== null && standard(simulation.defenderStandard)}
+      {simulation.nightFactor > 1 && (
+        <div>
+          <dt>{s.nightResult}</dt>
+          <dd>×{formatFactor(simulation.nightFactor, language)}</dd>
         </div>
       )}
     </dl>
@@ -176,6 +199,18 @@ function Scenario({ scenario, request }: { scenario: SimulatedBattle; request: S
                 <dt>{s.theftChance}</dt>
                 {/* one decimal: formatNumber would floor a 12.5 % chance to 12 % */}
                 <dd>{formatShare(percentPoints(scenario.theft.chance), language)}</dd>
+              </div>
+            </>
+          )}
+          {scenario.standardTheft !== null && (
+            <>
+              <div>
+                <dt>{s.defenderThievesSurvive}</dt>
+                <dd>{s.ofSent(number(scenario.standardTheft.survived), number(scenario.standardTheft.sent))}</dd>
+              </div>
+              <div>
+                <dt>{s.standardTheftChance}</dt>
+                <dd>{formatShare(percentPoints(scenario.standardTheft.chance), language)}</dd>
               </div>
             </>
           )}

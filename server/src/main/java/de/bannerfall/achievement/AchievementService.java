@@ -41,6 +41,12 @@ public class AchievementService {
     /** The Town Hall level that makes a Foreman (02 §19). */
     public static final int FOREMAN_LEVEL = 10;
 
+    /** The smallest won attack that can be a Pyrrhic Victory (1.4, 02 §19.1). */
+    public static final int PYRRHIC_MIN_UNITS = 100;
+
+    /** The levels the catapults' target must lose in one attack for Demolisher (1.4, 02 §19.1). */
+    public static final int DEMOLISHER_LEVELS = 5;
+
     private final JdbcClient jdbc;
     private final PlayerRepository players;
     private final AchievementCatalog catalog;
@@ -219,9 +225,10 @@ public class AchievementService {
     /**
      * Banner Collector and Full Set (02-game-rules §21.8), read from the player's banners: how many
      * he owns now (stash and equipped) and how many of the nine types he has ever owned (the banner
-     * log's lines that gave him a banner, and the banners he holds). The banner code calls it after
-     * a banner came to the player; login and the achievements page call it too, which is the
-     * back-fill on a world that had banners before M32c.
+     * log's lines that gave him a banner, and the banners he holds). Paladin standards (1.4,
+     * §21.18) count for neither. The banner code calls it after a banner came to the player; login
+     * and the achievements page call it too, which is the back-fill on a world that had banners
+     * before M32c.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void checkBanners(Player player) {
@@ -236,18 +243,20 @@ public class AchievementService {
                 jdbc.sql(
                                 """
                                 select
-                                  (select count(*) from banner where owner_id = :player),
+                                  (select count(*) from banner
+                                   where owner_id = :player and type not like '%\\_STANDARD'),
                                   (select count(distinct t.type) from (
                                      select type from banner where owner_id = :player
                                      union
                                      select type from banner_event
-                                     where to_player_id = :player and type is not null) t)
+                                     where to_player_id = :player and type is not null) t
+                                   where t.type not like '%\\_STANDARD')
                                 """)
                         .param("player", playerId)
                         .query((rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)})
                         .single();
         reach(player, Achievement.BANNER_COLLECTOR, found[0]);
-        if (found[1] >= BannerType.values().length) {
+        if (found[1] >= BannerType.villageBanners().size()) {
             insertLevel(playerId, Achievement.FULL_SET, 1);
         }
     }
@@ -320,6 +329,70 @@ public class AchievementService {
         return changed == 1;
     }
 
+    /**
+     * Avenger's memory (1.4, 02-game-rules §19.1): {@code foe} won an attack of at least {@value
+     * #MIN_UNITS_FOR_WIN} units on a village of {@code player}. Only the latest win per pair is
+     * kept. NPC lords and barbarians (null) are never the beaten one, but a lord can be the foe.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void beaten(Player player, Player foe, Instant at) {
+        if (!earns(player) || foe == null || foe.getId() == null) {
+            return;
+        }
+        jdbc.sql(
+                        """
+                        insert into achievement_grudge (player_id, foe_id, beaten_at)
+                        values (:player, :foe, :at)
+                        on conflict (player_id, foe_id) do update set beaten_at = excluded.beaten_at
+                        """)
+                .param("player", player.getId())
+                .param("foe", foe.getId())
+                .param("at", java.sql.Timestamp.from(at))
+                .update();
+    }
+
+    /**
+     * True if {@code foe} beat {@code player} (see {@link #beaten}) within the last {@code 24 h ÷
+     * speed} before {@code at}: a counted win against the foe then earns Avenger.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean avenges(Player player, Player foe, Instant at, double speed) {
+        if (!earns(player) || foe == null || foe.getId() == null) {
+            return false;
+        }
+        long windowMillis = Math.max(1000, Math.round(DAY.toMillis() / speed));
+        return jdbc.sql(
+                        """
+                        select exists (select 1 from achievement_grudge
+                                       where player_id = :player and foe_id = :foe
+                                         and beaten_at >= :since)
+                        """)
+                .param("player", player.getId())
+                .param("foe", foe.getId())
+                .param("since", java.sql.Timestamp.from(at.minusMillis(windowMillis)))
+                .query(Boolean.class)
+                .single();
+    }
+
+    /**
+     * The levels the player's counters reach (Victor, Plunderer, Slayer …). Counting grants them as
+     * the counter grows; this is for numbers lowered by an update (1.4), where a counter is already
+     * past a level it never got. Login and the achievements page call it.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void checkCounters(Player player) {
+        if (!earns(player)) {
+            return;
+        }
+        counters(player.getId())
+                .forEach(
+                        (achievement, value) -> {
+                            if (achievement.leveled() && catalog.levelFor(achievement, value) > 0) {
+                                reach(player, achievement, value);
+                            }
+                        });
+    }
+
     /** At login: the state-based achievements (Veteran needs a visit to be noticed). */
     @Transactional
     public void checkAtLogin(long accountId) {
@@ -329,6 +402,7 @@ public class AchievementService {
             checkVeteran(player);
             checkMilestones(player);
             checkBanners(player);
+            checkCounters(player);
         }
     }
 
@@ -346,6 +420,7 @@ public class AchievementService {
         checkVeteran(player);
         checkMilestones(player);
         checkBanners(player);
+        checkCounters(player);
         Map<Achievement, int[]> levels = new HashMap<>();
         Map<Achievement, Instant> earnedAt = new HashMap<>();
         jdbc.sql(
@@ -366,20 +441,7 @@ public class AchievementService {
                             return null;
                         })
                 .list();
-        Map<Achievement, Long> counters = new HashMap<>();
-        jdbc.sql(
-                        "select achievement, value from achievement_counter"
-                                + " where player_id = :player")
-                .param("player", player.getId())
-                .query(
-                        (rs, row) -> {
-                            Achievement a = achievementOf(rs.getString("achievement"));
-                            if (a != null) {
-                                counters.put(a, rs.getLong("value"));
-                            }
-                            return null;
-                        })
-                .list();
+        Map<Achievement, Long> counters = counters(player.getId());
         List<AchievementDto> list = new ArrayList<>();
         for (Achievement a : Achievement.values()) {
             int level = levels.getOrDefault(a, new int[1])[0];
@@ -492,8 +554,29 @@ public class AchievementService {
         return since == null ? 0 : Math.max(0, Duration.between(since, clock.instant()).toDays());
     }
 
+    private Map<Achievement, Long> counters(long playerId) {
+        Map<Achievement, Long> counters = new HashMap<>();
+        jdbc.sql(
+                        "select achievement, value from achievement_counter"
+                                + " where player_id = :player")
+                .param("player", playerId)
+                .query(
+                        (rs, row) -> {
+                            Achievement a = achievementOf(rs.getString("achievement"));
+                            if (a != null) {
+                                counters.put(a, rs.getLong("value"));
+                            }
+                            return null;
+                        })
+                .list();
+        return counters;
+    }
+
+    /** The village banners a player owns now; paladin standards don't count (1.4). */
     private long ownedBanners(long playerId) {
-        return jdbc.sql("select count(*) from banner where owner_id = :player")
+        return jdbc.sql(
+                        "select count(*) from banner where owner_id = :player"
+                                + " and type not like '%\\_STANDARD'")
                 .param("player", playerId)
                 .query(Long.class)
                 .single();

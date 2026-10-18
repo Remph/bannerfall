@@ -489,6 +489,9 @@ class RaceTest {
         setPaladinSlots(4, 5); // two villages: one slot
         Browser second = secondSession();
         long other = addVillage();
+        // he trains in the Banner Hall (1.4)
+        setLevel(alice.villageId, BuildingType.BANNER_HALL, 1);
+        setLevel(other, BuildingType.BANNER_HALL, 1);
         String paladin = "{\"unit\":\"PALADIN\",\"count\":1}";
         for (int round = 0; round < ROUNDS; round++) {
             jdbc.sql("delete from recruit_order where village_id in (?, ?)")

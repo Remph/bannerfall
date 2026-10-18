@@ -62,6 +62,7 @@ const world: World = {
   opensAt: null,
   registeredPlayers: 6,
   version: '1.3.0',
+  nightBonus: null,
 };
 
 const wolves: VictorySide = {

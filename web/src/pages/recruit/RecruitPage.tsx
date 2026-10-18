@@ -39,14 +39,17 @@ import { parseVillageId } from '../../layout/currentVillage';
 import { VillageError } from '../village/VillageError';
 import { DismissQueueCard } from './DismissQueueCard';
 import { DismissUnit } from './DismissUnit';
+import { HallTrainingCard } from './HallTrainingCard';
 import { PaladinSlots } from './PaladinSlots';
 import { RecruitQueueCard } from './RecruitQueueCard';
+import { RecruitTemplates } from './RecruitTemplates';
 import styles from './RecruitPage.module.css';
 import { parseRecruitBuilding, recruitPath } from './recruitPaths';
 
 /**
  * /v/:villageId/recruit/:building – train units in the Barracks, Stable, Workshop, Academy or, with
- * banners on, the Banner Hall (05-frontend §3).
+ * banners or the paladin on, the Banner Hall (05-frontend §3), whose tab also trains the paladin's
+ * and the banner thief's levels (Hall training, 1.4).
  */
 export function RecruitPage() {
   const params = useParams();
@@ -88,7 +91,7 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
 
   const info = recruitment.data.find((entry) => entry.building === building);
   if (info === undefined) {
-    // M32b: the server leaves out the Banner Hall while banners are switched off
+    // M32b: the server leaves out the Banner Hall while banners and the paladin are switched off
     return <Navigate to={recruitPath(villageId, 'BARRACKS')} replace />;
   }
   return (
@@ -97,6 +100,8 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
         <h1>{t.recruit.title}</h1>
         <p className={styles.meta}>{village.data.name}</p>
       </header>
+      {/* recruit templates (1.4): the same row above every building's tab */}
+      <RecruitTemplates village={village.data} buildings={recruitment.data} away={away} queueSize={queueSize} />
       <BuildingTabs villageId={villageId} buildings={recruitment.data} />
       <div className={styles.layout}>
         <div className={styles.queue}>
@@ -115,6 +120,8 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
         </div>
         <div className={styles.units}>
           <UnitList village={village.data} info={info} queueSize={queueSize} away={away} />
+          {/* Hall training (1.4): the hall trains the paladin's and the thief's levels too */}
+          {building === 'BANNER_HALL' && <HallTrainingCard village={village.data} />}
         </div>
         {import.meta.env.DEV && (
           <div className={styles.dev}>
@@ -128,8 +135,8 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
 
 /**
  * The recruiting buildings the server lists as tabs (links, so every building has its own URL): the
- * Barracks, Stable, Workshop and Academy, and the Banner Hall while banners are on (M32b). `replace`:
- * switching tabs doesn't fill the browser history, "back" leaves the screen.
+ * Barracks, Stable, Workshop and Academy, and the Banner Hall while banners or the paladin are on (M32b,
+ * 1.4). `replace`: switching tabs doesn't fill the browser history, "back" leaves the screen.
  */
 function BuildingTabs(props: { villageId: number; buildings: readonly RecruitBuilding[] }) {
   const { villageId, buildings } = props;
@@ -300,7 +307,7 @@ interface RecruitAllProps {
   freePop: number;
   /** Free places in the building's queue; undefined while the world settings load. */
   freePlaces: number | undefined;
-  /** Free paladin slots (the barracks' tab); undefined elsewhere and while they load. */
+  /** Free paladin slots (the Banner Hall's tab); undefined elsewhere and while they load. */
   freeSlots: number | undefined;
   pending: boolean;
   recruiting: boolean;

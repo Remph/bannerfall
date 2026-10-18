@@ -12,7 +12,8 @@
 }
 
 .listColumn,
-.formColumn {
+.formColumn,
+.templatesColumn {
   min-width: 0;
   display: grid;
   gap: var(--space-3);
@@ -26,14 +27,81 @@
     align-items: start;
   }
 
-  /* the form at the right also when it comes first in the page */
+  /* the form at the right also when it comes first in the page; the templates above it (1.4) */
+  .columns {
+    grid-template-rows: auto 1fr;
+  }
+
   .listColumn {
-    grid-area: 1 / 1;
+    grid-area: 1 / 1 / 3 / 2;
+  }
+
+  .templatesColumn {
+    grid-area: 1 / 2;
   }
 
   .formColumn {
-    grid-area: 1 / 2;
+    grid-area: 2 / 2;
   }
+
+  .switchRow {
+    display: none;
+  }
+}
+
+/* phones and tablets: the switch shows one part, targets (with the add form) or templates (1.4) */
+@media (max-width: 1023.98px) {
+  .columns[data-part='targets'] > .templatesColumn,
+  .columns[data-part='templates'] > :is(.listColumn, .formColumn) {
+    display: none;
+  }
+}
+
+/* a template's row: letter, units and usage, "…" */
+.templateRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.list > li:first-child .templateRow {
+  border-top: 0;
+}
+
+.templateFacts {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.newTemplate {
+  justify-self: start;
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.newTemplate svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* the entry's template letter in front of its units */
+.targetUnits {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .head {
@@ -172,6 +240,31 @@
 .owner {
   color: var(--color-text-muted);
   font-size: 0.9rem;
+}
+
+/* the player's own note on the village (1.4): one muted line under the name, the map has all of it */
+.villageNote {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.villageNote > svg {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.villageNoteText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* the banner chance against the target is used for the day (02 §21.7): quiet, the others stand out */
@@ -314,4 +407,11 @@
   border-radius: var(--radius);
   background: var(--color-well);
   font-size: 0.9rem;
+}
+
+/* the night bonus (1.4): the attack would arrive in it */
+.nightNotice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }

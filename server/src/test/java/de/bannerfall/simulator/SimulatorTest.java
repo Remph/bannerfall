@@ -94,20 +94,18 @@ class SimulatorTest {
     }
 
     @Test
-    void aPaladinFightsWithHisBaseValuesEvenWhenALevelIsGiven() throws Exception {
+    void thePaladinsLevelCountsAlsoWithUnitLevelsOff() throws Exception {
         setLuckRange(0);
-        setLevelsEnabled(true);
-        try {
-            // the paladin has no levels (M31): attack 120 on the attacking side, defense 150 at
-            // home
-            String levels =
-                    ",\"attackerLevels\":{\"PALADIN\":3},\"defenderLevels\":{\"PALADIN\":3}";
-            String body = post(request("{\"PALADIN\":2}", "{\"PALADIN\":2}", 0, levels));
-            assertThat(JsonPath.<Double>read(body, "$.scenarios[0].attack")).isEqualTo(240.0);
-            assertThat(JsonPath.<Double>read(body, "$.scenarios[0].defense")).isEqualTo(320.0);
-        } finally {
-            setLevelsEnabled(false);
-        }
+        // Hall training (1.4): level 3 is attack 132 and defence 165, the spearmen's level is
+        // ignored with unit levels off; 20 is the village's base defence
+        String levels =
+                ",\"attackerLevels\":{\"PALADIN\":3},"
+                        + "\"defenderLevels\":{\"PALADIN\":3,\"SPEARMAN\":3}";
+        String body =
+                post(request("{\"PALADIN\":2}", "{\"PALADIN\":2,\"SPEARMAN\":10}", 0, levels));
+        assertThat(JsonPath.<Double>read(body, "$.scenarios[0].attack")).isEqualTo(264.0);
+        assertThat(JsonPath.<Double>read(body, "$.scenarios[0].defense"))
+                .isEqualTo(2 * 165 + 10 * 15 + 20.0);
     }
 
     @Test
@@ -434,6 +432,22 @@ class SimulatorTest {
     }
 
     @Test
+    void theThiefLevelRaisesTheChancePerThief() throws Exception {
+        setLuckRange(0);
+
+        // thief level 3 (Hall training, 1.4): 5 % per thief instead of 3 %, unit levels off
+        String body =
+                post(
+                        request(
+                                "{\"AXEMAN\":20,\"BANNER_THIEF\":10}",
+                                "{}",
+                                0,
+                                ",\"bannerHall\":2,\"attackerLevels\":{\"BANNER_THIEF\":3}"));
+        assertThat(number(body, "$.scenarios[0].theft.chance").doubleValue())
+                .isCloseTo((1 - Math.pow(0.95, 10)) * 0.8, within(1e-9));
+    }
+
+    @Test
     void catapultsOnTheBannerHallMakeTheTheftEasier() throws Exception {
         setLuckRange(0);
 
@@ -463,6 +477,129 @@ class SimulatorTest {
                 .post("/api/simulator", request("{\"AXEMAN\":20}", "{}", 0, ",\"bannerHall\":4"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+
+    // ---- paladin standards (1.4, 02-game-rules §21.18) ----
+
+    @Test
+    void theAttackersStandardNeedsAPaladinAndWorksUpToHisLevel() throws Exception {
+        setLuckRange(0);
+        String axe = ",\"attackerStandard\":\"AXE_STANDARD\",\"attackerStandardTier\":3";
+
+        // without a paladin nobody carries it
+        String alone = post(request("{\"AXEMAN\":100}", "{}", 0, axe));
+        assertThat((Object) JsonPath.read(alone, "$.attackerStandard")).isNull();
+        double plain = number(alone, "$.scenarios[0].attack").doubleValue();
+
+        // a level 1 paladin: tier III works as tier I (5 %)
+        String levelOne = post(request("{\"AXEMAN\":100,\"PALADIN\":1}", "{}", 0, axe));
+        assertThat(JsonPath.<Map<String, Object>>read(levelOne, "$.attackerStandard"))
+                .containsEntry("type", "AXE_STANDARD")
+                .containsEntry("tier", 3)
+                .containsEntry("effectiveTier", 1)
+                .containsEntry("bonus", 0.05);
+        double paladin =
+                number(
+                                post(request("{\"AXEMAN\":100,\"PALADIN\":1}", "{}", 0, "")),
+                                "$.scenarios[0].attack")
+                        .doubleValue();
+        assertThat(number(levelOne, "$.scenarios[0].attack").doubleValue())
+                .isCloseTo(paladin + 4000 * 0.05, within(1e-6));
+        assertThat(paladin).isGreaterThan(plain);
+
+        // a level 3 paladin: the full 15 %
+        String levelThree =
+                post(
+                        request(
+                                "{\"AXEMAN\":100,\"PALADIN\":1}",
+                                "{}",
+                                0,
+                                axe + ",\"attackerLevels\":{\"PALADIN\":3}"));
+        assertThat(number(levelThree, "$.attackerStandard.bonus").doubleValue()).isEqualTo(0.15);
+    }
+
+    @Test
+    void theDefendersStandardSleepsWithoutAHall() throws Exception {
+        setLuckRange(0);
+        String spear = ",\"defenderStandard\":\"SPEAR_STANDARD\",\"defenderStandardTier\":1";
+        String defender = "{\"SPEARMAN\":100,\"PALADIN\":1}";
+
+        String asleep = post(request("{\"AXEMAN\":100}", defender, 0, spear));
+        assertThat(number(asleep, "$.defenderStandard.effectiveTier").intValue()).isZero();
+        assertThat(number(asleep, "$.defenderStandard.bonus").doubleValue()).isZero();
+
+        String awake = post(request("{\"AXEMAN\":100}", defender, 0, spear + ",\"bannerHall\":1"));
+        assertThat(number(awake, "$.defenderStandard.bonus").doubleValue()).isEqualTo(0.05);
+        // 100 spearmen 1 500 against infantry: 75 more
+        assertThat(number(awake, "$.scenarios[0].defense").doubleValue())
+                .isCloseTo(
+                        number(asleep, "$.scenarios[0].defense").doubleValue() + 75, within(1e-6));
+    }
+
+    @Test
+    void theDefendersThievesMayTakeTheStandardOfALostAttack() throws Exception {
+        setLuckRange(0);
+        String axe = ",\"attackerStandard\":\"AXE_STANDARD\",\"attackerStandardTier\":1";
+
+        String lost =
+                post(
+                        request(
+                                "{\"AXEMAN\":10,\"PALADIN\":1}",
+                                "{\"SPEARMAN\":100,\"BANNER_THIEF\":10}",
+                                0,
+                                axe + ",\"bannerHall\":3"));
+        Map<String, Object> theft = JsonPath.read(lost, "$.scenarios[0].standardTheft");
+        int survived = ((Number) theft.get("survived")).intValue();
+        assertThat(theft).containsEntry("sent", 10);
+        assertThat(survived).isBetween(1, 9);
+        // no hall reduction: the hall is the defender's own
+        assertThat(((Number) theft.get("chance")).doubleValue())
+                .isCloseTo(1 - Math.pow(0.97, survived), within(1e-9));
+
+        // a won attack keeps its standard
+        String won =
+                post(request("{\"AXEMAN\":100,\"PALADIN\":1}", "{\"BANNER_THIEF\":1}", 0, axe));
+        assertThat((Object) JsonPath.read(won, "$.scenarios[0].standardTheft")).isNull();
+    }
+
+    @Test
+    void aVillageBannerIsNoStandard() throws Exception {
+        player.browser
+                .post(
+                        "/api/simulator",
+                        request(
+                                "{\"AXEMAN\":20,\"PALADIN\":1}",
+                                "{}",
+                                0,
+                                ",\"attackerStandard\":\"WAR\",\"attackerStandardTier\":1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+
+    @Test
+    void theNightBonusDoublesTheDefenceWhenTheWorldHasIt() throws Exception {
+        // 20 axemen (A = 800) against 50 spearmen (D = 770): won by day, lost at night (1540)
+        String night = ",\"night\":true";
+        setNightBonus(false);
+        String off = post(request("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0, night));
+        assertThat(JsonPath.<Double>read(off, "$.nightFactor")).isEqualTo(1.0);
+        assertThat(JsonPath.<Double>read(off, "$.scenarios[1].defense")).isEqualTo(770.0);
+
+        setNightBonus(true);
+        try {
+            String day = simulate("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0);
+            assertThat(JsonPath.<Double>read(day, "$.nightFactor")).isEqualTo(1.0);
+            assertThat(JsonPath.<String>read(day, "$.scenarios[1].outcome"))
+                    .isEqualTo("ATTACKER_WON");
+
+            String atNight = post(request("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0, night));
+            assertThat(JsonPath.<Double>read(atNight, "$.nightFactor")).isEqualTo(2.0);
+            assertThat(JsonPath.<Double>read(atNight, "$.scenarios[1].defense")).isEqualTo(1540.0);
+            assertThat(JsonPath.<String>read(atNight, "$.scenarios[1].outcome"))
+                    .isEqualTo("DEFENDER_WON");
+        } finally {
+            setNightBonus(false);
+        }
     }
 
     @Test
@@ -515,6 +652,11 @@ class SimulatorTest {
 
     private static org.assertj.core.data.Offset<Double> within(double offset) {
         return org.assertj.core.data.Offset.offset(offset);
+    }
+
+    private void setNightBonus(boolean enabled) {
+        jdbc.sql("update world_settings set night_bonus_enabled = ?").param(enabled).update();
+        worldService.reload();
     }
 
     private void setLuckRange(double luckRange) {

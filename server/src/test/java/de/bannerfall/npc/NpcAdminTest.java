@@ -71,6 +71,7 @@ class NpcAdminTest {
         jdbc.sql(
                         "update world_settings set npc_difficulty = 'NORMAL', npc_custom = null,"
                                 + " npc_guilds_enabled = false, npc_guild_max_members = 3,"
+                                + " npc_banners_enabled = false,"
                                 + " guilds_enabled = ?")
                 .param(guildsWereOn)
                 .update();
@@ -123,6 +124,55 @@ class NpcAdminTest {
                                 .query(Integer.class)
                                 .single())
                 .isEqualTo(2);
+    }
+
+    @Test
+    void theAdminGrantsALordBannersAndTheListShowsThem() throws Exception {
+        jdbc.sql("update world_settings set npc_banners_enabled = true").update();
+        worldService.reload();
+        String spawned =
+                admin.post("/api/admin/npc-lords", "{\"personality\":\"BALANCED\"}")
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.paladinLevel").value(1))
+                        .andExpect(jsonPath("$.bannerVillages.length()").value(0))
+                        .andExpect(jsonPath("$.stash.length()").value(0))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        long lord = com.jayway.jsonpath.JsonPath.<Number>read(spawned, "$.playerId").longValue();
+        long village =
+                jdbc.sql("select id from village where player_id = ?")
+                        .param(lord)
+                        .query(Long.class)
+                        .single();
+        jdbc.sql("update village set b_banner_hall = 1 where id = ?").param(village).update();
+
+        for (int i = 0; i < 2; i++) {
+            admin.post(
+                            "/api/admin/players/" + lord + "/banners",
+                            "{\"type\":\"HARVEST\",\"tier\":2,\"reason\":\"test\"}")
+                    .andExpect(status().isCreated());
+        }
+        jdbc.sql(
+                        "update banner set equipped_village_id = ?, equipped_at = now() where id ="
+                                + " (select min(id) from banner where owner_id = ?)")
+                .param(village)
+                .param(lord)
+                .update();
+
+        admin.get("/api/admin/npc-lords")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].bannerVillages[0].villageId").value(village))
+                .andExpect(jsonPath("$[0].bannerVillages[0].hall").value(1))
+                .andExpect(jsonPath("$[0].bannerVillages[0].banner.type").value("HARVEST"))
+                .andExpect(jsonPath("$[0].bannerVillages[0].banner.effectiveTier").value(1))
+                .andExpect(jsonPath("$[0].bannerVillages[0].standard").doesNotExist())
+                .andExpect(jsonPath("$[0].stash[0].type").value("HARVEST"))
+                .andExpect(jsonPath("$[0].stash[0].tier").value(2))
+                .andExpect(jsonPath("$[0].stash[0].count").value(1));
+        admin.get("/api/admin/players/" + lord + "/banners")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test

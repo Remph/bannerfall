@@ -45,6 +45,12 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `paladinMaxSlots` | 5 | 0–20: the most paladin slots a player can have (M31, §5.5). **0 = no paladin in this world**: the barracks does not list him, nothing can be recruited |
 | `bannersEnabled` | true | Banners (M32, §21): on = the Banner Hall, equipping and the banner effects work; off = no effects, nothing can be equipped or built (the Hall is hidden), banners that exist are kept and asleep |
 | `bannerDropFactor` | 1.0 | 0–3: multiplies the banner drop chances (§21.7, built in M32b); 0 = no drops. Stored and shown since M32a |
+| `standardTheftEnabled` | true | 1.4: the defenders' surviving banner thieves can take the paladin standard of an attack they beat (§21.18) |
+| `npcBannersEnabled` | false | 1.4: NPC lords find, fly, fuse and lose banners and standards like players (§21.18; works only with `bannersEnabled`) |
+| `nightBonusEnabled` | false | 1.4: the night bonus (§8.1): villages of players and NPC lords defend more strongly against attacks that arrive at night |
+| `nightBonusStartHour` | 23 | 0–23: the first hour of the night, in German time (§8.1) |
+| `nightBonusEndHour` | 7 | 0–23: the hour the night ends (not part of it); never equal to the start, the window may run across midnight |
+| `nightBonusFactor` | 2.0 | 1.1–3: multiplies the defence at night (§8.1) |
 | `tradeMaxRatio` | 3.0 | Market offers: `1/ratio ≤ want/offer ≤ ratio` |
 | `marketExchangeRatio` | 1.5 | Trading with the market itself (v1.3, §12.1): what 1 of another resource costs; 0 = off, otherwise 1–10 |
 | `victoryMode` | DOMINATION | How the world is won (v1.3, §22): `DOMINATION`, `KEEPS` or `NONE` |
@@ -258,12 +264,12 @@ The Town Hall page shows what the **next** level of a building does before the p
 | RAM | Ram | Rammbock | WORKSHOP | Workshop 1 | 300 | 200 | 200 | 5 | 2 | 20 | 50 | INF | 30 | 0 | 4800 |
 | CATAPULT | Catapult | Katapult | WORKSHOP | Workshop 2, Smithy 12 | 320 | 400 | 100 | 8 | 100 | 100 | 50 | INF | 30 | 0 | 7200 |
 | NOBLE | Noble | Adliger | ACADEMY | Academy 1 | 40000 | 50000 | 50000 | 100 | 30 | 100 | 50 | INF | 35 | 0 | 10800 |
-| PALADIN | Paladin | Paladin | BARRACKS | Barracks 5 | 1000 | 1000 | 1000 | 10 | 120 | 150 | 150 | INF | 14 | 0 | 21600 |
+| PALADIN | Paladin | Paladin | BANNER_HALL | Banner Hall 1 | 1000 | 1000 | 1000 | 10 | 120 | 150 | 150 | INF | 14 | 0 | 10800 |
 | BANNER_THIEF | Banner Thief | Bannerdieb | BANNER_HALL | Banner Hall 1 | 100 | 120 | 150 | 2 | 0 | 3 | 3 | INF | 18 | 0 | 1500 |
 
 The enum order above is the canonical order (UI columns, report tables, embeddable columns).
 
-The numbers are the unit's values at **level 1**. With the world setting `unitLevelsEnabled` the smithy raises five units (spearman, swordsman, axeman, light and heavy cavalry) to levels 2 and 3 (§5.4). The paladin (M31, §5.5) is recruited in the barracks, limited by slots, and has no levels. The scout has one level (level 2, §5.4). The banner thief (M32b, §21.5) is recruited in the Banner Hall, only while banners are on, and has no levels.
+The numbers are the unit's values at **level 1**. With the world setting `unitLevelsEnabled` the smithy raises five units (spearman, swordsman, axeman, light and heavy cavalry) to levels 2 and 3 (§5.4). The paladin (M31, §5.5) is recruited in the Banner Hall (the barracks until 1.3) and limited by slots. The scout has one level (level 2, §5.4). The banner thief (M32b, §21.5) is recruited in the Banner Hall, only while banners are on. Since 1.4 the paladin and the banner thief have levels 2 and 3 that the Banner Hall trains (*Hall training*, §5.4), also with unit levels off.
 
 ### 5.2 Recruitment
 
@@ -290,6 +296,18 @@ Rules decided on 2026-10-04 (formerly §15), built after the MVP. Defaults picke
 - **Cancel** (owner only): the units not yet dismissed go back into the home stack, the later orders of that building move up (same rule as §5.2). An order that doesn't exist any more is `DISMISS_ORDER_NOT_FOUND`. **Not while an attack is on its way to the village** (`DISMISS_LOCKED`, 2026-10-11, same count as the village's `incomingAttacks`): the units of an order can't be hit, so a cancel then would hide troops. The units keep being dismissed meanwhile; the cancel works again once the attack has landed (or was called off). New orders can still be placed.
 - If the village changes owner (conquest), its dismiss orders are dropped without refund (the units are gone either way).
 
+### 5.2b Recruit templates (1.4, branch `integration/v1-4-features`)
+
+Decided on 2026-10-18: a goal army rather than a fixed batch, a name on each template, and a plan to look at before recruiting.
+
+- A player keeps up to **five** recruit templates, **A to E**, shared by all his villages. Each has a **name** (1 … 16 characters after trimming, no control characters) and a **goal army**: a count of 0 … 30 000 per unit type, at least one above 0. Every unit type may be part of it (nobles, the paladin and banner thieves too). Separate from the farm templates (§18).
+- A template is **only a plan**: it is never sent to the game as such. The recruit screen computes, for the current village, what the template recruits right now and queues it with **Recruit all** (§5.2), so every order is checked exactly as if it were typed in.
+- **The plan**, per unit of the template, in building and unit order:
+  - *have* = units of the village's own at home + away (supporting elsewhere or on the way) + still in its recruit orders; *missing* = max(0, goal − have).
+  - It is skipped (with the reason) when *missing* is 0 (goal reached), when the unit's requirements are not met or its building is not built (locked), when its building's queue has no free place left (each recruited unit takes one place, in unit order), or, for the paladin, when no slot is free (§5.5; otherwise *missing* is capped at the free slots).
+  - *now*: one share *s* = min(1, floor(stock) ÷ Σ missing × cost for each resource, free population ÷ Σ missing × pop) for all units together, and *now* = floor(missing × *s*), at most 30 000. So a village short of resources recruits every unit in the template's proportions instead of the first ones in full.
+- The plan is the web's (`game/recruitTemplates.ts`); the server only stores the templates.
+
 ### 5.3 Population
 
 ```
@@ -307,7 +325,7 @@ The request (2026-10-13): "units still unlock through the building requirements;
 
 - **World setting** `unitLevelsEnabled` (§1), off by default. Off means exactly the old game: every unit has the table's values (§5.1), nothing can be researched (`UNIT_LEVELS_DISABLED`), the research that exists in the database is ignored (and applies again when the setting is switched back on).
 - **Levels belong to the player** (decided 2026-10-13): a research raises the unit in all of the player's villages. A level 1 unit is a unit that is unlocked by its building requirements (§5.1) – nothing changes there.
-- **Which units**: spearman, swordsman, axeman, light cavalry and heavy cavalry have levels 2 and 3. The **scout** has level 2 only (the *upgraded scout*, 2026-10-13: it is the unit that sees other units' levels, see *Upgraded scouts* below). Ram, catapult, noble and paladin have none (default; rams and catapults are tuned by §9, nobles by their own rules, the paladin by §5.5).
+- **Which units**: spearman, swordsman, axeman, light cavalry and heavy cavalry have levels 2 and 3. The **scout** has level 2 only (the *upgraded scout*, 2026-10-13: it is the unit that sees other units' levels, see *Upgraded scouts* below). Ram, catapult and noble have none (default; rams and catapults are tuned by §9, nobles by their own rules). The paladin and the banner thief have levels 2 and 3 since 1.4, trained in the Banner Hall instead of the smithy (*Hall training* below).
 - **What a level changes**: attack, defence against infantry and defence against cavalry; nothing else (speed, carry, cost, population and recruit time stay, so a level never changes how far a unit walks or what it costs to train). About +10 % (level 2) and +20 % (level 3), whole numbers, and never the same value twice in a row:
 
 | Unit | Att 1 / 2 / 3 | Def inf 1 / 2 / 3 | Def cav 1 / 2 / 3 |
@@ -328,21 +346,34 @@ The request (2026-10-13): "units still unlock through the building requirements;
 - **In battle** (§8, §9): attack and defence use each unit's level of its **owner**. The attacker's levels apply to the attacking units; every defending stack uses the levels of the player who owns it (a support stack keeps its own owner's levels). The report shows the levels above 1 (§14).
 - **NPC lords and barbarians have no levels** (default, so the NPC model of 09 stays valid): their units are always level 1, also in a world with levels on. A human attacking them therefore gets the bonus, they do not.
 - **Cheats**: the dev and host cheat `finish-orders` also finishes the running research.
-- **Smithy page** (`GET /api/villages/{id}/smithy`, web `/v/:id/smithy`): for every unit its attack, defence against infantry and cavalry, **minutes per field in this world** (`minutesPerField ÷ (speed × unitSpeed)`, the walking time of one field), carry, its level and the values of every level, the running research and the next one (cost, time, what is missing, whether the village can pay). With levels off it shows the base values only. Code: `research` package (`ResearchService`, `UnitLevelService`), `rules.ResearchRules`, `rules.UnitLevels`, `gamedata.UnitDef.stats(level)`.
+- **Smithy page** (`GET /api/villages/{id}/smithy`, web `/v/:id/smithy`): for every unit its attack, defence against infantry and cavalry, **minutes per field in this world** (`minutesPerField ÷ (speed × unitSpeed)`, the walking time of one field), carry, its level and the values of every level, the running research and the next one (cost, time, what is missing, whether the village can pay). With levels off it shows the base values only. The paladin and the banner thief are listed with the levels the hall trains and no research (1.4). Code: `research` package (`ResearchService`, `UnitLevelService`), `rules.ResearchRules`, `rules.UnitLevels`, `gamedata.UnitDef.stats(level)`.
+
+**Hall training (1.4, decided 2026-10-18).** The Banner Hall trains the levels of its own two units, the paladin and the banner thief, the way the smithy researches the others.
+
+- **Not tied to `unitLevelsEnabled`:** paladin levels work whenever the world has paladins (`paladinMaxSlots ≥ 1`, else `PALADIN_DISABLED`), thief levels whenever banners are on (else `BANNERS_DISABLED`). With unit levels off a battle, the simulator and the pages still count these two units' levels and ignore the smithy's.
+- **Like a research otherwise:** the level belongs to the player and works in all of their villages (a paladin who dies keeps nothing, the next one has the player's level); levels go one at a time; the rows are research rows (unit `PALADIN` or `BANNER_THIEF`, no new table, no events); cancel, conquest and the `finish-orders` cheat work as above. **One training at a time per Banner Hall** (beside the smithy's research, which runs on its own) and one per unit in the whole account (`RESEARCH_BUSY`).
+- **Requirements:** **Banner Hall 2** for level 2, **Banner Hall 3** for level 3 (the hall's maximum), plus the unit's own requirement (Banner Hall 1).
+- **Time:** 12 h (level 2) and 30 h (level 3) at Banner Hall 1, with the hall's level in the formula above instead of the smithy's: at speed 6 that is 1 h 52 min for level 2 at hall 2 and 4 h 23 min for level 3 at hall 3.
+- **Paladin** (small steps on purpose, +5 % and +10 %): level 2 is attack 126, defence 158 / 158; level 3 is attack 132, defence 165 / 165. Speed, population, carry and cost stay. Cost **5×** and **15×** his recruit cost (5 000 and 15 000 of each resource; the smithy's 20× / 50× would put level 3 at a noble's price).
+- **Banner thief:** his values stay (attack 0, defence 3 / 3); a level raises the **theft chance per surviving thief** from 3 % to **4 %** (level 2) and **5 %** (level 3), §21.6.2. Cost 20× and 50× his recruit cost (2 000 / 2 400 / 3 000 and 5 000 / 6 000 / 7 500).
+- **NPC lords and barbarians** stay at level 1, as for every unit. Exception since 1.4: with the world setting `npcBannersEnabled` on, a lord trains its paladin in the Banner Hall and its paladins fight at that level (09 §14.6); everything else stays at level 1.
+- **Pages:** the Banner Hall's recruiting tab gets a *Hall training* card under its units: the running training with its cancel button, the paladin's values per level, the thief's chance per level, and the next training (cost, time, what is missing). API: `GET /api/villages/{id}/banner-hall` (04-api); starting and cancelling use the research endpoints. The simulator's level fields offer the two units in every world that has them.
 
 ### 5.5 The paladin (M31, branch `integration/v1-2-features`)
 
 The request (2026-10-13): "The paladin, like in tribal wars. A setting in the world 'villages per additional paladin slot'. Basically you start out with the one you have and if you (for example) get to 5 villages you get another slot. Then afterwards after 9 if the setting is 4 up to a maximum that can be determined by a setting again. Default is 5. The paladin makes normal units move at his speed when used as a support. He's faster than spear and axe but slower than cavalry." Defaults picked for the open points are marked; the unit's numbers are placeholders for the playtest (`units.yml`, `buildings.yml`).
 
-- **Where:** in the **barracks** (2026-10-13: "Paladin in the barracks with a visible limit counter as a subtext"), the last unit of its list, with its own order in the barracks queue like every unit. He needs **Barracks 5** (default). There is no separate building.
-- **Paladin** (§5.1): 1000 / 1000 / 1000, 10 population, 6 h to train at Barracks 1 (`21600 s`, the usual speed formula and the barracks factor), attack 120 (an infantry-type attacker), defence 150 against infantry and cavalry, carries nothing, **14 minutes per field**. Deliberately a strong defender and a weak raider: he is a general who walks with the army.
+- **Where (since 1.4, 2026-10-18):** in the **Banner Hall** (§21.3), before the banner thief in its list, with his own order in the hall's queue like every unit. He needs **Banner Hall 1** (which itself needs HQ 8 and Barracks 5). From M31 to 1.3 he was the last unit of the barracks (2026-10-13: "Paladin in the barracks with a visible limit counter as a subtext") and needed Barracks 5; the slot counter moved with him. The hall can be built whenever paladins **or** banners are on (decided 2026-10-18); in a world with banners off it only trains the paladin.
+- **Paladin** (§5.1): 1000 / 1000 / 1000, 10 population, 3 h to train at Banner Hall 1 (`10800 s`, the usual speed formula and the hall's level factor; 6 h until 1.3, cut because the hall only goes to level 3: at speed 6 that is 30 / 28 / 26 min at hall 1 / 2 / 3), attack 120 (an infantry-type attacker), defence 150 against infantry and cavalry, carries nothing, **14 minutes per field**. Deliberately a strong defender and a weak raider: he is a general who walks with the army.
 - **Slots.** A player has `min(paladinMaxSlots, 1 + (villages − 1) ÷ paladinVillagesPerSlot)` slots (whole division), where `villages` is **every village he owns right now**, conquered ones included (barbarian villages only count once they are his). With the defaults 4 / 5: 1 slot with 1–4 villages, 2 with 5–8, 3 with 9–12, 4 with 13–16, 5 with 17 or more. `paladinMaxSlots = 0` means no paladin in this world: the barracks does not list him, a Town Hall upgrade does not announce him, and recruiting him is refused (`PALADIN_DISABLED`).
 - **What takes a slot (default):** every paladin the player owns, wherever he is: at home, in support elsewhere, on the way (movements), waiting in a recruit order (finished or not, the whole order counts from the moment it is placed) and waiting in a dismiss order (he counts until he is dismissed, like population, §5.2a). **Recruiting beyond the free slots is refused** (`PALADIN_SLOTS_FULL`; also all-or-nothing for "Recruit all", §5.2); a refused order costs nothing. The check and the order are done under a lock on the player, so two villages cannot fill the same slot at the same time.
 - **When a slot disappears (default: nobody loses a paladin).** If villages are lost (conquest, §10), the player may have more paladins than slots. They stay alive and keep fighting; he just cannot recruit another until the slots catch up again (more villages, or paladins fall in battle or are dismissed). Taking a paladin away when a village falls would hit the loser twice.
 - **When his village is conquered.** A paladin belongs to a home village like every unit (§6): the ones standing **outside** the conquered village are lost with it, as all units of that village are (§10), and that frees their slots at once. Paladins in a village that holds out are in the battle like any defender; if the battle is lost they are dead.
 - **Support speed.** A SUPPORT (§6) that contains a paladin walks at **the paladin's pace, not the slowest unit's**: the whole stack walks 14 minutes per field even if it also holds swordsmen (22) or rams (30). That is his one use in support. It also applies when the support is sent back (RETURN of a support stack) and to the preview. An ATTACK keeps the slowest-unit rule, so a paladin never speeds up an attack; sent with slow rams he is slow as well.
-- **Battle (§8, §9).** The paladin is a normal unit with the table's values; he defends at home and in support and attacks, and dies like the others. **No levels** (M30, §5.4): the smithy lists him with his values and no research (`MAX_LEVEL_REACHED`), a level in a simulator request is ignored. The population-based loot rule is untouched, he carries nothing.
-- **NPC lords recruit one paladin per slot from their second stage on** (balancing round 2, 2026-10-17; 09 §5.3): an extra order outside the template's mix (the validation still rejects a paladin in a mix), under the same slot rules as a human; he stays home as a defender. Before, lords had no paladins. **Barbarian villages** never have one.
+- **Battle (§8, §9).** The paladin is a normal unit with the table's values; he defends at home and in support and attacks, and dies like the others. **Levels since 1.4** (*Hall training*, §5.4): the Banner Hall trains him to level 2 and 3 (attack 126 / 132, defence 158 / 165), also in worlds with unit levels off; from M31 to 1.3 he had none. The population-based loot rule is untouched, he carries nothing.
+- **NPC lords recruit one paladin per slot from their second stage on** (balancing round 2, 2026-10-17; 09 §5.3): an extra order outside the template's mix (the validation still rejects a paladin in a mix), under the same slot rules as a human; he stays home as a defender. Before, lords had no paladins. **Barbarian villages** never have one. Since 1.4 their templates build the Banner Hall for him: **hall 1 right after Town Hall 10, hall 2 with Town Hall 15, hall 3 with Town Hall 20** (the timing of the lord banners design); in a world where the hall can't be built the steps leave it out.
+- **The move into the Banner Hall (1.4, decided 2026-10-18):** once, at the first start of 1.4 (`PaladinHallMove`, the job `paladin-banner-hall` in table `one_time_job`), every paladin whose **home village has no Banner Hall** leaves, wherever he is: at home, in a support, on the way, in a recruit order (also a barracks order of before 1.4) or in a dismiss order. The home village gets **1000 / 1000 / 1000 per paladin back in full**, above the warehouse capacity if need be (stock above the capacity is kept, §3). A movement that held only paladins is called off (its event too); the rest of a movement walks on unchanged, a support keeps its arrival time. Later orders in the same queue move up as after a cancel (§5.2). Paladins in villages with a hall stay, also a barracks order of theirs. No in-game report; the release notes say it. After the move a hall that falls to catapults takes nobody's paladin away, like any other unit's requirement.
+- **Standards since 1.4** (§21.18): the paladins of a village carry its paladin standard into attacks and defence; it works up to the paladin's level.
 - **Farm helper (§18):** a template cannot contain the paladin (`400`), like the noble.
 - **Dismissing** a paladin is allowed (§5.2a) and frees his slot when the order reaches him.
 - **Admin:** the two settings of §1 sit with the other world settings: the card on the admin page, `bannerfall-admin world set paladin-villages-per-slot|paladin-max-slots <n>` and the world info. A running world may change them: raising the maximum opens slots at once, lowering it follows the rule "nobody loses a paladin".
@@ -429,6 +460,7 @@ Wb    = wallAfterRams(wallLevel, floor(ramsSent / 2))          // effective wall
 Dunits = Σ over every defending unit (all stacks in the village, all types incl. scouts and nobles)
             count × (defInf × shareInf + defCav × shareCav)
 D     = (Dunits + 20 + 50 × Wb) × (1 + 0.05 × Wb) × (1 + bulwark)   // bulwark: the village's Bulwark banner at battle time, else 0
+        × night                                                // night: the night bonus factor at the arrival, else 1 (1.4, §8.1)
 
 if A > D:  attacker wins.   attackerLossRatio = (D / A)^1.5,  defenderLossRatio = 1
 else:      defender wins.   defenderLossRatio = (A / D)^1.5,  attackerLossRatio = 1
@@ -449,6 +481,29 @@ Notes:
 | 50 light cav vs 100 spearmen, wall 0 | 6000 | 4000+20 = 4020 | attacker wins, ratio 0.54842 → loses 27 light cav |
 | 20 axemen vs 100 swordsmen, wall 0 | 800 | 5000+20 = 5020 | defender wins, ratio 0.06362 → loses 6 swordsmen; all axemen die |
 | 10 scouts vs 4 scouts | – | – | scouting succeeds, attacker loses round(10×0.4^1.5)=3 |
+
+### 8.1 Night bonus (1.4)
+
+The request (2026-10-18, from the parked list): villages defend more strongly at night, as a world setting that is off by default, and the attack simulator knows it too. Decided in the design round:
+
+- **When.** An attack whose **arrival** lies in the night window meets the bonus. The window is read in German time (`bannerfall.night-bonus.zone`, default `Europe/Berlin`, so it follows the clock changes); default **23:00–07:00**. The start hour belongs to the night, the end hour doesn't (23:00:00 is night, 07:00:00 is day); the window may run across midnight. When the attack was sent doesn't matter.
+- **How much.** `D` is multiplied by `nightBonusFactor` (default **×2**, the host sets 1.1–3), after the wall and the Bulwark:
+
+  ```
+  D = (Dunits + 20 + 50 × Wb) × (1 + 0.05 × Wb) × (1 + bulwark) × night   // night: the factor at night, else 1
+  ```
+
+  So the base defence of an empty village doubles too; nothing else of the battle changes (losses follow from `A` and `D` as always).
+- **Who.** Villages of **players and NPC lords**; **barbarian villages never** (farming at night stays as it is).
+- **Scouting is not affected** (§7.1 compares scouts, not `D`); a scouts-only attack fights no main battle and so has no night bonus.
+- **Settings at the arrival.** The battle reads the world's settings when the attack arrives: a host who changes the window or the switch while attacks walk changes what they meet.
+- **Shown before.** The send confirmation (attacks and trains) says when the attack will arrive during the night bonus, and so do the one-tap farm sends (a farm list row; the map panel's farm line names the templates that would), without asking for a second tap; the rally point's movements carry a moon tag "Night bonus ×2" on own attacks that will arrive at night on a player's or lord's village and on attacks coming in at night. The world settings sheet lists the window and the factor.
+- **Shown after.** Both copies of the battle report (`ATTACK`, `DEFENSE`) carry `nightBonus` (the factor) when the main battle had it; the defenders' card says so.
+- **NPC lords** count the bonus in their attack estimate (09-npc-lords §6): the arrival time from the distance and the slowest unit decides whether a target is worth it.
+- **Simulator** (§20): a switch "The attack arrives at night" in the defenders' card, only in a world with the bonus on; it is ticked when the numbers come from a report of a night battle.
+- Code: `rules.NightBonus` (pure: the window and `factorAt(at, owned)`), `BattleInput.nightFactor`, `world.NightBonusService` (the settings with the zone). Migration V41.
+
+**Test vectors** (luck = 0, night ×2): 100 axemen vs 100 spearmen at wall 5 at night: A = 4000, D = 2212.5 × 2 = 4425, the defender wins, ratio (4000/4425)^1.5 = 0.85944 → loses 86 spearmen; all axemen die. 50 axemen vs 100 spearmen, wall 0: A = 2000, D = 1520 × 2 = 3040, the defender wins and loses 53.
 
 ## 9. Siege and loot (attacker won only)
 
@@ -665,12 +720,13 @@ Details (M8b):
 - **Troops away (balancing round 2, §7.1):** the attacker's copy has `scouting.away` (the owner's own units away from the village, per unit type) when scouting succeeded and at least 75 % of the scouts survived the scouting phase; null otherwise, in the defenders' copy and in reports from before.
 - Each recipient's copy is stored already cut down to what he may see.
 - **Unit levels (M30, §5.4):** a battle report stores the research levels above 1 of the attacking unit types (`attackerLevels`) and of every defending stack (`levels` per stack); nothing for level 1, a world without unit levels and reports from before M30. The web shows them as a small "Lv 2" badge next to the unit. **The attacker's copy** has `defenderSide.levels` – the highest level above 1 per defending unit type – only when his scouts were level 2 or more and scouting succeeded (§5.4, *Upgraded scouts*); it is empty otherwise, and in the defenders' copy.
+- **Night bonus (1.4, §8.1):** `ATTACK` and `DEFENSE` copies carry `nightBonus`, the factor the defence had, when the main battle fell into the night bonus; null otherwise and in reports from before.
 - **Banners (M32b, §21.16):** `ATTACK`, `DEFENSE` and `SCOUT` copies carry a `banners` block when banners did something: the War bonus of the attacker (both copies), the Bulwark bonus of the village (defenders; the attacker only when his scouting succeeded), the banner the reader's side found, the thieves' result (attacker only) and the banner they stole (defenders only).
 - `SUPPORT_ARRIVED`: when a support arrives, for its sender and the supported village's owner (one report if it's the same player). `SUPPORT_RETURNED`: when a support is withdrawn or sent back (§6), for the owner of the other village – the one who didn't do it; the units are those sent home. A cancelled support (it never arrived) gives no report, nor does a RETURN arriving home.
 
 ## 15. Not in the MVP (ideas for later)
 
-Paladin, archers, morale, night bonus, demolishing, research levels, world end conditions (built in v1.3, §22), multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style).
+Paladin, archers, morale, night bonus (built in 1.4, §8.1), demolishing, research levels, world end conditions (built in v1.3, §22), multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style).
 
 **Dismissing units** – implemented, see §5.2a. The rules as decided (2026-10-04):
 - The player dismisses units of one kind from the home stack (only units at home). They **leave the home stack at once**: they no longer defend and can't be sent.
@@ -737,18 +793,21 @@ A list of targets per village with the units the player usually sends, a one-tap
 
 - **List:** per village (the village whose units are sent), at most **50 targets** (`FARM_LIST_FULL`). A target is a village, any village but the player's own (`SAME_VILLAGE`, `OWN_VILLAGE`), once per list (`ALREADY_IN_FARM_LIST`). It stays on the list when its owner changes (a barbarian village that a player conquers is still a target, only the beginner protection starts to count); it disappears when the village does.
 - **Template:** the units that are sent, 0 … 30 000 per type, at least one unit, **no nobles and no paladin** (a noble needs a decision each time, a paladin is a general and not a raider; M31). It can be changed at any time. Units don't have to be at home when it is saved.
-- **Send:** one tap sends exactly the template as an **attack** from the list's village, through the same code as a normal command (§6): units leave home now, the same errors (`NOT_ENOUGH_UNITS`, `PROTECTED_TARGET` at the arrival time, `OWN_VILLAGE` if the player has conquered the target since …), nothing is sent in part. The attack ends the sender's own beginner protection like any other, unless the target is a barbarian village (§6; the template has no nobles). The entry remembers when it was last sent.
+- **Templates A to E (1.4, a player's wish):** a player keeps up to **five** troop templates, named by letter **A to E**, shared by **all his villages** (not per village). Same rules as an entry's units above. A list entry either **uses a template** or has **its own units**; one that uses a template is **linked** to it: saving the template changes the units of every entry that uses it, in every village, so a raid grows from 10 to 15 light cavalry in one edit. Entries from before 1.4 keep their own units, so nothing changes for a running world until a player picks a template. **Deleting** a template turns its entries into own units with the same numbers; a template made again under the same letter doesn't pick them up. Send, "Send all" and "Send banner chances" use the entry's units as they are now. No free-text names (default, can come later; the letter and the units say what it is).
+- **From the map (1.4):** the village panel of every village that isn't the player's (barbarian, player, NPC lord) has a farm line. **"Farm with [A] [B] …"**: one tap sends that template as an **attack** from the current village, through the normal command (§6, all its rules and errors); it does not add the village to the list. A template the units at home don't cover is greyed out; two taps when the attack would end the sender's own beginner protection, like a single Send. **"Add to farm list"** opens a sheet over the map (pick a template or own units, add it to the current village's list), so the map stays where it is; a village already on that list shows "On the farm list" with its template and a link to the list instead. No templates yet: the line says so and links to the farm list's templates.
+- **Rally point (1.4):** the attack form shows the template buttons above the unit counts; a tap fills the counts, nothing is sent.
+- **Send:** one tap sends exactly the template as an **attack** from the list's village, through the same code as a normal command (§6): units leave home now, the same errors (`NOT_ENOUGH_UNITS`, `PROTECTED_TARGET` at the arrival time, `OWN_VILLAGE` if the player has conquered the target since …), nothing is sent in part. The attack ends the sender's own beginner protection like any other, unless the target is a barbarian village (§6; the template has no nobles). The entry remembers when it was last sent; since 1.4 any attack from the list's village at the target counts (from the map's farm line or the rally point too, attack trains included), so the time is the latest attack however it was sent.
 - **Send all (M39):** one button above the list works through it **from the top** (the order the targets were added), each entry exactly like its own Send (its template, an attack, the same rules). It always goes on **to the end of the list**. An entry whose template the units at home don't cover (any more) is **skipped** (`NOT_ENOUGH_UNITS`) and the run goes on with the next one, so a later entry with other or fewer units still goes out (v1.3, a player's wish: five axe entries and then four light cavalry entries, with axemen for four, used to stop at the fifth axe entry and leave the cavalry at home; until 1.2.3 the run stopped at the first such entry). Entries whose target can't be hit right now are skipped the same way: the target player is under beginner protection at arrival (`PROTECTED_TARGET`) or the target is the player's own village by now (`OWN_VILLAGE`); these reasons win over `NOT_ENOUGH_UNITS` when both apply. While the **sender's own beginner protection** lasts, players' villages are skipped as well (default): a single Send of such a target asks twice because it ends that protection, so one tap for the whole list never does; barbarian villages are sent. Every attack that went out stays sent (no all-or-nothing, unlike an attack train); the run holds the village's lock, so nothing else takes its units in between. The answer lists the sent and skipped entries (with the reason); the status line counts the attacks sent, the entries skipped and, separately, those not sent for lack of troops. Two taps (the button turns into "Really send all?", like a protected row's Send) since one tap sends up to 50 attacks; no other confirmation, no cooldown, entries with an attack already on the way are sent again.
 - **Send banner chances (1.2.3):** a second button next to "Send all" runs the same way over only the entries with a banner chance: no "Banner from …" tag (§21.7: the player's roll against that target is free) and a template that can win a roll (not scouts alone; against a barbarian village at least 30 population, since the attacker's army is the losing side's size there). An entry whose pair (§21.7) already has one of the player's attacks on the way that can win a roll is left out too, since that attack uses the roll when it lands; a player's villages are one pair, so only the first of them on the list gets the chance (1.2.3, after the review). So a player can go for banners in one tap. The entries left out are neither sent nor counted as skipped. An entry with a chance that the units don't cover is skipped like in "Send all" and doesn't use its pair's chance, so the next entry of the same player can still take it (v1.3). Hidden in worlds without banner drops.
 - **List display:** distance and one-way travel time of the template (the slowest unit), the target's beginner protection if it still lasts, when it was last sent. No result of the last attack is shown (default; the reports have it).
-- **From a report (M38):** a battle report offers the other side's village for the farm list: in the attacker's `ATTACK` and `SCOUT` reports the attacked village, in a `DEFENSE` report (also a supporter's) the attacker's village; never one of the reader's own villages. It opens the farm list of the village that sent the attack or scouts (while it is still the reader's), otherwise the current village's (like the map's "Add to farm list"), with the target filled in, and from an `ATTACK` report also the units that attack sent (without nobles, paladin and thieves) as the template; the player checks and adds it there. A village already on that list gets a link to the list instead.
+- **From a report (M38):** a battle report offers the other side's village for the farm list: in the attacker's `ATTACK` and `SCOUT` reports the attacked village, in a `DEFENSE` report (also a supporter's) the attacker's village; never one of the reader's own villages. It opens the farm list of the village that sent the attack or scouts (while it is still the reader's), otherwise the current village's (the map's "Add to farm list" uses the current village's list too), with the target filled in, and from an `ATTACK` report also the units that attack sent (without nobles, paladin and thieves) as the template; the player checks and adds it there. A village already on that list gets a link to the list instead.
 - **Owner change:** when a village changes hands (§10), its farm list is dropped with its orders; the new owner starts with an empty one.
-- **Not in v1.1** (defaults, overrulable): a "send to all" (came in M39, above), result and loot columns, sorting and filters, templates shared between villages, a cooldown or "do not send again for N minutes" warning.
+- **Not in v1.1** (defaults, overrulable): a "send to all" (came in M39, above), result and loot columns, sorting and filters, templates shared between villages (came in 1.4, above), a cooldown or "do not send again for N minutes" warning. **Not in 1.4:** template names, templates per village, a farm list marker on the map, sending one template to several villages at once from the map.
 
 
 ## 19. Achievements (M16, branch `integration/v1-1-features`)
 
-Honours a player earns by playing. They change nothing in the game. Brainstormed on 2026-10-12. **The list of 25 was confirmed on 2026-10-12;** the thresholds below are still drafts, tuned with the playtest numbers (they are numbers in a YAML file, so they can change without a migration).
+Honours a player earns by playing. They change nothing in the game. Brainstormed on 2026-10-12. **The list of 25 was confirmed on 2026-10-12;** the thresholds below were drafts until 1.4 tuned them with the numbers of a running world (§19.1; they are numbers in a YAML file, so they can change without a migration).
 
 **Decisions (2026-10-12):**
 - **Honour only.** No resources, no perks, no title next to the name, no effect on the ranking.
@@ -791,25 +850,25 @@ Honours a player earns by playing. They change nothing in the game. Brainstormed
 
 Guild ones can only be earned while the host has guilds on.
 
-**With levels (8).** Thresholds are drafts (`gamedata/achievements.yml`), to be tuned with the playtest numbers. None depends on the world speed on purpose: a faster world reaches them sooner.
+**With levels (8).** Thresholds in `gamedata/achievements.yml`, tuned in 1.4 (§19.1; the old numbers in brackets). None depends on the world speed on purpose: a faster world reaches them sooner.
 
 | Key | EN | Counts | Bronze | Silver | Gold |
 |---|---|---|---|---|---|
-| GROWTH | Growth | Player points (current, never lost again once earned; 1 000 / 5 000 / 20 000 until 1.2.2, lowered with the points growth of 1.15 in 1.2.3, §4.2) | 1 000 | 3 500 | 12 500 |
+| GROWTH | Growth | Player points (current, never lost again once earned; 1 000 / 5 000 / 20 000 until 1.2.2, lowered with the points growth of 1.15 in 1.2.3, §4.2; 1 000 / 3 500 / 12 500 until 1.3) | 1 000 | 5 000 | 30 000 |
 | LANDLORD | Landlord | Villages owned at the same time | 3 | 8 | 15 |
-| STANDING_ARMY | Standing Army | Units finished in recruit orders (scouts and nobles excluded) | 200 | 2 000 | 10 000 |
-| VICTOR | Victor | Counted attack wins | 10 | 50 | 250 |
-| BULWARK | Bulwark | Counted successful defences | 5 | 25 | 100 |
+| STANDING_ARMY | Standing Army | Units finished in recruit orders (scouts and nobles excluded; 200 / 2 000 / 10 000 until 1.3) | 200 | 2 500 | 20 000 |
+| VICTOR | Victor | Counted attack wins, farm runs on empty villages included (10 / 50 / 250 until 1.3) | 25 | 250 | 2 500 |
+| BULWARK | Bulwark | Counted successful defences (5 / 25 / 100 until 1.3) | 3 | 15 | 50 |
 | PLUNDERER | Plunderer | Resources looted in counted wins | 20 000 | 200 000 | 2 000 000 |
-| MERCHANT_PRINCE | Merchant Prince | Resources given through market offers (accepted ones, both sides) | 10 000 | 100 000 | 1 000 000 |
-| VETERAN | Veteran | Days since registering | 7 | 30 | 100 |
+| MERCHANT_PRINCE | Merchant Prince | Resources given through market offers (accepted ones, both sides) and, since 1.4, paid at the market exchange (§12.1) | 10 000 | 100 000 | 1 000 000 |
+| VETERAN | Veteran | Days since registering (7 / 30 / 100 until 1.3) | 7 | 30 | 180 |
 
 **Rules for the counters (the filters).**
 - A level, once earned, stays even if the value later drops (points, villages).
 - **Counted attack win:** the attacker won the battle (§8), sent at least 10 units, and the attacker did not already have a counted win against **that village** within the last `24 h ÷ speed`. A second win on the same village inside that window still happens, it just does not count. Barbarian villages and NPC lords count like any target.
 - **Counted defence:** the attacker lost the main battle with at least 10 units sent, and the same attacker did not already have a counted defence against **that village** within `24 h ÷ speed`. The owner of the village gets it; supporters standing there get nothing (only the owner can count a defence). A village the owner has lost in the meantime gives nothing.
 - **Loot** only counts for a counted win, and only what was actually taken (§9).
-- **Trade volume** counts only what goes through accepted market offers (§12), counted when the offer is accepted, `k × offerAmount` for the offer's owner and `k × wantAmount` for the acceptor. Plain transports ("send resources") count nothing, so gifts to an alt account are worth nothing.
+- **Trade volume** counts only what goes through accepted market offers (§12), counted when the offer is accepted, `k × offerAmount` for the offer's owner and `k × wantAmount` for the acceptor. Plain transports ("send resources") count nothing, so gifts to an alt account are worth nothing. Since 1.4 the market exchange (§12.1) counts too: what the village pays, `ceil(amount × ratio)`, when the trade is made.
 - Support, scouting-only attacks (no attacking units) and attacks on a player's own villages count for none of these.
 - **Residual risk (accepted):** two accounts of one person can still trade or attack each other to earn the counters. With honour as the only prize that costs a friend's trust, not game balance.
 
@@ -821,17 +880,51 @@ Guild ones can only be earned while the host has guilds on.
 
 **Not in v1.1** (defaults, overrulable): secret achievements, rewards or titles, an achievement ranking, guild achievements, achievements for private messages, the farm helper or dismissing units, back-dated counters, a "new" marker, sharing a badge to the chat.
 
+### 19.1 Tuning and battle achievements (1.4)
+
+The first numbers from a running world (a speed 6 world after four days of achievements): almost every attack (3,018 of 3,034) hit an empty barbarian village, only 8 battles had defenders with units, and no defence was won anywhere. So Victor and Plunderer count farming, and nothing rewarded a real fight. 1.4 keeps Victor as a farming counter with higher numbers, retunes the table above and adds nine achievements that only real fights earn. That makes **40** (28 one-time, 12 with levels).
+
+**Rules as in §19:** honour only, human players only, granted in the battle's transaction, idempotent, the host can revoke. An attack on a village of the attacker's own (possible only if he took it while the attack was on its way) counts for nothing. New counters start at zero with the update; nothing is back-filled from old reports.
+
+**A new category, Defence** (a stretch of wall with a gate as its glyph): Shield and Bulwark move there from Combat, together with the new defensive ones.
+
+**With levels (2):**
+
+| Key | EN | DE | Counts | Bronze | Silver | Gold |
+|---|---|---|---|---|---|---|
+| SLAYER | Slayer | Bezwinger | Enemy units killed by your attacks: every defending unit that dies, the owner's and the supports', scouts included, except your own support standing there | 250 | 2 500 | 25 000 |
+| WARDEN | Warden | Wächter | Attacking units killed in your villages (scouting phase and main battle, whoever's units killed them, won or lost) | 100 | 1 000 | 10 000 |
+
+No once-per-village filter and no minimum size for these two: every kill costs the other side real units. Barbarian villages have no units, so farming kills nothing. A supporter's units killing attackers count for the village's owner only.
+
+**One-time (7):**
+
+| Key | EN | DE | Category | Earned when |
+|---|---|---|---|---|
+| PYRRHIC_VICTORY | Pyrrhic Victory | Pyrrhussieg | Combat | You win an attack of at least 100 units (every unit sent counts) and lose at least three quarters of them |
+| AVENGER | Avenger | Vergeltung | Combat | A counted win against any village of a player or NPC lord who won an attack of at least 10 units on one of your villages within the last `24 h ÷ speed` (table `achievement_grudge`, the latest such win per pair) |
+| DEMOLISHER | Demolisher | Abrissbirne | Combat | Your catapults take at least 5 levels off their target building in one attack (aimed at the wall, only what the catapults take after the rams counts) |
+| LUCKY_STRIKE | Lucky Strike | Glückstreffer | Combat | You win an attack that you would have lost without luck: with luck `A > D`, without it `A ÷ (1 + luck) ≤ D` (§8). Never on a world without luck. "Luck at least +20 %" was not taken: every fifth farm run would earn it |
+| SPY_CATCHER | Spy Catcher | Spionjäger | Defence | Every scout of an attack on your village dies in the scouting phase (§7.1), whatever else the attack brings and however many scouts it sent |
+| LAST_STAND | Last Stand | Letzte Bastion | Defence | A counted defence (§19) against more attacking units than stood in your village (all stacks, counted by units, not strength) |
+| BROTHERS_IN_ARMS | Brothers in Arms | Waffenbrüder | Defence | Your support stood in another player's village (with at least one unit at the start of the battle) when it held a counted defence; every supporting player gets it, also if his units died there |
+
+Left out (2026-10-18): Giant Slayer (a counted win against a player with twice your points) and Clean Sweep (a win against 100+ defenders without a loss).
+
+**Counters re-checked.** A counter grants its levels as it grows. Since 1.4, login and the Achievements page also grant every level a counter's value already reaches, so lowering a number later (Bulwark in 1.4) gives the level to everyone who is past it at their next visit. A level once earned stays when a number goes up.
+
 ## 20. Attack simulator (M23, branch `integration/v1-1-features`)
 
 The request (2026-10-12): an attack simulator at the rally point, to simulate from your own numbers or from recent (for example spy) reports, with the units of the current village easy to paste in.
 
-- **It is the real battle.** `POST /api/simulator` runs `Combat.fight` (§7, §8, §9), the same code real battles use, on numbers sent with the request: attacking units, defending units (everything in the village, own units and supports together), the wall level and, with catapults, the target building and its level. There is no second implementation that could drift. A test fights a real battle through the commands and shows the simulator predicts it exactly. One difference by design: the defender is typed in as **one** stack (the village's own units and the supports added up), while a real battle rounds the losses per stack (§8), so with supports standing in the village the defender's losses of a type can differ from the real battle by a unit or two; strengths, winner, attacker losses, wall and catapult damage do not. There is no morale, night bonus or other modifier in this game (§8), and the world speed doesn't enter a battle, so nothing of that is left out.
+- **It is the real battle.** `POST /api/simulator` runs `Combat.fight` (§7, §8, §9), the same code real battles use, on numbers sent with the request: attacking units, defending units (everything in the village, own units and supports together), the wall level and, with catapults, the target building and its level. There is no second implementation that could drift. A test fights a real battle through the commands and shows the simulator predicts it exactly. One difference by design: the defender is typed in as **one** stack (the village's own units and the supports added up), while a real battle rounds the losses per stack (§8), so with supports standing in the village the defender's losses of a type can differ from the real battle by a unit or two; strengths, winner, attacker losses, wall and catapult damage do not. There is no morale or other modifier in this game (§8) apart from the night bonus (1.4, §8.1, below), and the world speed doesn't enter a battle, so nothing of that is left out.
 - **Luck.** The battle is run three times: with the world's worst luck (`-luckRange`), with none and with the best (`+luckRange`). A world without luck answers with one run. Real luck is random inside that range, so the three runs frame what can happen.
 - **What it answers.** Per run: who wins, attack and defence strength, the wall level that counted (rams, §9) and the wall afterwards, the catapult target before and after, the scouting phase (§7.1) if scouts attack, per unit type what dies and what survives on both sides, and the carrying capacity of the surviving attackers (what they actually take depends on the stock, which the simulator does not know).
 - **Nobles.** Only a won battle lets the surviving nobles work (§10): every noble lowers the loyalty by 20 to 35, so with `n` nobles the answer is a range, and whether the village falls is `NO` (even the strongest hits leave the loyalty above 0), `YES` (even the weakest hits take it to 0 or below) or `POSSIBLE` in between. The loyalty to start from is typed in (default 100).
 - **Unit levels (M30).** The request may carry `attackerLevels` and `defenderLevels` (a level per unit type, missing = 1, 1 to 10, a level above the unit's top level counts as the top). They count only when the world has unit levels on; the web shows a level field per unit in that case and fills it from the player's own research ("My units here", "This village") or from a report (the defender gets the highest level of its stacks, the simulator knows one level per unit type).
 - **Reveals nothing.** The simulator reads no village, report or player: it only calculates with what the player sent, so it cannot be used to find anything out about another village (M21 stays intact). It can simulate units and buildings the player does not have; limits only keep the numbers sane (at most 1 000 000 per unit type, levels up to the building's maximum). It needs a login and changes nothing.
 - **Banners (M32c, §21.17).** With banners on, the request may carry the attacker's War banner (`warTier`), the target's Bulwark (`bulwarkTier`) and its Banner Hall (`bannerHall`, which caps the Bulwark and makes theft harder). The answer shows both bonuses and, if Banner Thieves attack, how many survive and the chance to steal a banner that flies there. It still reveals nothing: the player types (or takes from his own report) what the target has. **Since the code review 1.2 (D4)** also the attacker's Plunder banner (`plunderTier`, raises the loot capacity) and the target's Oath (`oathTier`, capped by the hall like the Bulwark, lowers every noble's hit to `round(hit × (1 − oath))` in the loyalty outlook). A village flies one banner, so War with Plunder or Bulwark with Oath is refused (400 `VALIDATION`); the form clears the other field.
+- **Night bonus (1.4, §8.1).** The request may carry `night: true`; it counts only in a world with the night bonus on and multiplies `D` by the world's factor (the answer's `nightFactor`, 1 without). The web shows the switch only in such a world and ticks it when the numbers come from a report of a night battle.
 - **Filling the form (web).** "My units here" takes the units at home into the attacker, "This village" takes the village's defence (units at home plus the supports standing in it), its wall, its loyalty and the level of the catapult target. "Take numbers from a report" lists the newest battle reports (attack, defence, scouting; the 25 newest of them, found among the player's 100 newest reports so that a flood of trade reports doesn't hide them) and a battle report has a "Simulate this attack" link (`?report=`). From a report: the attacker only if there was a real attack (a spy report has no army to attack with: the attacker of the form stays), the defending units and the wall as they were **before** that battle, the catapult target with its level, and the loyalty **before** that battle (the "after" of a conquering battle is 0, which would let any noble conquer). A report from an attack nobody came back from has no defender numbers: those stay as they are.
 
 ---
@@ -862,7 +955,7 @@ Collectable items that give a village a benefit, can be won in battle and can be
 |---|---|---|
 | A | A new building (Banner Hall) as the gate for equipping, home of the thieves and guard against theft, or no building (every village has a slot from the start)? | **Banner Hall** (decided 2026-10-13) |
 | B | Who sees an equipped banner? | **Only the owner, and whoever scouted the village successfully** (like loyalty, 02 §10, M21). The alternative is a public marker on the map. **Decided 2026-10-13.** |
-| C | NPC lords and banners | **Lords don't collect or use banners** (they stay a drop source and can't build the Hall). A banner a lord captures by conquest stays in that village, dormant, and can be taken back by conquest or thieves. **Decided 2026-10-13.** |
+| C | NPC lords and banners | **Lords don't collect or use banners** (they stay a drop source and can't build the Hall). A banner a lord captures by conquest stays in that village, dormant, and can be taken back by conquest or thieves. **Decided 2026-10-13.** Since 1.4 the world setting `npcBannersEnabled` (off by default) lets lords find, fly, fuse and steal banners like players (09 §14); with it off, this row still holds. |
 | D | Fusing (§4.3) | **In** |
 | E | Drop chances 10 % / 1.5 %, tiers 70/25/5, one roll per pair and real day | **as written**, tuned after the playtest |
 | F | Do thieves die when a theft succeeds? | **No**, they walk home with the survivors |
@@ -916,7 +1009,8 @@ New building, so the feature has a home, a price and something to catch up on.
 - **Level L** (1–3) does three things: (1) a banner can only be **equipped** with level ≥ 1; (2) the banner's effect is that of tier `min(tier, L)`: a tier III banner in a level 1 hall gives the tier I numbers; (3) every level makes **theft harder** by 10 % (§21.6).
 - Level 1 also lets the village **recruit banner thieves** (§21.5).
 - Catapults can hit it like any building. If it drops below the banner's tier the effect shrinks with it; at level 0 the banner is dormant but not lost.
-- It is a normal building otherwise (points, population, build queue, razing rules); NPC lords never build it (their templates don't list it).
+- Since 1.4 it also **trains the paladin** (§5.5) and can be built whenever paladins or banners are on (`WorldSettings.bannerHallAvailable`); a world with neither refuses it (`BANNERS_DISABLED`) and hides it unless one stands there. With banners off it only trains the paladin (no slot, no thieves).
+- It is a normal building otherwise (points, population, build queue, razing rules). NPC lords never built it until 1.3; since 1.4 their templates build it for their paladin (§5.5), and a banner a lord conquers still stays dormant in its village (§21.6.1), since a lord's village never flies one, unless `npcBannersEnabled` is on (09 §14): then the hall works for the lord's banners as for a player's.
 - Level 3 cost is 675 / 788 / 562 (sum of all three levels about 1 400 / 1 650 / 1 190), comparable to a Stable or Smithy, and clearly cheaper than anything that touches nobles.
 
 ### 21.4 Stash, equipping, fusing
@@ -944,6 +1038,7 @@ New building, so the feature has a home, a price and something to catch up on.
 - **Speed 18** (same as spearman and axeman): a thief never slows an infantry army, but it does slow a pure cavalry raid (10 min/field) down to 18. That is the price of bringing them.
 - A pure thief attack (no attacking units) has no main battle, so it can't win and steals nothing; it is just a scouting-free probe. Thieves with scouts or other units work normally.
 - They are **expensive per head on purpose**: 20 thieves are 40 pop and about 2 000 / 2 400 / 3 000 resources, a real investment next to a normal raid.
+- **Levels (1.4, *Hall training*, §5.4):** the Banner Hall trains thief levels 2 and 3; they keep his values and raise the theft chance per thief (§21.6.2).
 
 ### 21.6 Stealing banners
 
@@ -951,17 +1046,18 @@ An equipped banner (also a dormant one) can change hands in two ways. Both only 
 
 ### 21.6.1 Conquest
 - When a village is conquered (02 §10) its banner goes to the **conqueror's stash**, whatever its tier and effect, **intact** (type and tier stay). The new owner can equip it in any village with a hall.
-- **NPC lord conquers a village with a banner** (proposal C): lords have no stash, so the banner **stays in the village**, now dormant (no hall). Taking the village back, or a thief attack that wins, brings it back into the hands of a human.
+- **NPC lord conquers a village with a banner** (proposal C): lords have no stash, so the banner **stays in the village**, now dormant (no hall). Taking the village back, or a thief attack that wins, brings it back into the hands of a human. With `npcBannersEnabled` on (1.4, 09 §14.1) the lord takes it into its stash like a player instead.
 - The conquest reports (`CONQUEST`, `VILLAGE_LOST`, 02 §14) show which banner moved.
 
 ### 21.6.2 Theft with thieves
 After a **won main battle** (02 §8) of an attack that carried thieves, if the target village is not conquered by this battle (a conquest takes the banner anyway), has an equipped banner and `k ≥ 1` thieves **survived**:
 
 ```
-pSurvivors = 1 − (1 − 0.03)^k
+pSurvivors = 1 − (1 − c)^k
 p          = min(0.85, pSurvivors × (1 − 0.10 × hallLevelOfTarget))
 steal if randomDouble() < p
 ```
+- `c` is the chance per thief: **3 %** at thief level 1, **4 %** at level 2 and **5 %** at level 3 (*Hall training*, 1.4, §5.4), the attacker's thief level at the moment of the battle. Before 1.4 it was always 3 %.
 - One `RandomSource` draw, like luck (02 §7).
 - On success the banner goes to the attacker's **stash** and leaves the slot. The thieves are **not** consumed (proposal F) and walk home with the survivors.
 - Only one banner per village exists, so one battle steals at most one banner.
@@ -976,6 +1072,8 @@ steal if randomDouble() < p
 | 30 | 60 % | 54 % | 48 % | 42 % |
 | 50 | 78 % | 70 % | 63 % | 55 % |
 | 80+ | 85 % | 82 % | 73 % | 64 % |
+
+(Thief level 1. Higher thief levels, before the hall reduction and the cap: 5 thieves 14 / 18 / 23 %, 10 thieves 26 / 34 / 40 %, 20 thieves 46 / 56 / 64 %, 30 thieves 60 / 71 / 79 % at level 1 / 2 / 3.)
 
 **How a defender protects a banner:** keep the army so strong the attack loses (no thief survives a lost battle); a higher hall; unequip the banner while no attack is coming (it earns nothing then); or accept the risk for the benefit. **How an attacker finds one:** a successful scouting report shows the village's banner and hall (§21.7), so sending thieves blind is a gamble.
 
@@ -1049,7 +1147,7 @@ See `banners/banner-sheet.png` (all 27, light theme) and `banners/banner-sheet.s
 
 - **Snowball:** strong fighters win more battles, so they roll more. Counter: effect sizes are small (tier III ≤ 10–15 %), the Hall caps what a banner is worth, theft moves banners from the strong to those who took the risk, the pair limit and the 30-pop size filter keep the supply flat. If playtest numbers say the leaders pull away, the first knobs are the drop chance and the Hall's tier cap.
 - **Alt farming:** two accounts of one person can still trade rolls (each wins as defender once a day). With the 30-pop minimum losing side and the real-day pair limit the yield is at most ~0.2 banners a day per pair and it costs real units. Accepted, like §19. Banners can't be given, which closes the easy route.
-- **NPC lords:** they don't use banners or thieves at all (proposal C), so their balance (09 §7, §11) doesn't change; their intel and `Combat.fight` get the banner multipliers as inputs (the lords' estimator reads the banner from a scouting report, with no banner assumed otherwise; the safety margin of 09 §6.1 covers a ≤ 10 % miss).
+- **NPC lords:** they don't use banners or thieves at all (proposal C; since 1.4 they do while `npcBannersEnabled` is on, 09 §14), so their balance (09 §7, §11) doesn't change; their intel and `Combat.fight` get the banner multipliers as inputs (the lords' estimator reads the banner from a scouting report, with no banner assumed otherwise; the safety margin of 09 §6.1 covers a ≤ 10 % miss).
 - **What the playtest should answer:** how many banners a player gets per day; does anybody build thieves (unit counts, `bannerfall-admin` statistics); are tier III banners too common; do players unequip to hide; is `Haste` or `War` always the pick. All numbers above are tunable in the YAML.
 
 ### 21.12 What changes in other docs and code
@@ -1066,7 +1164,7 @@ See `banners/banner-sheet.png` (all 27, light theme) and `banners/banner-sheet.s
 
 ### 21.14 Not in M32 (ideas, overrulable)
 
-Banner trading or gifting, banners on the paladin, banner effects that scale with Hall level beyond the tier cap, NPC lords using or stealing banners, a public banner marker on the map, scout veil / merchant / wall / population banners, named unique banners, a pity timer for drops, thieves that defend (counter-thieves), banners as guild property, a banner ranking.
+Banner trading or gifting, banners on the paladin, banner effects that scale with Hall level beyond the tier cap, NPC lords using or stealing banners (came in 1.4 behind `npcBannersEnabled`, 09 §14), a public banner marker on the map, scout veil / merchant / wall / population banners, named unique banners, a pity timer for drops, thieves that defend (counter-thieves), banners as guild property, a banner ranking.
 
 ### 21.15 Status and what M32a built (Claude, 2026-10-13, branch `feature/m32a-banner-foundations-r9bta5`)
 
@@ -1117,6 +1215,35 @@ Where the spec was silent, M32c picked these defaults (open to change):
 - **Simulator, filling the form.** "My units here" takes the War banner of the current village at the tier its hall lets it work; "This village" takes its Bulwark (as it is) and its hall; "Clear" resets them. From a report: the War banner from the report's attack bonus; the Bulwark and the hall from a successful scouting (the hall from the scouted buildings); without one, the Bulwark the defenders' copy names, in a hall just big enough for it. Turning a report's percent back into a tier uses the effect table of `GET /api/banners`.
 - **NPC estimator.** A successful scouting now also keeps the scouted banner in the lord's memory (a later scouting replaces it, a failed one keeps the old). The estimate adds the Bulwark at the tier the scouted hall allows, only while banners are on; any other banner type adds nothing. Lords still never use banners or thieves. Thieves among the scouted troops count as defenders with their 3 defence (attack 0 changes nothing in a defence), which a test pins down. The estimate fights without unit levels, as before.
 
+### 21.18 Paladin standards (1.4, decided 2026-10-18)
+
+A second family of banners that only the paladin carries (the request: "Paladin gets levels with only minor stat increases but the ability to hold certain banners specifically made for the paladin"). German name "Standarte".
+
+- **The seven standards** (`banners.yml`, tiers I / II / III):
+
+  | Standard | Effect on the units of the army or stack that carries it | I / II / III |
+  |---|---|---|
+  | Spear (`SPEAR_STANDARD`) | defence of spearmen, against infantry and cavalry | 5 / 10 / 15 % |
+  | Sword (`SWORD_STANDARD`) | defence of swordsmen, against infantry and cavalry | 5 / 10 / 15 % |
+  | Axe (`AXE_STANDARD`) | attack of axemen | 5 / 10 / 15 % |
+  | Lance (`LANCE_STANDARD`) | attack of light cavalry | 5 / 10 / 15 % |
+  | Knight (`KNIGHT_STANDARD`) | attack and defence of heavy cavalry | 4 / 8 / 12 % |
+  | Ram (`RAM_STANDARD`) | rams count for `floor(rams × (1 + x))`, for the wall during the battle and the damage after | 10 / 20 / 30 % |
+  | Siege (`SIEGE_STANDARD`) | catapults count for `floor(catapults × (1 + x))` for the building damage | 10 / 20 / 30 % |
+
+- **One standard per village**, in a slot of its own beside the village banner (both can be there). It is equipped from the stash like a banner (§21.4.1) and needs a Banner Hall (level 1 is enough). Paladins are counts, not persons, so the standard belongs to the village and **its paladins carry it**.
+- **When it works.** On an **attack** that has at least one paladin from the village: taken along when the attack leaves (a snapshot like War, §21.2), it covers only that army's units. On **defence**: every defending stack with at least one paladin carries the standard of its own home village, read at battle time (like Bulwark), and it covers only that stack's units; supporters bring their home's standard, not the defended village's. A support or a return never uses it; an attack without a paladin takes nothing along.
+- **Its tier** is `min(tier, the owner's paladin level)` (Hall training, §5.4); **asleep** (0) while its village has no Banner Hall, while banners are switched off, and in a world without paladins. It stacks with the village banners (War, Bulwark …) multiplicatively per unit.
+- **Locks.** The standard can't be equipped, swapped or taken down while an attack is on its way to the village (as banners, `BANNER_LOCKED`). It also can't be swapped or taken down **while an attack with a paladin from the village is under way** (also `BANNER_LOCKED`), so it can't be pulled out of a battle that is going badly; an empty slot can still be filled then, since the attack took no standard along (`standardLocked` on the Banner Hall page counts that lock only while a standard is there). A world without paladins refuses equipping a standard (`PALADIN_DISABLED`).
+- **Drops.** A won battle in which **the winner's own paladin fought** (the attacker's paladin in the attack, or the defended village's owner's paladin in one of the village owner's own stacks) rolls once more, for a standard: the same chances, drop factor, tier odds and minimum population as a banner drop (§21.7), the kind random among the seven, but with **its own pair window** and **its own cap of 8 a day**. Supporters' paladins don't count.
+- **Taken by the defenders' thieves** (world setting `standardTheftEnabled`, default on, on the admin card and in `bannerfall-admin`): when an attack that carried a standard is beaten, the defended village's owner's **own banner thieves at home** that survive roll once: chance `min(85 %, 1 − (1 − c)^k)` with `k` surviving thieves and `c` = 3 / 4 / 5 % by the defender's thief level (Hall training), **without** the Hall reduction of §21.6.2. On success the standard leaves the attacker's village and goes into the defender's stash (a STOLEN line in the log, the BANNER_STOLEN toast for both). Nothing happens if the attacker won (no defender survives to take it), if no thief survives, with the setting or banners off, against a barbarian village or an NPC lord (unless `npcBannersEnabled` is on), or when the standard is no longer where the attack left it.
+- **Conquest** takes the village's standard into the conqueror's stash like its banner (§21.6.1); an NPC lord's conquest leaves it in the village. Banner thieves of an attack never steal a standard (§21.6.2 stays about the village banner).
+- **Stash and fusing.** Standards share the stash with the village banners. Fusing works within a family only: three standards of one tier become one of the next tier, of one of their kinds (`BANNER_FAMILIES_DIFFER` when banners and standards are mixed).
+- **Achievements.** Standards count for none of the banner achievements (§21.8): finding, taking or conquering one grants nothing, and Banner Collector and Full Set count only village banners.
+- **NPC lords** get no standards (no drops, no thefts) and don't carry any, unless the world setting `npcBannersEnabled` is on: then lords find, fly, fuse and lose banners and standards like players (09 §14, design 2026-10-18). Their estimator reads a scouted standard of the defenders at its own tier (they can't know the paladin level) when a paladin and a hall were seen (09 §6.1).
+- **Shown in:** the Banner Hall page (the standard slot with its lock, the paladin level, the stash in two groups, fusing per family), battle reports (the attack's standard, each defending stack's, a standard found, what the defenders' thieves did; the attacker's copy only says that his standard was taken), scouting (the standard equipped in the village), conquest reports, the simulator (a standard per side with its own tier; it needs a paladin on that side, the defenders' needs the hall; the chance of the defenders' thieves after a lost attack) and the admin world settings.
+- **Data.** Same table `banner` (the type says the family), the unique slot became two partial unique indexes; the movement keeps the standard it took along (V38).
+
 ## 22. World end and victory (v1.3, branch `feature/v1-3-world-end`)
 
 Until v1.3 a world ran until the host stopped it. Now the host picks how it is won (decided 2026-10-16), with room for more modes later.
@@ -1157,3 +1284,13 @@ Until v1.3 a world ran until the host stopped it. Now the host picks how it is w
 - Settings `victoryMode`, `dominationPercent` (10–100), `victoryHoldHours` (1–720), `keepCount` (1–12), `keepPercent` (1–100) in the world settings (a card of their own on the admin page; `bannerfall-admin world set victory-mode KEEPS` etc.). They change in a running world; the next check uses them.
 - End date: `PUT /api/admin/world-end {endsAt}` (null clears; a time in the past ends the world at once, dated now, never back), `POST /api/admin/world-end/now` (the most points win), `bannerfall-admin world end --at <time> | --now | --clear`.
 - Players see the rules in the world info, and above the ranking a victory card: who holds what and the countdown to their win, the rule in one sentence (all of it behind "Rules"), the end date, the top 10 sides by the mode's measure; after the end the result (the winner, how they won, the player's own place) and the final standings. While a side meets the condition a strip under the top bar shows it on every page; after the end a strip says who won, and once per world an end screen shows the result (05-frontend, *Ended world*).
+
+## 23. Notes per village (1.4)
+
+A player's own note on a village: what he wants to remember about it ("wall 3, spears only", "farm with A every 2 hours", "don't attack before day 5"). Decided 2026-10-18; the choices made then are in bold.
+
+- **Only its author reads a note.** No guild sharing; nobody else ever sees it, the host neither (no admin view).
+- One note per player and village, on **any village**: barbarian, other players', NPC lords' and his own. Plain text, trimmed, 1–500 characters, line breaks kept (the chat's rules, `ChatText`). Saving a blank text deletes the note. No limit on the number of notes (the map has only so many villages).
+- The note belongs to the player and the village: it **stays when the village changes owner** (also when the player conquers it or loses it) and when the player respawns. When the host deletes a player, his notes are deleted (nobody could read them again).
+- **Where it shows:** in the map's village panel under the name (two lines, a tap opens the editor; without a note only a pencil button next to ×), as **a small sheet of paper at the bottom right of the village's field on the detailed map** (a dot when the villages are squares), in the desktop tooltip (first line) and **as one short line on the village's farm list row** (read-only; all barbarian villages share one name there). Nowhere else: not in reports, the rally point or the ranking.
+- No effect on the game; it changes nothing an attack, a report or an NPC lord sees.

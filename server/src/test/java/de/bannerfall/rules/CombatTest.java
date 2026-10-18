@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import de.bannerfall.FixedRandomSource;
 import de.bannerfall.TestGameData;
+import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
@@ -152,6 +153,210 @@ class CombatTest {
                             stacks.stream().map(stack -> UnitLevels.NONE).toList(),
                             war,
                             bulwark));
+        }
+    }
+
+    /** The night bonus (1.4, 02-game-rules §8.1): a multiplier on D after the Bulwark. */
+    @Nested
+    class NightBonusInBattle {
+
+        private final Map<UnitType, Integer> axemen = Map.of(AXEMAN, 100);
+        private final List<Map<UnitType, Integer>> spearmen = List.of(Map.of(SPEARMAN, 100));
+
+        @Test
+        void theRulebookExample() {
+            // 100 axemen against 100 spearmen behind wall 5: D = 2212.5 by day, 4425 at night
+            assertThat(fight(axemen, spearmen, 5, 0, 1).attackerWon()).isTrue();
+            var night = fight(axemen, spearmen, 5, 0, 2);
+            assertThat(night.mainBattle().defense()).isEqualTo(4425.0);
+            assertThat(night.attackerWon()).isFalse();
+            // the defender wins: (4000 / 4425)^1.5 = 0.8594 of the spearmen die
+            assertThat(night.defenderLosses()).containsExactly(Map.of(SPEARMAN, 86));
+        }
+
+        @Test
+        void itComesOnTopOfTheBulwark() {
+            var result = fight(axemen, spearmen, 5, 0.10, 1.5);
+            assertThat(result.mainBattle().defense()).isCloseTo(2212.5 * 1.1 * 1.5, FIVE_DECIMALS);
+            assertThat(result.mainBattle().attack()).isEqualTo(4000.0);
+        }
+
+        @Test
+        void anEmptyVillageGetsItOnItsBaseDefenceToo() {
+            // 1 axeman (A = 40) against nobody (D = 20): won by day, a tie at night (defender)
+            assertThat(fight(Map.of(AXEMAN, 1), List.of(), 0, 0, 1).attackerWon()).isTrue();
+            assertThat(fight(Map.of(AXEMAN, 1), List.of(), 0, 0, 2).attackerWon()).isFalse();
+        }
+
+        @Test
+        void aFactorBelowOneIsRejected() {
+            assertThatThrownBy(() -> fight(axemen, spearmen, 0, 0, 0.5))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        private BattleResult fight(
+                Map<UnitType, Integer> attacker,
+                List<Map<UnitType, Integer>> stacks,
+                int wall,
+                double bulwark,
+                double night) {
+            return Combat.fight(
+                    data,
+                    new BattleInput(
+                            attacker,
+                            stacks,
+                            wall,
+                            null,
+                            0,
+                            0,
+                            UnitLevels.NONE,
+                            stacks.stream().map(stack -> UnitLevels.NONE).toList(),
+                            0,
+                            bulwark,
+                            StandardEffect.NONE,
+                            stacks.stream().map(stack -> StandardEffect.NONE).toList(),
+                            night));
+        }
+    }
+
+    /** Paladin standards (1.4, 02-game-rules §21.18): only the units of their army or stack. */
+    @Nested
+    class StandardsInBattle {
+
+        private StandardEffect standard(BannerType type, double bonus) {
+            return new StandardEffect(type, 1, 1, bonus);
+        }
+
+        @Test
+        void anAxeStandardRaisesOnlyTheAxemen() {
+            var attack = Map.of(AXEMAN, 100, LIGHT_CAVALRY, 10);
+            var stacks = List.of(Map.<UnitType, Integer>of());
+            var plain = fight(attack, stacks, 0, StandardEffect.NONE, List.of(StandardEffect.NONE));
+            var axe =
+                    fight(
+                            attack,
+                            stacks,
+                            0,
+                            standard(BannerType.AXE_STANDARD, 0.15),
+                            List.of(StandardEffect.NONE));
+            // 100 axemen (4 000) gain 15 %, the light cavalry (1 200) nothing
+            assertThat(plain.mainBattle().attack()).isCloseTo(5200, FIVE_DECIMALS);
+            assertThat(axe.mainBattle().attack()).isCloseTo(4600 + 1200, FIVE_DECIMALS);
+        }
+
+        @Test
+        void aSpearStandardRaisesOnlyTheSpearmenOfItsOwnStack() {
+            // wall 0: 100 spearmen 1 500 against infantry, 20 swordsmen 1 000, base defence 20
+            var attack = Map.of(AXEMAN, 100);
+            List<Map<UnitType, Integer>> stacks =
+                    List.of(Map.of(SPEARMAN, 100, SWORDSMAN, 20), Map.of(SPEARMAN, 100));
+            var plain =
+                    fight(
+                            attack,
+                            stacks,
+                            0,
+                            StandardEffect.NONE,
+                            List.of(StandardEffect.NONE, StandardEffect.NONE));
+            var spear =
+                    fight(
+                            attack,
+                            stacks,
+                            0,
+                            StandardEffect.NONE,
+                            List.of(
+                                    standard(BannerType.SPEAR_STANDARD, 0.05),
+                                    StandardEffect.NONE));
+            assertThat(plain.mainBattle().defense()).isCloseTo(4020, FIVE_DECIMALS);
+            assertThat(spear.mainBattle().defense()).isCloseTo(4020 + 75, FIVE_DECIMALS);
+        }
+
+        @Test
+        void aRamStandardMakesTheRamsCountForMore() {
+            var attack = Map.of(AXEMAN, 1000, RAM, 20);
+            var stacks = List.of(Map.<UnitType, Integer>of());
+            var plain =
+                    fight(attack, stacks, 10, StandardEffect.NONE, List.of(StandardEffect.NONE));
+            var ram =
+                    fight(
+                            attack,
+                            stacks,
+                            10,
+                            standard(BannerType.RAM_STANDARD, 0.30),
+                            List.of(StandardEffect.NONE));
+            assertThat(plain.wallAfter()).isEqualTo(Siege.wallAfterRams(10, 20));
+            // 20 rams count as 26
+            assertThat(ram.wallAfter()).isEqualTo(Siege.wallAfterRams(10, 26));
+            assertThat(ram.wallAfter()).isLessThan(plain.wallAfter());
+        }
+
+        @Test
+        void aSiegeStandardMakesTheCatapultsCountForMore() {
+            var attack = Map.of(AXEMAN, 1000, CATAPULT, 20);
+            List<Map<UnitType, Integer>> stacks = List.of(Map.of());
+            var siege =
+                    Combat.fight(
+                            data,
+                            new BattleInput(
+                                    attack,
+                                    stacks,
+                                    0,
+                                    BuildingType.BARRACKS,
+                                    3,
+                                    0,
+                                    UnitLevels.NONE,
+                                    List.of(UnitLevels.NONE),
+                                    0,
+                                    0,
+                                    standard(BannerType.SIEGE_STANDARD, 0.20),
+                                    List.of(StandardEffect.NONE)));
+            int min = Siege.catapultMinLevel(BuildingType.BARRACKS);
+            // 20 catapults count as 24: barracks 3 falls to 0 instead of 1
+            assertThat(siege.catapultTargetLevelAfter())
+                    .isEqualTo(Siege.levelAfterCatapults(3, 24, min))
+                    .isLessThan(Siege.levelAfterCatapults(3, 20, min));
+        }
+
+        @Test
+        void oneStandardPerDefendingStack() {
+            assertThatThrownBy(
+                            () ->
+                                    new BattleInput(
+                                            Map.of(AXEMAN, 1),
+                                            List.of(Map.of(SPEARMAN, 1)),
+                                            0,
+                                            null,
+                                            0,
+                                            0,
+                                            UnitLevels.NONE,
+                                            List.of(UnitLevels.NONE),
+                                            0,
+                                            0,
+                                            StandardEffect.NONE,
+                                            List.of()))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        private BattleResult fight(
+                Map<UnitType, Integer> attacker,
+                List<Map<UnitType, Integer>> stacks,
+                int wall,
+                StandardEffect attackerStandard,
+                List<StandardEffect> defenderStandards) {
+            return Combat.fight(
+                    data,
+                    new BattleInput(
+                            attacker,
+                            stacks,
+                            wall,
+                            null,
+                            0,
+                            0,
+                            UnitLevels.NONE,
+                            stacks.stream().map(stack -> UnitLevels.NONE).toList(),
+                            0,
+                            0,
+                            attackerStandard,
+                            defenderStandards));
         }
     }
 

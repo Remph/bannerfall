@@ -100,6 +100,8 @@ tasks.register<Test>("simulationTest") {
         "simLabel" to "simulation.label",
         // lord guilds (09 §13): -PsimLordGuilds=true
         "simLordGuilds" to "simulation.lordGuilds",
+        // lord banners (09 §14): -PsimLordBanners=true
+        "simLordBanners" to "simulation.lordBanners",
         "simFarmCooldown" to "npc.balance.farm-cooldown-minutes",
     )) {
         findProperty(property)?.let { systemProperty(name, it.toString()) }

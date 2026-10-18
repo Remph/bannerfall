@@ -73,11 +73,12 @@ const icons = {
     <path d="M2 5 H11 C11 7 12.5 8 14 8 V9 H10 L11 11 H12 V13 H4 V11 H5 L6 9 C4 9 2 7.5 2 5 Z" fill="currentColor" />,
   ],
   RALLY_POINT: [16, <path d="M4 14 V2 M4 3 H12 L10 5.5 L12 8 H4" {...stroke} />],
+  // a pair of scales (1.4; a coin with a line read as the info sign)
   MARKET: [
     16,
     <>
-      <circle cx="8" cy="8" r="5.5" {...stroke} />
-      <path d="M8 5 V11" {...stroke} />
+      <path d="M8 2.5 V13.5 M5 13.5 H11 M3 4.5 H13" {...stroke} strokeWidth={1.4} />
+      <path d="M3 4.5 L1.3 9 H4.7 Z M13 4.5 L11.3 9 H14.7 Z" {...stroke} strokeWidth={1.2} />
     </>,
   ],
   WOODCUTTER: [
@@ -266,16 +267,26 @@ const icons = {
       <circle cx="19" cy="12" r="2" fill="currentColor" />
     </>,
   ],
+  /** A cogwheel (1.4: the spokes alone read as a sun, like a light/dark switch). */
   settings: [
     24,
     <>
-      <circle cx="12" cy="12" r="3.5" {...stroke} strokeWidth={1.8} />
       <path
-        d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M5.6 18.4 L7.8 16.2 M16.2 7.8 L18.4 5.6"
+        d="M18.9 9.9 L21.4 10 L21.4 14 L18.9 14.1 L18.4 15.4 L20.1 17.2 L17.2 20.1 L15.4 18.4 L14.1 18.9 L14 21.4 L10 21.4 L9.9 18.9 L8.6 18.4 L6.8 20.1 L3.9 17.2 L5.6 15.4 L5.1 14.1 L2.6 14 L2.6 10 L5.1 9.9 L5.6 8.6 L3.9 6.8 L6.8 3.9 L8.6 5.6 L9.9 5.1 L10 2.6 L14 2.6 L14.1 5.1 L15.4 5.6 L17.2 3.9 L20.1 6.8 L18.4 8.6 Z"
         {...stroke}
-        strokeWidth={1.8}
+        strokeWidth={1.6}
       />
+      <circle cx="12" cy="12" r="3" {...stroke} strokeWidth={1.8} />
     </>,
+  ],
+  /** A podium: the ranking (1.4; it used the rally point's flag). */
+  ranking: [
+    24,
+    <path
+      d="M2 20 H22 M3 20 V14 H8 V20 M8 20 V8 H16 V20 M16 20 V12 H21 V20 M12 3.5 V5.5"
+      {...stroke}
+      strokeWidth={1.8}
+    />,
   ],
   /** "Centre on my village" on the map. */
   locate: [
@@ -340,6 +351,8 @@ const icons = {
   minus: [24, <path d="M5 12 H19" {...stroke} strokeWidth={2} />],
   /** Sending a report to other players (M40): a paper plane. */
   send: [24, <path d="M3.5 11 L20.5 3.5 L13 20.5 L11 13 Z M11 13 L20.5 3.5" {...stroke} strokeWidth={1.8} />],
+  /** The night bonus (1.4): a crescent. */
+  moon: [16, <path d="M10.5 2.5 A5.75 5.75 0 1 0 13.5 11.5 A4.5 4.5 0 0 1 10.5 2.5 Z" {...stroke} strokeWidth={1.4} />],
   /** Deleting a report. */
   trash: [
     24,

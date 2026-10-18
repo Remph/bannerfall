@@ -1,6 +1,7 @@
 package de.bannerfall.world;
 
 import de.bannerfall.npc.NpcDifficulty;
+import de.bannerfall.rules.NightBonus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
@@ -42,6 +43,7 @@ import java.time.Instant;
  * @param registeredPlayers human players with an account (the pre-game page shows how many)
  * @param version the release this server runs, e.g. {@code 1.1.0} (M28; the tag next to the server
  *     time and the changelog banner)
+ * @param nightBonus the night bonus (1.4, 02-game-rules §8.1); null while it is off
  */
 public record WorldDto(
         String name,
@@ -85,4 +87,26 @@ public record WorldDto(
         WorldPhase phase,
         @Schema(nullable = true) Instant opensAt,
         long registeredPlayers,
-        String version) {}
+        String version,
+        @Schema(nullable = true) NightBonusDto nightBonus) {
+
+    /**
+     * The night bonus of a world that has it on: owned villages defend {@code factor} times as
+     * strongly against attacks arriving from {@code startHour} to {@code endHour} in {@code zone}
+     * (the end hour no longer counts; the window may run across midnight).
+     *
+     * @param zone an IANA time zone, e.g. {@code Europe/Berlin}
+     */
+    public record NightBonusDto(int startHour, int endHour, double factor, String zone) {
+
+        static NightBonusDto of(NightBonus night) {
+            return night.enabled()
+                    ? new NightBonusDto(
+                            night.startHour(),
+                            night.endHour(),
+                            night.factor(),
+                            night.zone().getId())
+                    : null;
+        }
+    }
+}

@@ -14,6 +14,7 @@ import { RecruitOrderLine, RecruitOrderList } from '../../components/RecruitOrde
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { useFinishedOrders } from '../../components/useFinishedOrders';
 import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
+import { bannerHallAvailable } from '../../game/banners';
 import { buildingTypes, unitTypes } from '../../game/gameData';
 import { useGameNow } from '../../game/serverTime';
 import { useI18n, useT } from '../../i18n';
@@ -109,8 +110,11 @@ function Buildings({ village }: { village: Village }) {
   const t = useT();
   const [view, setView] = useState<VillageView>(loadVillageView);
   const wide = useMediaQuery(WIDE_PICTURE_QUERY);
-  // a world without banners has no use for the Banner Hall: left out unless one stands there
-  const bannersOn = useWorld().data?.bannersEnabled ?? true;
+  // a world without banners and paladins has no use for the Banner Hall: left out unless one stands
+  // there (1.4: it trains the paladin too)
+  const world = useWorld().data;
+  const bannersOn = world?.bannersEnabled ?? true;
+  const hallOn = world === undefined ? true : bannerHallAvailable(world);
   const choose = (next: VillageView) => {
     setView(next);
     saveVillageView(next);
@@ -133,28 +137,32 @@ function Buildings({ village }: { village: Village }) {
     >
       {view === 'picture' ? (
         <div className={wide ? styles.picture : `${styles.picture} ${styles.pictureCompact}`}>
-          <VillageScene village={village} layout={wide ? WIDE : COMPACT} bannersOn={bannersOn} />
+          <VillageScene village={village} layout={wide ? WIDE : COMPACT} bannersOn={bannersOn} hallOn={hallOn} />
         </div>
       ) : (
-        <BuildingList village={village} bannersOn={bannersOn} />
+        <BuildingList village={village} bannersOn={bannersOn} hallOn={hallOn} />
       )}
     </Card>
   );
 }
 
 /** The buildings as a list in the canonical order, with icon, name and level. */
-function BuildingList({ village, bannersOn }: { village: Village; bannersOn: boolean }) {
+function BuildingList({ village, bannersOn, hallOn }: { village: Village; bannersOn: boolean; hallOn: boolean }) {
   const t = useT();
   return (
     <ul className={styles.buildings}>
       {buildingTypes.map((type) => {
         const level = village.buildings[type] ?? 0;
-        if (type === 'BANNER_HALL' && !bannersOn && level === 0) {
+        if (type === 'BANNER_HALL' && !hallOn && level === 0) {
           return null;
         }
         return (
           <li key={type} className={level === 0 ? `${styles.building} ${styles.notBuilt}` : styles.building}>
-            <Link viewTransition className={styles.buildingLink} to={buildingTarget(village.id, type, level)}>
+            <Link
+              viewTransition
+              className={styles.buildingLink}
+              to={buildingTarget(village.id, type, level, bannersOn)}
+            >
               <span className={styles.buildingIcon}>
                 <Icon name={type} />
               </span>

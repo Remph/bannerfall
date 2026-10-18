@@ -172,6 +172,51 @@ class AdminFlowTest {
     }
 
     @Test
+    void theNightBonusIsOffByDefaultChangedKeptAndChecked() throws Exception {
+        admin.get("/api/admin/world-settings")
+                .andExpect(jsonPath("$.nightBonusEnabled").value(false))
+                .andExpect(jsonPath("$.nightBonusStartHour").value(23))
+                .andExpect(jsonPath("$.nightBonusEndHour").value(7))
+                .andExpect(jsonPath("$.nightBonusFactor").value(2.0));
+        // the players see nothing of it while it is off
+        admin.get("/api/world").andExpect(jsonPath("$.nightBonus").isEmpty());
+
+        admin.put(
+                        "/api/admin/world-settings",
+                        withExtra(
+                                ",\"nightBonusEnabled\":true,\"nightBonusStartHour\":0,"
+                                        + "\"nightBonusEndHour\":8,\"nightBonusFactor\":1.5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nightBonusEnabled").value(true))
+                .andExpect(jsonPath("$.nightBonusStartHour").value(0))
+                .andExpect(jsonPath("$.nightBonusEndHour").value(8))
+                .andExpect(jsonPath("$.nightBonusFactor").value(1.5));
+        admin.get("/api/world")
+                .andExpect(jsonPath("$.nightBonus.startHour").value(0))
+                .andExpect(jsonPath("$.nightBonus.endHour").value(8))
+                .andExpect(jsonPath("$.nightBonus.factor").value(1.5))
+                .andExpect(jsonPath("$.nightBonus.zone").value("Europe/Berlin"));
+        // an older client that leaves them out keeps them
+        admin.put("/api/admin/world-settings", settingsJson("Testland", 1, 5, 10, "c"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nightBonusEnabled").value(true))
+                .andExpect(jsonPath("$.nightBonusEndHour").value(8));
+
+        // a night without hours, also when only one side is sent, and the ranges are refused
+        admin.put("/api/admin/world-settings", withExtra(",\"nightBonusStartHour\":8}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+        admin.put("/api/admin/world-settings", withExtra(",\"nightBonusEndHour\":24}"))
+                .andExpect(status().isBadRequest());
+        admin.put("/api/admin/world-settings", withExtra(",\"nightBonusFactor\":1.0}"))
+                .andExpect(status().isBadRequest());
+        admin.put("/api/admin/world-settings", withExtra(",\"nightBonusFactor\":3.5}"))
+                .andExpect(status().isBadRequest());
+        assertThat(worldService.settings().nightBonusStartHour()).isZero();
+        assertThat(worldService.settings().nightBonusFactor()).isEqualTo(1.5);
+    }
+
+    @Test
     void unitLevelsAreOffByDefaultAndSwitchedOnAndOff() throws Exception {
         admin.get("/api/admin/world-settings")
                 .andExpect(jsonPath("$.unitLevelsEnabled").value(false));
@@ -394,6 +439,9 @@ class AdminFlowTest {
     void deletingAPlayerTurnsHisVillagesBarbarianAndHeCannotComeBack() throws Exception {
         TestPlayer victim = TestPlayer.register(mockMvc);
         TestPlayer bystander = TestPlayer.register(mockMvc);
+        victim.browser
+                .put("/api/villages/" + bystander.villageId + "/note", "{\"text\": \"weak\"}")
+                .andExpect(status().isOk());
 
         admin.post("/api/admin/players/" + victim.playerId + "/delete", "")
                 .andExpect(status().isOk())
@@ -406,6 +454,13 @@ class AdminFlowTest {
                                 .query(Long.class)
                                 .optional())
                 .isEmpty(); // player_id is null: a barbarian village
+        // his notes go with him (1.4): nobody can read them any more
+        assertThat(
+                        jdbc.sql("select count(*) from village_note where player_id = ?")
+                                .param(victim.playerId)
+                                .query(Long.class)
+                                .single())
+                .isZero();
         // gone from the ranking and the profiles
         bystander
                 .browser
@@ -647,12 +702,18 @@ class AdminFlowTest {
                 s.paladinMaxSlots(),
                 s.bannersEnabled(),
                 s.bannerDropFactor(),
+                s.standardTheftEnabled(),
+                s.npcBannersEnabled(),
                 s.marketExchangeRatio(),
                 s.victoryMode(),
                 s.dominationPercent(),
                 s.victoryHoldHours(),
                 s.keepCount(),
                 s.keepPercent(),
-                s.villageNameLanguage());
+                s.villageNameLanguage(),
+                s.nightBonusEnabled(),
+                s.nightBonusStartHour(),
+                s.nightBonusEndHour(),
+                s.nightBonusFactor());
     }
 }

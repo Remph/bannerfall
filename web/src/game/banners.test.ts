@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BannerType } from './gameData';
 import {
+  bannerHallAvailable,
   effectOfTier,
   effectiveTier,
   fusableByTier,
@@ -8,10 +9,27 @@ import {
   groupStash,
   percentPoints,
   stashOf,
+  standardTier,
   tierOfEffect,
   toggleFuseChoice,
   type BannerLike,
 } from './banners';
+
+describe('bannerHallAvailable', () => {
+  it('is there while banners or paladins are on (1.4)', () => {
+    expect(bannerHallAvailable({ bannersEnabled: true, paladinMaxSlots: 0 })).toBe(true);
+    expect(bannerHallAvailable({ bannersEnabled: false, paladinMaxSlots: 5 })).toBe(true);
+    expect(bannerHallAvailable({ bannersEnabled: false, paladinMaxSlots: 0 })).toBe(false);
+  });
+});
+
+describe('standardTier', () => {
+  it('is capped by the paladin level and asleep without a hall (1.4)', () => {
+    expect(standardTier(3, 1, 1)).toBe(1);
+    expect(standardTier(2, 3, 1)).toBe(2);
+    expect(standardTier(3, 3, 0)).toBe(0);
+  });
+});
 
 describe('effectiveTier', () => {
   it('is the lower of tier and hall level, 0 without a hall', () => {
@@ -48,6 +66,15 @@ describe('stashOf', () => {
     ];
     expect(stashOf(banners).map((banner) => banner.id)).toEqual([3, 2, 1]);
   });
+
+  it('puts the paladin standards after the banners (1.4)', () => {
+    const banners: BannerLike[] = [
+      { id: 1, type: 'AXE_STANDARD', tier: 3, villageId: null },
+      { id: 2, type: 'WAR', tier: 1, villageId: null },
+      { id: 3, type: 'SPEAR_STANDARD', tier: 3, villageId: null },
+    ];
+    expect(stashOf(banners).map((banner) => banner.id)).toEqual([2, 3, 1]);
+  });
 });
 
 describe('fusing', () => {
@@ -61,9 +88,24 @@ describe('fusing', () => {
   it('offers the stash banners of tier I and II, never tier III or flying ones', () => {
     const stash = [banner(1, 'WAR', 1), banner(2, 'HASTE', 2), banner(3, 'OATH', 3), banner(4, 'WAR', 1, 9)];
     expect(fusableByTier(stash)).toEqual([
-      { tier: 1, banners: [stash[0]] },
-      { tier: 2, banners: [stash[1]] },
+      { standard: false, tier: 1, banners: [stash[0]] },
+      { standard: false, tier: 2, banners: [stash[1]] },
     ]);
+  });
+
+  it('groups the paladin standards apart once the stash has one (1.4)', () => {
+    const stash = [banner(1, 'WAR', 1), banner(2, 'AXE_STANDARD', 1)];
+    expect(fusableByTier(stash)).toEqual([
+      { standard: false, tier: 1, banners: [stash[0]] },
+      { standard: false, tier: 2, banners: [] },
+      { standard: true, tier: 1, banners: [stash[1]] },
+      { standard: true, tier: 2, banners: [] },
+    ]);
+  });
+
+  it('starts over when a standard joins chosen banners', () => {
+    const chosen = toggleFuseChoice(toggleFuseChoice([], banner(1, 'WAR', 1)), banner(2, 'HASTE', 1));
+    expect(toggleFuseChoice(chosen, banner(3, 'RAM_STANDARD', 1)).map((entry) => entry.id)).toEqual([3]);
   });
 
   it('chooses up to three of one tier; another tier starts over; a second tap drops one', () => {

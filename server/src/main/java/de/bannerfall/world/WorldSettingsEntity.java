@@ -79,6 +79,12 @@ public class WorldSettingsEntity {
 
     private double bannerDropFactor;
 
+    /** The defenders' thieves can take an attack's paladin standard (1.4, §21.18). */
+    private boolean standardTheftEnabled;
+
+    /** NPC lords use banners and standards (1.4, 09-npc-lords §14). */
+    private boolean npcBannersEnabled;
+
     /** Trading with the market (v1.3, 02-game-rules §12.1); 0 = off. */
     private double marketExchangeRatio;
 
@@ -94,6 +100,13 @@ public class WorldSettingsEntity {
     /** The language of the names the game gives villages (v1.3, 02-game-rules §2). */
     @Enumerated(EnumType.STRING)
     private VillageNameLanguage villageNameLanguage;
+
+    /** The night bonus (1.4, 02-game-rules §8.1). */
+    private boolean nightBonusEnabled;
+
+    private int nightBonusStartHour;
+    private int nightBonusEndHour;
+    private double nightBonusFactor;
 
     /** The CUSTOM difficulty's values; null until the admin first picks CUSTOM. */
     @Convert(converter = NpcDifficultyConverter.class)
@@ -164,6 +177,8 @@ public class WorldSettingsEntity {
                 .paladinMaxSlots(paladinMaxSlots)
                 .bannersEnabled(bannersEnabled)
                 .bannerDropFactor(bannerDropFactor)
+                .standardTheftEnabled(standardTheftEnabled)
+                .npcBannersEnabled(npcBannersEnabled)
                 .marketExchangeRatio(marketExchangeRatio)
                 .victoryMode(victoryMode)
                 .dominationPercent(dominationPercent)
@@ -171,6 +186,10 @@ public class WorldSettingsEntity {
                 .keepCount(keepCount)
                 .keepPercent(keepPercent)
                 .villageNameLanguage(villageNameLanguage)
+                .nightBonusEnabled(nightBonusEnabled)
+                .nightBonusStartHour(nightBonusStartHour)
+                .nightBonusEndHour(nightBonusEndHour)
+                .nightBonusFactor(nightBonusFactor)
                 .build();
     }
 
@@ -309,6 +328,12 @@ public class WorldSettingsEntity {
         if (u.bannerDropFactor() != null) {
             bannerDropFactor = u.bannerDropFactor();
         }
+        if (u.standardTheftEnabled() != null) {
+            standardTheftEnabled = u.standardTheftEnabled();
+        }
+        if (u.npcBannersEnabled() != null) {
+            npcBannersEnabled = u.npcBannersEnabled();
+        }
         if (u.marketExchangeRatio() != null) {
             marketExchangeRatio = u.marketExchangeRatio();
         }
@@ -329,6 +354,18 @@ public class WorldSettingsEntity {
         }
         if (u.villageNameLanguage() != null) {
             villageNameLanguage = u.villageNameLanguage();
+        }
+        if (u.nightBonusEnabled() != null) {
+            nightBonusEnabled = u.nightBonusEnabled();
+        }
+        if (u.nightBonusStartHour() != null) {
+            nightBonusStartHour = u.nightBonusStartHour();
+        }
+        if (u.nightBonusEndHour() != null) {
+            nightBonusEndHour = u.nightBonusEndHour();
+        }
+        if (u.nightBonusFactor() != null) {
+            nightBonusFactor = u.nightBonusFactor();
         }
     }
 

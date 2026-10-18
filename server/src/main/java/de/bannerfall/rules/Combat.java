@@ -28,7 +28,8 @@ public final class Combat {
     /**
      * Fights one battle in the order of 02-game-rules §7: scouting phase (if scouts came along),
      * main battle (if the attackers have any attack strength), and after a won main battle the
-     * surviving rams and catapults.
+     * surviving rams and catapults. Paladin standards (§21.18) raise the strength of the units they
+     * cover and make rams and catapults count for more, in the battle and after it.
      */
     public static BattleResult fight(GameData data, BattleInput input) {
         Map<UnitType, Integer> attacker = input.attacker();
@@ -62,13 +63,21 @@ public final class Combat {
         int wallAfter = input.wallLevel();
         int targetLevelAfter = input.catapultTargetLevel();
         if (battle != null && battle.attackerWon()) {
-            // 02-game-rules §9.1/§9.2: the surviving rams first, then the surviving catapults.
+            // 02-game-rules §9.1/§9.2: the surviving rams first, then the surviving catapults; a
+            // Ram or Siege Standard makes them count for more (§21.18)
             BuildingType target = input.catapultTarget();
-            wallAfter = Siege.wallAfterRams(wallAfter, survivors.getOrDefault(UnitType.RAM, 0));
+            StandardEffect standard = input.attackerStandard();
+            wallAfter =
+                    Siege.wallAfterRams(
+                            wallAfter,
+                            BannerRules.boosted(
+                                    survivors.getOrDefault(UnitType.RAM, 0), standard.rams()));
             if (target == BuildingType.WALL) {
                 targetLevelAfter = wallAfter;
             }
-            int cats = survivors.getOrDefault(UnitType.CATAPULT, 0);
+            int cats =
+                    BannerRules.boosted(
+                            survivors.getOrDefault(UnitType.CATAPULT, 0), standard.catapults());
             if (cats > 0) {
                 targetLevelAfter =
                         Siege.levelAfterCatapults(
@@ -140,11 +149,17 @@ public final class Combat {
     private static BattleResult.MainBattle mainBattle(GameData data, BattleInput input) {
         double infantry = 0;
         double cavalry = 0;
+        StandardEffect attackStandard = input.attackerStandard();
         for (var entry : input.attacker().entrySet()) {
             UnitDef unit = data.unit(entry.getKey());
             double strength =
                     (double) entry.getValue()
                             * unit.stats(input.attackerLevels().get(entry.getKey())).attack();
+            // 02-game-rules §21.18: the attack's paladin standard for the units it covers
+            double standard = attackStandard.attack(entry.getKey());
+            if (standard > 0) {
+                strength *= 1 + standard;
+            }
             if (unit.attackType() == AttackType.CAVALRY) {
                 cavalry += strength;
             } else {
@@ -159,7 +174,9 @@ public final class Combat {
         // 02-game-rules §21.2: the War banner on top of luck, A × (1 + luck) × (1 + b)
         double attack = total * (1 + input.luck()) * (1 + input.attackBonus());
 
-        int rams = input.attacker().getOrDefault(UnitType.RAM, 0);
+        int rams =
+                BannerRules.boosted(
+                        input.attacker().getOrDefault(UnitType.RAM, 0), attackStandard.rams());
         int effectiveWall = Siege.wallAfterRams(input.wallLevel(), rams / 2);
         // count × (defInf × shareInf + defCav × shareCav), summed over whole numbers and divided
         // once at the end: the shares (e.g. 0.4) aren't exact doubles, this way D is exact
@@ -167,17 +184,23 @@ public final class Combat {
         double weighted = 0;
         for (int i = 0; i < input.defenderStacks().size(); i++) {
             UnitLevels levels = input.defenderLevels().get(i);
+            StandardEffect standard = input.defenderStandards().get(i);
             for (var entry : input.defenderStacks().get(i).entrySet()) {
                 UnitStats stats = data.unit(entry.getKey()).stats(levels.get(entry.getKey()));
-                weighted +=
+                double defence =
                         entry.getValue()
                                 * (stats.defenseInfantry() * infantry
                                         + stats.defenseCavalry() * cavalry);
+                // the stack's own paladin standard for the units it covers (§21.18)
+                double bonus = standard.defence(entry.getKey());
+                weighted += bonus > 0 ? defence * (1 + bonus) : defence;
             }
         }
-        // the Bulwark banner after the wall term, D × (1 + b)
+        // the Bulwark banner after the wall term, D × (1 + b), then the night bonus (§8.1)
         double defense =
-                defenseStrength(weighted / total, effectiveWall) * (1 + input.defenceBonus());
+                defenseStrength(weighted / total, effectiveWall)
+                        * (1 + input.defenceBonus())
+                        * input.nightFactor();
 
         if (attack > defense) {
             return new BattleResult.MainBattle(

@@ -12,10 +12,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * One banner (02-game-rules §21.1). It belongs to a player and is either in his <b>stash</b>
- * ({@link #getEquippedVillageId()} is null, safe) or <b>equipped</b> in exactly one village (at
- * most one banner per village: the column is unique). The effect belongs to the village it flies
- * in, not to the player.
+ * One banner (02-game-rules §21.1), or one paladin standard (1.4, §21.18): standards are banners of
+ * their own family ({@link BannerType#isStandard()}). It belongs to a player and is either in his
+ * <b>stash</b> ({@link #getEquippedVillageId()} is null, safe) or <b>equipped</b> in exactly one
+ * village (at most one banner and one standard per village: two partial unique indexes). A banner's
+ * effect belongs to the village it flies in, a standard's to the village's paladins.
  *
  * <p>A banner changes place only while the village it is in (or is going into) is locked, and a
  * player's own stash and slots only under the lock of his player row ({@code BannerService}); there
@@ -89,6 +90,11 @@ public class Banner {
 
     public boolean isEquipped() {
         return equippedVillageId != null;
+    }
+
+    /** A paladin standard (1.4, 02-game-rules §21.18) rather than a village banner. */
+    public boolean isStandard() {
+        return type.isStandard();
     }
 
     public Long getId() {

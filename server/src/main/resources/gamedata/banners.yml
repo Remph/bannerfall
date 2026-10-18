@@ -12,7 +12,17 @@ banners:
     TREASURY: [0.10, 0.20, 0.30]   # warehouse and hiding place capacity +
     PLUNDER: [0.10, 0.20, 0.30]    # carry capacity of units sent from the village +
     OATH: [0.04, 0.08, 0.12]       # loyalty each enemy noble takes off the village -
-  # Drops after a won battle (§21.7, M32b).
+    # Paladin standards (1.4, §21.18): only for the units of an army or stack with a paladin in it.
+    SPEAR_STANDARD: [0.05, 0.10, 0.15]    # spearmen defence (both) +
+    SWORD_STANDARD: [0.05, 0.10, 0.15]    # swordsmen defence (both) +
+    AXE_STANDARD: [0.05, 0.10, 0.15]      # axemen attack +
+    LANCE_STANDARD: [0.05, 0.10, 0.15]    # light cavalry attack +
+    KNIGHT_STANDARD: [0.04, 0.08, 0.12]   # heavy cavalry attack and defence +
+    RAM_STANDARD: [0.10, 0.20, 0.30]      # wall damage of rams +
+    SIEGE_STANDARD: [0.10, 0.20, 0.30]    # building damage of catapults +
+  # Drops after a won battle (§21.7, M32b). A won battle the winner's paladin fought in rolls once
+  # more for a paladin standard (1.4, §21.18) with the same numbers, but its own pair window and
+  # its own daily cap.
   drops:
     player-chance: 0.10            # against a player or an NPC lord, attacking or defending
     barbarian-chance: 0.015        # attacking a barbarian village
@@ -22,7 +32,7 @@ banners:
     max-per-day: 8                 # drops per player in 24 real hours
   # Theft with banner thieves (§21.6.2, M32b).
   theft:
-    chance-per-thief: 0.03
+    chance-per-thief: [0.03, 0.04, 0.05]   # per surviving thief at thief level 1 / 2 / 3 (Hall training, 1.4)
     max-chance: 0.85
     hall-reduction-per-level: 0.10
   # Fusing (§21.4.2, M32c): this many banners of one tier make one of the next tier.

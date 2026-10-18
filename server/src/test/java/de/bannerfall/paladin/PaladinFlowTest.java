@@ -16,6 +16,7 @@ import de.bannerfall.event.EventProcessor;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.rules.RecruitRules;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.world.WorldService;
 import java.sql.Timestamp;
@@ -31,9 +32,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * The paladin (M31, 02-game-rules §5.5): the barracks that recruits him, the slots a player has,
- * what takes a slot, and the pace of a support that carries a paladin. Villages of a player beyond
- * the first are barbarian villages handed over by SQL; the clock is moved by hand.
+ * The paladin (M31, 02-game-rules §5.5): the Banner Hall that recruits him (1.4; the barracks
+ * before), the slots a player has, what takes a slot, and the pace of a support that carries a
+ * paladin. Villages of a player beyond the first are barbarian villages handed over by SQL; the
+ * clock is moved by hand.
  */
 @IntegrationTest
 class PaladinFlowTest {
@@ -55,8 +57,11 @@ class PaladinFlowTest {
         jdbc.sql("delete from game_event").update();
         setPaladinSettings(4, 5);
         player = TestPlayer.register(mockMvc);
-        // a barracks for the paladin, a farm and a warehouse that hold five paladins, and the stock
+        // a Banner Hall for the paladin (and what it needs), a farm and a warehouse that hold five
+        // paladins, and the stock
+        setLevel(player.villageId, BuildingType.HEADQUARTERS, 8);
         setLevel(player.villageId, BuildingType.BARRACKS, 5);
+        setLevel(player.villageId, BuildingType.BANNER_HALL, 1);
         setLevel(player.villageId, BuildingType.FARM, 15);
         setLevel(player.villageId, BuildingType.WAREHOUSE, 20);
         setStock(30_000);
@@ -72,11 +77,11 @@ class PaladinFlowTest {
         jdbc.sql("delete from game_event").update();
     }
 
-    // ---- the barracks and the first slot ----
+    // ---- the Banner Hall and the first slot ----
 
     @Test
-    void thePaladinNeedsBarracksLevelFive() throws Exception {
-        setLevel(player.villageId, BuildingType.BARRACKS, 4);
+    void thePaladinNeedsABannerHall() throws Exception {
+        setLevel(player.villageId, BuildingType.BANNER_HALL, 0);
 
         player.recruit(UnitType.PALADIN, 1)
                 .andExpect(status().isConflict())
@@ -84,16 +89,23 @@ class PaladinFlowTest {
     }
 
     @Test
-    void theBarracksListsThePaladinAfterTheOtherUnits() throws Exception {
+    void theBannerHallListsThePaladinBeforeTheThief() throws Exception {
         String recruitment = body(player.recruitment().andExpect(status().isOk()));
 
         assertThat(JsonPath.<List<String>>read(recruitment, "$[*].building"))
                 .containsExactly("BARRACKS", "STABLE", "WORKSHOP", "ACADEMY", "BANNER_HALL");
         assertThat(JsonPath.<List<String>>read(recruitment, "$[0].units[*].unit"))
-                .containsExactly("SPEARMAN", "SWORDSMAN", "AXEMAN", "PALADIN");
-        assertThat(JsonPath.<Boolean>read(recruitment, "$[0].units[3].available")).isTrue();
+                .containsExactly("SPEARMAN", "SWORDSMAN", "AXEMAN");
+        assertThat(JsonPath.<List<String>>read(recruitment, "$[4].units[*].unit"))
+                .containsExactly("PALADIN", "BANNER_THIEF");
+        assertThat(JsonPath.<Boolean>read(recruitment, "$[4].units[0].available")).isTrue();
         // one slot, so at most one is on offer, though the stock would pay for more
-        assertThat(JsonPath.<Integer>read(recruitment, "$[0].units[3].maxAffordable")).isEqualTo(1);
+        assertThat(JsonPath.<Integer>read(recruitment, "$[4].units[0].maxAffordable")).isEqualTo(1);
+        // 3 h at Banner Hall 1, at the test world's speed
+        assertThat(number(recruitment, "$[4].units[0].secondsPerUnit").longValue())
+                .isEqualTo(
+                        RecruitRules.secondsPerUnit(
+                                gameData.unit(UnitType.PALADIN), 1, worldService.settings()));
     }
 
     @Test
@@ -199,7 +211,7 @@ class PaladinFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PALADIN_SLOTS_FULL"));
         String recruitment = body(player.recruitment());
-        assertThat(JsonPath.<Integer>read(recruitment, "$[0].units[3].maxAffordable")).isZero();
+        assertThat(JsonPath.<Integer>read(recruitment, "$[4].units[0].maxAffordable")).isZero();
     }
 
     // ---- what takes a slot ----
@@ -302,18 +314,18 @@ class PaladinFlowTest {
     // ---- the world settings ----
 
     @Test
-    void withoutPaladinsTheBarracksDoesNotOfferHim() throws Exception {
+    void withoutPaladinsTheBannerHallDoesNotOfferHim() throws Exception {
         setPaladinSettings(4, 0);
 
-        // not in the barracks' list and not recruitable
-        assertThat(JsonPath.<List<String>>read(body(player.recruitment()), "$[0].units[*].unit"))
-                .doesNotContain("PALADIN");
+        // not in the Banner Hall's list and not recruitable
+        assertThat(JsonPath.<List<String>>read(body(player.recruitment()), "$[4].units[*].unit"))
+                .containsExactly("BANNER_THIEF");
         player.recruit(UnitType.PALADIN, 1)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PALADIN_DISABLED"));
-        // the Town Hall's preview of barracks 4 -> 5 does not announce a unit that is not there
-        setLevel(player.villageId, BuildingType.BARRACKS, 4);
-        String unlocksPath = "$[?(@.building=='BARRACKS')].next.unlocksUnits[*]";
+        // the Town Hall's preview of Banner Hall 0 -> 1 does not announce a unit that is not there
+        setLevel(player.villageId, BuildingType.BANNER_HALL, 0);
+        String unlocksPath = "$[?(@.building=='BANNER_HALL')].next.unlocksUnits[*]";
         assertThat(JsonPath.<List<String>>read(body(player.buildings()), unlocksPath))
                 .doesNotContain("PALADIN");
         setPaladinSettings(4, 5);
@@ -325,6 +337,35 @@ class PaladinFlowTest {
                 .andExpect(jsonPath("$.maxSlots").value(0))
                 .andExpect(jsonPath("$.slots").value(0))
                 .andExpect(jsonPath("$.nextSlotAtVillages").doesNotExist());
+    }
+
+    @Test
+    void withBannersOffTheBannerHallStillTrainsThePaladin() throws Exception {
+        setBanners(false);
+        try {
+            // the hall trains him alone: no thieves without banners
+            String recruitment = body(player.recruitment());
+            assertThat(JsonPath.<String>read(recruitment, "$[4].building"))
+                    .isEqualTo("BANNER_HALL");
+            assertThat(JsonPath.<List<String>>read(recruitment, "$[4].units[*].unit"))
+                    .containsExactly("PALADIN");
+            player.recruitOk(UnitType.PALADIN, 1);
+            // and a village without one can build it
+            setLevel(player.villageId, BuildingType.BANNER_HALL, 0);
+            assertThat(JsonPath.<List<String>>read(body(player.buildings()), "$[*].building"))
+                    .contains("BANNER_HALL");
+            player.enqueueOk(BuildingType.BANNER_HALL);
+
+            // a world with neither banners nor paladins has no use for it
+            setPaladinSettings(4, 0);
+            player.enqueue(BuildingType.BANNER_HALL)
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("BANNERS_DISABLED"));
+            assertThat(JsonPath.<List<String>>read(body(player.recruitment()), "$[*].building"))
+                    .doesNotContain("BANNER_HALL");
+        } finally {
+            setBanners(true);
+        }
     }
 
     // ---- the pace of a support ----
@@ -465,6 +506,11 @@ class PaladinFlowTest {
         jdbc.sql("update world_settings set paladin_villages_per_slot = ?, paladin_max_slots = ?")
                 .params(villagesPerSlot, maxSlots)
                 .update();
+        worldService.reload();
+    }
+
+    private void setBanners(boolean enabled) {
+        jdbc.sql("update world_settings set banners_enabled = ?").param(enabled).update();
         worldService.reload();
     }
 

@@ -2,11 +2,14 @@ import { useId, useState } from 'react';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useSendTrain, useTrainPreview, type Movement, type TrainRequest } from '../../api/queries/troops';
+import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { Icon } from '../../components/Icon';
 import { UnitSummary } from '../../components/UnitSummary';
-import { formatDecimal, formatDuration, formatWhenExact } from '../../game/format';
+import { formatDecimal, formatDuration, formatFactor, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
+import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import styles from './RallyPage.module.css';
@@ -35,6 +38,7 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
   const [catapultTargets, setCatapultTargets] = useState<BuildingType[]>(() => train.attacks.map(() => 'HEADQUARTERS'));
   const preview = useTrainPreview(villageId, train);
   const send = useSendTrain(villageId);
+  const world = useWorld();
 
   if (preview.isPending) {
     return <p className={styles.muted}>{t.rally.checking}</p>;
@@ -58,6 +62,11 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
   const nobles = train.attacks.some((attack) => (attack.units.NOBLE ?? 0) > 0);
   // as for a single attack (02 §6): barbarian villages only end the protection with nobles
   const endsProtection = Date.parse(me.protectedUntil) > now && (targetVillage.playerName !== null || nobles);
+  // the night bonus (1.4) at the train's one arrival if it were sent now
+  const night =
+    travelSeconds !== null
+      ? nightBonusAt(world.data?.nightBonus, now + travelSeconds * 1000, targetVillage.playerId !== null)
+      : null;
 
   function confirm() {
     send.mutate(
@@ -137,6 +146,11 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
         })}
       </ol>
       {endsProtection && <p className={styles.notice}>{t.rally.endsProtection}</p>}
+      {night !== null && (
+        <p className={`${styles.notice} ${styles.nightNotice}`}>
+          <Icon name="moon" /> {t.rally.nightBonus(formatFactor(night, language))}
+        </p>
+      )}
       {send.isError && !broken && <ErrorMessage>{errorMessage(t, send.error)}</ErrorMessage>}
       <div className={styles.confirmActions}>
         <Button type="button" variant="secondary" onClick={onBack}>

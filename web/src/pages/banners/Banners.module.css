@@ -75,6 +75,11 @@
   gap: var(--space-3);
 }
 
+/* the picture keeps its size beside a long text (a capped standard) */
+.slot > svg {
+  flex: none;
+}
+
 .slotText,
 .stashText {
   flex: 1 1 auto;
@@ -98,6 +103,11 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.stashGroup {
+  margin: var(--space-3) var(--space-4) 0;
+  font-size: 1rem;
 }
 
 .stashRow {

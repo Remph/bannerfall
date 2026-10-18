@@ -1,7 +1,8 @@
 import { useWorld, type World } from '../../api/queries/world';
 import { errorMessage } from '../../api/errors';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { formatDateTime, formatDecimal, formatNumber, formatRatio, formatShare } from '../../game/format';
+import { formatDateTime, formatDecimal, formatFactor, formatNumber, formatRatio, formatShare } from '../../game/format';
+import { formatNightHours } from '../../game/nightBonus';
 import { keepsNeeded } from '../../game/victory';
 import { useI18n } from '../../i18n';
 import type { Dictionary } from '../../i18n/en';
@@ -64,6 +65,12 @@ function WorldInfoList({ world }: { world: World }) {
       world.paladinMaxSlots > 0 ? labels.paladinValue(world.paladinVillagesPerSlot, world.paladinMaxSlots) : labels.no,
     ],
     [labels.banners, world.bannersEnabled ? labels.bannersValue : labels.no],
+    [
+      labels.nightBonus,
+      world.nightBonus == null
+        ? labels.no
+        : labels.nightBonusValue(formatNightHours(world.nightBonus), formatFactor(world.nightBonus.factor, language)),
+    ],
   ];
   return (
     <dl className={styles.facts}>

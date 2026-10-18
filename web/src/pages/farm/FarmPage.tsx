@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
@@ -7,6 +7,7 @@ import { useVillage } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { SegmentedControl } from '../../components/SegmentedControl';
 import {
   FARM_LIST_MAX,
   bannerRollBackAt,
@@ -24,6 +25,7 @@ import { SendAllBar } from './SendAllBar';
 import { unitsFromState } from './farmPaths';
 import styles from './Farm.module.css';
 import { TargetRow } from './TargetRow';
+import { TemplatesCard } from './TemplatesCard';
 
 /**
  * /v/:villageId/farm – the farm list: targets with the usual troops, one tap sends one attack, "Send all"
@@ -71,6 +73,9 @@ function Farm({ villageId }: { villageId: number }) {
   const initialTarget = targetFromSearch(params);
   // from an attack report's "Add to farm list": the units it sent (M38)
   const initialUnits = unitsFromState(useLocation().state);
+  const [part, setPart] = useState<'targets' | 'templates'>(
+    useLocation().hash === '#templates' ? 'templates' : 'targets',
+  );
 
   if (village.isError) {
     return <VillageError error={village.error} onRetry={() => void village.refetch()} />;
@@ -91,7 +96,18 @@ function Farm({ villageId }: { villageId: number }) {
       {/* desktop: the targets left, the form at the right (1.3); phones: one column, the form first
           when coming from "Add to farm list" on the map or a report (first in the page too, so the
           reading and tab order is the order on the screen) */}
-      <div className={styles.columns}>
+      <div className={styles.switchRow}>
+        <SegmentedControl
+          label={t.farm.parts}
+          options={[
+            { value: 'targets', label: t.farm.partTargets },
+            { value: 'templates', label: t.farm.partTemplates },
+          ]}
+          value={part}
+          onChange={setPart}
+        />
+      </div>
+      <div className={styles.columns} data-part={part}>
         {initialTarget !== '' && <div className={styles.formColumn}>{add}</div>}
         <div className={styles.listColumn}>
           <Card title={t.farm.listTitle(village.data.name)}>
@@ -142,6 +158,9 @@ function Farm({ villageId }: { villageId: number }) {
               </>
             )}
           </Card>
+        </div>
+        <div className={styles.templatesColumn}>
+          <TemplatesCard targets={targets.data ?? []} home={home} />
         </div>
         {initialTarget === '' && <div className={styles.formColumn}>{add}</div>}
       </div>

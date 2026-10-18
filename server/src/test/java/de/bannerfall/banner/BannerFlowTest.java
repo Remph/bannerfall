@@ -74,6 +74,7 @@ class BannerFlowTest {
         }
         extraVillages.clear();
         setBanners(true);
+        setPaladinMaxSlots(5);
         jdbc.sql("delete from game_event").update();
     }
 
@@ -117,7 +118,8 @@ class BannerFlowTest {
         // the effects table is the file's, so the page needs no copy of it
         assertThat(JsonPath.<List<Double>>read(overview, "$.effects.PLUNDER"))
                 .containsExactly(0.10, 0.20, 0.30);
-        assertThat(JsonPath.<Integer>read(overview, "$.effects.length()")).isEqualTo(9);
+        // the nine banners and the seven paladin standards (1.4)
+        assertThat(JsonPath.<Integer>read(overview, "$.effects.length()")).isEqualTo(16);
     }
 
     @Test
@@ -144,8 +146,10 @@ class BannerFlowTest {
     }
 
     @Test
-    void theHallIsHiddenInAWorldWithoutBannersUnlessOneStandsThere() throws Exception {
+    void theHallIsHiddenInAWorldWithoutBannersAndPaladinsUnlessOneStandsThere() throws Exception {
+        // since 1.4 the hall trains the paladin too: only a world without both has no use for it
         setBanners(false);
+        setPaladinMaxSlots(0);
 
         String list = body(player.buildings().andExpect(status().isOk()));
         assertThat(JsonPath.<List<String>>read(list, "$[*].building"))
@@ -560,6 +564,11 @@ class BannerFlowTest {
 
     private void setBanners(boolean enabled) {
         jdbc.sql("update world_settings set banners_enabled = ?").param(enabled).update();
+        worldService.reload();
+    }
+
+    private void setPaladinMaxSlots(int slots) {
+        jdbc.sql("update world_settings set paladin_max_slots = ?").param(slots).update();
         worldService.reload();
     }
 

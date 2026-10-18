@@ -9,17 +9,21 @@ import de.bannerfall.common.NotFoundException;
 import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
+import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.movement.MovementRepository;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.report.ConquestReport;
+import de.bannerfall.research.UnitLevelService;
 import de.bannerfall.rules.BannerEffect;
+import de.bannerfall.rules.BannerRules;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageLocker;
 import de.bannerfall.village.VillageRepository;
 import de.bannerfall.village.VillageStateService;
 import de.bannerfall.village.VillageSummaryDto;
 import de.bannerfall.world.WorldService;
+import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -59,6 +64,7 @@ public class BannerService {
     private final GameData gameData;
     private final WorldService worldService;
     private final AchievementService achievements;
+    private final UnitLevelService unitLevels;
     private final Clock clock;
 
     BannerService(
@@ -74,6 +80,7 @@ public class BannerService {
             GameData gameData,
             WorldService worldService,
             AchievementService achievements,
+            UnitLevelService unitLevels,
             Clock clock) {
         this.banners = banners;
         this.events = events;
@@ -87,6 +94,7 @@ public class BannerService {
         this.gameData = gameData;
         this.worldService = worldService;
         this.achievements = achievements;
+        this.unitLevels = unitLevels;
         this.clock = clock;
     }
 
@@ -100,10 +108,14 @@ public class BannerService {
 
     /**
      * Puts a banner of the stash into the village's slot; a banner that flies there goes back into
-     * the stash (a swap). The checks run in this order, the first one that fails is the answer.
+     * the stash (a swap). A paladin standard (1.4, 02-game-rules §21.18) goes into the village's
+     * standard slot the same way. The checks run in this order, the first one that fails is the
+     * answer.
      *
      * @throws GameRuleException {@code BANNERS_DISABLED}, {@code BANNER_NOT_IN_STASH}, {@code
-     *     BANNER_HALL_REQUIRED}, {@code BANNER_LOCKED} (an attack is on its way to the village)
+     *     PALADIN_DISABLED} (a standard in a world without paladins), {@code BANNER_HALL_REQUIRED},
+     *     {@code BANNER_LOCKED} (an attack is on its way to the village; for a swap of standards
+     *     also an attack with a paladin from the village)
      * @throws NotFoundException {@code VILLAGE_NOT_FOUND}, {@code BANNER_NOT_FOUND} (not his, or
      *     gone)
      */
@@ -127,32 +139,59 @@ public class BannerService {
             throw new GameRuleException(
                     ErrorCode.BANNER_NOT_IN_STASH, "That banner flies in a village already");
         }
+        boolean standard = banner.isStandard();
+        if (standard && worldService.settings().paladinMaxSlots() <= 0) {
+            throw new GameRuleException(
+                    ErrorCode.PALADIN_DISABLED, "There is no paladin to carry a standard");
+        }
         if (village.getBuildings().get(BuildingType.BANNER_HALL) < 1) {
             throw new GameRuleException(
                     ErrorCode.BANNER_HALL_REQUIRED, "The village needs a Banner Hall");
         }
         requireNoIncomingAttack(villageId);
+        Optional<Banner> equipped =
+                standard ? banners.findStandard(villageId) : banners.findFlying(villageId);
+        // only a standard that is there can be swapped out of an attack; the attack took its
+        // standard along when it left, so an empty slot can be filled (§21.18)
+        if (standard && equipped.isPresent()) {
+            requireNoPaladinAttack(villageId);
+        }
 
-        banners.findByEquippedVillageId(villageId)
-                .ifPresent(
-                        current -> {
-                            current.unequip();
-                            // flushed so the slot is free when the new banner takes it (unique)
-                            banners.saveAndFlush(current);
-                            log(
-                                    current,
-                                    BannerEventKind.UNEQUIPPED,
-                                    playerId,
-                                    playerId,
-                                    villageId,
-                                    now,
-                                    null);
-                        });
+        equipped.ifPresent(
+                current -> {
+                    current.unequip();
+                    // flushed so the slot is free when the new banner takes it (unique)
+                    banners.saveAndFlush(current);
+                    log(
+                            current,
+                            BannerEventKind.UNEQUIPPED,
+                            playerId,
+                            playerId,
+                            villageId,
+                            now,
+                            null);
+                });
         banner.equip(villageId, now);
         log(banner, BannerEventKind.EQUIPPED, playerId, playerId, villageId, now, null);
-        // the hall is at least 1 and banners are on: the banner works from now on (§21.8)
-        achievements.grant(playerId, Achievement.COLOURS_RAISED);
+        if (!standard) {
+            // the hall is at least 1 and banners are on: the banner works from now on (§21.8)
+            achievements.grant(playerId, Achievement.COLOURS_RAISED);
+        }
         return overviewOf(playerId);
+    }
+
+    /**
+     * Whether {@link #equip} would refuse to change the village's banner slot, or its standard slot
+     * for {@code standard}, with {@code BANNER_LOCKED} right now: an NPC lord checks first, so its
+     * turn doesn't throw (09-npc-lords §14.3). The caller holds the village's lock.
+     */
+    public boolean slotLocked(long villageId, boolean standard) {
+        if (movements.countIncomingAttacks(villageId) > 0) {
+            return true;
+        }
+        return standard
+                && banners.findStandard(villageId).isPresent()
+                && movements.countPaladinAttacksUnderWay(villageId) > 0;
     }
 
     /**
@@ -162,20 +201,41 @@ public class BannerService {
      */
     @Transactional
     public BannersDto unequip(long villageId, long playerId) {
+        return unequip(villageId, playerId, false);
+    }
+
+    /**
+     * Takes the paladin standard out of the village's slot into the stash (1.4, 02-game-rules
+     * §21.18).
+     *
+     * @throws GameRuleException {@code NO_BANNER_EQUIPPED} (no standard there), {@code
+     *     BANNER_LOCKED} (an attack on its way to the village, or one with a paladin from it)
+     */
+    @Transactional
+    public BannersDto unequipStandard(long villageId, long playerId) {
+        return unequip(villageId, playerId, true);
+    }
+
+    private BannersDto unequip(long villageId, long playerId, boolean standard) {
         Village village = locker.lockOwned(villageId, playerId);
         players.lockById(playerId);
         Instant now = clock.instant();
         stateService.catchUp(village, now);
 
         Banner banner =
-                banners.findByEquippedVillageId(villageId)
+                (standard ? banners.findStandard(villageId) : banners.findFlying(villageId))
                         .filter(b -> b.getOwnerId() == playerId)
                         .orElseThrow(
                                 () ->
                                         new GameRuleException(
                                                 ErrorCode.NO_BANNER_EQUIPPED,
-                                                "No banner flies in this village"));
+                                                standard
+                                                        ? "No standard is equipped in this village"
+                                                        : "No banner flies in this village"));
         requireNoIncomingAttack(villageId);
+        if (standard) {
+            requireNoPaladinAttack(villageId);
+        }
         banner.unequip();
         log(banner, BannerEventKind.UNEQUIPPED, playerId, playerId, villageId, now, null);
         return overviewOf(playerId);
@@ -184,14 +244,16 @@ public class BannerService {
     /**
      * Fuses banners of the stash (02-game-rules §21.4.2): {@code fusing.bannersNeeded} (3) banners
      * of one tier become one banner of the next tier, of a type one of them has (the player picks
-     * it). The result is a new banner (new id, origin FUSED) in the stash; the three are gone. Each
-     * of the three leaves a FUSED line with nobody as its new owner, the new banner a FUSED line
-     * that gives it to the player. Instant and free. Only the player row is locked: stash banners
-     * fly in no village, and equipping locks the player row too.
+     * it). Paladin standards (1.4, §21.18) fuse the same way, but only with standards. The result
+     * is a new banner (new id, origin FUSED) in the stash; the three are gone. Each of the three
+     * leaves a FUSED line with nobody as its new owner, the new banner a FUSED line that gives it
+     * to the player. Instant and free. Only the player row is locked: stash banners fly in no
+     * village, and equipping locks the player row too.
      *
      * @throws GameRuleException {@code BANNERS_DISABLED}, {@code BANNER_NOT_IN_STASH} (one of them
-     *     flies in a village), {@code BANNER_TIERS_DIFFER}, {@code BANNER_TIER_MAX} (tier III),
-     *     {@code BANNER_FUSE_TYPE} (none of them has that type)
+     *     flies in a village), {@code BANNER_FAMILIES_DIFFER} (banners and standards mixed), {@code
+     *     BANNER_TIERS_DIFFER}, {@code BANNER_TIER_MAX} (tier III), {@code BANNER_FUSE_TYPE} (none
+     *     of them has that type)
      * @throws NotFoundException {@code BANNER_NOT_FOUND} (not his, or gone)
      * @throws ApiException 400 {@code VALIDATION} unless exactly three different banners are named
      */
@@ -219,6 +281,12 @@ public class BannerService {
         if (parts.stream().anyMatch(Banner::isEquipped)) {
             throw new GameRuleException(
                     ErrorCode.BANNER_NOT_IN_STASH, "Only banners in the stash can be fused");
+        }
+        boolean standards = parts.get(0).isStandard();
+        if (parts.stream().anyMatch(part -> part.isStandard() != standards)) {
+            throw new GameRuleException(
+                    ErrorCode.BANNER_FAMILIES_DIFFER,
+                    "Banners fuse with banners, standards with standards");
         }
         int tier = parts.get(0).getTier();
         if (parts.stream().anyMatch(part -> part.getTier() != tier)) {
@@ -251,25 +319,42 @@ public class BannerService {
     }
 
     /**
+     * What a conquest did with the village's banner and its paladin standard, for the conquest
+     * reports; each null if none was there.
+     */
+    public record Conquered(
+            ConquestReport.ConqueredBanner banner, ConquestReport.ConqueredBanner standard) {}
+
+    /**
      * A village changes owner by conquest (02-game-rules §21.6.1): its banner goes, intact, to the
-     * conqueror's stash. An NPC lord has no stash: the banner stays in the village, now the lord's
-     * and dormant ({@link VillageBanners}), until a human takes the village or the banner.
-     * Barbarian villages carry none. With banners switched off nothing is taken (§21.9): the banner
-     * stays in the village and goes with it to the new owner, asleep until banners are on again.
-     * The caller holds the village's lock and has already given it to {@code conqueror}.
-     *
-     * @return the banner for the conquest reports (M32b); null if none flew there
+     * conqueror's stash. An NPC lord takes it into its stash only with lord banners on (1.4,
+     * 09-npc-lords §14.1); otherwise the banner stays in the village, now the lord's and dormant
+     * ({@link VillageBanners}), until a human takes the village or the banner. Barbarian villages
+     * carry none. With banners switched off nothing is taken (§21.9): the banner stays in the
+     * village and goes with it to the new owner, asleep until banners are on again. The village's
+     * paladin standard (1.4, §21.18) goes the same way, without the banner achievements. The caller
+     * holds the village's lock and has already given it to {@code conqueror}.
      */
     @Transactional(propagation = Propagation.MANDATORY)
-    public ConquestReport.ConqueredBanner villageConquered(
-            Village village, Player conqueror, Instant at) {
-        boolean enabled = worldService.settings().bannersEnabled();
-        Banner banner = banners.findByEquippedVillageId(village.getId()).orElse(null);
+    public Conquered villageConquered(Village village, Player conqueror, Instant at) {
+        return new Conquered(
+                conquered(banners.findFlying(village.getId()).orElse(null), village, conqueror, at),
+                conquered(
+                        banners.findStandard(village.getId()).orElse(null),
+                        village,
+                        conqueror,
+                        at));
+    }
+
+    /** One banner or standard of a conquered village; null if there is none. */
+    private ConquestReport.ConqueredBanner conquered(
+            Banner banner, Village village, Player conqueror, Instant at) {
         if (banner == null) {
             return null;
         }
+        boolean enabled = worldService.settings().bannersEnabled();
         long from = banner.getOwnerId();
-        boolean toStash = enabled && !conqueror.isNpc();
+        boolean toStash = enabled && (!conqueror.isNpc() || worldService.settings().lordBanners());
         if (toStash) {
             banner.passTo(conqueror.getId());
         } else {
@@ -284,8 +369,9 @@ public class BannerService {
                         village.getId(),
                         at,
                         null);
-        // with banners off the banner isn't taken (§21.9), so no banner achievement either
-        if (enabled) {
+        // with banners off the banner isn't taken (§21.9), so no banner achievement either;
+        // standards count for none (§21.18)
+        if (enabled && !banner.isStandard()) {
             if (toStash) {
                 achievements.bannerTaken(conqueror.getId(), banner.getId(), line.getId());
             }
@@ -326,7 +412,7 @@ public class BannerService {
     }
 
     /**
-     * Gives a human player a new banner in his stash (origin GRANTED).
+     * Gives a player or an NPC lord a new banner in the stash (origin GRANTED).
      *
      * @param reason goes into the banner log
      */
@@ -382,14 +468,32 @@ public class BannerService {
         List<Banner> mine = banners.findByOwnerIdOrderByIdAsc(playerId);
         Map<Long, Banner> inVillage =
                 mine.stream()
-                        .filter(Banner::isEquipped)
+                        .filter(b -> b.isEquipped() && !b.isStandard())
+                        .collect(Collectors.toMap(Banner::getEquippedVillageId, b -> b));
+        Map<Long, Banner> standards =
+                mine.stream()
+                        .filter(b -> b.isEquipped() && b.isStandard())
                         .collect(Collectors.toMap(Banner::getEquippedVillageId, b -> b));
         Map<Long, VillageSummaryDto> summaries =
                 villages.findSummariesByPlayerId(playerId).stream()
                         .collect(Collectors.toMap(VillageSummaryDto::id, s -> s));
-        boolean enabled = worldService.settings().bannersEnabled();
+        WorldSettings world = worldService.settings();
+        boolean enabled = world.bannersEnabled();
+        boolean paladins = world.paladinMaxSlots() > 0;
+        // the paladin level caps the standards' tier (1.4, §21.18)
+        int paladinLevel =
+                unitLevels
+                        .levelsOf(players.findById(playerId).orElse(null), clock.instant())
+                        .get(UnitType.PALADIN);
+        List<Village> own = villages.findByPlayerIdOrderByIdAsc(playerId);
+        Set<Long> paladinAttacks =
+                own.isEmpty()
+                        ? Set.of()
+                        : Set.copyOf(
+                                movements.findVillagesWithPaladinAttacks(
+                                        own.stream().map(Village::getId).toList()));
         List<BannersDto.BannerVillageDto> rows =
-                villages.findByPlayerIdOrderByIdAsc(playerId).stream()
+                own.stream()
                         .map(
                                 village -> {
                                     VillageSummaryDto summary = summaries.get(village.getId());
@@ -399,6 +503,9 @@ public class BannerService {
                                             banner == null || !enabled
                                                     ? BannerEffect.NONE
                                                     : villageBanners.effectOf(banner, hall);
+                                    Banner standard = standards.get(village.getId());
+                                    boolean incoming =
+                                            summary != null && summary.incomingAttacks() > 0;
                                     return new BannersDto.BannerVillageDto(
                                             village.getId(),
                                             village.getName(),
@@ -407,7 +514,16 @@ public class BannerService {
                                             hall,
                                             banner == null ? null : banner.getId(),
                                             effect.effectiveTier(),
-                                            summary != null && summary.incomingAttacks() > 0);
+                                            incoming,
+                                            standard == null ? null : standard.getId(),
+                                            standard == null || !enabled || !paladins
+                                                    ? 0
+                                                    : BannerRules.standardTier(
+                                                            standard.getTier(), paladinLevel, hall),
+                                            incoming
+                                                    || standard != null
+                                                            && paladinAttacks.contains(
+                                                                    village.getId()));
                                 })
                         .toList();
         return new BannersDto(
@@ -415,7 +531,10 @@ public class BannerService {
                 gameData.building(BuildingType.BANNER_HALL).maxLevel(),
                 catalog.effects(),
                 mine.stream().map(BannerDto::of).toList(),
-                rows);
+                rows,
+                paladins,
+                paladinLevel,
+                world.standardTheftEnabled());
     }
 
     private void requireNoIncomingAttack(long villageId) {
@@ -423,6 +542,18 @@ public class BannerService {
             throw new GameRuleException(
                     ErrorCode.BANNER_LOCKED,
                     "The banner can't be changed while an attack is on its way");
+        }
+    }
+
+    /**
+     * A paladin standard stays where it is while an attack with a paladin from its village is under
+     * way (§21.18): it can't be pulled out of a battle that is going badly.
+     */
+    private void requireNoPaladinAttack(long villageId) {
+        if (movements.countPaladinAttacksUnderWay(villageId) > 0) {
+            throw new GameRuleException(
+                    ErrorCode.BANNER_LOCKED,
+                    "The standard can't be changed while an attack with a paladin is under way");
         }
     }
 

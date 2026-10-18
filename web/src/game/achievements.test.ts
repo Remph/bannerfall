@@ -12,9 +12,9 @@ import {
 } from './achievements';
 
 describe('achievementKeys', () => {
-  it('are the 25 of the rulebook, without doubles', () => {
-    expect(achievementKeys).toHaveLength(31);
-    expect(new Set(achievementKeys).size).toBe(31);
+  it('are the 40 of the rulebook, without doubles', () => {
+    expect(achievementKeys).toHaveLength(40);
+    expect(new Set(achievementKeys).size).toBe(40);
   });
 
   it('have a name and a description in both languages', () => {
