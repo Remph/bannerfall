@@ -20,7 +20,7 @@ Not affiliated with any existing game. Own name, own numbers, own graphics.
 | `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`), the hosting guide (`hosting.md`) and the README header images (`images/`) |
 | `compose.yaml` | Local development database (PostgreSQL 18) |
 | `Dockerfile`, `compose.prod.yaml`, `Caddyfile`, `.env.example` | Production: the image, app + database + Caddy, settings template |
-| `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore` |
+| `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore`, `bannerfall-update` |
 | `.run/` | Shared IntelliJ run configurations |
 
 ## Prerequisites
@@ -140,6 +140,8 @@ docker compose -f compose.prod.yaml ps          # app and db "healthy"
 ```
 
 The database migrates itself at start (Flyway). Everybody is logged out by an update (sessions are in memory); announce it with `bannerfall-admin broadcast "Update in 5 minutes"`. Caddy asks Let's Encrypt for the certificate as soon as it starts, so the DNS record must already point to the server (check with `nslookup`; repeated failures run into Let's Encrypt's rate limit). `docker compose -f compose.prod.yaml logs caddy` shows `certificate obtained successfully`; <https://your-domain> should answer within a minute. Use the world's own name as `BANNERFALL_DOMAIN` (for example `play.example.com`), not the main domain of a landing page you may run beside it.
+
+**Updating in one command** (since 1.4.1, in a git checkout on the server): `ops/bannerfall-update 1.4.1` does the steps of an update in order and stops at the first one that fails. It checks that the checkout has no local changes, fetches the tags, pulls the image for exactly that version (the image `BANNERFALL_IMAGE` names now, with the new tag; `--repo` names another, `--build` builds `bannerfall:<version>` on the server instead), checks the tag out, checks that its `compose.prod.yaml` works with your `.env`, takes a backup with `ops/bannerfall-backup`, warns the players in the chat, waits a minute (`--wait <seconds>`, `0` for no warning), sets `BANNERFALL_IMAGE` in `.env`, restarts the app, waits until it is healthy and reports the new version, and runs `bannerfall-admin check`. It shows the plan and asks once first (`--yes` skips the question). Nothing changes for the players before the backup is done, and stopping it before the restart (Ctrl+C, or a dropped connection) puts the old checkout back. If the new version doesn't come up and ran no database migration, the script puts the old image and checkout back by itself. If it already migrated the database, it stops and prints how to restore the backup it took. Read the release notes first, since some releases add settings or need a step of their own. `ops/bannerfall-update --help` lists the options.
 
 **Updating a running world to 1.2.** Make a backup first (`ops/bannerfall-backup`, see *Backups*): the migrations V24 to V29 only go forward, so the way back to 1.1 is restoring that dump. The update keeps the old game for barbarian walls and unit levels (both off until you switch them on) but **switches banners and the paladin on** in a running world. Decide before or right after the update:
 

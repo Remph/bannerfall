@@ -1,7 +1,9 @@
 /**
  * Which village the game screens show. The village is part of the URL (/v/:villageId/…), so links
  * and reloads keep it (05-frontend §3). Screens without a village in the URL (/, /reports)
- * use the last village the player looked at, or else their first one.
+ * use the last village the player looked at in this browser session, or else their first one, the
+ * main village. The village is remembered in sessionStorage (1.4.1; localStorage before), so the
+ * game opens on the main village again after it was closed instead of on the village looked at last.
  */
 
 const STORAGE_KEY = 'bannerfall.village';
@@ -40,7 +42,7 @@ export function villagePath(currentPathname: string, villageId: number): string 
 
 export function loadRememberedVillage(): number | null {
   try {
-    return parseVillageId(localStorage.getItem(STORAGE_KEY) ?? undefined) ?? null;
+    return parseVillageId(sessionStorage.getItem(STORAGE_KEY) ?? undefined) ?? null;
   } catch {
     return null;
   }
@@ -48,8 +50,13 @@ export function loadRememberedVillage(): number | null {
 
 export function rememberVillage(villageId: number): void {
   try {
-    localStorage.setItem(STORAGE_KEY, String(villageId));
+    sessionStorage.setItem(STORAGE_KEY, String(villageId));
   } catch {
     // ignore: then "/" just opens the first village
+  }
+  try {
+    localStorage.removeItem(STORAGE_KEY); // where 1.4 and earlier kept it
+  } catch {
+    // ignore
   }
 }

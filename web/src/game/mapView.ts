@@ -469,6 +469,25 @@ export function clipSegment(
   };
 }
 
+/**
+ * The dashes of a line `length` px long whose pattern (`on` px drawn, then `off` px gap, starting
+ * with a dash) began `offset` px before it, as `clipSegment` skipped them: each dash's start and end
+ * along the line, cut to 0..`length`. With `on` 0 every dash is a dot (start = end). The map works
+ * the dashes out itself instead of using setLineDash, so no sliver of a dash a fraction of a pixel
+ * long reaches the GPU (1.4.1).
+ */
+export function dashRuns(length: number, offset: number, on: number, off: number): [number, number][] {
+  const period = on + off;
+  if (!(period > 0) || !(length >= 0)) {
+    return [];
+  }
+  const runs: [number, number][] = [];
+  for (let start = Math.max(0, Math.ceil((offset - on) / period)) * period - offset; start <= length; start += period) {
+    runs.push([Math.max(0, start), Math.min(length, start + on)]);
+  }
+  return runs;
+}
+
 /** `rect` grown by `margin` on every side. */
 export function growRect(rect: Rect, margin: number): Rect {
   return {

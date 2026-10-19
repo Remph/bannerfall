@@ -202,7 +202,8 @@ public record BattleReport(
                 bannersGained(kind),
                 mainBattle ? loot : null,
                 losses,
-                kind == ReportKind.ATTACK && fullHaul());
+                kind == ReportKind.ATTACK && fullHaul(),
+                attackerUnits.containsKey(UnitType.NOBLE));
     }
 
     /**

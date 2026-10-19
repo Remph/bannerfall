@@ -5,6 +5,20 @@
   max-width: 60rem;
 }
 
+/* desktop: the page fills the frame; its head and chips run across the list and the open report (1.4.1) */
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+  }
+}
+
+/* the list's own part (beside the open report on desktop) */
+.listBody {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
 .status {
   display: grid;
   justify-items: start;
@@ -215,6 +229,13 @@
 .kindIcon.lost {
   background: var(--color-danger-bg);
   color: var(--color-danger);
+}
+
+/* an attack with nobles, from either side (1.4.1): a gold ring around the well, which keeps its
+   green or red for the result */
+.kindIcon.noble {
+  outline: 2px solid var(--badge-gold);
+  outline-offset: 2px;
 }
 
 .resultPill {

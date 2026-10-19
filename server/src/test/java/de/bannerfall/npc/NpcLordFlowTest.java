@@ -390,8 +390,12 @@ class NpcLordFlowTest {
 
     // ---- the economy over days (09 §5) ----
 
+    /**
+     * Six days at speed 3 in one run (each simulated day costs about a thousand event rounds, so
+     * the build and the army checks share it).
+     */
     @Test
-    void aLordBuildsAndRecruitsWithinTheRulesOverSimulatedDays() {
+    void aLordBuildsAndRecruitsWithinTheRulesAndFollowsItsTemplateOverSimulatedDays() {
         jdbc.sql("update world_settings set speed = 3.0").update();
         worldService.reload();
         spawnAtWorldStart(1);
@@ -399,7 +403,7 @@ class NpcLordFlowTest {
         long villageId = villages.findIdsByPlayerId(lordId).getFirst();
         int queueMax = worldService.settings().buildQueueMax();
 
-        for (int i = 0; i < 4 * 24 * 12; i++) { // 4 days in 5-minute steps
+        for (int i = 0; i < 6 * 24 * 12; i++) { // 6 days in 5-minute steps
             clock.advance(Duration.ofMinutes(5));
             processor.processDue(clock.instant());
             // never more than the queue holds, never a resource it didn't have
@@ -424,24 +428,10 @@ class NpcLordFlowTest {
         assertThat(village.getPoints()).isPositive();
         assertThat(players.findById(lordId).orElseThrow().getPoints())
                 .isEqualTo(village.getPoints());
-    }
 
-    @Test
-    void theArmyAndTheLedgerFollowTheTemplate() {
-        jdbc.sql("update world_settings set speed = 3.0").update();
-        worldService.reload();
-        spawnAtWorldStart(1);
-        long lordId = lords().getFirst().getId();
-        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
-
-        for (int i = 0; i < 6 * 24 * 12; i++) { // 6 days
-            clock.advance(Duration.ofMinutes(5));
-            processor.processDue(clock.instant());
-        }
-
+        // the army and the ledger follow the template
         NpcMemory memory = brains.findById(lordId).orElseThrow().getMemory();
         NpcMemory.Ledger ledger = memory.ledgerOf(villageId);
-        Village village = villages.findById(villageId).orElseThrow();
         NpcTemplates.Template template =
                 templates.of(brains.findById(lordId).orElseThrow().getPersonality());
         double share = template.stageFor(village.getPoints()).troopShare();
@@ -801,6 +791,11 @@ class NpcLordFlowTest {
                 .update();
         worldService.reload();
         initializer.initialize();
+        // The start also schedules the victory check. These tests are about the lords: over
+        // simulated days the check would read the standings of every village in the shared
+        // database each hour, and on a nearly empty database a lord holding its few villages for
+        // 48 hours would end the test world for every test after it.
+        jdbc.sql("delete from game_event where kind in ('VICTORY_CHECK', 'WORLD_END')").update();
     }
 
     private List<Player> lords() {

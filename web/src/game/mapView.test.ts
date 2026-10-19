@@ -7,6 +7,7 @@ import {
   chunksFor,
   clampCamera,
   clipSegment,
+  dashRuns,
   dragViewRect,
   fieldAt,
   growRect,
@@ -420,6 +421,36 @@ describe('overview map', () => {
     // beside the rectangle, and parallel to a side outside it
     expect(clipSegment({ x: -50, y: 60 }, { x: 60, y: 200 }, rect)).toBeUndefined();
     expect(clipSegment({ x: -10, y: 60 }, { x: 200, y: 60 }, rect)).toBeUndefined();
+  });
+
+  it('works out the dashes of a cut line where they lie on the whole line', () => {
+    // dashes of 4 every 10 px from the line's start: the first one cut by the skipped 12 px
+    expect(dashRuns(25, 12, 4, 6)).toEqual([
+      [0, 2],
+      [8, 12],
+      [18, 22],
+    ]);
+    // a dash just ending where the part starts leaves a sliver of 0, which the map leaves out
+    expect(dashRuns(5, 4, 4, 6)[0]).toEqual([0, 0]);
+    // the last dash is cut at the end
+    expect(dashRuns(20, 0, 4, 6)).toEqual([
+      [0, 4],
+      [10, 14],
+      [20, 20],
+    ]);
+    // dots (on 0): every 5 px of the whole line, the ones before the part skipped
+    expect(dashRuns(12, 7, 0, 5)).toEqual([
+      [3, 3],
+      [8, 8],
+    ]);
+    // a long way far off: the dots keep their place and the count stays small
+    const far = dashRuns(800, 123_456.5, 0, 4.2);
+    expect(far.length).toBeGreaterThanOrEqual(190);
+    expect(far.length).toBeLessThanOrEqual(191);
+    const first = (far[0]?.[0] ?? Number.NaN) + 123_456.5;
+    expect(first / 4.2).toBeCloseTo(Math.round(first / 4.2), 6);
+    // nothing for a broken pattern
+    expect(dashRuns(10, 0, 0, 0)).toEqual([]);
   });
 
   it('grows a rectangle and cuts it to another', () => {

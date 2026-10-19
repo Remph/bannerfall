@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+# bannerfall-update <version> [options] – updates this world to a release in one go
+# (README "Updating a running world", docs/hosting.md §10).
+#
+#   ops/bannerfall-update 1.4.1
+#
+# In order: checks that the checkout is clean, fetches the tags, pulls the image for exactly that
+# version (or builds it with --build), checks it out and that its compose.prod.yaml works with
+# .env, backs the database up (stops if that fails), warns the players in the chat, waits (60 s,
+# --wait), switches BANNERFALL_IMAGE in .env, restarts the app and waits until it is healthy and
+# reports the new version, then runs bannerfall-admin check. Nothing changes for the players before
+# the backup is done; Ctrl+C (or a dropped connection) before the restart puts the old checkout
+# back. Exits 0 only when all of it, the check included, went fine.
+#
+# If the new version doesn't come up: when it applied no database migration, the script goes back
+# to the old image and checkout by itself. When it did, it stops and tells you how to restore the
+# backup it just took (a database migrates forward only). Asks once before it starts (--yes skips).
+#
+# Options:
+#   --yes          don't ask before starting
+#   --wait <s>     seconds between the chat warning and the restart (default 60, 0 = no warning)
+#   --build        build the image here (docker build, bannerfall:<version>) instead of pulling it
+#   --repo <name>  the image to pull without its tag (default: BANNERFALL_IMAGE_REPO, else the one
+#                  BANNERFALL_IMAGE in .env names now)
+#
+# UPDATE_MESSAGE: the chat warning ({version} and {wait} are filled in).
+# HEALTH_TIMEOUT: how long to wait for the new app, in seconds (default 300).
+#
+# The whole script is one function, called on the last line: checking the release out replaces
+# this very file, and bash would otherwise read the rest of it from the new version.
+set -euo pipefail
+
+main() {
+  local version="" yes=false wait=60 build=false repo="${BANNERFALL_IMAGE_REPO:-}"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --yes) yes=true ;;
+      --wait) [ $# -ge 2 ] || usage "--wait takes a number of seconds"; wait="$2"; shift ;;
+      --build) build=true ;;
+      --repo) [ $# -ge 2 ] || usage "--repo takes an image name"; repo="$2"; shift ;;
+      -h | --help) sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0"; return 0 ;;
+      -*) usage "unknown option $1" ;;
+      *) [ -z "$version" ] || usage "only one version"; version="${1#v}" ;;
+    esac
+    shift
+  done
+  # An exact version only: "latest" would let a restart change the version by surprise.
+  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || usage "give the version as X.Y.Z, e.g. 1.4.1"
+  [[ "$wait" =~ ^[0-9]+$ ]] || usage "--wait takes a number of seconds"
+  local tag="v$version"
+
+  cd "$(dirname "$0")/.."
+  compose=(docker compose -f compose.prod.yaml)
+  [ -f .env ] || fail "no .env next to compose.prod.yaml"
+  local old_image
+  old_image="$(sed -n 's/^BANNERFALL_IMAGE=//p' .env | tail -n 1)"
+  [ -n "$old_image" ] || fail "BANNERFALL_IMAGE is not set in .env"
+
+  local new_image
+  if $build; then
+    new_image="bannerfall:$version"
+  else
+    [ -n "$repo" ] || repo="${old_image%:*}"
+    # A name without a registry is an image built on this server: there is nothing to pull.
+    [[ "$repo" == */* ]] || fail "$old_image was built here; use --build, or --repo <registry/name> to pull"
+    new_image="$repo:$version"
+  fi
+
+  # ---- 1. look before touching anything ----
+  [ -z "$(git status --porcelain --untracked-files=no)" ] \
+    || fail "the checkout has local changes (git status); commit or undo them first"
+  local old_ref old_version
+  old_ref="$(git describe --tags --exact-match 2>/dev/null || git rev-parse HEAD)"
+  # grep without -q: -q quits at the first match, and with pipefail compose's SIGPIPE would fail it.
+  "${compose[@]}" ps --status running --services | grep -x app > /dev/null || fail "the app isn't running"
+  old_version="$(running_version)" || fail "bannerfall-admin status doesn't answer"
+  [ "$old_version" != "$version" ] || { echo "This world already runs $version."; return 0; }
+  step "fetching the release tags"
+  git fetch --tags --quiet origin || fail "can't fetch the tags from origin"
+  git rev-parse -q --verify "refs/tags/$tag" > /dev/null || fail "there is no tag $tag (yet)"
+
+  echo
+  echo "Update this world from $old_version to $version:"
+  echo "  checkout  $old_ref -> $tag"
+  echo "  image     $old_image -> $new_image ($($build && echo "built here" || echo "pulled"))"
+  if [ "$wait" -gt 0 ]; then
+    echo "  players   warned in the chat, restart $wait s later"
+  else
+    echo "  players   restart right away, no warning"
+  fi
+  if ! $yes; then
+    read -r -p "Go on? [y/N] " answer || answer=""
+    [[ "$answer" =~ ^[yYjJ] ]] || { echo "Cancelled, nothing changed."; return 1; }
+  fi
+
+  # ---- 2. the new files and image; the game keeps running meanwhile ----
+  if ! $build; then
+    step "pulling $new_image"
+    docker pull --quiet "$new_image" > /dev/null || fail "can't pull $new_image (is the release published?); nothing changed"
+  fi
+  git -c advice.detachedHead=false checkout --quiet "$tag"
+  # Until the restart, stopping the script (Ctrl+C, a closed terminal) puts the old checkout back.
+  local warned=""
+  trap 'git checkout --quiet "$old_ref"; echo; echo "Stopped before the restart; nothing changed$warned."; exit 130' INT TERM HUP
+  if $build; then
+    step "building $new_image (several minutes; the game keeps running)"
+    docker build -t "$new_image" --build-arg VERSION="$version" . \
+      || { git checkout --quiet "$old_ref"; fail "the build failed; nothing changed"; }
+  fi
+  docker run --rm --entrypoint bannerfall-admin "$new_image" --help > /dev/null \
+    || { git checkout --quiet "$old_ref"; fail "$new_image doesn't start bannerfall-admin; nothing changed"; }
+  # A release whose compose.prod.yaml needs a new .env line stops here, before the players hear of it.
+  "${compose[@]}" config --quiet \
+    || { git checkout --quiet "$old_ref"; fail "compose.prod.yaml of $tag doesn't work with this .env (see above; the release notes name new settings); nothing changed"; }
+  # The old version migrates nothing, so this count still holds at the restart.
+  local migrations_before
+  migrations_before="$(applied_migrations)" \
+    || { git checkout --quiet "$old_ref"; fail "can't read flyway_schema_history; nothing changed"; }
+
+  # ---- 3. backup, which has to work ----
+  step "backing up the database"
+  local backup_out backup_file
+  if ! backup_out="$(ops/bannerfall-backup < /dev/null)"; then
+    git checkout --quiet "$old_ref"
+    fail "the backup failed (see above); nothing changed"
+  fi
+  echo "$backup_out"
+  backup_file="$(sed -n 's/.*backup ok: \([^ ]*\).*/\1/p' <<< "$backup_out")"
+
+  # ---- 4. warn, wait, restart ----
+  if [ "$wait" -gt 0 ]; then
+    local text='Update auf {version} in {wait}. Nichts geht verloren. / Update to {version} in {wait}. Nothing is lost.'
+    text="${UPDATE_MESSAGE:-$text}"
+    text="${text//\{version\}/$version}"
+    text="${text//\{wait\}/$(say_wait "$wait")}"
+    admin broadcast "$text" > /dev/null || echo "(the chat warning failed; going on)" >&2
+    warned=" (the players saw the warning)"
+    step "players warned; restarting in $wait s (Ctrl+C stops here and changes nothing)"
+    sleep "$wait"
+  fi
+  # From here on Ctrl+C is up to you, but a dropped connection must not stop compose halfway
+  # through replacing the app (ignored signals stay ignored in docker compose too).
+  trap - INT TERM
+  trap '' HUP
+  set_image "$new_image"
+  step "starting $version"
+
+  # ---- 5. did it come up? ----
+  if "${compose[@]}" up -d && wait_for "$version"; then
+    step "running $version; checking the world"
+    admin status || true
+    if admin check; then
+      echo
+      echo "Done: this world runs $version. Backup: ${backup_file:-see above}."
+      if [ "$(applied_migrations)" = "$migrations_before" ]; then
+        echo "Keep $old_image until you're sure; it is the way back."
+      else
+        echo "Keep $old_image until you're sure: with the backup, it is the way back."
+      fi
+      return 0
+    fi
+    echo
+    echo "This world runs $version, but bannerfall-admin check found the problems above." >&2
+    return 1
+  fi
+
+  echo >&2
+  echo "$version didn't come up healthy. The app's last log lines:" >&2
+  "${compose[@]}" logs --tail 60 app >&2 || true
+  if [ "$(applied_migrations)" = "$migrations_before" ]; then
+    step "no migration ran, so going back to $old_version"
+    set_image "$old_image"
+    git checkout --quiet "$old_ref"
+    if "${compose[@]}" up -d && wait_for "$old_version"; then
+      echo "Back on $old_version; the players' world is as it was. Send the log above to whoever helps you." >&2
+    else
+      echo "Even $old_version didn't come up again; look at '${compose[*]} logs app'." >&2
+    fi
+  else
+    echo "$version already changed the database (migrations ran), so the old version can't simply" >&2
+    echo "start on it. Find the cause in the log first; most problems can be fixed going forward." >&2
+    echo "To go back to $old_version instead (play since the backup is lost):" >&2
+    echo "  git checkout $old_ref" >&2
+    echo "  sed -i 's|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=$old_image|' .env" >&2
+    echo "  ops/bannerfall-restore ${backup_file:-backups/<the backup above>}" >&2
+  fi
+  return 1
+}
+
+usage() {
+  echo "$0: $1" >&2
+  echo "usage: $0 <X.Y.Z> [--yes] [--wait <seconds>] [--build] [--repo <registry/name>]" >&2
+  exit 2
+}
+
+fail() {
+  echo "UPDATE STOPPED: $1" >&2
+  exit 1
+}
+
+step() {
+  echo "== $1"
+}
+
+# Every docker command that could read stdin gets /dev/null: compose exec would otherwise take
+# what is typed (or piped) for the question above.
+admin() {
+  "${compose[@]}" exec -T app bannerfall-admin "$@" < /dev/null
+}
+
+running_version() {
+  admin status --json | sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' | head -n 1 | grep .
+}
+
+# Applied migrations, counted rather than by their highest version: a world can carry dotted
+# versions (26.1) that don't sort as numbers.
+applied_migrations() {
+  "${compose[@]}" exec -T db psql -U bannerfall -d bannerfall -tAc \
+    'select count(*) from flyway_schema_history where success' < /dev/null
+}
+
+set_image() {
+  sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=$1|" .env
+}
+
+say_wait() {
+  if [ "$1" -ge 60 ] && [ $(($1 % 60)) -eq 0 ]; then
+    echo "$(($1 / 60)) min"
+  else
+    echo "$1 s"
+  fi
+}
+
+# Waits until the app container is healthy and reports the given version.
+wait_for() {
+  local want="$1" deadline=$((SECONDS + ${HEALTH_TIMEOUT:-300})) id health
+  while [ $SECONDS -lt $deadline ]; do
+    id="$("${compose[@]}" ps -q app 2> /dev/null || true)"
+    health="$( [ -n "$id" ] && docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id" 2> /dev/null || true)"
+    if [ "$health" = "healthy" ] && [ "$(running_version 2> /dev/null || true)" = "$want" ]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+main "$@"
+exit $?

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { REPORTS_PAGE_SIZE, type ReportFilter } from '../../game/reports';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
@@ -55,7 +55,9 @@ export function refreshReports(queryClient: QueryClient): Promise<unknown> {
 
 /**
  * GET /api/reports?page=&filter=: a page of the player's reports, newest first (page is 0-based),
- * only the filter's kinds unless it is null (1.3). The counts per filter come with every page.
+ * only the filter's kinds unless it is null (1.3). The counts per filter come with every page. The
+ * old page stays on screen while another page or filter loads (1.4.1: the head above the list and
+ * the open report next to it don't jump).
  */
 export function useReportPage(page: number, filter: ReportFilter | null = null) {
   return useQuery({
@@ -66,6 +68,7 @@ export function useReportPage(page: number, filter: ReportFilter | null = null) 
           params: { query: { page, size: REPORTS_PAGE_SIZE, ...(filter === null ? {} : { filter }) } },
         }),
       ),
+    placeholderData: keepPreviousData,
   });
 }
 

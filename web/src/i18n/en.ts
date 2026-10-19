@@ -1231,6 +1231,8 @@ export const en = {
     unreadBadge: (count: number) => (count === 1 ? '1 unread report' : `${count} unread reports`),
     /** Screen-reader note on an unread line of the list. */
     unread: 'unread',
+    /** For screen readers on a line whose attack had nobles (1.4.1; the icon has a gold ring). */
+    withNobles: 'with nobles',
     markAllRead: 'Mark all as read',
     /** M38: deletes every report of the list after one confirm. */
     deleteAll: 'Delete all',
@@ -1280,7 +1282,7 @@ export const en = {
       `${total === 1 ? 'Your report' : `All ${total} reports`}${unread > 0 && total > 1 ? ` (${unread} of them unread)` : ''} will be deleted. This can’t be undone. Reports that arrive from now on stay.`,
     deleteBarbarianTitle: 'Delete barbarian reports?',
     deleteBarbarianText: (count: number) =>
-      `${count === 1 ? 'Your report on an attack or scouting of a barbarian village' : `Your ${count} reports on attacks and scouting of barbarian villages`} will be deleted. Reports with a new banner stay, as do reports other players sent you and reports that arrive from now on. This can’t be undone.`,
+      `${count === 1 ? 'Your report on an attack or scouting of a barbarian village' : `Your ${count} reports on attacks and scouting of barbarian villages`} will be deleted. Reports with a new banner or with nobles stay, as do reports other players sent you and reports that arrive from now on. This can’t be undone.`,
     empty: 'No reports yet. They appear here when your troops fight or a support arrives.',
     emptyPage: 'There are no reports on this page any more.',
     unreadableText: 'This report can’t be shown any more. You can delete it.',

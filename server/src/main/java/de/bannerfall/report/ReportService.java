@@ -157,7 +157,8 @@ public class ReportService {
 
     /**
      * Deletes the player's own attack and scout reports on barbarian villages up to {@code upToId},
-     * read or not, except those with a new banner (1.2.3); reports that came in after it stay.
+     * read or not, except those with a new banner (1.2.3) or with nobles (1.4.1); reports that came
+     * in after it stay.
      *
      * @return the number of reports deleted
      */

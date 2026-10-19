@@ -206,13 +206,16 @@ a.navItem:hover {
   grid-column: 1 / -1;
 }
 
+/* icon on the left; label and (for coming sections) the "coming soon" pill stacked next to it,
+   centred on the icon as a pair: the empty rows above and below share the spare height. (The icon
+   used to span just two auto rows, so a label without the pill sat in the top one, above the
+   icon's middle.) */
 .moreItem {
   min-height: 3.5rem;
-  /* icon on the left; label and (for coming sections) the "coming soon" pill stacked next to it */
   display: grid;
   grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto auto 1fr;
   align-items: center;
-  align-content: center;
   column-gap: var(--space-2);
   padding: var(--space-2);
   border: 1px solid var(--color-divider);
@@ -236,7 +239,8 @@ button.moreItem {
 
 .moreIcon {
   position: relative;
-  grid-row: span 2;
+  grid-row: 1 / -1;
+  grid-column: 1;
   width: 2rem;
   height: 2rem;
   flex: none;
@@ -248,6 +252,8 @@ button.moreItem {
 }
 
 .moreLabel {
+  grid-row: 2;
+  grid-column: 2;
   min-width: 0;
   font-weight: 600;
 }
@@ -273,6 +279,8 @@ button.moreItem {
 }
 
 .soon {
+  grid-row: 3;
+  grid-column: 2;
   justify-self: start;
   padding: 0 0.5rem;
   border-radius: var(--radius-pill);

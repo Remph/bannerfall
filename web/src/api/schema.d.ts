@@ -3589,6 +3589,7 @@ export interface components {
                 [key: string]: number;
             };
             fullHaul: boolean;
+            nobles: boolean;
         };
         ScoutedBanner: {
             /** @enum {string} */

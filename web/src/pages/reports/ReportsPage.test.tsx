@@ -45,6 +45,7 @@ function battle(id: number, at: string, summary: Partial<NonNullable<ReportItem[
       loot: { wood: 150, clay: 425, iron: 425 },
       losses: {},
       fullHaul: false,
+      nobles: false,
       ...summary,
     },
   };
@@ -135,6 +136,18 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Losses:')).toBeTruthy();
   });
 
+  it('rings the icon of an attack with nobles in gold and says so to screen readers', () => {
+    const withNobles = {
+      ...page,
+      items: [battle(3, '2026-10-16T09:12:00Z', { nobles: true }), ...page.items.slice(1)],
+    };
+    open('/reports', [[reportPageQueryKey(0), withNobles]]);
+
+    const lines = screen.getAllByRole('listitem');
+    expect(lines[0]?.textContent).toContain('Attack, with nobles');
+    expect(lines.filter((line) => line.textContent?.includes('with nobles'))).toHaveLength(1);
+  });
+
   it('asks the server for the filter in the address', () => {
     const attacks = { ...page, items: page.items.slice(0, 1), total: 1 };
     open('/reports?filter=attacks', [[reportPageQueryKey(0, 'ATTACKS'), attacks]]);
@@ -223,6 +236,30 @@ describe('ReportsPage on desktop', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Reports' })).toBeTruthy();
     expect(screen.getByText('Pick a report on the left to read it here.')).toBeTruthy();
+  });
+
+  it('runs the title, the buttons and the filter chips across the list and the open report', () => {
+    open('/reports/2');
+
+    // the list and the report share a row below the head, not the head itself (1.4.1)
+    const split = screen.getByRole('region', { name: 'Open report' }).parentElement!;
+    expect(split.contains(screen.getByRole('heading', { level: 1, name: 'Reports' }))).toBe(false);
+    expect(split.contains(screen.getByRole('button', { name: 'Delete all' }))).toBe(false);
+    expect(split.contains(screen.getByRole('navigation', { name: 'Show reports' }))).toBe(false);
+    expect(split.contains(screen.getAllByRole('list')[0]!)).toBe(true);
+  });
+
+  it('keeps the head, the list and the open report in place while another filter loads', () => {
+    // the attacks' page never answers here: the page shows what it shows while it loads
+    vi.stubGlobal('fetch', () => new Promise(() => {}));
+    open('/reports/2');
+
+    fireEvent.click(screen.getByRole('link', { name: 'Attacks 3' }));
+
+    expect(screen.queryByText('Loading…')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Reports' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Attacks 3' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('region', { name: 'Open report' }).textContent).toBe('The open report');
   });
 
   it('shows the open report next to the list and marks its line', () => {

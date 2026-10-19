@@ -362,6 +362,8 @@ class ReportControllerTest {
         create(ReportKind.ATTACK, now, battle(), player);
         create(ReportKind.DEFENSE, now, battle(), player);
         create(ReportKind.SUPPORT_ARRIVED, now, support(), player);
+        // an attack with nobles stays too (1.4.1)
+        create(ReportKind.ATTACK, now, noblesOn(BARBARIANS), player);
         // a copy another player sent stays too
         long othersReport = newestId(other);
         other.browser
@@ -370,7 +372,7 @@ class ReportControllerTest {
                         "{\"names\":[\"" + name(player) + "\"]}")
                 .andExpect(status().isOk());
         String seen = body(player.reports());
-        assertThat(number(seen, "$.total").intValue()).isEqualTo(9);
+        assertThat(number(seen, "$.total").intValue()).isEqualTo(10);
         assertThat(number(seen, "$.barbarian").intValue()).isEqualTo(3);
         long upTo = number(seen, "$.newestId").longValue();
         // arrives while the player confirms
@@ -381,12 +383,15 @@ class ReportControllerTest {
                 .andExpect(status().isNoContent());
 
         String after = body(player.reports());
-        assertThat(number(after, "$.total").intValue()).isEqualTo(7);
+        assertThat(number(after, "$.total").intValue()).isEqualTo(8);
         assertThat(number(after, "$.barbarian").intValue()).isEqualTo(1);
-        // the late one, found, stolen, the copy; the player's village twice; the support
+        // the late one, found, stolen, nobles, the copy; the player's village twice; the support
         assertThat(JsonPath.<List<String>>read(after, "$.items[*].summary.to.name"))
                 .filteredOn("Barbarendorf"::equals)
-                .hasSize(4);
+                .hasSize(5);
+        assertThat(JsonPath.<List<Boolean>>read(after, "$.items[*].summary.nobles"))
+                .filteredOn(Boolean::booleanValue)
+                .hasSize(1);
         assertThat(JsonPath.<List<Object>>read(after, "$.items[*].sharedBy.name")).hasSize(1);
         assertThat(JsonPath.<List<Object>>read(after, "$.items[*].summary.bannersGained[0]"))
                 .hasSize(2);
@@ -539,6 +544,23 @@ class ReportControllerTest {
                 new ResourceAmounts(150, 425, 425),
                 null,
                 banners);
+    }
+
+    private static BattleReport noblesOn(VillageRefDto defender) {
+        return new BattleReport(
+                BEN,
+                defender,
+                BattleOutcome.ATTACKER_WON,
+                0.05,
+                Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 1),
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                null,
+                ResourceAmounts.ZERO,
+                new BattleReport.LoyaltyReport(100, 76, false),
+                null);
     }
 
     private static ConquestReport conquest() {

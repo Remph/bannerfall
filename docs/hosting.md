@@ -190,6 +190,8 @@ bfa broadcast "Update in 5 minutes"        # wait, then:
 bf up -d
 bfa status                                 # shows the new version
 ```
+Since 1.4.1 one command does all of this: `ops/bannerfall-update 1.4.2` (the new version). It stops at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
+
 Read the release notes first: some updates switch new features on in a running world (the README's *Updating a running world* tables list the settings). The database migrates forward only, so going back means putting the old image back in `.env` **and** restoring the backup you took before the update. Keep old images until you are sure (`docker image prune` later).
 
 ## 11. When something is wrong

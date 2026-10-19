@@ -23,6 +23,7 @@ import {
   AXIS_STEP,
   axisValues,
   clipSegment,
+  dashRuns,
   growRect,
   HOUSES_MIN_TILE,
   intersectRect,
@@ -97,6 +98,13 @@ const HOSTILE_WIDTH = 1.7;
 const HOSTILE_DASH = [2.6, 1.6] as const;
 const HOSTILE_EDGE = 5;
 const HOSTILE_EDGE_ALPHA = 0.9;
+/** The dots of the way ahead: this many widths apart (from one dot's middle to the next). */
+const DOT_SPACING = 2.8;
+/**
+ * Dashes and solid pieces shorter than this (CSS px) are left out: phone GPUs draw such slivers with
+ * round caps as streaks across the map (1.4.1). The troops' badge covers a trail this short anyway.
+ */
+const MIN_PIECE = 1;
 /**
  * The arrows along the lines: this far apart and this far from the ends (CSS px, or the share of a
  * field when that is more), none on a line shorter than ARROW_MIN_LENGTH, and none within this many
@@ -1201,15 +1209,18 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
   for (const { from, to, at, alpha, color, hostile, wayWidth } of ordered) {
     if (wayWidth !== undefined) {
       ctx.globalAlpha = alpha * (at === undefined ? 1 : 0.85);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = wayWidth;
-      ctx.setLineDash(hostile ? HOSTILE_DASH.map((share) => share * wayWidth) : [0.1, width * 2.8]);
-      strokeSegment(ctx, from, to, area);
+      if (hostile) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = wayWidth;
+        strokeDashes(ctx, from, to, area, HOSTILE_DASH[0] * wayWidth, HOSTILE_DASH[1] * wayWidth);
+      } else {
+        ctx.fillStyle = color;
+        fillDots(ctx, from, to, area, width * DOT_SPACING, wayWidth / 2);
+      }
     }
     if (at === undefined) {
       continue;
     }
-    ctx.setLineDash([]);
     ctx.globalAlpha = alpha * 0.55;
     ctx.strokeStyle = colors.outline;
     ctx.lineWidth = width + 2;
@@ -1219,7 +1230,6 @@ function drawMovementLines(ctx: CanvasRenderingContext2D, scene: MapScene): void
     ctx.lineWidth = width;
     strokeSegment(ctx, from, at, area);
   }
-  ctx.setLineDash([]);
   drawArrows(ctx, arrows, camera.tile, colors, area);
   ctx.restore();
 }
@@ -1237,18 +1247,76 @@ interface LineStroke {
   wayWidth: number | undefined;
 }
 
-/** The part of a line near the canvas; its dashes stay where they would be on the whole line. */
+/** The part of a line near the canvas, solid; nothing when it is shorter than MIN_PIECE. */
 function strokeSegment(ctx: CanvasRenderingContext2D, from: Point, to: Point, area: Rect): void {
   const part = clipSegment(from, to, area);
-  if (part === undefined) {
+  if (part === undefined || Math.hypot(part.to.x - part.from.x, part.to.y - part.from.y) < MIN_PIECE) {
     return;
   }
-  ctx.lineDashOffset = part.skipped;
   ctx.beginPath();
   ctx.moveTo(part.from.x, part.from.y);
   ctx.lineTo(part.to.x, part.to.y);
   ctx.stroke();
-  ctx.lineDashOffset = 0;
+}
+
+/**
+ * The part of a line near the canvas in dashes `on` px long and `off` px apart, as one path. The
+ * dashes stay where they would be on the whole line, so they don't crawl while the map moves.
+ */
+function strokeDashes(
+  ctx: CanvasRenderingContext2D,
+  from: Point,
+  to: Point,
+  area: Rect,
+  on: number,
+  off: number,
+): void {
+  const part = clipSegment(from, to, area);
+  if (part === undefined) {
+    return;
+  }
+  const along = alongSegment(part.from, part.to);
+  ctx.beginPath();
+  for (const [start, end] of dashRuns(along.length, part.skipped, on, off)) {
+    if (end - start >= MIN_PIECE) {
+      const a = along.at(start);
+      const b = along.at(end);
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+    }
+  }
+  ctx.stroke();
+}
+
+/** The part of a line near the canvas as dots `spacing` px apart, filled circles in one path (see strokeDashes). */
+function fillDots(
+  ctx: CanvasRenderingContext2D,
+  from: Point,
+  to: Point,
+  area: Rect,
+  spacing: number,
+  radius: number,
+): void {
+  const part = clipSegment(from, to, area);
+  if (part === undefined) {
+    return;
+  }
+  const along = alongSegment(part.from, part.to);
+  ctx.beginPath();
+  for (const [start] of dashRuns(along.length, part.skipped, 0, spacing)) {
+    const dot = along.at(start);
+    ctx.moveTo(dot.x + radius, dot.y);
+    ctx.arc(dot.x, dot.y, radius, 0, Math.PI * 2);
+  }
+  ctx.fill();
+}
+
+/** A segment's length and the point `distance` px along it. */
+function alongSegment(from: Point, to: Point): { length: number; at: (distance: number) => Point } {
+  const length = Math.hypot(to.x - from.x, to.y - from.y);
+  const ux = length === 0 ? 0 : (to.x - from.x) / length;
+  const uy = length === 0 ? 0 : (to.y - from.y) / length;
+  return { length, at: (distance) => ({ x: from.x + ux * distance, y: from.y + uy * distance }) };
 }
 
 /** The arrows of one way, on screen. */

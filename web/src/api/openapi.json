@@ -7894,9 +7894,12 @@
           },
           "fullHaul" : {
             "type" : "boolean"
+          },
+          "nobles" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "bannersGained", "from", "fullHaul", "loot", "losses", "outcome", "to" ]
+        "required" : [ "bannersGained", "from", "fullHaul", "loot", "losses", "nobles", "outcome", "to" ]
       },
       "ScoutedBanner" : {
         "type" : "object",

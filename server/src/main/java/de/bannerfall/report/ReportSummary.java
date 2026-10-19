@@ -24,6 +24,8 @@ import java.util.Map;
  *     all defenders' in DEFENSE (empty if the attacker saw nothing); empty for other reports
  * @param fullHaul ATTACK only (1.3): the survivors carried all they could, so there was more to
  *     take; false in reports from before 1.3
+ * @param nobles battles (1.4.1): the attack had nobles in it, in every copy (the list marks the
+ *     line in gold); false for other reports
  */
 public record ReportSummary(
         VillageRefDto from,
@@ -32,7 +34,8 @@ public record ReportSummary(
         List<ScoutedBanner> bannersGained,
         @Schema(nullable = true) ResourceAmounts loot,
         Map<UnitType, Integer> losses,
-        boolean fullHaul) {
+        boolean fullHaul,
+        boolean nobles) {
 
     /** A report that isn't a battle: no loot, no losses. */
     public ReportSummary(
@@ -40,7 +43,7 @@ public record ReportSummary(
             VillageRefDto to,
             BattleOutcome outcome,
             List<ScoutedBanner> bannersGained) {
-        this(from, to, outcome, bannersGained, null, Map.of(), false);
+        this(from, to, outcome, bannersGained, null, Map.of(), false, false);
     }
 
     public ReportSummary {

@@ -98,7 +98,7 @@ function GameFrame() {
   // New levels and production show up by themselves when a build order ends, on every screen.
   useRefreshWhenBuildsEnd(village.data, village.dataUpdatedAt, village.errorUpdatedAt);
 
-  // Remember the village once it loaded (it is the player's), so "/" opens it next time.
+  // Remember the village once it loaded (it is the player's), so "/" opens it again in this session.
   useEffect(() => {
     if (loadedId !== undefined) {
       rememberVillage(loadedId);

@@ -1097,6 +1097,7 @@ export const de: Dictionary = {
     total: (count: number) => (count === 1 ? '1 Bericht' : `${count} Berichte`),
     unreadBadge: (count: number) => (count === 1 ? '1 ungelesener Bericht' : `${count} ungelesene Berichte`),
     unread: 'ungelesen',
+    withNobles: 'mit Adligen',
     markAllRead: 'Alle als gelesen markieren',
     deleteAll: 'Alle löschen',
     deleteBarbarian: 'Barbarenberichte löschen',
@@ -1138,7 +1139,7 @@ export const de: Dictionary = {
       `${total === 1 ? 'Dein Bericht wird' : `Alle ${total} Berichte werden`} gelöscht${unread > 0 && total > 1 ? ` (davon ${unread} ungelesen)` : ''}. Das kann nicht rückgängig gemacht werden. Berichte, die ab jetzt ankommen, bleiben.`,
     deleteBarbarianTitle: 'Barbarenberichte löschen?',
     deleteBarbarianText: (count: number) =>
-      `${count === 1 ? 'Dein Bericht über einen Angriff oder eine Spähaktion auf ein Barbarendorf wird' : `Deine ${count} Berichte über Angriffe und Spähaktionen auf Barbarendörfer werden`} gelöscht. Berichte mit einem neuen Banner bleiben, ebenso Berichte, die dir andere geschickt haben, und alle, die ab jetzt ankommen. Das kann nicht rückgängig gemacht werden.`,
+      `${count === 1 ? 'Dein Bericht über einen Angriff oder eine Spähaktion auf ein Barbarendorf wird' : `Deine ${count} Berichte über Angriffe und Spähaktionen auf Barbarendörfer werden`} gelöscht. Berichte mit einem neuen Banner oder mit Adligen bleiben, ebenso Berichte, die dir andere geschickt haben, und alle, die ab jetzt ankommen. Das kann nicht rückgängig gemacht werden.`,
     empty: 'Noch keine Berichte. Sie erscheinen hier, wenn deine Truppen kämpfen oder eine Unterstützung ankommt.',
     emptyPage: 'Auf dieser Seite gibt es keine Berichte mehr.',
     unreadableText: 'Dieser Bericht kann nicht mehr angezeigt werden. Du kannst ihn löschen.',

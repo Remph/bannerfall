@@ -95,7 +95,7 @@ class ReportController {
 
     /**
      * Deletes the player's own attack and scout reports on barbarian villages up to {@code upTo},
-     * except those with a new banner (1.2.3, 02-game-rules §14).
+     * except those with a new banner (1.2.3, 02-game-rules §14) or with nobles (1.4.1).
      */
     @PostMapping("/delete-barbarian")
     @ResponseStatus(HttpStatus.NO_CONTENT)

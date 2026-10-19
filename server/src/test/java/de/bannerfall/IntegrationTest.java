@@ -25,6 +25,9 @@ import org.springframework.context.annotation.Import;
  * <p>The write rate limit, the automatic lock, the login and registration limits per address and
  * the session cap per account are as good as off (M14e, code review 1.2).
  *
+ * <p>Password hashes take one PBKDF2 round instead of the server's 310,000 ({@link
+ * TestPasswordEncoderConfiguration}).
+ *
  * <p>The host token is {@link #ADMIN_TOKEN}; the host cheats are off (the {@code dev} profile of
  * {@code DevCheatControllerTest} switches them on).
  *
@@ -61,6 +64,7 @@ import org.springframework.context.annotation.Import;
     TestRandomSourceConfiguration.class,
     TestEventHandlerConfiguration.class,
     TestWorldConfiguration.class,
+    TestPasswordEncoderConfiguration.class,
     SentMessages.class
 })
 public @interface IntegrationTest {

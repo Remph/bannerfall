@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useMatch, useNavigate, useOutlet, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
@@ -46,25 +46,17 @@ const ARMED_MS = 4000;
 /**
  * /reports and /reports/:reportId (the child route, `ReportPage`). Phones: the list, or the report
  * as a page of its own. Desktop (1.3): the list with the open report next to it, or a hint to pick
- * one; the list stays where it is while reports are opened.
+ * one; the list stays where it is while reports are opened. The title, the buttons and the filter
+ * chips run across both columns there (1.4.1), each in one row.
  */
 export function ReportsPage() {
-  const t = useT();
   const split = useMediaQuery(DESKTOP_QUERY);
   const detail = useOutlet();
   const openId = parseReportId(useMatch('/reports/:reportId')?.params.reportId);
   if (!split) {
     return detail ?? <ReportList openId={undefined} reportPages />;
   }
-  return (
-    <ListDetail
-      list={<ReportList openId={openId} />}
-      detail={detail}
-      empty={t.reports.pickReport}
-      label={t.reports.openReport}
-      openKey={openId}
-    />
-  );
+  return <ReportList openId={openId} detail={detail} />;
 }
 
 /**
@@ -76,7 +68,16 @@ export function ReportsPage() {
  * paging and filtering keep it open. `reportPages`: a report opens as a page of its own (phones), with the
  * cross-fade of a page change (1.3); next to the list it fades in by itself (ListDetail).
  */
-function ReportList({ openId, reportPages = false }: { openId: number | undefined; reportPages?: boolean }) {
+function ReportList({
+  openId,
+  reportPages = false,
+  detail,
+}: {
+  openId: number | undefined;
+  reportPages?: boolean;
+  /** Desktop: the open report (or null), shown next to the list below the page's head. */
+  detail?: ReactNode;
+}) {
   const t = useT();
   const [params] = useSearchParams();
   const page = pageFromSearch(params);
@@ -106,18 +107,38 @@ function ReportList({ openId, reportPages = false }: { openId: number | undefine
   // the same for "Delete barbarian reports": the newest report seen and how many will go
   const [deleteBarbarianOf, setDeleteBarbarianOf] = useState<{ upTo: number; count: number } | null>(null);
 
+  // desktop: the list's own part next to the open report (the head runs across both columns). The
+  // key keeps the open report mounted while another filter or page loads.
+  const withDetail = (list: ReactNode) =>
+    detail === undefined ? (
+      list
+    ) : (
+      <ListDetail
+        key="split"
+        list={list}
+        detail={detail}
+        empty={t.reports.pickReport}
+        label={t.reports.openReport}
+        openKey={openId}
+      />
+    );
+
   if (reports.isError) {
     return (
-      <div className={styles.status}>
-        <ErrorMessage>{errorMessage(t, reports.error)}</ErrorMessage>
-        <Button type="button" onClick={() => void reports.refetch()}>
-          {t.common.retry}
-        </Button>
+      <div className={styles.page}>
+        {withDetail(
+          <div className={styles.status}>
+            <ErrorMessage>{errorMessage(t, reports.error)}</ErrorMessage>
+            <Button type="button" onClick={() => void reports.refetch()}>
+              {t.common.retry}
+            </Button>
+          </div>,
+        )}
       </div>
     );
   }
   if (reports.isPending) {
-    return <p>{t.common.loading}</p>;
+    return <div className={styles.page}>{withDetail(<p>{t.common.loading}</p>)}</div>;
   }
 
   const { items, total: shownTotal, unread, newestId, barbarian, counts } = reports.data;
@@ -264,75 +285,79 @@ function ReportList({ openId, reportPages = false }: { openId: number | undefine
       />
 
       {total > 0 && <FilterChips value={filter} counts={counts} total={total} pathFor={(chip) => listPath(0, chip)} />}
-      {items.length === 0 ? (
-        <div className={styles.panel}>
-          <p className={styles.empty}>
-            {page > 0 ? t.reports.emptyPage : filter !== null ? t.reports.emptyFilter : t.reports.empty}
-          </p>
-          {page > 0 && (
-            <p className={styles.empty}>
-              <Link to={pathFor(0)}>{t.reports.toFirstPage}</Link>
-            </p>
+      {withDetail(
+        <div className={styles.listBody}>
+          {items.length === 0 ? (
+            <div className={styles.panel}>
+              <p className={styles.empty}>
+                {page > 0 ? t.reports.emptyPage : filter !== null ? t.reports.emptyFilter : t.reports.empty}
+              </p>
+              {page > 0 && (
+                <p className={styles.empty}>
+                  <Link to={pathFor(0)}>{t.reports.toFirstPage}</Link>
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className={styles.days}>
+              {groupByDay(items).map(({ day, items: dayItems }) => (
+                <section key={day} className={styles.day} aria-labelledby={`reports-${day}`}>
+                  <DayHeading id={`reports-${day}`} ms={Date.parse(dayItems[0]!.listedAt)} />
+                  <ul className={`${styles.panel} ${styles.list}`}>
+                    {dayItems.map((item) => (
+                      <ReportLine
+                        key={item.id}
+                        item={item}
+                        day={day}
+                        to={reportPath(item.id, page, filter)}
+                        open={item.id === openId}
+                        pageTransition={reportPages}
+                        selecting={selecting}
+                        chosen={chosenIds.includes(item.id)}
+                        onToggle={() =>
+                          choose(
+                            chosenIds.includes(item.id)
+                              ? chosenIds.filter((id) => id !== item.id)
+                              : [...chosenIds, item.id],
+                          )
+                        }
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
           )}
-        </div>
-      ) : (
-        <div className={styles.days}>
-          {groupByDay(items).map(({ day, items: dayItems }) => (
-            <section key={day} className={styles.day} aria-labelledby={`reports-${day}`}>
-              <DayHeading id={`reports-${day}`} ms={Date.parse(dayItems[0]!.listedAt)} />
-              <ul className={`${styles.panel} ${styles.list}`}>
-                {dayItems.map((item) => (
-                  <ReportLine
-                    key={item.id}
-                    item={item}
-                    day={day}
-                    to={reportPath(item.id, page, filter)}
-                    open={item.id === openId}
-                    pageTransition={reportPages}
-                    selecting={selecting}
-                    chosen={chosenIds.includes(item.id)}
-                    onToggle={() =>
-                      choose(
-                        chosenIds.includes(item.id)
-                          ? chosenIds.filter((id) => id !== item.id)
-                          : [...chosenIds, item.id],
-                      )
-                    }
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
-      {deleteChosen.isError && <ErrorMessage>{errorMessage(t, deleteChosen.error)}</ErrorMessage>}
+          {deleteChosen.isError && <ErrorMessage>{errorMessage(t, deleteChosen.error)}</ErrorMessage>}
 
-      {pages > 1 && (
-        <Pagination
-          page={page}
-          pages={pages}
-          pathFor={pathFor}
-          label={t.reports.pagesLabel}
-          previous={t.reports.newer}
-          next={t.reports.older}
-          info={t.reports.page(page + 1, pages)}
-        />
-      )}
-      {selecting && items.length > 0 && (
-        <SelectBar
-          count={chosenIds.length}
-          allChosen={allChosen}
-          pending={deleteChosen.isPending}
-          onChooseAll={() => choose(allChosen ? [] : items.map((item) => item.id))}
-          onDelete={() =>
-            deleteChosen.mutate(chosenIds, {
-              onSuccess: () => {
-                closeIfDeleted(openId !== undefined && chosenIds.includes(openId), list);
-                choose([]);
-              },
-            })
-          }
-        />
+          {pages > 1 && (
+            <Pagination
+              page={page}
+              pages={pages}
+              pathFor={pathFor}
+              label={t.reports.pagesLabel}
+              previous={t.reports.newer}
+              next={t.reports.older}
+              info={t.reports.page(page + 1, pages)}
+            />
+          )}
+          {selecting && items.length > 0 && (
+            <SelectBar
+              count={chosenIds.length}
+              allChosen={allChosen}
+              pending={deleteChosen.isPending}
+              onChooseAll={() => choose(allChosen ? [] : items.map((item) => item.id))}
+              onDelete={() =>
+                deleteChosen.mutate(chosenIds, {
+                  onSuccess: () => {
+                    closeIfDeleted(openId !== undefined && chosenIds.includes(openId), list);
+                    choose([]);
+                  },
+                })
+              }
+            />
+          )}
+        </div>,
       )}
     </div>
   );
@@ -461,9 +486,9 @@ interface ReportLineProps {
 }
 
 /**
- * One report: kind icon (coloured by the result), title, time and result, the banners the reader
- * gained there, who sent it (a copy, M40); a battle's loot and losses (1.3). It opens the report,
- * or in select mode chooses it.
+ * One report: kind icon (coloured by the result, a gold ring for an attack with nobles, 1.4.1),
+ * title, time and result, the banners the reader gained there, who sent it (a copy, M40); a
+ * battle's loot and losses (1.3). It opens the report, or in select mode chooses it.
  */
 function ReportLine({ item, day, to, open, pageTransition, selecting, chosen, onToggle }: ReportLineProps) {
   const { t, language } = useI18n();
@@ -472,10 +497,11 @@ function ReportLine({ item, day, to, open, pageTransition, selecting, chosen, on
   const title = reportTitle(t, item.kind, item.summary, viewerOf(item.sharedBy, me.playerId));
   const result = resultFor(item.kind, item.summary?.outcome ?? null);
   const bannersGained = item.summary?.bannersGained ?? [];
+  const nobles = item.summary?.nobles ?? false;
   const happenedAt = Date.parse(item.happenedAt);
   const content = (
     <>
-      <span className={[styles.kindIcon, styles[result]].filter(Boolean).join(' ')}>
+      <span className={[styles.kindIcon, styles[result], nobles && styles.noble].filter(Boolean).join(' ')}>
         <Icon name={reportIcon(item.kind, item.summary?.outcome ?? null)} />
       </span>
       <span className={styles.lineText}>
@@ -484,7 +510,10 @@ function ReportLine({ item, day, to, open, pageTransition, selecting, chosen, on
           {title}
         </span>
         <span className={styles.lineMeta}>
-          <span className="sr-only">{t.reports.kinds[item.kind]} · </span>
+          <span className="sr-only">
+            {t.reports.kinds[item.kind]}
+            {nobles && `, ${t.reports.withNobles}`} ·{' '}
+          </span>
           {calendarDay(happenedAt) === day ? formatTime(happenedAt, language) : formatDateTime(happenedAt, language)}
           {result !== 'none' && (
             <span className={[styles.resultPill, styles[result]].filter(Boolean).join(' ')}>

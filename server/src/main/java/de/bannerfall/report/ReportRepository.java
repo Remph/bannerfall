@@ -149,8 +149,9 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
      * What "Delete barbarian reports" removes (1.2.3, 02-game-rules §14): the player's own attack
      * and scout reports on a village that was barbarian then (the defender snapshot has no owner),
      * except those where he gained a banner (found, or stolen by his thieves; the "New banner"
-     * pill, {@code BattleReport.bannersGained}). Copies other players sent stay. Reads the stored
-     * JSON, so an unreadable payload counts too when its defender has no owner.
+     * pill, {@code BattleReport.bannersGained}) and, since 1.4.1, those of attacks with nobles.
+     * Copies other players sent stay. Reads the stored JSON, so an unreadable payload counts too
+     * when its defender has no owner. {@code attackerUnits} only holds counts above 0.
      */
     String BARBARIAN_WITHOUT_BANNER =
             " and r.kind in ('ATTACK', 'SCOUT') and r.shared_by_id is null"
@@ -159,7 +160,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
                     + " <> 'object'"
                     + " and not coalesce(r.payload -> 'banners' -> 'theft' ->> 'result' = 'STOLEN'"
                     + " and jsonb_typeof(r.payload -> 'banners' -> 'theft' -> 'banner')"
-                    + " = 'object', false)";
+                    + " = 'object', false)"
+                    + " and r.payload -> 'attackerUnits' -> 'NOBLE' is null";
 
     /**
      * How many reports "Delete barbarian reports" would delete with the same {@code upToId}, so the

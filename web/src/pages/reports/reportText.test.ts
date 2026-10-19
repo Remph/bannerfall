@@ -10,7 +10,7 @@ const tom: VillageRef = { id: 2, name: 'Tomburg', x: 50, y: 50, playerId: 8, pla
 const barbarians: VillageRef = { id: 3, name: null, x: 40, y: 40, playerId: null, playerName: null };
 
 function summary(from: VillageRef, to: VillageRef): ReportSummary {
-  return { from, to, outcome: null, bannersGained: [], loot: null, losses: {}, fullHaul: false };
+  return { from, to, outcome: null, bannersGained: [], loot: null, losses: {}, fullHaul: false, nobles: false };
 }
 
 describe('reportTitle', () => {

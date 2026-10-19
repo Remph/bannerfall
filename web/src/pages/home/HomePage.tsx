@@ -7,7 +7,8 @@ import { PregamePage } from '../pregame/PregamePage';
 import { RespawnPage } from '../respawn/RespawnPage';
 
 /**
- * "/" opens the last village the player looked at, or their first one. A player who lost his last
+ * "/" opens the last village the player looked at in this browser session, else their first one,
+ * the main village (also after a new start of the game, 1.4.1). A player who lost his last
  * village (M11) gets the respawn screen here.
  */
 export function HomePage() {

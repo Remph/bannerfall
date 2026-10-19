@@ -116,6 +116,32 @@ class ReportSummaryTest {
     }
 
     @Test
+    void anAttackWithNoblesIsMarkedInEveryCopy() {
+        BattleReport withNobles =
+                new BattleReport(
+                        BEN,
+                        TOM,
+                        BattleOutcome.ATTACKER_WON,
+                        0.0,
+                        Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 1),
+                        Map.of(UnitType.NOBLE, 1),
+                        null,
+                        null,
+                        null,
+                        ResourceAmounts.ZERO,
+                        null);
+
+        assertThat(withNobles.summary(ReportKind.ATTACK).nobles()).isTrue();
+        assertThat(withNobles.summary(ReportKind.DEFENSE).nobles()).isTrue();
+        assertThat(battle(null).summary(ReportKind.ATTACK).nobles()).isFalse();
+        assertThat(
+                        new ConquestReport(TOM, BEN, "Tomburg", null)
+                                .summary(ReportKind.CONQUEST)
+                                .nobles())
+                .isFalse();
+    }
+
+    @Test
     void reportsThatArentBattlesHaveNoLootOrLosses() {
         ConquestReport conquest = new ConquestReport(TOM, BEN, "Tomburg", null);
         BattleReport scouts =

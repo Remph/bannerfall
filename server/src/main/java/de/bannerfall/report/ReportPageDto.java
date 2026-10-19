@@ -14,6 +14,7 @@ import java.util.Map;
  *     sends it back, so a report that arrives while the player confirms isn't deleted unseen
  * @param barbarian how many reports "Delete barbarian reports" would delete with {@code newestId}
  *     (1.2.3): the player's own attack and scout reports on barbarian villages without a new banner
+ *     and (1.4.1) without nobles
  * @param counts the player's reports per filter (1.3), every filter listed, 0 included; their sum
  *     is all his reports
  */
