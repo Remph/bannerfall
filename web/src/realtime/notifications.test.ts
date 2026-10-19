@@ -22,6 +22,7 @@ function me(villages: { id: number; name: string; incomingAttacks: number }[]): 
     points: 100,
     protectedUntil: '2026-10-06T12:00:00Z',
     needsRespawn: false,
+    linked: false,
     villages: villages.map((village) => ({ ...village, x: 50, y: 50, points: 100 })),
   };
 }

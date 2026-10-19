@@ -47,3 +47,6 @@ START.md
 
 # Database dumps written by ops/bannerfall-backup
 /backups/
+
+# The shared proxy's list of worlds on a server (edge/sites.caddy.example is the template)
+/edge/sites.caddy

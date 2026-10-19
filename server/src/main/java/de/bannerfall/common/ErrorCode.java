@@ -281,5 +281,23 @@ public enum ErrorCode {
      * Fusing village banners with paladin standards: the three must be of one family (409, 1.4,
      * 02-game-rules §21.18).
      */
-    BANNER_FAMILIES_DIFFER
+    BANNER_FAMILIES_DIFFER,
+
+    // Account server (1.5, 01-architecture §4.9a)
+    /**
+     * Login or registration with a password while the world only takes the account server (403).
+     */
+    LOCAL_LOGIN_OFF,
+    /** A password change or reset of an account that logs in through the account server (409). */
+    ACCOUNT_LINKED,
+    /** Joining without a login at the account server in this session, or it expired (409). */
+    EXTERNAL_LOGIN_MISSING,
+    /** The account server's name for the player doesn't fit this world's name rules (409). */
+    EXTERNAL_NAME_INVALID,
+    /** Linking while the world doesn't allow it, or an account that is linked already (409). */
+    LINK_NOT_ALLOWED,
+
+    // Push notifications (1.5, 01-architecture §4.8b)
+    /** Turning push on while the world has no push keys (409). */
+    PUSH_UNAVAILABLE
 }

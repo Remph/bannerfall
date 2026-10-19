@@ -82,6 +82,13 @@ function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onO
           </li>
         )}
         <li>
+          <Link className={styles.row} to="/notifications" onClick={onNavigate}>
+            <Icon name="bell" className={styles.rowIcon} />
+            <span>{t.push.link}</span>
+            <Icon name="chevronRight" className={styles.rowChevron} />
+          </Link>
+        </li>
+        <li>
           <Link className={styles.row} to="/password" onClick={onNavigate}>
             <Icon name="settings" className={styles.rowIcon} />
             <span>{t.settings.changePassword}</span>

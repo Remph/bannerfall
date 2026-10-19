@@ -23,7 +23,16 @@ public class Account {
     /** Lower-case username: used for login and uniqueness ("Ben" and "ben" are the same). */
     private String usernameKey;
 
+    /** Null for an account that logs in through the account server ({@link #isLinked}). */
     private String passwordHash;
+
+    /**
+     * The OpenID Connect provider and its id of the account (1.5, 01-architecture §4.9a): set for
+     * an account that logs in through the account server, null for a local account.
+     */
+    private String externalIssuer;
+
+    private String externalSubject;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -61,6 +70,15 @@ public class Account {
         this.createdAt = createdAt;
     }
 
+    /** A new account of a player who logs in through the account server: no password here. */
+    public static Account external(
+            String username, String issuer, String subject, Role role, Instant createdAt) {
+        Account account = new Account(username, null, role, createdAt);
+        account.externalIssuer = issuer;
+        account.externalSubject = subject;
+        return account;
+    }
+
     public static String keyOf(String username) {
         return username.toLowerCase(Locale.ROOT);
     }
@@ -80,6 +98,36 @@ public class Account {
     public void changePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
         endSessions();
+    }
+
+    /**
+     * The local account now belongs to the account server's account {@code subject} (1.5): from now
+     * on it logs in there, its password here is gone, and its open sessions end.
+     */
+    public void linkTo(String issuer, String subject) {
+        this.externalIssuer = issuer;
+        this.externalSubject = subject;
+        this.passwordHash = null;
+        endSessions();
+    }
+
+    /** Back to a local account (the host's password reset); a password must follow. */
+    public void unlink() {
+        this.externalIssuer = null;
+        this.externalSubject = null;
+    }
+
+    /** Logs in through the account server, not with a password of this world. */
+    public boolean isLinked() {
+        return externalSubject != null;
+    }
+
+    public String getExternalIssuer() {
+        return externalIssuer;
+    }
+
+    public String getExternalSubject() {
+        return externalSubject;
     }
 
     /** Banned until {@code until} (M14e); ends the open sessions. */

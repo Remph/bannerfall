@@ -16,6 +16,8 @@ import de.bannerfall.rules.BannerRules;
 import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.Production;
 import de.bannerfall.rules.Storage;
+import de.bannerfall.statistics.Stat;
+import de.bannerfall.statistics.StatisticsService;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitService;
 import de.bannerfall.world.WorldService;
@@ -40,6 +42,7 @@ public class VillageStateService {
     private final UnitService unitService;
     private final AchievementService achievements;
     private final VillageBanners villageBanners;
+    private final StatisticsService statistics;
 
     VillageStateService(
             WorldService worldService,
@@ -47,13 +50,15 @@ public class VillageStateService {
             DismissOrderRepository dismissOrders,
             UnitService unitService,
             AchievementService achievements,
-            VillageBanners villageBanners) {
+            VillageBanners villageBanners,
+            StatisticsService statistics) {
         this.worldService = worldService;
         this.recruitOrders = recruitOrders;
         this.dismissOrders = dismissOrders;
         this.unitService = unitService;
         this.achievements = achievements;
         this.villageBanners = villageBanners;
+        this.statistics = statistics;
     }
 
     /**
@@ -105,14 +110,16 @@ public class VillageStateService {
     }
 
     /**
-     * Siegecraft, Noble Blood and Standing Army (02-game-rules §19). A catch-up of a village the
-     * owner doesn't look at (an attack on it) can finish his units too: they are his all the same.
+     * Siegecraft, Noble Blood and Standing Army (02-game-rules §19) and the recruited units of the
+     * statistics (§24). A catch-up of a village the owner doesn't look at (an attack on it) can
+     * finish his units too: they are his all the same.
      */
     private void unitsFinished(Village village, UnitType unit, int count) {
         Player owner = village.getPlayer();
         if (owner == null) {
             return;
         }
+        statistics.add(owner.getId(), Stat.UNITS_RECRUITED, count);
         switch (unit) {
             case RAM, CATAPULT -> achievements.grant(owner, Achievement.SIEGECRAFT);
             case NOBLE -> achievements.grant(owner, Achievement.NOBLE_BLOOD);

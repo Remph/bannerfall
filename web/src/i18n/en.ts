@@ -7,6 +7,8 @@ import type { VillageKind } from '../game/mapView';
 import type { ReportKind, TheftResult } from '../game/reports';
 import type { CommandKind, MovementKind } from '../game/troops';
 import type { MapActionKey } from '../pages/map/mapActions';
+import type { RankingKind } from '../api/queries/ranking';
+import type { PushKind } from '../push/pushMessage';
 
 /**
  * English texts – the source dictionary. de.ts must have exactly the same keys (the compiler checks it).
@@ -53,6 +55,38 @@ export const en = {
       passwordLength: 'The password needs 8 to 128 characters.',
     },
   },
+  /** Logging in through the account server (1.5): its name comes from the server, e.g. "bannerfall.de". */
+  accountServer: {
+    loginButton: (server: string) => `Log in with ${server}`,
+    or: 'or with your password here',
+    requiredHint: (server: string) => `On this world you play with your ${server} account.`,
+    linkingHint: (server: string) =>
+      `Already playing here? Log in with your password as before. Under “Change password” you can link your account to ${server}.`,
+    problems: {
+      FAILED: (server: string) => `The login at ${server} did not work. Please try again.`,
+      UNAVAILABLE: (server: string) => `${server} cannot be reached right now. Please try again later.`,
+      BANNED: (server: string) => `This account is banned on this world (${server}).`,
+      DELETED: () => 'This player was deleted on this world.',
+      ALREADY_LINKED: (server: string) =>
+        `Your ${server} account already belongs to another player on this world. Log in with it instead.`,
+      LINK_NOT_ALLOWED: () => 'Linking is not possible on this world (any more).',
+    },
+    joinTitle: 'Join this world',
+    joinText: (name: string, server: string) =>
+      `You are logged in at ${server} as ${name}. This world needs an invite code before you can start.`,
+    joinButton: 'Start playing',
+    joining: 'Founding your village…',
+    joinMissing: (server: string) => `Log in with ${server} first.`,
+    joinNameTaken: (name: string, server: string) =>
+      `A player named ${name} already plays on this world. If that is you, log in with your password and link the account to ${server} under “Change password”.`,
+    linkTitle: (server: string) => `Log in with ${server}`,
+    linkText: (server: string) =>
+      `Link this account to your ${server} account: from then on you log in there, with the same account on every world. Your name here stays. The password of this world stops working.`,
+    linkButton: (server: string) => `Link with ${server}`,
+    linking: 'Going there…',
+    linked: (server: string) =>
+      `This account is linked to ${server}. You log in there, and you change your password there too.`,
+  },
   home: {
     noVillage: 'You have no village at the moment.',
   },
@@ -97,6 +131,58 @@ export const en = {
     version: 'Version',
     changePassword: 'Change password',
     worldInfo: 'World settings',
+  },
+  /**
+   * 1.5: push notifications. The Notifications page, and the notifications themselves (the service
+   * worker writes them; the realtime texts above are reused where they fit).
+   */
+  push: {
+    link: 'Notifications',
+    title: 'Notifications',
+    back: 'Back to the game',
+    intro: 'Get a notification on this device while the game is closed, for example as soon as an attack is sent.',
+    deviceTitle: 'This device',
+    deviceOn: 'Notifications are on for this device.',
+    deviceOff: 'Notifications are off for this device.',
+    turnOn: 'Turn on',
+    turnOff: 'Turn off',
+    working: 'One moment…',
+    test: 'Send a test',
+    testSent: 'Test sent. It should arrive within a few seconds.',
+    devices: (count: number) =>
+      count === 1 ? 'Notifications reach 1 of your devices.' : `Notifications reach ${count} of your devices.`,
+    blocked:
+      'Notifications are blocked for this game in your browser. Allow them in the browser’s settings for this site, then try again.',
+    unsupported: 'This browser can’t show notifications from the game.',
+    iosInstall:
+      'On an iPhone or iPad, notifications only work from the home screen: tap Share, then “Add to Home Screen”, and open the game from there.',
+    unavailable: 'This world doesn’t send notifications.',
+    failed: 'Notifications could not be turned on on this device.',
+    kindsTitle: 'What to notify',
+    kinds: {
+      ATTACK: 'Incoming attacks',
+      VILLAGE_LOST: 'Lost villages',
+      MESSAGE: 'Private messages',
+      GUILD_INVITE: 'Guild invitations',
+      WORLD_END: 'Victory clock and end of the world',
+      BUILDS_DONE: 'Build queue empty',
+    } satisfies Record<PushKind, string>,
+    kindHints: {
+      ATTACK: 'As soon as an attack on one of your villages is sent, with its arrival.',
+      VILLAGE_LOST: 'When one of your villages is conquered.',
+      MESSAGE: 'When another player writes to you.',
+      GUILD_INVITE: 'When a guild invites you.',
+      WORLD_END: 'When a side starts or stops the victory clock, and when the world ends.',
+      BUILDS_DONE: 'When the last building in a village’s build queue is done.',
+    } satisfies Record<PushKind, string>,
+    /** The notifications themselves. */
+    testBody: 'Notifications work on this device.',
+    attacks: (count: number, target: string, first: string) =>
+      `${count} attacks on the way to ${target} – first arrival ${first}`,
+    villageLost: (village: string, by: string | null) =>
+      by === null ? `${village} was conquered` : `${by} conquered ${village}`,
+    buildsDone: (village: string, building: string, level: number) =>
+      `${village}: the build queue is empty. ${building} reached level ${level}.`,
   },
   /** The banner after a new version was deployed (M28): links to the changelog on bannerfall.de. */
   changelogBanner: {
@@ -1698,6 +1784,60 @@ export const en = {
     previous: 'Previous',
     next: 'Next',
     page: (page: number, pages: number) => `Page ${page} of ${pages}`,
+    /** The tabs (1.5, 02-game-rules §24): what the list is sorted by. */
+    tabsLabel: 'Sort the ranking by',
+    tabs: {
+      POINTS: 'Points',
+      ATTACKER: 'Attacker',
+      DEFENDER: 'Defender',
+      PLUNDERER: 'Plunderer',
+    } satisfies Record<RankingKind, string>,
+    tabHint: {
+      POINTS: 'Everyone by the points of their villages.',
+      ATTACKER: 'Defenders killed in their attacks, counted by population.',
+      DEFENDER: 'Attackers killed where they defended, counted by population.',
+      PLUNDERER: 'Resources taken in attacks.',
+    } satisfies Record<RankingKind, string>,
+    worldStatistics: 'World statistics',
+  },
+  /** Statistics (1.5, 02-game-rules §24): the profile's card and charts, and the world page. */
+  statistics: {
+    title: 'Statistics',
+    history: 'Over time',
+    since: (date: string) => `Counted since ${date}.`,
+    populationNote: 'Kills and losses are counted by population: a unit counts as much as the farm space it needs.',
+    attacks: 'Attacks',
+    defences: 'Defences',
+    wonLost: (won: string, lost: string) => `${won} won · ${lost} lost`,
+    killedAttacking: 'Killed attacking',
+    killedDefending: 'Killed defending',
+    unitsLost: 'Own units lost',
+    loot: 'Loot',
+    takenLost: (taken: string, lost: string) => `${taken} taken · ${lost} lost`,
+    villages: 'Villages',
+    conqueredLost: (conquered: string, lost: string) => `${conquered} conquered · ${lost} lost`,
+    unitsRecruited: 'Units recruited',
+    buildingLevels: 'Building levels finished',
+    chart: {
+      POINTS: 'Points',
+      VILLAGES: 'Villages',
+    } satisfies Record<'POINTS' | 'VILLAGES', string>,
+    chartLabel: 'Show over time',
+    day: 'Day',
+    oneDay: 'The first day: the line grows from tomorrow on.',
+    worldTitle: 'World statistics',
+    worldIntro: 'How the world has grown, day by day. Each day shows the state at its end; today shows now.',
+    leaders: 'Leading players',
+    leadersHint: 'Points of today’s top five over time.',
+    world: 'The world',
+    worldChart: {
+      VILLAGES: 'Villages',
+      BARBARIANS: 'Barbarian villages',
+      PLAYERS: 'Players',
+      POINTS: 'Points',
+    } satisfies Record<'VILLAGES' | 'BARBARIANS' | 'PLAYERS' | 'POINTS', string>,
+    worldFacts: (players: string, villages: string, barbarians: string) =>
+      `${players} players · ${villages} villages · ${barbarians} barbarian villages`,
   },
   /** How the world is won (v1.3, 02-game-rules §22): the card above the ranking. */
   victory: {
@@ -1772,6 +1912,7 @@ export const en = {
     noVillages: 'This player has no villages.',
     npcHint: 'An NPC lord plays by the same rules as everyone else.',
     guild: 'Guild',
+    career: 'Career on every realm',
     onMap: 'On the map',
     invite: 'Invite to guild',
     invited: 'Invited to your guild. You can take the invitation back on the guild page.',
@@ -1899,8 +2040,13 @@ export const en = {
     accountTitle: 'Your account',
     account:
       'Your player name and your password, which is stored only as a hash: it can’t be turned back into your password, not even by the host. Also when you registered and last logged in, your role, and a ban with its reason. No email address, no real name, no payment details.',
+    accountServerTitle: 'Logging in through an account server',
+    accountServer: (server: string) =>
+      `This world also lets you log in with an account at ${server}, a separate service with its own privacy page. If you do, this world gets from it only your account’s id there and your name, and keeps no password of yours: your login runs through ${server}. If that account is banned or deleted there, ${server} tells this world, which ends your logins here.`,
+    accountServerCareer: (server: string) =>
+      `For your career page there, this world also tells ${server} every few minutes how you are doing here: your name, points, villages, rank, achievements, a few battle totals and, once the world has ended, its result for you. ${server} shows it to the players logged in there.`,
     gameTitle: 'Your game',
-    game: 'Villages, troops, buildings, reports, farm list, notes on villages, achievements and guild: everything the game needs to run. Your name, villages, points and guild are visible to the other players of this world (map, ranking, profile). Your notes on villages are shown to nobody else, but like messages they are stored unencrypted on the server.',
+    game: 'Villages, troops, buildings, reports, farm list, notes on villages, achievements, statistics and guild: everything the game needs to run. Your name, villages, points, guild and statistics (battles, kills, loot, conquests, recruited units, building levels, and your points and villages per day) are visible to the other players of this world (map, ranking, profile). Your notes on villages are shown to nobody else, but like messages they are stored unencrypted on the server.',
     messagesTitle: 'Messages and chat',
     messages:
       'Private messages, the guild chat and the world chat are stored on the server, so they are still there next time. They are not encrypted there: the host can read them and can hide chat messages that break the rules.',
@@ -1911,10 +2057,12 @@ export const en = {
     logs: 'The server log notes events such as failed logins and locked accounts with the player name. The log files are deleted after 14 days; the server’s console output is limited in size and starts afresh with every update. Requests the game’s own page never sends (signs of cheating) are noted per account for 30 days. What the host does (bans, password resets, deleted players) stays in the host’s log.',
     cookiesTitle: 'Cookies and browser storage',
     cookies:
-      'Two cookies, both needed to play: one keeps you logged in (up to 30 days), the other protects against forged requests. Your browser also remembers settings such as language, theme and map view. No tracking, no ads, no outside services: fonts and pictures come from this server.',
+      'Two cookies, both needed to play: one keeps you logged in (up to 30 days), the other protects against forged requests. Your browser also remembers settings such as language, theme and map view. No tracking, no ads: fonts and pictures come from this server, and the only outside service is the push service of notifications you turn on yourself.',
     purposeTitle: 'Why and for how long',
     purpose:
       'The data is needed to play (your account and game) and to protect the world against abuse (address limits and logs); in the terms of the GDPR, Art. 6(1)(b) and (f). It is kept as long as the world runs; the backups of the database are kept for 14 days unless the host keeps them longer.',
+    pushTitle: 'Notifications',
+    push: 'If you turn on notifications for a device, this world stores the address your browser got for that device at its push service (run by the browser’s maker, such as Google, Mozilla, Apple or Microsoft), two keys to encrypt the notifications, and the game’s language on that device. Each notification goes to that push service encrypted, so the service can’t read it; it only learns that something was sent, and when. The address is deleted when you turn notifications off or log out on that device, when your password changes, and when the push service says the device is gone.',
     rightsTitle: 'Your rights',
     rights:
       'You may ask the host what is stored about you, and have it corrected or deleted. In the game, deleting means the host deletes your player: you can no longer log in and your villages become barbarian villages. Your account entry, your name and what you wrote stay, because old reports, messages and chat lines point to them; only your notes on villages are deleted. You may also complain to a data protection authority.',
@@ -2388,6 +2536,13 @@ export const en = {
     LAST_ADMIN: 'The last admin cannot stop being one. Make someone else an admin first.',
     TOO_MANY_ADMIN_ATTEMPTS: 'Too many wrong host tokens. Wait a minute.',
     WRONG_PASSWORD: 'The current password is wrong.',
+    LOCAL_LOGIN_OFF: 'On this world you log in through the account server.',
+    ACCOUNT_LINKED: 'This account logs in through the account server. Change the password there.',
+    EXTERNAL_LOGIN_MISSING: 'Your login has expired. Please log in again.',
+    EXTERNAL_NAME_INVALID:
+      'Your name at the account server does not fit the name rules of this world (3–24 letters, digits, _ and -).',
+    LINK_NOT_ALLOWED: 'Linking is not possible right now.',
+    PUSH_UNAVAILABLE: 'This world doesn’t send notifications.',
     ACCOUNT_BANNED: 'This account is banned.',
     TOO_MANY_REQUESTS: 'Too many requests. Please slow down.',
     CANNOT_BAN_ADMIN: 'Admins cannot be banned. Remove the admin role first.',

@@ -1,0 +1,16 @@
+# The worlds on this server, one block each: the world's domain and its APP_PORT (from that world's
+# .env; every world on the server needs its own). Copy this file to sites.caddy and edit it; after
+# a change: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+one.example.com {
+	import world 8461
+}
+
+two.example.com {
+	import world 8462
+}
+
+# Another service on this server that is not a Bannerfall world gets a plain block of its own:
+# service.example.com {
+# 	reverse_proxy 127.0.0.1:8470
+# }

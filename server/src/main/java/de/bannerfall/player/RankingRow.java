@@ -14,6 +14,9 @@ public interface RankingRow {
 
     int getVillageCount();
 
+    /** What the ranking sorts by: the points, or the statistics total of its tab. */
+    long getValue();
+
     Long getGuildId();
 
     String getGuildTag();

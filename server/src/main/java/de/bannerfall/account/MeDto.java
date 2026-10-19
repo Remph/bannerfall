@@ -12,6 +12,7 @@ import java.util.List;
  *     again with {@code POST /api/me/respawn}; {@code villages} is empty then. Never in the
  *     pre-game (M14g): the player has no village yet because the world has not opened
  * @param villages the player's villages, oldest first
+ * @param linked the account logs in through the account server and has no password here (1.5)
  */
 public record MeDto(
         long accountId,
@@ -21,7 +22,8 @@ public record MeDto(
         int points,
         Instant protectedUntil,
         boolean needsRespawn,
-        List<VillageSummaryDto> villages) {
+        List<VillageSummaryDto> villages,
+        boolean linked) {
 
     static MeDto of(
             Account account, Player player, List<VillageSummaryDto> villages, boolean pregame) {
@@ -33,6 +35,7 @@ public record MeDto(
                 player.getPoints(),
                 player.getProtectedUntil(),
                 !pregame && !player.isNpc() && villages.isEmpty(),
-                villages);
+                villages,
+                account.isLinked());
     }
 }

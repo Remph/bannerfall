@@ -31,6 +31,18 @@ services:
       # Who runs this world, for the privacy page (/privacy); empty = the page shows only the data part.
       BANNERFALL_OPERATOR_NAME: ${BANNERFALL_OPERATOR_NAME:-}
       BANNERFALL_OPERATOR_CONTACT: ${BANNERFALL_OPERATOR_CONTACT:-}
+      # Logging in through an account server (docs/hosting.md, "Account server"); empty = only this
+      # world's own accounts.
+      BANNERFALL_ACCOUNT_SERVER_ISSUER: ${BANNERFALL_ACCOUNT_SERVER_ISSUER:-}
+      BANNERFALL_ACCOUNT_SERVER_CLIENT_ID: ${BANNERFALL_ACCOUNT_SERVER_CLIENT_ID:-}
+      BANNERFALL_ACCOUNT_SERVER_CLIENT_SECRET: ${BANNERFALL_ACCOUNT_SERVER_CLIENT_SECRET:-}
+      BANNERFALL_ACCOUNT_SERVER_NAME: ${BANNERFALL_ACCOUNT_SERVER_NAME:-}
+      BANNERFALL_ACCOUNT_SERVER_MODE: ${BANNERFALL_ACCOUNT_SERVER_MODE:-OFF}
+      BANNERFALL_ACCOUNT_SERVER_CAREER: ${BANNERFALL_ACCOUNT_SERVER_CAREER:-false}
+      # Push notifications (docs/hosting.md, "Push notifications"); both empty = no notifications.
+      BANNERFALL_PUSH_PUBLIC_KEY: ${BANNERFALL_PUSH_PUBLIC_KEY:-}
+      BANNERFALL_PUSH_PRIVATE_KEY: ${BANNERFALL_PUSH_PRIVATE_KEY:-}
+      BANNERFALL_PUSH_SUBJECT: ${BANNERFALL_PUSH_SUBJECT:-}
       # BANNERFALL_CHEATS_ENABLED is deliberately not passed on: no host cheats in production.
       TZ: ${TZ:-Europe/Berlin}
     depends_on:

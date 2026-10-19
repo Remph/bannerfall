@@ -2,6 +2,7 @@ package de.bannerfall.account;
 
 import java.io.Serial;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
@@ -22,7 +23,8 @@ public class AccountPrincipal extends User {
     AccountPrincipal(Account account) {
         super(
                 account.getUsername(),
-                account.getPasswordHash(),
+                // an account of the account server has none; erased right after the login anyway
+                Objects.requireNonNullElse(account.getPasswordHash(), ""),
                 !account.isDisabled(),
                 true,
                 true,

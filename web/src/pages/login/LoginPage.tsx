@@ -2,17 +2,20 @@ import { useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import { ApiError, errorMessage, isPermanentBan } from '../../api/errors';
 import { formatDateTime } from '../../game/format';
-import { useBanNotice, useLogin } from '../../api/queries/auth';
+import { ACCOUNT_SERVER_LOGIN, useAuthOptions, useBanNotice, useExternalLogin, useLogin } from '../../api/queries/auth';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { TextField } from '../../components/TextField';
 import { useI18n } from '../../i18n';
 import styles from '../auth.module.css';
+import { externalProblemText } from './externalLogin';
 
 export function LoginPage() {
   const { t, language } = useI18n();
   const login = useLogin();
   const banNotice = useBanNotice();
+  const options = useAuthOptions();
+  const external = useExternalLogin();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   // Show "required" only after the first submit, not while the user is still typing.
@@ -37,9 +40,43 @@ export function LoginPage() {
     login.mutate({ username: username.trim(), password });
   }
 
+  // Until the options are known nothing but the title shows (no password form flashing up on a
+  // world without passwords); if they can't be loaded, the world's own login is offered.
+  const mode = options.data?.mode ?? (options.isError ? 'OFF' : null);
+  const server = options.data?.accountServerName ?? null;
+  const withAccountServer = mode !== null && mode !== 'OFF' && server !== null;
+  const passwords = mode === 'OFF' || mode === 'LINKING' || (mode === 'REQUIRED' && server === null);
+  const externalProblem = externalProblemText(t, language, external.data, server ?? '');
+
+  if (!passwords) {
+    return (
+      <div className={styles.form}>
+        <h1 className={styles.title}>{t.auth.loginTitle}</h1>
+        {externalProblem !== null && <ErrorMessage>{externalProblem}</ErrorMessage>}
+        {withAccountServer && (
+          <>
+            <p className={styles.hint}>{t.accountServer.requiredHint(server)}</p>
+            <Button type="button" onClick={() => window.location.assign(ACCOUNT_SERVER_LOGIN)}>
+              {t.accountServer.loginButton(server)}
+            </Button>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <h1 className={styles.title}>{t.auth.loginTitle}</h1>
+      {externalProblem !== null && !login.isError && <ErrorMessage>{externalProblem}</ErrorMessage>}
+      {withAccountServer && (
+        <>
+          <Button type="button" variant="secondary" onClick={() => window.location.assign(ACCOUNT_SERVER_LOGIN)}>
+            {t.accountServer.loginButton(server)}
+          </Button>
+          <p className={styles.divider}>{t.accountServer.or}</p>
+        </>
+      )}
       {login.isError ? (
         <ErrorMessage>
           {login.error instanceof ApiError && login.error.bannedUntil !== null
@@ -71,6 +108,7 @@ export function LoginPage() {
       <Button type="submit" disabled={login.isPending}>
         {login.isPending ? t.auth.loggingIn : t.auth.loginButton}
       </Button>
+      {withAccountServer && <p className={styles.hint}>{t.accountServer.linkingHint(server)}</p>}
       <p className={styles.switch}>
         {t.auth.noAccount} <Link to="/register">{t.auth.toRegister}</Link>
       </p>

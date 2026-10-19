@@ -5,6 +5,7 @@ import { AuthLayout } from './layout/AuthLayout';
 import { GuestOrPlayerLayout, RequireAdmin, RequireGuest, RequireLogin } from './layout/guards';
 import { PageLoading, RouteError } from './layout/RouteStates';
 import { HomePage } from './pages/home/HomePage';
+import { JoinPage } from './pages/join/JoinPage';
 import { LoginPage } from './pages/login/LoginPage';
 import { RegisterPage } from './pages/register/RegisterPage';
 import { VillagePage } from './pages/village/VillagePage';
@@ -12,7 +13,7 @@ import { VillagePage } from './pages/village/VillagePage';
 /**
  * Route table (docs/plan/05-frontend.md §3). Routes without `path` only add a wrapper:
  * a guard (redirects) or a layout (frame around the page). The page renders in their <Outlet />.
- * Every page but the login, the registration and the village overview is a chunk of its own,
+ * Every page but the login, the registration, the join page and the village overview is a chunk of its own,
  * loaded by `page()` when it is first opened (1.3); the router keeps the current page meanwhile.
  */
 export const router = createBrowserRouter([
@@ -29,6 +30,8 @@ export const router = createBrowserRouter([
             children: [
               { path: '/login', element: <LoginPage /> },
               { path: '/register', element: <RegisterPage /> },
+              // first visit after a login through the account server (1.5)
+              { path: '/join', element: <JoinPage /> },
             ],
           },
         ],
@@ -86,6 +89,11 @@ export const router = createBrowserRouter([
               // not per village either: everybody's points, and the credits
               { path: '/ranking', lazy: page(() => import('./pages/ranking/RankingPage'), 'RankingPage') },
               { path: '/players/:playerId', lazy: page(() => import('./pages/ranking/PlayerPage'), 'PlayerPage') },
+              // the world over time (1.5), linked from the ranking
+              {
+                path: '/statistics',
+                lazy: page(() => import('./pages/statistics/WorldStatisticsPage'), 'WorldStatisticsPage'),
+              },
               // honours (M16): the player's own list with his progress
               {
                 path: '/achievements',
@@ -99,6 +107,10 @@ export const router = createBrowserRouter([
               },
               { path: '/about', lazy: page(() => import('./pages/about/AboutPage'), 'AboutPage') },
               { path: '/password', lazy: page(() => import('./pages/password/PasswordPage'), 'PasswordPage') },
+              {
+                path: '/notifications',
+                lazy: page(() => import('./pages/notifications/NotificationsPage'), 'NotificationsPage'),
+              },
               // the host's page (04-api, "Admin"): only for ADMIN accounts
               {
                 element: <RequireAdmin />,

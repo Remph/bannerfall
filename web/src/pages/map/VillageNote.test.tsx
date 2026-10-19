@@ -144,6 +144,7 @@ describe('VillagePanel with notes', () => {
     points: 1200,
     protectedUntil: '2026-10-12T00:00:00Z',
     needsRespawn: false,
+    linked: false,
     villages: [],
   };
 

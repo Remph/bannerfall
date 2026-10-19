@@ -8,6 +8,8 @@ import de.bannerfall.event.GameEventKind;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
+import de.bannerfall.statistics.Stat;
+import de.bannerfall.statistics.StatisticsService;
 import de.bannerfall.village.PointsService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageLocker;
@@ -39,6 +41,7 @@ class BuildCompleteHandler implements GameEventHandler {
     private final PointsService pointsService;
     private final ApplicationEventPublisher events;
     private final AchievementService achievements;
+    private final StatisticsService statistics;
 
     BuildCompleteHandler(
             BuildOrderRepository orders,
@@ -46,13 +49,15 @@ class BuildCompleteHandler implements GameEventHandler {
             VillageStateService stateService,
             PointsService pointsService,
             ApplicationEventPublisher events,
-            AchievementService achievements) {
+            AchievementService achievements,
+            StatisticsService statistics) {
         this.orders = orders;
         this.locker = locker;
         this.stateService = stateService;
         this.pointsService = pointsService;
         this.events = events;
         this.achievements = achievements;
+        this.statistics = statistics;
     }
 
     @Override
@@ -96,8 +101,11 @@ class BuildCompleteHandler implements GameEventHandler {
                 events);
     }
 
-    /** Foreman and Scholar (02-game-rules §19). */
+    /** Foreman and Scholar (02-game-rules §19), and the building levels of the statistics (§24). */
     private void building(Village village, BuildingType building) {
+        if (village.getPlayer() != null) {
+            statistics.add(village.getPlayer().getId(), Stat.BUILDING_LEVELS, 1);
+        }
         int level = village.getBuildings().get(building);
         if (building == BuildingType.HEADQUARTERS && level >= AchievementService.FOREMAN_LEVEL) {
             achievements.grant(village.getPlayer(), Achievement.FOREMAN);

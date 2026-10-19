@@ -1294,3 +1294,21 @@ A player's own note on a village: what he wants to remember about it ("wall 3, s
 - The note belongs to the player and the village: it **stays when the village changes owner** (also when the player conquers it or loses it) and when the player respawns. When the host deletes a player, his notes are deleted (nobody could read them again).
 - **Where it shows:** in the map's village panel under the name (two lines, a tap opens the editor; without a note only a pencil button next to ×), as **a small sheet of paper at the bottom right of the village's field on the detailed map** (a dot when the villages are squares), in the desktop tooltip (first line) and **as one short line on the village's farm list row** (read-only; all barbarian villages share one name there). Nowhere else: not in reports, the rally point or the ranking.
 - No effect on the game; it changes nothing an attack, a report or an NPC lord sees.
+
+## 24. Statistics (1.5)
+
+Battle numbers per player, three more ranking tabs and a daily history with charts. Decided 2026-10-19; the choices made then are in bold.
+
+- **Everyone sees everything:** every profile (NPC lords included) shows the player's totals and his history chart; the ranking tabs and the world statistics page are open to every logged-in player. Nothing in it is a secret the reports don't already tell the people involved.
+- **Totals per player**, counted from the moment the world runs the version that brings them (shown as "counted since"; nothing is reconstructed from old reports):
+  - attacks won and lost, defences won and lost: only battles with a main battle count (scouts alone neither win nor lose one). An attack on one's own village counts nothing;
+  - killed attacking, killed defending and own units lost, **counted by population** (a unit counts as much as the farm space it needs, so a noble weighs 100 spears);
+  - loot taken and lost (the resources carried off, all three together);
+  - villages conquered and lost;
+  - units recruited (by count) and building levels finished (each level once, demolitions don't subtract).
+- **Who gets the kills of a defence:** every defender in the village (the owner and each player whose support stood there) shares the killed attackers by the population he brought into the battle, rounded down; the rest goes to the biggest share (the owner on a tie). In an empty village the owner gets them all. A player's own support in a village he attacks is lost but kills nothing and is no defence. Barbarians count nothing.
+- **Ranking tabs:** points (as before), **attacker** (killed attacking), **defender** (killed defending) and **plunderer** (loot taken). Ties share a rank like in the points ranking; players without the value stand at 0.
+- **Daily history:** soon after midnight in the world's time zone (the night bonus' zone) the server writes the day that just ended: per ranked player points, villages, rank and a copy of his totals; for the world the number of players, player villages (NPC lords' included), barbarian villages and all points together. A server that was down at midnight writes the day when it is back, with the values of that moment; days it missed entirely stay missing. Nothing is written before the world opens, before the statistics started or after the world ended. The current day is always shown live.
+- **Where it shows:** a "Statistics" card and an "Over time" chart (points or villages) on every profile, the tabs on the ranking, and the world statistics page (linked from the ranking): the points of today's top five over time and the world's numbers over time.
+- **Career page:** for players who linked their account to the account server, the realm also sends attacks won, defences won, units killed (attacking plus defending) and villages conquered with the career report (only where the host turned career reports on).
+- No effect on the game: nothing reads the statistics for a rule, an achievement or an NPC lord.

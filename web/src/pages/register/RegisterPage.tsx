@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent, type SubmitEvent } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
-import { useRegister } from '../../api/queries/auth';
+import { useAuthOptions, useRegister } from '../../api/queries/auth';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { TextField } from '../../components/TextField';
@@ -12,6 +12,7 @@ import { validateRegistration, type RegisterProblem, type RegisterValues } from 
 export function RegisterPage() {
   const t = useT();
   const register = useRegister();
+  const options = useAuthOptions();
   // An invite link like /register?invite=abc fills in the code.
   const [searchParams] = useSearchParams();
   const [values, setValues] = useState<RegisterValues>({
@@ -38,6 +39,11 @@ export function RegisterPage() {
       return;
     }
     register.mutate({ ...values, inviteCode: values.inviteCode.trim() });
+  }
+
+  // a world without its own accounts (1.5): new players come through the account server
+  if (options.data?.mode === 'REQUIRED' && options.data.accountServerName !== null) {
+    return <Navigate to="/login" replace />;
   }
 
   return (

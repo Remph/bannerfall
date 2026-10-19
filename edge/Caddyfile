@@ -1,0 +1,46 @@
+# Bannerfall's shared reverse proxy for several worlds on one server (compose.yaml next to this
+# file). Caddy gets and renews a certificate for every domain in sites.caddy by itself; the DNS
+# records must point to this server and ports 80 and 443 must be open. WebSockets (/ws) pass through
+# without extra settings.
+#
+# The headers and the log filter are the same as in the single-world Caddyfile in the repository's
+# root (a server test compares them); change both together.
+
+# No access log (Caddy writes none unless a site asks for one). Its own log notes failed requests,
+# e.g. a 502 while an app restarts for an update; the filter drops the client's address and the
+# request headers from those lines, so no visitor's address ends up in a log (the privacy page,
+# /privacy, says so).
+{
+	log default {
+		format filter {
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			request>headers delete
+		}
+	}
+}
+
+# One Bannerfall world: `import world <APP_PORT>` inside the world's site block (sites.caddy).
+(world) {
+	encode zstd gzip
+
+	# The health endpoint is for the Docker healthcheck only.
+	@actuator path /actuator /actuator/*
+	respond @actuator 404
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy same-origin
+		# Only the site's own scripts, styles, fonts and images: see the root Caddyfile. {host} is
+		# the world's own domain, so the WebSocket (/ws) is allowed for it alone.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; connect-src 'self' wss://{host}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	reverse_proxy 127.0.0.1:{args[0]}
+}
+
+import sites.caddy

@@ -14,6 +14,7 @@ export const openWithoutVillage: readonly string[] = [
   '/messages/:playerId',
   '/ranking',
   '/players/:playerId',
+  '/statistics',
   '/achievements',
   '/guild',
   '/guilds/:guildId',

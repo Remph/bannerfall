@@ -1,4 +1,4 @@
-/* Shared by the login and register forms. */
+/* Shared by the login, register and join forms. */
 .form {
   display: flex;
   flex-direction: column;
@@ -21,4 +21,27 @@
   /* comfortable tap target for an inline link */
   display: inline-block;
   padding: var(--space-2) var(--space-1);
+}
+
+/* A short explanation (login through the account server, 1.5). */
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* "or with your password here" between the account server's button and the form. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--color-border);
 }

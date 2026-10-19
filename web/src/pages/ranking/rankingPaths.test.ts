@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { parsePlayerId, playerPath, rankingPath } from './rankingPaths';
+import { parsePlayerId, playerPath, rankingKindFromSearch, rankingPath } from './rankingPaths';
 
 describe('rankingPath', () => {
   it('leaves the first page out of the URL and counts from 1', () => {
     expect(rankingPath(0)).toBe('/ranking');
     expect(rankingPath(1)).toBe('/ranking?page=2');
+  });
+
+  it('names a statistics tab in the URL and reads it back (1.5)', () => {
+    expect(rankingPath(0, 'ATTACKER')).toBe('/ranking?by=attacker');
+    expect(rankingPath(2, 'PLUNDERER')).toBe('/ranking?by=plunderer&page=3');
+    expect(rankingKindFromSearch(new URLSearchParams('by=defender'))).toBe('DEFENDER');
+    expect(rankingKindFromSearch(new URLSearchParams('by=nope'))).toBe('POINTS');
+    expect(rankingKindFromSearch(new URLSearchParams(''))).toBe('POINTS');
   });
 });
 

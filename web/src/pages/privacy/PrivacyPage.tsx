@@ -1,4 +1,4 @@
-import { useMe } from '../../api/queries/auth';
+import { useAuthOptions, useMe } from '../../api/queries/auth';
 import { useWorldOperator, type WorldOperator } from '../../api/queries/world';
 import { BackLink } from '../../components/BackLink';
 import { useT } from '../../i18n';
@@ -15,10 +15,27 @@ export function PrivacyPage() {
   const privacy = t.privacy;
   const loggedIn = (useMe().data ?? null) !== null;
   const operator = useWorldOperator().data;
+  const options = useAuthOptions().data;
+  const accountServer =
+    options !== undefined && options.mode !== 'OFF' && options.accountServerName !== null
+      ? options.accountServerName
+      : null;
   const sections: readonly (readonly [string, string])[] = [
     [privacy.accountTitle, privacy.account],
+    // only on a world that has one (1.5)
+    ...(accountServer === null
+      ? []
+      : ([
+          [
+            privacy.accountServerTitle,
+            options?.careerReports === true
+              ? `${privacy.accountServer(accountServer)} ${privacy.accountServerCareer(accountServer)}`
+              : privacy.accountServer(accountServer),
+          ],
+        ] as const)),
     [privacy.gameTitle, privacy.game],
     [privacy.messagesTitle, privacy.messages],
+    [privacy.pushTitle, privacy.push],
     [privacy.addressTitle, privacy.address],
     [privacy.logsTitle, privacy.logs],
     [privacy.cookiesTitle, privacy.cookies],

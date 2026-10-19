@@ -31,7 +31,8 @@
   flex-basis: 100%;
 }
 
-.guildLink {
+.guildLink,
+.careerLink {
   color: var(--color-accent);
   font-weight: 600;
 }

@@ -353,6 +353,14 @@ const icons = {
   send: [24, <path d="M3.5 11 L20.5 3.5 L13 20.5 L11 13 Z M11 13 L20.5 3.5" {...stroke} strokeWidth={1.8} />],
   /** The night bonus (1.4): a crescent. */
   moon: [16, <path d="M10.5 2.5 A5.75 5.75 0 1 0 13.5 11.5 A4.5 4.5 0 0 1 10.5 2.5 Z" {...stroke} strokeWidth={1.4} />],
+  /** Push notifications (1.5): a bell. */
+  bell: [
+    24,
+    <>
+      <path d="M6 16.5 V11 A6 6 0 0 1 18 11 V16.5 L19.5 18.5 H4.5 Z" {...stroke} strokeWidth={1.8} />
+      <path d="M10 21 H14" {...stroke} strokeWidth={1.8} />
+    </>,
+  ],
   /** Deleting a report. */
   trash: [
     24,

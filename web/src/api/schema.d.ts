@@ -68,6 +68,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["subscribe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["preferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guilds/mine/description": {
         parameters: {
             query?: never;
@@ -596,6 +628,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscription/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unsubscribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/offers/{offerId}/accept": {
         parameters: {
             query?: never;
@@ -686,6 +750,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -910,6 +990,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/backchannel-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["backchannelLogout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1412,6 +1524,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/statistics/world": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["worldStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -1508,6 +1636,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/players/{id}": {
         parameters: {
             query?: never;
@@ -1516,6 +1660,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/players/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["playerHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1547,7 +1707,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1788,6 +1948,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["banners_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["external"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2213,6 +2405,30 @@ export interface components {
             units: {
                 [key: string]: number;
             };
+        };
+        PushKeysDto: {
+            p256dh: string;
+            auth: string;
+        };
+        PushSubscriptionRequest: {
+            endpoint: string;
+            keys: components["schemas"]["PushKeysDto"];
+            language: string;
+        };
+        PushKindDto: {
+            /** @enum {string} */
+            kind: "ATTACK" | "VILLAGE_LOST" | "MESSAGE" | "GUILD_INVITE" | "WORLD_END" | "BUILDS_DONE";
+            enabled: boolean;
+        };
+        PushPreferencesRequest: {
+            kinds: components["schemas"]["PushKindDto"][];
+        };
+        PushSettingsDto: {
+            available: boolean;
+            publicKey: string | null;
+            /** Format: int32 */
+            devices: number;
+            kinds: components["schemas"]["PushKindDto"][];
         };
         DescriptionRequest: {
             description: string;
@@ -2762,7 +2978,7 @@ export interface components {
             attacks: components["schemas"]["TrainAttack"][];
         };
         TrainAttackPreviewDto: {
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
         };
         TrainPreviewDto: {
             targetVillage: components["schemas"]["VillageRefDto"];
@@ -2782,7 +2998,7 @@ export interface components {
             travelSeconds: number | null;
             /** Format: date-time */
             arriveAt: string | null;
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
         };
         BuildOrderRequest: {
             /** @enum {string} */
@@ -2953,6 +3169,13 @@ export interface components {
         ReportDeleteRequest: {
             ids: number[];
         };
+        PushTestDto: {
+            /** Format: int32 */
+            devices: number;
+        };
+        PushUnsubscribeRequest: {
+            endpoint: string;
+        };
         AcceptRequest: {
             /** Format: int64 */
             villageId: number;
@@ -2986,6 +3209,9 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        LinkRequest: {
+            currentPassword: string;
         };
         CreateGuildRequest: {
             name: string;
@@ -3103,10 +3329,14 @@ export interface components {
             protectedUntil: string;
             needsRespawn: boolean;
             villages: components["schemas"]["VillageSummaryDto"][];
+            linked: boolean;
         };
         LoginRequest: {
             username: string;
             password: string;
+        };
+        JoinRequest: {
+            inviteCode: string;
         };
         AdminPlayerDto: {
             /** Format: int64 */
@@ -3539,6 +3769,37 @@ export interface components {
             running: components["schemas"]["ResearchOrderDto"] | null;
             theftChancePerThief: number[] | null;
         };
+        LeaderLine: {
+            /** Format: int64 */
+            playerId: number;
+            name: string;
+            npc: boolean;
+            days: components["schemas"]["LeaderPoints"][];
+        };
+        LeaderPoints: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            points: number;
+        };
+        WorldDay: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            players: number;
+            /** Format: int32 */
+            villages: number;
+            /** Format: int32 */
+            barbarianVillages: number;
+            /** Format: int64 */
+            points: number;
+        };
+        WorldStatisticsDto: {
+            /** Format: date-time */
+            since: string;
+            days: components["schemas"]["WorldDay"][];
+            leaders: components["schemas"]["LeaderLine"][];
+        };
         ReportItemDto: {
             /** Format: int64 */
             id: number;
@@ -3799,6 +4060,8 @@ export interface components {
             /** Format: int32 */
             villageCount: number;
             /** Format: int64 */
+            value: number;
+            /** Format: int64 */
             guildId: number | null;
             guildTag: string | null;
         };
@@ -3838,6 +4101,53 @@ export interface components {
             villages: components["schemas"]["ProfileVillageDto"][];
             guild: components["schemas"]["GuildRefDto"] | null;
             achievements: components["schemas"]["EarnedAchievementDto"][];
+            stats: components["schemas"]["PlayerStatsDto"];
+            careerUrl: string | null;
+        };
+        PlayerStatsDto: {
+            /** Format: int64 */
+            attacksWon: number;
+            /** Format: int64 */
+            attacksLost: number;
+            /** Format: int64 */
+            defencesWon: number;
+            /** Format: int64 */
+            defencesLost: number;
+            /** Format: int64 */
+            killedAttacking: number;
+            /** Format: int64 */
+            killedDefending: number;
+            /** Format: int64 */
+            unitsLost: number;
+            /** Format: int64 */
+            lootTaken: number;
+            /** Format: int64 */
+            lootLost: number;
+            /** Format: int64 */
+            villagesConquered: number;
+            /** Format: int64 */
+            villagesLost: number;
+            /** Format: int64 */
+            unitsRecruited: number;
+            /** Format: int64 */
+            buildingLevels: number;
+            /** Format: date-time */
+            since: string;
+        };
+        PlayerDay: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            points: number;
+            /** Format: int32 */
+            villages: number;
+            /** Format: int32 */
+            rank: number;
+        };
+        PlayerHistoryDto: {
+            /** Format: date-time */
+            since: string;
+            days: components["schemas"]["PlayerDay"][];
         };
         PingResponse: {
             status: string;
@@ -3951,6 +4261,20 @@ export interface components {
             playerId: number;
             name: string;
         };
+        AuthOptionsDto: {
+            /** @enum {string} */
+            mode: "OFF" | "LINKING" | "REQUIRED";
+            accountServerName: string | null;
+            careerReports: boolean;
+        };
+        ExternalLoginDto: {
+            name: string | null;
+            /** @enum {string|null} */
+            problem: "FAILED" | "UNAVAILABLE" | "BANNED" | "DELETED" | "ALREADY_LINKED" | "LINK_NOT_ALLOWED" | null;
+            /** Format: date-time */
+            bannedUntil: string | null;
+            banReason: string | null;
+        };
         AbuseEventDto: {
             /** Format: int64 */
             id: number;
@@ -4004,6 +4328,7 @@ export interface components {
             events: components["schemas"]["EventQueueDto"];
             cheatsEnabled: boolean;
             abuse: components["schemas"]["AbuseStatusDto"];
+            push: components["schemas"]["PushStatusDto"];
         };
         EventQueueDto: {
             /** Format: int64 */
@@ -4014,6 +4339,13 @@ export interface components {
             lagSeconds: number;
             /** Format: int64 */
             failed: number;
+        };
+        PushStatusDto: {
+            enabled: boolean;
+            /** Format: int64 */
+            devices: number;
+            /** Format: int64 */
+            players: number;
         };
         FailedEventDto: {
             /** Format: int64 */
@@ -4245,7 +4577,7 @@ export interface components {
         };
         ChatErrorDto: {
             /** @enum {string} */
-            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER";
+            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE";
             detail: string;
         };
     };
@@ -4397,6 +4729,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    subscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushSettingsDto"];
+                };
             };
         };
     };
@@ -5328,6 +5706,48 @@ export interface operations {
             };
         };
     };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushTestDto"];
+                };
+            };
+        };
+    };
+    unsubscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushUnsubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     accept: {
         parameters: {
             query?: never;
@@ -5476,6 +5896,28 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkRequest"];
             };
         };
         responses: {
@@ -5829,6 +6271,54 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["MeDto"];
                 };
+            };
+        };
+    };
+    join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MeDto"];
+                };
+            };
+        };
+    };
+    backchannelLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    logout_token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6595,6 +7085,26 @@ export interface operations {
             };
         };
     };
+    worldStatistics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorldStatisticsDto"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: {
@@ -6726,6 +7236,7 @@ export interface operations {
             query?: {
                 page?: number;
                 size?: number;
+                by?: "POINTS" | "ATTACKER" | "DEFENDER" | "PLUNDERER";
             };
             header?: never;
             path?: never;
@@ -6740,6 +7251,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RankingPageDto"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PushSettingsDto"];
                 };
             };
         };
@@ -6766,6 +7297,28 @@ export interface operations {
             };
         };
     };
+    playerHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlayerHistoryDto"];
+                };
+            };
+        };
+    };
     ping: {
         parameters: {
             query?: never;
@@ -6786,7 +7339,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7133,6 +7686,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BannersDto"];
+                };
+            };
+        };
+    };
+    options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthOptionsDto"];
+                };
+            };
+        };
+    };
+    external: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExternalLoginDto"];
                 };
             };
         };

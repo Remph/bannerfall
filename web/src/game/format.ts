@@ -239,3 +239,18 @@ export function formatCoords(x: number, y: number): string {
 function pad2(value: number): string {
   return String(value).padStart(2, '0');
 }
+
+const shortDayFormats = new Map<Language, Intl.DateTimeFormat>();
+
+/**
+ * A calendar day of the statistics (1.5) as the server sends it, "2026-10-19" → "19 Oct" (en) /
+ * "19. Okt." (de). The day is a date, not a moment: no time zone moves it.
+ */
+export function formatShortDay(day: string, language: Language): string {
+  let format = shortDayFormats.get(language);
+  if (format === undefined) {
+    format = new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    shortDayFormats.set(language, format);
+  }
+  return format.format(Date.parse(`${day}T00:00:00Z`));
+}

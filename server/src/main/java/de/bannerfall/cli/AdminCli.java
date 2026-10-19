@@ -59,7 +59,8 @@ import tools.jackson.databind.node.ObjectNode;
             AdminCli.NpcCommand.class,
             AdminCli.BarbariansCommand.class,
             AdminCli.BannerCommand.class,
-            AdminCli.CheatsCommand.class
+            AdminCli.CheatsCommand.class,
+            AdminCli.PushCommand.class
         })
 public class AdminCli implements Callable<Integer> {
 
@@ -327,6 +328,14 @@ public class AdminCli implements Callable<Integer> {
                         : abuse.path("invariants").path("problems").isEmpty()
                                 ? ", last check clean"
                                 : ", LAST CHECK FOUND PROBLEMS (run `check`)");
+        JsonNode push = status.path("push");
+        out.println(
+                push.path("enabled").asBoolean()
+                        ? "Push: on, %d devices of %d players"
+                                .formatted(
+                                        push.path("devices").asLong(),
+                                        push.path("players").asLong())
+                        : "Push: off (no keys, see `push keys`)");
         return EXIT_OK;
     }
 
@@ -1435,6 +1444,49 @@ public class AdminCli implements Callable<Integer> {
                                             + y
                                             + ".");
                 }
+                return EXIT_OK;
+            }
+        }
+    }
+
+    // ---- push keys ----
+
+    @Command(
+            name = "push",
+            description = "Push notifications (1.5)",
+            subcommands = {PushCommand.Keys.class})
+    static class PushCommand implements Callable<Integer> {
+
+        @ParentCommand AdminCli cli;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() {
+            throw new ParameterException(spec.commandLine(), "Missing command");
+        }
+
+        /**
+         * A new VAPID key pair as two {@code .env} lines; made here, without the server. A new pair
+         * makes every device sign up again (it happens by itself when the player next opens the
+         * game).
+         */
+        @Command(
+                name = "keys",
+                description = {
+                    "Prints a new key pair for push notifications as two .env lines.",
+                    "Add them to the world's .env once and recreate the app container."
+                })
+        static class Keys implements Callable<Integer> {
+
+            @ParentCommand PushCommand push;
+
+            @Override
+            public Integer call() {
+                de.bannerfall.push.VapidKeys keys = de.bannerfall.push.VapidKeys.generate();
+                PrintWriter out = push.cli.out();
+                out.println("BANNERFALL_PUSH_PUBLIC_KEY=" + keys.publicKeyText());
+                out.println("BANNERFALL_PUSH_PRIVATE_KEY=" + keys.privateKeyText());
                 return EXIT_OK;
             }
         }

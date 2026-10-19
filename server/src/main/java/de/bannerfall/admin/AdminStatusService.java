@@ -4,7 +4,9 @@ import de.bannerfall.abuse.AbuseService;
 import de.bannerfall.abuse.InvariantCheck;
 import de.bannerfall.admin.AdminStatusDto.AbuseStatusDto;
 import de.bannerfall.admin.AdminStatusDto.EventQueueDto;
+import de.bannerfall.admin.AdminStatusDto.PushStatusDto;
 import de.bannerfall.common.AppVersion;
+import de.bannerfall.push.PushSettings;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +31,7 @@ class AdminStatusService {
     private final Instant startedAt;
     private final AbuseService abuseService;
     private final InvariantCheck invariants;
+    private final PushSettings pushSettings;
 
     AdminStatusService(
             JdbcClient jdbc,
@@ -36,7 +39,8 @@ class AdminStatusService {
             AppVersion appVersion,
             @Value("${bannerfall.cheats.enabled:false}") boolean cheatsEnabled,
             AbuseService abuseService,
-            InvariantCheck invariants) {
+            InvariantCheck invariants,
+            PushSettings pushSettings) {
         this.jdbc = jdbc;
         this.clock = clock;
         this.version = appVersion.get();
@@ -44,6 +48,7 @@ class AdminStatusService {
         this.startedAt = clock.instant();
         this.abuseService = abuseService;
         this.invariants = invariants;
+        this.pushSettings = pushSettings;
     }
 
     /** No transaction: a database that is down must still give an answer (with zeros). */
@@ -65,7 +70,11 @@ class AdminStatusService {
                     count("select count(*) from player where npc and village_count > 0"),
                     events(now),
                     cheatsEnabled,
-                    abuse(now));
+                    abuse(now),
+                    new PushStatusDto(
+                            pushSettings.enabled(),
+                            count("select count(*) from push_subscription"),
+                            count("select count(distinct player_id) from push_subscription")));
         } catch (DataAccessException e) {
             log.warn("Status: the database doesn't answer: {}", e.getMessage());
             return new AdminStatusDto(
@@ -79,7 +88,8 @@ class AdminStatusService {
                     0,
                     new EventQueueDto(0, null, 0, 0),
                     cheatsEnabled,
-                    new AbuseStatusDto(0, 0, 0, invariants.last()));
+                    new AbuseStatusDto(0, 0, 0, invariants.last()),
+                    new PushStatusDto(pushSettings.enabled(), 0, 0));
         }
     }
 

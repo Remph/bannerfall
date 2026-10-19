@@ -15,6 +15,7 @@ const me: Me = {
   points: 100,
   protectedUntil: '2026-10-10T00:00:00Z',
   needsRespawn: false,
+  linked: false,
   villages: [],
 };
 

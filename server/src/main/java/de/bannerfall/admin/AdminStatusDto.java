@@ -28,7 +28,17 @@ public record AdminStatusDto(
         long npcLords,
         EventQueueDto events,
         boolean cheatsEnabled,
-        AbuseStatusDto abuse) {
+        AbuseStatusDto abuse,
+        PushStatusDto push) {
+
+    /**
+     * Push notifications (1.5).
+     *
+     * @param enabled whether the world has push keys
+     * @param devices devices that get push
+     * @param players players with at least one of them
+     */
+    public record PushStatusDto(boolean enabled, long devices, long players) {}
 
     /**
      * @param bannedPlayers accounts banned right now

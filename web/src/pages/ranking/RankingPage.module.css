@@ -377,3 +377,15 @@
 .victoryStrip[open] .victoryStripChevron {
   transform: rotate(180deg);
 }
+
+/* the tabs (1.5): what the list is sorted by, with one line saying what it counts */
+.tabs {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.statisticsLink {
+  color: var(--color-accent);
+  font-weight: 600;
+}

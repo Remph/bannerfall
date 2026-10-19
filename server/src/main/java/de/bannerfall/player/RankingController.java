@@ -20,8 +20,9 @@ class RankingController {
     @GetMapping("/api/ranking")
     RankingPageDto ranking(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
-        return ranking.ranking(page, size);
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "POINTS") RankingKind by) {
+        return ranking.ranking(page, size, by);
     }
 
     @GetMapping("/api/players/{id}")

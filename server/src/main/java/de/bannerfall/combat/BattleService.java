@@ -32,6 +32,8 @@ import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.Siege;
 import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Travel;
+import de.bannerfall.statistics.BattleStats;
+import de.bannerfall.statistics.StatisticsService;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
@@ -87,6 +89,7 @@ public class BattleService {
     private final VillageBanners villageBanners;
     private final BannerBattleService bannerBattles;
     private final NightBonusService nightBonus;
+    private final StatisticsService statistics;
 
     BattleService(
             UnitStackRepository stacks,
@@ -106,7 +109,8 @@ public class BattleService {
             UnitLevelService unitLevels,
             VillageBanners villageBanners,
             BannerBattleService bannerBattles,
-            NightBonusService nightBonus) {
+            NightBonusService nightBonus,
+            StatisticsService statistics) {
         this.stacks = stacks;
         this.movements = movements;
         this.scheduler = scheduler;
@@ -125,6 +129,7 @@ public class BattleService {
         this.villageBanners = villageBanners;
         this.bannerBattles = bannerBattles;
         this.nightBonus = nightBonus;
+        this.statistics = statistics;
     }
 
     /**
@@ -265,6 +270,15 @@ public class BattleService {
             }
         }
         awardAchievements(attack, target, input, result, stackOwners, loot, at, world);
+        statistics.add(
+                BattleStats.of(
+                        attack.getOwnerPlayerId(),
+                        defenderPlayerId,
+                        input.defenderStacks(),
+                        stackOwners,
+                        result,
+                        loot.total(),
+                        type -> gameData.unit(type).pop()));
         BattleReport.LoyaltyReport loyaltySeen = loyaltySeen(attack, target, loyalty, result, at);
         boolean conquered = loyalty != null && loyalty.conquered();
         // before the owner changes: thieves steal from the defender, drops know who lost

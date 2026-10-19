@@ -6,8 +6,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.time.Clock;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -40,6 +42,8 @@ class LoginService {
     private final AccountRepository accounts;
     private final AccountSessions sessions;
     private final Clock clock;
+    private final AccountServerSettings accountServer;
+    private final Duration loginSession;
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
     private final SecurityContextHolderStrategy contextHolder =
@@ -51,17 +55,24 @@ class LoginService {
             CsrfTokenRepository csrfTokenRepository,
             AccountRepository accounts,
             AccountSessions sessions,
-            Clock clock) {
+            Clock clock,
+            AccountServerSettings accountServer,
+            @Value("${bannerfall.login-session:30d}") Duration loginSession) {
         this.authenticationManager = authenticationManager;
         this.rateLimiter = rateLimiter;
         this.csrfTokenRepository = csrfTokenRepository;
         this.accounts = accounts;
         this.sessions = sessions;
         this.clock = clock;
+        this.accountServer = accountServer;
+        this.loginSession = loginSession;
     }
 
     AccountPrincipal login(
             LoginRequest login, HttpServletRequest request, HttpServletResponse response) {
+        if (!accountServer.localLoginAllowed()) {
+            throw AccountService.localLoginOff();
+        }
         String key = Account.keyOf(login.username());
         String address = request.getRemoteAddr();
         if (!rateLimiter.tryAttempt(key, address)) {
@@ -102,7 +113,10 @@ class LoginService {
         return principal;
     }
 
-    /** Logs in an account without a password check (right after registration). */
+    /**
+     * Logs in an account without a password check: right after registration, or after its login at
+     * the account server (1.5).
+     */
     void loginWithoutPassword(
             Account account, HttpServletRequest request, HttpServletResponse response) {
         AccountPrincipal principal = new AccountPrincipal(account);
@@ -142,16 +156,21 @@ class LoginService {
             Authentication authentication,
             HttpServletRequest request,
             HttpServletResponse response) {
-        if (request.getSession(false) != null) {
+        HttpSession before = request.getSession(false);
+        if (before != null) {
             request.changeSessionId(); // session fixation protection
+            // what a visit before the login waited for (ExternalLoginService) isn't this login's
+            before.removeAttribute(ExternalLoginService.PENDING);
+            before.removeAttribute(ExternalLoginService.LINKING);
         }
         SecurityContext context = contextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         contextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
-        sessions.loggedIn(
-                ((AccountPrincipal) authentication.getPrincipal()).accountId(),
-                request.getSession());
+        HttpSession session = request.getSession();
+        // A visit's session lasts minutes (server.servlet.session.timeout), a login much longer.
+        session.setMaxInactiveInterval((int) loginSession.toSeconds());
+        sessions.loggedIn(((AccountPrincipal) authentication.getPrincipal()).accountId(), session);
         renewCsrfToken(request, response);
     }
 

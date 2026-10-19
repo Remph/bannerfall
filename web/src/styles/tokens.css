@@ -82,6 +82,13 @@
   --map-noble: #e9b830;
   --map-support: #2f8a4e;
   --map-return: #2b78b8;
+
+  /* chart series (1.5 statistics), in this order; checked for colour blindness against the panel colour */
+  --chart-1: #2a7a4f;
+  --chart-2: #2f6fb0;
+  --chart-3: #a87508;
+  --chart-4: #8a4fa8;
+  --chart-5: #c8552c;
   --map-badge-ink: #fffaf0;
   --map-badge-ink-noble: #2a231b;
   --map-banner-used: #8f8672; /* the faded banner on a village whose banner chance is used (v1.3) */
@@ -207,6 +214,11 @@
     --map-noble: #f0c64a;
     --map-support: #3fa564;
     --map-return: #4a97d8;
+    --chart-1: #33a065;
+    --chart-2: #3f86cf;
+    --chart-3: #b88a22;
+    --chart-4: #a875d0;
+    --chart-5: #d9693a;
     --map-banner-used: #cfc6b3;
     --map-note: #efe6d0;
     /* the landscape (v1.3) */
@@ -330,6 +342,11 @@
   --map-noble: #f0c64a;
   --map-support: #3fa564;
   --map-return: #4a97d8;
+  --chart-1: #33a065;
+  --chart-2: #3f86cf;
+  --chart-3: #b88a22;
+  --chart-4: #a875d0;
+  --chart-5: #d9693a;
   --map-banner-used: #cfc6b3;
   --map-note: #efe6d0;
   /* the landscape (v1.3) */

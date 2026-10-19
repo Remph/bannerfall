@@ -111,7 +111,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
                     """
                     select r.ranking as rank, r.id as playerId, r.name as name, r.npc as npc,
                            r.points as points, r.village_count as villageCount,
-                           t.id as guildId, t.tag as guildTag
+                           r.points as value, t.id as guildId, t.tag as guildTag
                     from (select rank() over (order by p.points desc) as ranking,
                                  p.id, p.name, p.npc, p.points, p.village_count
                           from player p left join account a on a.id = p.account_id
@@ -123,6 +123,31 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
                     """,
             nativeQuery = true)
     List<RankingRow> findRankingPage(int size, long offset);
+
+    /**
+     * A page of a statistics ranking (1.5, 02-game-rules §24): the same players as {@link
+     * #findRankingPage}, by one {@code player_stat} total (0 without a row), best first; equal
+     * totals share a rank.
+     */
+    @Query(
+            value =
+                    """
+                    select r.ranking as rank, r.id as playerId, r.name as name, r.npc as npc,
+                           r.points as points, r.village_count as villageCount,
+                           r.value as value, t.id as guildId, t.tag as guildTag
+                    from (select rank() over (order by coalesce(s.value, 0) desc) as ranking,
+                                 p.id, p.name, p.npc, p.points, p.village_count,
+                                 coalesce(s.value, 0) as value
+                          from player p left join account a on a.id = p.account_id
+                          left join player_stat s on s.player_id = p.id and s.stat = :stat
+                          where p.npc or not a.disabled) r
+                    left join guild_member m on m.player_id = r.id
+                    left join guild t on t.id = m.guild_id
+                    order by r.ranking, r.id
+                    limit :size offset :offset
+                    """,
+            nativeQuery = true)
+    List<RankingRow> findStatRankingPage(String stat, int size, long offset);
 
     /** How many players the ranking lists. */
     @Query(

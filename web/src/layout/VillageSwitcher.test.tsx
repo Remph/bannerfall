@@ -13,6 +13,7 @@ const me: Me = {
   points: 300,
   protectedUntil: '2026-10-10T00:00:00Z',
   needsRespawn: false,
+  linked: false,
   // as the server sends them: the village held longest first
   villages: [
     { id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 200, incomingAttacks: 0 },

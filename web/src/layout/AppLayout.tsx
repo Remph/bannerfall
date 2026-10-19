@@ -34,6 +34,7 @@ import { DESKTOP_QUERY, useMediaQuery } from './useMediaQuery';
 import { VillageSwitcher } from './VillageSwitcher';
 import { isOpenWithoutVillage } from './withoutVillage';
 import { isOpenWhenEnded, WorldEndContext } from './worldEnd';
+import { usePushRefresh } from '../push/usePushRefresh';
 
 /**
  * Frame of all game screens (05-frontend §3, §8). Phone: green strip on top (village switcher +
@@ -97,6 +98,7 @@ function GameFrame() {
   const loadedId = village.data?.id;
   // New levels and production show up by themselves when a build order ends, on every screen.
   useRefreshWhenBuildsEnd(village.data, village.dataUpdatedAt, village.errorUpdatedAt);
+  usePushRefresh(me.accountId);
 
   // Remember the village once it loaded (it is the player's), so "/" opens it again in this session.
   useEffect(() => {

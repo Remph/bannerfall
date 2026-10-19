@@ -1,0 +1,39 @@
+# The shared web proxy for several Bannerfall worlds on one server (docs/hosting.md, "Several
+# worlds on one server"). Each world runs compose.prod.yaml in its own folder without the caddy
+# profile; this Caddy holds ports 80 and 443 for all of them and passes each world's domain on to
+# that world's app port on this host (APP_PORT in the world's .env).
+#   cp sites.caddy.example sites.caddy     # one block per world, then:
+#   docker compose up -d
+#   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile   # after editing sites.caddy
+# One world on a server needs none of this: compose.prod.yaml with COMPOSE_PROFILES=caddy.
+name: bannerfall-edge
+
+services:
+  caddy:
+    image: caddy:2.11.7
+    restart: unless-stopped
+    # Same limits as compose.prod.yaml: three files of 10 MB at most.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 128m
+    # The host's network: Caddy binds 80 and 443 itself and reaches every world's app on
+    # 127.0.0.1:<APP_PORT>, where compose.prod.yaml publishes it. The worlds need no shared Docker
+    # network, and their app ports stay closed to the internet. Caddy's admin endpoint (used by
+    # `caddy reload`) is then on the host's 127.0.0.1:2019, and the host's firewall (ufw) applies:
+    # 80/tcp, 443/tcp and 443/udp must be open there.
+    network_mode: host
+    volumes:
+      # This folder: the Caddyfile and sites.caddy, this server's worlds (it stays out of git like
+      # .env). The folder rather than the two files, so an edited file is what `caddy reload`
+      # reads (a file mount keeps the old one when an editor or git replaces it).
+      - ./:/etc/caddy:ro
+      # the certificates: losing them means asking Let's Encrypt again
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

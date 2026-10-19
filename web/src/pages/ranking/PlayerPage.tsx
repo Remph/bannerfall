@@ -22,10 +22,14 @@ import { achievementName, levelName } from '../achievements/achievementText';
 import { conversationPath } from '../messages/messagePaths';
 import { mapPath } from '../rally/rallyPaths';
 import { guildPath } from '../guild/guildPaths';
+import { HistoryCard, StatisticsCard } from './PlayerStatistics';
 import { parsePlayerId, rankingPath } from './rankingPaths';
 import styles from './PlayerPage.module.css';
 
-/** /players/:id – a player's profile: rank, points and villages (04-api *World & player*). */
+/**
+ * /players/:id – a player's profile: rank, points, villages, statistics and their history (1.5),
+ * achievements (04-api *World & player*).
+ */
 export function PlayerPage() {
   const playerId = parsePlayerId(useParams().playerId);
   if (playerId === undefined) {
@@ -89,6 +93,14 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
           </p>
         )}
         {profile.npc && <p className={styles.hint}>{t.profile.npcHint}</p>}
+        {/* on the account server, which asks for its own login (1.5) */}
+        {profile.careerUrl != null && (
+          <p className={styles.facts}>
+            <a href={profile.careerUrl} target="_blank" rel="noopener noreferrer" className={styles.careerLink}>
+              {t.profile.career}
+            </a>
+          </p>
+        )}
         {/* NPC lords don't read mail */}
         {!isMe && !profile.npc && (
           <div className={styles.actions}>
@@ -129,6 +141,8 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
           </ul>
         )}
       </Card>
+      <StatisticsCard stats={profile.stats} />
+      <HistoryCard key={profile.id} playerId={profile.id} name={profile.name} />
       {!profile.npc && <EarnedAchievements profile={profile} isMe={isMe} />}
       {me.role === 'ADMIN' && !isMe && <DeletePlayer profile={profile} />}
     </div>

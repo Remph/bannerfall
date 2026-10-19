@@ -51,6 +51,17 @@ public class AccountGuardFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger("bannerfall.abuse");
 
+    /**
+     * The login through the account server (1.5): its start, the way back from there, and the
+     * account server's logout tokens. Limited per address before anything else
+     * (AuthAddressLimiter).
+     */
+    private static final Set<String> EXTERNAL_LOGIN =
+            Set.of(
+                    "/oauth2/authorization/accounts",
+                    "/login/oauth2/code/accounts",
+                    "/api/auth/backchannel-logout");
+
     /** Largest request body under {@code /api/**}. */
     public static final int MAX_BODY_BYTES = 64 * 1024;
 
@@ -82,6 +93,11 @@ public class AccountGuardFilter extends OncePerRequestFilter {
             HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = RequestPaths.of(request);
+        if (EXTERNAL_LOGIN.contains(path) && !authLimiter.tryExternal(request.getRemoteAddr())) {
+            ProblemResponses.write(
+                    response, HttpStatus.TOO_MANY_REQUESTS, ErrorCode.TOO_MANY_REQUESTS);
+            return;
+        }
         if (!path.startsWith("/api/") && !path.equals("/ws")) {
             chain.doFilter(request, response);
             return;
@@ -156,7 +172,8 @@ public class AccountGuardFilter extends OncePerRequestFilter {
         }
         return switch (path) {
             case "/api/auth/login" -> authLimiter.tryLogin(request.getRemoteAddr());
-            case "/api/auth/register" -> authLimiter.tryRegister(request.getRemoteAddr());
+            case "/api/auth/register", "/api/auth/join" ->
+                    authLimiter.tryRegister(request.getRemoteAddr());
             default -> true;
         };
     }

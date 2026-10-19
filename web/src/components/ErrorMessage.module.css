@@ -6,3 +6,9 @@
   color: var(--color-danger);
   background: var(--color-danger-bg);
 }
+
+/* A way on inside the message (the join page, 1.5): in the message's colour, not the browser's blue. */
+.error a {
+  color: inherit;
+  font-weight: 600;
+}

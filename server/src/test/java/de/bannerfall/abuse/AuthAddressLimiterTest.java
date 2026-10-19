@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class AuthAddressLimiterTest {
 
     private final MutableClock clock = MutableClock.startingAt("2026-10-17T12:00:00Z");
-    private final AuthAddressLimiter limiter = new AuthAddressLimiter(clock, 10, 3);
+    private final AuthAddressLimiter limiter = new AuthAddressLimiter(clock, 10, 3, 20);
 
     @Test
     void forgetsAnAddressOnceItsBucketIsFullAgain() {

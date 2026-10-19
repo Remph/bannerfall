@@ -11,6 +11,7 @@ const anna: Me = {
   points: 39,
   protectedUntil: '2026-10-06T12:00:00Z',
   needsRespawn: false,
+  linked: false,
   villages: [{ id: 2, name: "anna's village", x: 53, y: 59, points: 39, incomingAttacks: 0 }],
 };
 

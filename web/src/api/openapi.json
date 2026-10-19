@@ -203,6 +203,55 @@
         }
       }
     },
+    "/api/push/subscription" : {
+      "put" : {
+        "tags" : [ "push-controller" ],
+        "operationId" : "subscribe",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushSubscriptionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/push/preferences" : {
+      "put" : {
+        "tags" : [ "push-controller" ],
+        "operationId" : "preferences",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushPreferencesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/guilds/mine/description" : {
       "put" : {
         "tags" : [ "guild-controller" ],
@@ -1385,6 +1434,45 @@
         }
       }
     },
+    "/api/push/test" : {
+      "post" : {
+        "tags" : [ "push-controller" ],
+        "operationId" : "test",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushTestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/subscription/remove" : {
+      "post" : {
+        "tags" : [ "push-controller" ],
+        "operationId" : "unsubscribe",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushUnsubscribeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/offers/{offerId}/accept" : {
       "post" : {
         "tags" : [ "market-controller" ],
@@ -1573,6 +1661,27 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/me/link" : {
+      "post" : {
+        "tags" : [ "external-login-controller" ],
+        "operationId" : "link",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkRequest"
               }
             }
           },
@@ -1980,6 +2089,60 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/auth/join" : {
+      "post" : {
+        "tags" : [ "external-login-controller" ],
+        "operationId" : "join",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JoinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/backchannel-logout" : {
+      "post" : {
+        "tags" : [ "external-login-controller" ],
+        "operationId" : "backchannelLogout",
+        "requestBody" : {
+          "content" : {
+            "application/x-www-form-urlencoded" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "logout_token" : {
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "logout_token" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
           }
         }
       }
@@ -2889,6 +3052,24 @@
         }
       }
     },
+    "/api/statistics/world" : {
+      "get" : {
+        "tags" : [ "statistics-controller" ],
+        "operationId" : "worldStatistics",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorldStatisticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reports" : {
       "get" : {
         "tags" : [ "report-controller" ],
@@ -3065,6 +3246,15 @@
             "maximum" : 100,
             "minimum" : 1
           }
+        }, {
+          "name" : "by",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "POINTS",
+            "enum" : [ "POINTS", "ATTACKER", "DEFENDER", "PLUNDERER" ]
+          }
         } ],
         "responses" : {
           "200" : {
@@ -3073,6 +3263,24 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/RankingPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push" : {
+      "get" : {
+        "tags" : [ "push-controller" ],
+        "operationId" : "get_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushSettingsDto"
                 }
               }
             }
@@ -3107,6 +3315,33 @@
         }
       }
     },
+    "/api/players/{id}/history" : {
+      "get" : {
+        "tags" : [ "statistics-controller" ],
+        "operationId" : "playerHistory",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerHistoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ping" : {
       "get" : {
         "tags" : [ "ping-controller" ],
@@ -3128,7 +3363,7 @@
     "/api/paladin" : {
       "get" : {
         "tags" : [ "paladin-controller" ],
-        "operationId" : "get_1",
+        "operationId" : "get_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -3519,6 +3754,42 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/BannersDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/options" : {
+      "get" : {
+        "tags" : [ "external-login-controller" ],
+        "operationId" : "options",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthOptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external" : {
+      "get" : {
+        "tags" : [ "external-login-controller" ],
+        "operationId" : "external",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExternalLoginDto"
                 }
               }
             }
@@ -4264,6 +4535,90 @@
           }
         },
         "required" : [ "letter", "name", "units" ]
+      },
+      "PushKeysDto" : {
+        "type" : "object",
+        "properties" : {
+          "p256dh" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "auth" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "auth", "p256dh" ]
+      },
+      "PushSubscriptionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "endpoint" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "keys" : {
+            "$ref" : "#/components/schemas/PushKeysDto"
+          },
+          "language" : {
+            "type" : "string",
+            "maxLength" : 2,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "endpoint", "keys", "language" ]
+      },
+      "PushKindDto" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ATTACK", "VILLAGE_LOST", "MESSAGE", "GUILD_INVITE", "WORLD_END", "BUILDS_DONE" ]
+          },
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled", "kind" ]
+      },
+      "PushPreferencesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PushKindDto"
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "kinds" ]
+      },
+      "PushSettingsDto" : {
+        "type" : "object",
+        "properties" : {
+          "available" : {
+            "type" : "boolean"
+          },
+          "publicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "devices" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PushKindDto"
+            }
+          }
+        },
+        "required" : [ "available", "devices", "kinds", "publicKey" ]
       },
       "DescriptionRequest" : {
         "type" : "object",
@@ -5657,7 +6012,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
             }
           }
         },
@@ -5712,7 +6067,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
             }
           }
         },
@@ -6169,6 +6524,27 @@
         },
         "required" : [ "ids" ]
       },
+      "PushTestDto" : {
+        "type" : "object",
+        "properties" : {
+          "devices" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "devices" ]
+      },
+      "PushUnsubscribeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "endpoint" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "endpoint" ]
+      },
       "AcceptRequest" : {
         "type" : "object",
         "properties" : {
@@ -6258,6 +6634,17 @@
           }
         },
         "required" : [ "currentPassword", "newPassword" ]
+      },
+      "LinkRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentPassword" : {
+            "type" : "string",
+            "maxLength" : 128,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "currentPassword" ]
       },
       "CreateGuildRequest" : {
         "type" : "object",
@@ -6570,9 +6957,12 @@
             "items" : {
               "$ref" : "#/components/schemas/VillageSummaryDto"
             }
+          },
+          "linked" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "accountId", "needsRespawn", "playerId", "points", "protectedUntil", "role", "username", "villages" ]
+        "required" : [ "accountId", "linked", "needsRespawn", "playerId", "points", "protectedUntil", "role", "username", "villages" ]
       },
       "LoginRequest" : {
         "type" : "object",
@@ -6589,6 +6979,17 @@
           }
         },
         "required" : [ "password", "username" ]
+      },
+      "JoinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "inviteCode" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "inviteCode" ]
       },
       "AdminPlayerDto" : {
         "type" : "object",
@@ -7757,6 +8158,90 @@
         },
         "required" : [ "hallLevel", "running", "theftChancePerThief", "units" ]
       },
+      "LeaderLine" : {
+        "type" : "object",
+        "properties" : {
+          "playerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LeaderPoints"
+            }
+          }
+        },
+        "required" : [ "days", "name", "npc", "playerId" ]
+      },
+      "LeaderPoints" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "points" ]
+      },
+      "WorldDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "players" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "villages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "barbarianVillages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "barbarianVillages", "day", "players", "points", "villages" ]
+      },
+      "WorldStatisticsDto" : {
+        "type" : "object",
+        "properties" : {
+          "since" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WorldDay"
+            }
+          },
+          "leaders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LeaderLine"
+            }
+          }
+        },
+        "required" : [ "days", "leaders", "since" ]
+      },
       "ReportItemDto" : {
         "type" : "object",
         "properties" : {
@@ -8470,6 +8955,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "value" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "guildId" : {
             "type" : [ "integer", "null" ],
             "format" : "int64"
@@ -8478,7 +8967,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "guildId", "guildTag", "name", "npc", "playerId", "points", "rank", "villageCount" ]
+        "required" : [ "guildId", "guildTag", "name", "npc", "playerId", "points", "rank", "value", "villageCount" ]
       },
       "RankingPageDto" : {
         "type" : "object",
@@ -8582,9 +9071,115 @@
             "items" : {
               "$ref" : "#/components/schemas/EarnedAchievementDto"
             }
+          },
+          "stats" : {
+            "$ref" : "#/components/schemas/PlayerStatsDto"
+          },
+          "careerUrl" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "achievements", "guild", "id", "name", "npc", "points", "rank", "villages" ]
+        "required" : [ "achievements", "careerUrl", "guild", "id", "name", "npc", "points", "rank", "stats", "villages" ]
+      },
+      "PlayerStatsDto" : {
+        "type" : "object",
+        "properties" : {
+          "attacksWon" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "attacksLost" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "defencesWon" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "defencesLost" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "killedAttacking" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "killedDefending" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "unitsLost" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lootTaken" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lootLost" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "villagesConquered" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "villagesLost" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "unitsRecruited" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "buildingLevels" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "since" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "attacksLost", "attacksWon", "buildingLevels", "defencesLost", "defencesWon", "killedAttacking", "killedDefending", "lootLost", "lootTaken", "since", "unitsLost", "unitsRecruited", "villagesConquered", "villagesLost" ]
+      },
+      "PlayerDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "villages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rank" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "points", "rank", "villages" ]
+      },
+      "PlayerHistoryDto" : {
+        "type" : "object",
+        "properties" : {
+          "since" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PlayerDay"
+            }
+          }
+        },
+        "required" : [ "days", "since" ]
       },
       "PingResponse" : {
         "type" : "object",
@@ -8846,6 +9441,42 @@
         },
         "required" : [ "name", "playerId" ]
       },
+      "AuthOptionsDto" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "OFF", "LINKING", "REQUIRED" ]
+          },
+          "accountServerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "careerReports" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "accountServerName", "careerReports", "mode" ]
+      },
+      "ExternalLoginDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "problem" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "FAILED", "UNAVAILABLE", "BANNED", "DELETED", "ALREADY_LINKED", "LINK_NOT_ALLOWED" ]
+          },
+          "bannedUntil" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "banReason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "banReason", "bannedUntil", "name", "problem" ]
+      },
       "AbuseEventDto" : {
         "type" : "object",
         "properties" : {
@@ -8977,9 +9608,12 @@
           },
           "abuse" : {
             "$ref" : "#/components/schemas/AbuseStatusDto"
+          },
+          "push" : {
+            "$ref" : "#/components/schemas/PushStatusDto"
           }
         },
-        "required" : [ "abuse", "barbarianVillages", "cheatsEnabled", "databaseOk", "events", "humanPlayers", "npcLords", "serverTime", "uptimeSeconds", "version", "villages" ]
+        "required" : [ "abuse", "barbarianVillages", "cheatsEnabled", "databaseOk", "events", "humanPlayers", "npcLords", "push", "serverTime", "uptimeSeconds", "version", "villages" ]
       },
       "EventQueueDto" : {
         "type" : "object",
@@ -9002,6 +9636,23 @@
           }
         },
         "required" : [ "failed", "lagSeconds", "nextDueAt", "pending" ]
+      },
+      "PushStatusDto" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "devices" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "players" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "devices", "enabled", "players" ]
       },
       "FailedEventDto" : {
         "type" : "object",
@@ -9430,7 +10081,7 @@
         "properties" : {
           "code" : {
             "type" : "string",
-            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER" ]
+            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
           },
           "detail" : {
             "type" : "string"

@@ -31,6 +31,12 @@ import org.springframework.context.annotation.Import;
  * <p>The host token is {@link #ADMIN_TOKEN}; the host cheats are off (the {@code dev} profile of
  * {@code DevCheatControllerTest} switches them on).
  *
+ * <p>The world has an account server ({@link FakeAccountServer}) in mode OFF ({@link
+ * TestAccountServerConfiguration}).
+ *
+ * <p>Push notifications go only to the {@link FakePushService}, one at a time ({@link
+ * TestPushConfiguration}).
+ *
  * <p>The server also listens on a random port ({@code @LocalServerPort}) for the WebSocket tests,
  * which need a real connection; everything else goes through MockMvc. {@link SentMessages} records
  * what is pushed over STOMP.
@@ -55,6 +61,7 @@ import org.springframework.context.annotation.Import;
             // All MockMvc requests come from 127.0.0.1; AuthControllerTest sets its own numbers.
             "bannerfall.abuse.login-limit.per-minute=100000",
             "bannerfall.abuse.register-limit.per-minute=100000",
+            "bannerfall.abuse.external-limit.per-minute=100000",
             "bannerfall.abuse.sessions-per-account=100000"
         })
 @AutoConfigureMockMvc
@@ -65,6 +72,8 @@ import org.springframework.context.annotation.Import;
     TestEventHandlerConfiguration.class,
     TestWorldConfiguration.class,
     TestPasswordEncoderConfiguration.class,
+    TestAccountServerConfiguration.class,
+    TestPushConfiguration.class,
     SentMessages.class
 })
 public @interface IntegrationTest {

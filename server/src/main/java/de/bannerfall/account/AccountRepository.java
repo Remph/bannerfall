@@ -16,6 +16,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByUsernameKey(String usernameKey);
 
+    Optional<Account> findByExternalIssuerAndExternalSubject(String issuer, String subject);
+
     /**
      * The admins that can still log in, locked: two demotions at the same moment can't both see a
      * second admin and leave none ({@code LAST_ADMIN}, M14d).

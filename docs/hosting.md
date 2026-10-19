@@ -206,3 +206,161 @@ Read the release notes first: some updates switch new features on in a running w
 | Can't log in, or the page says disconnected | Use `https://` and the realm's exact name (cookies are `Secure`); `bf logs app` for WARN lines. Behind your own proxy see the README (*TrueNAS or another proxy instead of Caddy*). |
 | Backup cron silent | The `backups/` folder must exist and your user must be in the `docker` group; read `backups/backup.log`. |
 | Disk filling | `df -h`, `docker system df`, `docker builder prune`. |
+
+## 12. Several worlds on one server
+
+Every world is its own copy of the setup above: its own folder, database, `.env`, backups and admin token. One shared Caddy (the folder `edge/` in the repository) holds ports 80 and 443 for all of them and passes each world's domain on to that world's app port. The worlds share nothing else, so restoring, restarting or updating one never touches another. Each extra world needs about 1.3 GB of memory limit (app 768m, database 512m); a 4 GB server fits two worlds, and before a third, look at `docker stats --no-stream` first.
+
+A server with one world doesn't need any of this: keep `COMPOSE_PROFILES=caddy` as in step 5.
+
+### 12.1 Move the first world behind the shared Caddy (once)
+
+The first world's app and database keep running; only the proxy is swapped, so the site is gone for a few seconds.
+
+1. Get the shared Caddy's folder, on the same tag as your world:
+   ```
+   sudo mkdir -p /opt/bannerfall-edge && sudo chown deploy:deploy /opt/bannerfall-edge
+   git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-edge
+   cd /opt/bannerfall-edge && git checkout v1.5.0          # the tag your world runs
+   cd edge && cp sites.caddy.example sites.caddy && nano sites.caddy
+   ```
+   Keep one block, your first world's: its domain and its `APP_PORT` (8461 unless you changed it). Delete the second example block. `sites.caddy` is this server's list and stays out of git, like `.env`.
+2. Create the shared Caddy without starting it, and give it a copy of the first world's certificate, so it serves the same certificate from its first second and the swap doesn't wait for Let's Encrypt:
+   ```
+   cd /opt/bannerfall-edge/edge && docker compose create
+   docker run --rm -v bannerfall_caddy_data:/from:ro -v bannerfall-edge_caddy_data:/to caddy:2.11.7 cp -a /from/. /to/
+   ```
+   `bannerfall_caddy_data` is the first world's certificate volume (`docker volume ls`); the world's own Caddy keeps its copy for the way back. The shared Caddy renews the certificate itself later. It runs on the host's network, so unlike a world's own Caddy it goes through ufw: check that the rules for 80/tcp, 443/tcp and 443/udp from step 2 are there (`sudo ufw status`).
+3. Swap the proxies:
+   ```
+   bfa broadcast "Short interruption in 5 minutes"         # wait, then:
+   sed -i 's/^COMPOSE_PROFILES=caddy/COMPOSE_PROFILES=/' /opt/bannerfall/.env
+   bf --profile caddy rm -sf caddy                         # stops the world's own Caddy
+   cd /opt/bannerfall-edge/edge && docker compose up -d
+   docker compose logs caddy | tail -n 20                  # "serving initial configuration", no error
+   ```
+   Open the site and log in: the game and the WebSocket work as before.
+4. Add two aliases for the shared Caddy to `~/.bashrc`:
+   ```
+   alias bfe='docker compose -f /opt/bannerfall-edge/edge/compose.yaml'
+   alias bfe-reload='docker compose -f /opt/bannerfall-edge/edge/compose.yaml exec caddy caddy reload --config /etc/caddy/Caddyfile'
+   ```
+
+**Going back:** `bfe down`, put `COMPOSE_PROFILES=caddy` back into `/opt/bannerfall/.env` and `bf up -d`.
+
+### 12.2 Add a world
+
+1. DNS for the new world's name first (step 1), for example `two.example.com`.
+2. A folder of its own, on the same tag as the first world:
+   ```
+   sudo mkdir -p /opt/bannerfall-two && sudo chown deploy:deploy /opt/bannerfall-two
+   git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-two
+   cd /opt/bannerfall-two && git checkout v1.5.0
+   ```
+3. `.env` as in step 5, with new secrets, and these differences:
+
+   | Line | Value |
+   |---|---|
+   | `COMPOSE_PROJECT_NAME` | a name of its own, for example `bannerfall-two` (add the line). It names the world's containers and volumes; never reuse another world's name, or the two would share a database |
+   | `COMPOSE_PROFILES` | empty (the shared Caddy serves the world) |
+   | `APP_PORT` | a port of its own: `8462`, the next world `8463` (uncomment the line) |
+   | `BANNERFALL_DOMAIN` | the new world's name |
+   | `BANNERFALL_IMAGE` | the same image as the first world; there's nothing to build again |
+4. Aliases for this world (`~/.bashrc`), then start it:
+   ```
+   alias bf2='docker compose -f /opt/bannerfall-two/compose.prod.yaml'
+   alias bfa2='docker compose -f /opt/bannerfall-two/compose.prod.yaml exec app bannerfall-admin'
+   ```
+   Before the first start, `bf2 config | head -n 1` must print `name: bannerfall-two`, the name from `.env`. If it prints `name: bannerfall`, stop: `.env` lacks the line, and starting would take over the first world's containers. Then `bf2 up -d`, `bf2 ps`: `app` and `db` become healthy; there is no `caddy` in this world.
+5. Add its block to `/opt/bannerfall-edge/edge/sites.caddy` (its domain and `APP_PORT`), then `bfe-reload`. The new site gets its certificate within seconds; the other worlds are not interrupted.
+6. Steps 7 to 9 with this world's folder and aliases: the backup drill (`/opt/bannerfall-two/ops/bannerfall-backup`), a cron line a few minutes after the first world's (`27 3 * * * /opt/bannerfall-two/ops/bannerfall-backup >> /opt/bannerfall-two/backups/backup.log 2>&1`), and opening the world with `bfa2`.
+
+### 12.3 Updating several worlds
+
+Update every world to the same release in one go, the newest world first and the first world last, so a problem shows up before it reaches your oldest world. In each world's folder it is step 10 as usual, with that world's aliases; build or pull the image only once. Then bring the shared Caddy to the same tag:
+```
+cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v1.5.1
+bfe up -d && bfe-reload                    # picks up a changed Caddy image or Caddyfile
+```
+
+### 12.4 When something is wrong
+
+| Symptom | Check |
+|---|---|
+| `bfe up -d` fails with "address already in use" | A world still runs its own Caddy: set `COMPOSE_PROFILES=` in that world's `.env` and `docker compose -f <its compose.prod.yaml> --profile caddy rm -sf caddy`. |
+| The shared Caddy keeps restarting | `bfe logs caddy`: "File to import not found: sites.caddy" means step 12.1.1 is missing; any other line names the mistake in `sites.caddy`. |
+| One world answers 502 | That world's app is down or the port in `sites.caddy` is wrong: `bf2 ps`, and compare with `APP_PORT` in its `.env`. |
+
+## 13. Log in through an account server (optional)
+
+By default every realm has its own accounts: players register with the invite code and a
+password. A realm can instead (or as well) let players log in with an account at an OpenID
+Connect provider, for example one account server for several realms or a Keycloak you already
+run. The realm only needs the provider's issuer address and a client registered there.
+
+At the provider, register a confidential client for the realm:
+
+- redirect URI `https://play.example.com/login/oauth2/code/accounts` (your realm's domain);
+- grant type authorization code, PKCE required, scopes `openid profile`, no consent screen needed;
+- client authentication `client_secret_basic` (or `client_secret_post`);
+- the ID token must carry `preferred_username`: it becomes the player name on the realm, so it
+  must follow the game's rule (3 to 24 letters, digits, `_` and `-`);
+- optional, but recommended: back-channel logout to
+  `https://play.example.com/api/auth/backchannel-logout`, so a ban or a deleted account at the
+  provider ends the player's open sessions on the realm at once.
+
+Then in the realm's `.env`:
+
+| Line | Value |
+|---|---|
+| `BANNERFALL_ACCOUNT_SERVER_ISSUER` | the provider's issuer, e.g. `https://accounts.example.com` (https; the realm reads `/.well-known/openid-configuration` there) |
+| `BANNERFALL_ACCOUNT_SERVER_CLIENT_ID`, `..._CLIENT_SECRET` | the client from above |
+| `BANNERFALL_ACCOUNT_SERVER_NAME` | the name on the button, "Log in with example.com"; empty = the issuer's host |
+| `BANNERFALL_ACCOUNT_SERVER_MODE` | `OFF` (default: everything as before), `LINKING` (the button next to the usual login; existing players can link their account under "Change password", after which their password here no longer works) or `REQUIRED` (only the button; no passwords, no registration on the realm) |
+| `BANNERFALL_ACCOUNT_SERVER_CAREER` | `false` (default). `true` only for an account server that keeps careers across realms: every few minutes the realm then sends it, for each player who logs in through it, the name, points, villages, rank, achievements and, once the world has ended, the result (`POST <issuer>/realm-api/career`, HTTP Basic with the client id and secret). Ordinary OpenID Connect providers such as Keycloak don't take it, so leave it off for them. The realm's privacy page says so when it is on |
+
+`docker compose -f compose.prod.yaml up -d` to apply it. Things to know:
+
+- A first login through the provider asks for the realm's invite code once, then creates the
+  player. Links like `https://play.example.com/join?invite=CODE` fill it in.
+- If the provider is down, nobody can log in through it; open sessions keep working. The realm
+  still starts and checks the provider again at the next login.
+- Roles, bans, deleting players and everything else in the realm's admin tools stay per realm.
+  A realm-side ban also stops a player who logs in through the provider.
+- Switching back to `OFF` hides the button. Players who registered through the provider (or
+  linked their account) have no password on the realm then; set one for them with
+  `bannerfall-admin player <name> reset-password` (or the admin page) if they should keep playing:
+  that makes them local accounts again. In `REQUIRED` mode the reset refuses players of the
+  provider: a local account couldn't log in there.
+- Switching `LINKING` to `REQUIRED` locks out every player who hasn't linked yet (no password
+  login any more). Let them link first, or switch back to `LINKING` for them.
+- Nothing in the database changes for existing players: switching a realm to `LINKING` is safe
+  for a running world.
+
+## 14. Push notifications (optional)
+
+Players can get a notification on their phone or computer while the game is closed: attacks on
+the way, lost villages, private messages, guild invitations, the victory clock and the end of the
+world, and (if they switch it on) an empty build queue. They turn it on per device under
+"Notifications" in the menu; on an iPhone or iPad only from the home screen (iOS 16.4 or newer).
+
+The realm needs a key pair of its own, made once:
+
+```
+docker compose -f compose.prod.yaml exec -T app bannerfall-admin push keys >> .env
+docker compose -f compose.prod.yaml up -d
+```
+
+That appends `BANNERFALL_PUSH_PUBLIC_KEY` and `BANNERFALL_PUSH_PRIVATE_KEY` to `.env`. Keep them
+with the rest of `.env`: they are not in the database backups. Things to know:
+
+- Without the two lines the realm sends nothing and the menu says so. Only one of them, or two that
+  don't belong together, stops the app at the start.
+- Notifications go out through the push service of each player's browser (Google, Mozilla, Apple,
+  Microsoft), encrypted so the service can't read them. The server must be able to reach those over
+  https; nothing else is needed and nothing costs money.
+- The push services like to know who sends: `BANNERFALL_PUSH_SUBJECT` (`mailto:` or an https
+  address), by default `BANNERFALL_OPERATOR_CONTACT` if it is an email address.
+- A new key pair makes every device sign up again, which happens by itself the next time the
+  player opens the game. Several worlds each have their own pair.
+- `bannerfall-admin status` shows how many devices get notifications.

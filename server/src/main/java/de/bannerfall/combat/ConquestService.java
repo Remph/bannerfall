@@ -12,6 +12,8 @@ import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.report.ConquestReport;
 import de.bannerfall.report.ReportKind;
 import de.bannerfall.report.ReportService;
+import de.bannerfall.statistics.Stat;
+import de.bannerfall.statistics.StatisticsService;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
@@ -47,6 +49,7 @@ public class ConquestService {
     private final AchievementService achievements;
     private final BannerService bannerService;
     private final WorldService worldService;
+    private final StatisticsService statistics;
 
     ConquestService(
             OwnerChange ownerChange,
@@ -58,7 +61,8 @@ public class ConquestService {
             ApplicationEventPublisher events,
             AchievementService achievements,
             BannerService bannerService,
-            WorldService worldService) {
+            WorldService worldService,
+            StatisticsService statistics) {
         this.ownerChange = ownerChange;
         this.stacks = stacks;
         this.villages = villages;
@@ -69,6 +73,7 @@ public class ConquestService {
         this.achievements = achievements;
         this.bannerService = bannerService;
         this.worldService = worldService;
+        this.statistics = statistics;
     }
 
     /**
@@ -130,6 +135,8 @@ public class ConquestService {
         conqueror.addVillage(village.getPoints());
         conqueror.updatePoints(Math.toIntExact(villages.sumPointsOfPlayer(conqueror.getId())));
         grantAchievements(conqueror, previousOwner);
+        statistics.add(conqueror.getId(), Stat.VILLAGES_CONQUERED, 1);
+        statistics.add(previousOwnerId, Stat.VILLAGES_LOST, 1);
 
         ConquestReport report =
                 new ConquestReport(

@@ -26,8 +26,9 @@ spring:
 server:
   servlet:
     session:
-      # Friends play over days: stay logged in for 30 days (sessions are in memory, a restart logs everyone out).
-      timeout: 30d
+      # A visit without a login (a login through the account server on its way, a join page
+      # waiting for the invite code) lasts minutes; a login gets bannerfall.login-session.
+      timeout: 15m
       cookie:
         max-age: 30d
         same-site: lax
@@ -55,6 +56,39 @@ bannerfall:
     # (usually an email address). Empty = the page shows only what the game stores.
     name: ${BANNERFALL_OPERATOR_NAME:}
     contact: ${BANNERFALL_OPERATOR_CONTACT:}
+  # Friends play over days: a login lasts 30 days without use (sessions are in memory, a restart
+  # logs everyone out; LoginService).
+  login-session: 30d
+  account-server:
+    # Logging in through an account server (an OpenID Connect provider; docs/hosting.md, "Account
+    # server"). Env BANNERFALL_ACCOUNT_SERVER_ISSUER (its address, exactly as it names itself),
+    # _CLIENT_ID and _CLIENT_SECRET (this world as a client there), _NAME (the login button says
+    # "Log in with <name>"; default the issuer's host) and _MODE: OFF (only this world's own
+    # accounts, the default), LINKING (both; players may link their account) or REQUIRED (only the
+    # account server). Without an issuer the world has only its own accounts.
+    issuer: ${BANNERFALL_ACCOUNT_SERVER_ISSUER:}
+    client-id: ${BANNERFALL_ACCOUNT_SERVER_CLIENT_ID:}
+    client-secret: ${BANNERFALL_ACCOUNT_SERVER_CLIENT_SECRET:}
+    name: ${BANNERFALL_ACCOUNT_SERVER_NAME:}
+    mode: ${BANNERFALL_ACCOUNT_SERVER_MODE:OFF}
+    # BANNERFALL_ACCOUNT_SERVER_CAREER=true: tell the account server, every few minutes, how the
+    # players who log in through it are doing here (points, achievements, the end result), for
+    # their career page there. Only Bannerfall's own account server takes these reports.
+    career: ${BANNERFALL_ACCOUNT_SERVER_CAREER:false}
+    career-interval: ${BANNERFALL_ACCOUNT_SERVER_CAREER_INTERVAL:PT5M}
+  push:
+    # Web Push (1.5, docs/hosting.md "Push notifications"): the world's VAPID key pair, env
+    # BANNERFALL_PUSH_PUBLIC_KEY and BANNERFALL_PUSH_PRIVATE_KEY (`bannerfall-admin push keys`
+    # prints a new pair). Both empty = no push; only one, or a broken one, stops the start.
+    public-key: ${BANNERFALL_PUSH_PUBLIC_KEY:}
+    private-key: ${BANNERFALL_PUSH_PRIVATE_KEY:}
+    # How the push services can reach the host (mailto: or https): env BANNERFALL_PUSH_SUBJECT.
+    # Empty = the operator contact (bannerfall.operator.contact) if it is an e-mail address.
+    subject: ${BANNERFALL_PUSH_SUBJECT:}
+    # The only addresses the server sends pushes to: the push services of Chrome and Android
+    # (also Edge's older versions, Samsung, Opera), Firefox, Safari and Windows. A leading *. allows
+    # any subdomain.
+    services: https://fcm.googleapis.com, https://updates.push.services.mozilla.com, https://*.push.apple.com, https://*.notify.windows.com
   abuse:
     # Abuse protection (docs/plan/01-architecture.md §4.12). Every number is a default; the host may change it here.
     write-limit:

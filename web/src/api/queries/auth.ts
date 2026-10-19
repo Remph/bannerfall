@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api, expectData } from '../client';
+import type { Language } from '../../i18n/language';
 import { markVersionSeen } from '../../layout/changelogSeen';
+import { leavePush, refreshPush } from '../../push/pushClient';
 import { ApiError } from '../errors';
 import type { components } from '../schema';
 import { fetchPublicWorld, publicWorldQueryKey } from './world';
@@ -9,6 +11,15 @@ import { fetchPublicWorld, publicWorldQueryKey } from './world';
 export type Me = components['schemas']['MeDto'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
+export type AuthOptions = components['schemas']['AuthOptionsDto'];
+export type ExternalLogin = components['schemas']['ExternalLoginDto'];
+export type ExternalLoginProblem = NonNullable<ExternalLogin['problem']>;
+
+/**
+ * Where the browser starts a login through the account server (1.5, 01-architecture §4.9a): a
+ * page of the server (Spring's OAuth2 login), not of this app, so links to it reload the page.
+ */
+export const ACCOUNT_SERVER_LOGIN = '/oauth2/authorization/accounts';
 
 /** `as const` makes the type `readonly ['me']` instead of `string[]`. */
 export const meQueryKey = ['me'] as const;
@@ -108,25 +119,80 @@ export function useLogin() {
   });
 }
 
+/** A new player of this world is logged in (registered here, or joined through the account server). */
+async function startAsNewPlayer(queryClient: QueryClient, me: Me): Promise<void> {
+  // A new player starts on the current version: no "new in 1.1.0" banner on the first screen
+  // (M28). Asked before the game screens open, so the banner reads the mark when it appears.
+  try {
+    const world = await queryClient.fetchQuery({
+      queryKey: publicWorldQueryKey,
+      queryFn: fetchPublicWorld,
+      staleTime: 60_000,
+    });
+    markVersionSeen(world.version);
+  } catch {
+    // only the banner depends on it: a failed request must not fail the registration
+  }
+  switchAccount(queryClient, me);
+}
+
 export function useRegister() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: RegisterRequest) => expectData(api.POST('/api/auth/register', { body })),
-    onSuccess: async (me) => {
-      // A new player starts on the current version: no "new in 1.1.0" banner on the first screen
-      // (M28). Asked before the game screens open, so the banner reads the mark when it appears.
-      try {
-        const world = await queryClient.fetchQuery({
-          queryKey: publicWorldQueryKey,
-          queryFn: fetchPublicWorld,
-          staleTime: 60_000,
-        });
-        markVersionSeen(world.version);
-      } catch {
-        // only the banner depends on it: a failed request must not fail the registration
-      }
-      switchAccount(queryClient, me);
+    onSuccess: (me) => startAsNewPlayer(queryClient, me),
+  });
+}
+
+/**
+ * GET /api/auth/options (1.5): whether this world has "Log in with …" and whether its own
+ * passwords still work (mode OFF, LINKING or REQUIRED). Set by the host; it changes with a restart.
+ */
+export function useAuthOptions() {
+  return useQuery({
+    queryKey: ['authOptions'],
+    queryFn: () => expectData(api.GET('/api/auth/options')),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * GET /api/auth/external (1.5): the name of a login at the account server that waits for the join
+ * page, and what went wrong with the last such login. The server forgets the problem once it has
+ * told it, so this is asked once per visit of a page (no refetching, dropped when the page closes).
+ */
+export function useExternalLogin() {
+  return useQuery({
+    queryKey: ['externalLogin'],
+    queryFn: () => expectData(api.GET('/api/auth/external')),
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+}
+
+/** POST /api/auth/join (1.5): whoever logged in at the account server becomes a player here. */
+export function useJoin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteCode: string) => expectData(api.POST('/api/auth/join', { body: { inviteCode } })),
+    onSuccess: (me) => startAsNewPlayer(queryClient, me),
+  });
+}
+
+/**
+ * POST /api/me/link (1.5): the player wants his account here to belong to his account at the
+ * account server, confirmed with his current password (linking ends it). The browser goes there to
+ * log in; the server finishes the link when it comes back.
+ */
+export function useLinkAccount() {
+  return useMutation({
+    mutationFn: async (body: { currentPassword: string }) => {
+      await api.POST('/api/me/link', { body });
     },
+    onSuccess: () => window.location.assign(ACCOUNT_SERVER_LOGIN),
   });
 }
 
@@ -134,6 +200,8 @@ export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // the next player on this browser gets none of this player's notifications (1.5)
+      await leavePush();
       await api.POST('/api/auth/logout');
     },
     onSuccess: () => switchAccount(queryClient, null),
@@ -153,10 +221,12 @@ export function useRespawn() {
 }
 
 /** POST /api/me/password: 204; WRONG_PASSWORD, or TOO_MANY_LOGIN_ATTEMPTS after five wrong ones. */
-export function useChangePassword() {
+export function useChangePassword(language: Language) {
   return useMutation({
     mutationFn: async (body: { currentPassword: string; newPassword: string }) => {
       await api.POST('/api/me/password', { body });
     },
+    // a new password ends every device's notifications on the server; this one signs up again (1.5)
+    onSuccess: () => void refreshPush(language),
   });
 }

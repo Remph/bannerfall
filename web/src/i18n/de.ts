@@ -42,6 +42,38 @@ export const de: Dictionary = {
       passwordLength: 'Das Passwort braucht 8 bis 128 Zeichen.',
     },
   },
+  /** Anmelden über den Kontoserver (1.5): seinen Namen nennt der Server, z. B. "bannerfall.de". */
+  accountServer: {
+    loginButton: (server: string) => `Mit ${server} anmelden`,
+    or: 'oder mit deinem Passwort hier',
+    requiredHint: (server: string) => `Auf dieser Welt spielst du mit deinem ${server}-Konto.`,
+    linkingHint: (server: string) =>
+      `Du spielst hier schon? Melde dich wie bisher mit deinem Passwort an. Unter „Passwort ändern“ kannst du dein Konto mit ${server} verknüpfen.`,
+    problems: {
+      FAILED: (server: string) => `Die Anmeldung bei ${server} hat nicht geklappt. Bitte versuch es noch einmal.`,
+      UNAVAILABLE: (server: string) => `${server} ist gerade nicht erreichbar. Bitte versuch es später noch einmal.`,
+      BANNED: (server: string) => `Dieses Konto ist auf dieser Welt gesperrt (${server}).`,
+      DELETED: () => 'Dieser Spieler wurde auf dieser Welt gelöscht.',
+      ALREADY_LINKED: (server: string) =>
+        `Dein ${server}-Konto gehört auf dieser Welt schon zu einem anderen Spieler. Melde dich stattdessen damit an.`,
+      LINK_NOT_ALLOWED: () => 'Verknüpfen ist auf dieser Welt nicht (mehr) möglich.',
+    },
+    joinTitle: 'Dieser Welt beitreten',
+    joinText: (name: string, server: string) =>
+      `Du bist bei ${server} als ${name} angemeldet. Für diese Welt brauchst du noch einen Einladungscode.`,
+    joinButton: 'Loslegen',
+    joining: 'Dein Dorf wird gegründet…',
+    joinMissing: (server: string) => `Melde dich zuerst mit ${server} an.`,
+    joinNameTaken: (name: string, server: string) =>
+      `Auf dieser Welt spielt schon jemand namens ${name}. Wenn du das bist, melde dich mit deinem Passwort an und verknüpfe das Konto unter „Passwort ändern“ mit ${server}.`,
+    linkTitle: (server: string) => `Mit ${server} anmelden`,
+    linkText: (server: string) =>
+      `Verknüpfe dieses Konto mit deinem ${server}-Konto: Danach meldest du dich dort an, auf jeder Welt mit demselben Konto. Dein Name hier bleibt. Das Passwort dieser Welt gilt dann nicht mehr.`,
+    linkButton: (server: string) => `Mit ${server} verknüpfen`,
+    linking: 'Weiterleitung…',
+    linked: (server: string) =>
+      `Dieses Konto ist mit ${server} verknüpft. Du meldest dich dort an und änderst dort auch dein Passwort.`,
+  },
   home: {
     noVillage: 'Du hast im Moment kein Dorf.',
   },
@@ -85,6 +117,56 @@ export const de: Dictionary = {
     version: 'Version',
     changePassword: 'Passwort ändern',
     worldInfo: 'Welteinstellungen',
+  },
+  push: {
+    link: 'Benachrichtigungen',
+    title: 'Benachrichtigungen',
+    back: 'Zurück zum Spiel',
+    intro:
+      'Erhalte auf diesem Gerät eine Benachrichtigung, während das Spiel geschlossen ist, zum Beispiel sobald ein Angriff losgeschickt wird.',
+    deviceTitle: 'Dieses Gerät',
+    deviceOn: 'Benachrichtigungen sind für dieses Gerät an.',
+    deviceOff: 'Benachrichtigungen sind für dieses Gerät aus.',
+    turnOn: 'Einschalten',
+    turnOff: 'Ausschalten',
+    working: 'Einen Moment…',
+    test: 'Test senden',
+    testSent: 'Test gesendet. Er sollte in wenigen Sekunden ankommen.',
+    devices: (count: number) =>
+      count === 1
+        ? 'Benachrichtigungen erreichen 1 deiner Geräte.'
+        : `Benachrichtigungen erreichen ${count} deiner Geräte.`,
+    blocked:
+      'Benachrichtigungen sind für dieses Spiel in deinem Browser blockiert. Erlaube sie in den Einstellungen des Browsers für diese Seite und versuche es dann noch einmal.',
+    unsupported: 'Dieser Browser kann keine Benachrichtigungen vom Spiel anzeigen.',
+    iosInstall:
+      'Auf iPhone und iPad gibt es Benachrichtigungen nur vom Home-Bildschirm aus: Tippe auf Teilen, dann auf „Zum Home-Bildschirm“, und öffne das Spiel von dort.',
+    unavailable: 'Diese Welt sendet keine Benachrichtigungen.',
+    failed: 'Benachrichtigungen ließen sich auf diesem Gerät nicht einschalten.',
+    kindsTitle: 'Benachrichtigen bei',
+    kinds: {
+      ATTACK: 'Angriffe auf dich',
+      VILLAGE_LOST: 'Verlorene Dörfer',
+      MESSAGE: 'Private Nachrichten',
+      GUILD_INVITE: 'Gildeneinladungen',
+      WORLD_END: 'Siegesuhr und Weltende',
+      BUILDS_DONE: 'Bauschleife leer',
+    },
+    kindHints: {
+      ATTACK: 'Sobald ein Angriff auf eines deiner Dörfer losgeschickt wird, mit seiner Ankunft.',
+      VILLAGE_LOST: 'Wenn eines deiner Dörfer erobert wird.',
+      MESSAGE: 'Wenn dir ein anderer Spieler schreibt.',
+      GUILD_INVITE: 'Wenn dich eine Gilde einlädt.',
+      WORLD_END: 'Wenn eine Seite die Siegesuhr startet oder sie stehen bleibt, und wenn die Welt endet.',
+      BUILDS_DONE: 'Wenn das letzte Gebäude in der Bauschleife eines Dorfes fertig ist.',
+    },
+    testBody: 'Benachrichtigungen funktionieren auf diesem Gerät.',
+    attacks: (count: number, target: string, first: string) =>
+      `${count} Angriffe auf dem Weg nach ${target} – erste Ankunft ${first}`,
+    villageLost: (village: string, by: string | null) =>
+      by === null ? `${village} wurde erobert` : `${by} hat ${village} erobert`,
+    buildsDone: (village: string, building: string, level: number) =>
+      `${village}: Die Bauschleife ist leer. ${building} hat Stufe ${level} erreicht.`,
   },
   /** The banner after a new version was deployed (M28): links to the changelog on bannerfall.de. */
   changelogBanner: {
@@ -1524,6 +1606,60 @@ export const de: Dictionary = {
     previous: 'Zurück',
     next: 'Weiter',
     page: (page: number, pages: number) => `Seite ${page} von ${pages}`,
+    tabsLabel: 'Rangliste sortieren nach',
+    tabs: {
+      POINTS: 'Punkte',
+      ATTACKER: 'Angreifer',
+      DEFENDER: 'Verteidiger',
+      PLUNDERER: 'Plünderer',
+    },
+    tabHint: {
+      POINTS: 'Alle nach den Punkten ihrer Dörfer.',
+      ATTACKER: 'In eigenen Angriffen getötete Verteidiger, nach Bevölkerung gezählt.',
+      DEFENDER: 'Beim Verteidigen getötete Angreifer, nach Bevölkerung gezählt.',
+      PLUNDERER: 'In Angriffen erbeutete Rohstoffe.',
+    },
+    worldStatistics: 'Weltstatistik',
+  },
+  statistics: {
+    title: 'Statistik',
+    history: 'Im Verlauf',
+    since: (date: string) => `Gezählt seit ${date}.`,
+    populationNote:
+      'Getötete und verlorene Einheiten zählen nach Bevölkerung: Eine Einheit zählt so viel, wie sie Platz im Bauernhof braucht.',
+    attacks: 'Angriffe',
+    defences: 'Verteidigungen',
+    wonLost: (won: string, lost: string) => `${won} gewonnen · ${lost} verloren`,
+    killedAttacking: 'Getötet im Angriff',
+    killedDefending: 'Getötet in der Verteidigung',
+    unitsLost: 'Eigene Einheiten verloren',
+    loot: 'Beute',
+    takenLost: (taken: string, lost: string) => `${taken} erbeutet · ${lost} verloren`,
+    villages: 'Dörfer',
+    conqueredLost: (conquered: string, lost: string) => `${conquered} erobert · ${lost} verloren`,
+    unitsRecruited: 'Einheiten ausgebildet',
+    buildingLevels: 'Gebäudestufen fertig',
+    chart: {
+      POINTS: 'Punkte',
+      VILLAGES: 'Dörfer',
+    },
+    chartLabel: 'Im Verlauf zeigen',
+    day: 'Tag',
+    oneDay: 'Der erste Tag: Die Linie wächst ab morgen.',
+    worldTitle: 'Weltstatistik',
+    worldIntro:
+      'Wie die Welt gewachsen ist, Tag für Tag. Jeder Tag zeigt den Stand an seinem Ende, heute den jetzigen.',
+    leaders: 'Führende Spieler',
+    leadersHint: 'Die Punkte der heutigen ersten fünf im Verlauf.',
+    world: 'Die Welt',
+    worldChart: {
+      VILLAGES: 'Dörfer',
+      BARBARIANS: 'Barbarendörfer',
+      PLAYERS: 'Spieler',
+      POINTS: 'Punkte',
+    },
+    worldFacts: (players: string, villages: string, barbarians: string) =>
+      `${players} Spieler · ${villages} Dörfer · ${barbarians} Barbarendörfer`,
   },
   victory: {
     // v1.3: Die Karte beginnt mit dem Stand; die eigene Seite heißt „Deine Gilde“ oder „Du“
@@ -1598,6 +1734,7 @@ export const de: Dictionary = {
     noVillages: 'Dieser Spieler hat keine Dörfer.',
     npcHint: 'Ein NPC-Fürst spielt nach denselben Regeln wie alle anderen.',
     guild: 'Gilde',
+    career: 'Laufbahn auf allen Welten',
     onMap: 'Auf der Karte',
     invite: 'In die Gilde einladen',
     invited: 'In deine Gilde eingeladen. Zurückziehen kannst du die Einladung auf der Gildenseite.',
@@ -1741,8 +1878,13 @@ export const de: Dictionary = {
     accountTitle: 'Dein Konto',
     account:
       'Dein Spielername und dein Passwort, das nur als Hash gespeichert ist: Daraus lässt sich dein Passwort nicht zurückgewinnen, auch nicht vom Betreiber. Außerdem, wann du dich registriert und zuletzt angemeldet hast, deine Rolle und eine Sperre mit ihrem Grund. Keine E-Mail-Adresse, kein echter Name, keine Zahlungsdaten.',
+    accountServerTitle: 'Anmelden über einen Kontoserver',
+    accountServer: (server: string) =>
+      `Auf dieser Welt kannst du dich auch mit einem Konto bei ${server} anmelden, einem eigenen Dienst mit eigener Datenschutzseite. Dann bekommt diese Welt von dort nur die Kennung deines Kontos und deinen Namen und speichert kein Passwort von dir: Du meldest dich über ${server} an. Wird das Konto dort gesperrt oder gelöscht, sagt ${server} dieser Welt Bescheid, und deine Anmeldungen hier enden.`,
+    accountServerCareer: (server: string) =>
+      `Für deine Laufbahn-Seite dort sagt diese Welt ${server} außerdem alle paar Minuten, wie es dir hier geht: dein Name, Punkte, Dörfer, Rang, Erfolge, ein paar Kampfzahlen und, sobald die Welt zu Ende ist, ihr Ergebnis für dich. ${server} zeigt das den Spielern, die dort angemeldet sind.`,
     gameTitle: 'Dein Spiel',
-    game: 'Dörfer, Truppen, Gebäude, Berichte, Farmliste, Notizen zu Dörfern, Erfolge und Gilde: alles, was das Spiel zum Laufen braucht. Dein Name, deine Dörfer, Punkte und Gilde sind für die anderen Spieler dieser Welt sichtbar (Karte, Rangliste, Profil). Deine Notizen zu Dörfern sieht sonst niemand, aber wie Nachrichten liegen sie unverschlüsselt auf dem Server.',
+    game: 'Dörfer, Truppen, Gebäude, Berichte, Farmliste, Notizen zu Dörfern, Erfolge, Statistik und Gilde: alles, was das Spiel zum Laufen braucht. Dein Name, deine Dörfer, Punkte, Gilde und Statistik (Kämpfe, getötete Einheiten, Beute, Eroberungen, ausgebildete Einheiten, Gebäudestufen sowie deine Punkte und Dörfer pro Tag) sind für die anderen Spieler dieser Welt sichtbar (Karte, Rangliste, Profil). Deine Notizen zu Dörfern sieht sonst niemand, aber wie Nachrichten liegen sie unverschlüsselt auf dem Server.',
     messagesTitle: 'Nachrichten und Chat',
     messages:
       'Private Nachrichten, der Gilden-Chat und der Welt-Chat werden auf dem Server gespeichert, damit sie beim nächsten Mal noch da sind. Dort sind sie nicht verschlüsselt: Der Betreiber kann sie lesen und Chat-Nachrichten ausblenden, die gegen die Regeln verstoßen.',
@@ -1753,10 +1895,12 @@ export const de: Dictionary = {
     logs: 'Das Server-Protokoll vermerkt Ereignisse wie fehlgeschlagene Anmeldungen und gesperrte Konten mit dem Spielernamen. Die Protokolldateien werden nach 14 Tagen gelöscht; die Konsolenausgabe des Servers ist in der Größe begrenzt und beginnt bei jedem Update neu. Anfragen, die die Seite des Spiels selbst nie schickt (Hinweise auf Schummeln), werden pro Konto 30 Tage vermerkt. Was der Betreiber tut (Sperren, neue Passwörter, gelöschte Spieler), bleibt in seinem Protokoll.',
     cookiesTitle: 'Cookies und Browser-Speicher',
     cookies:
-      'Zwei Cookies, beide zum Spielen nötig: eines hält dich angemeldet (bis zu 30 Tage), das andere schützt vor gefälschten Anfragen. Dein Browser merkt sich außerdem Einstellungen wie Sprache, Farbschema und Kartenansicht. Kein Tracking, keine Werbung, keine fremden Dienste: Schriften und Bilder kommen von diesem Server.',
+      'Zwei Cookies, beide zum Spielen nötig: eines hält dich angemeldet (bis zu 30 Tage), das andere schützt vor gefälschten Anfragen. Dein Browser merkt sich außerdem Einstellungen wie Sprache, Farbschema und Kartenansicht. Kein Tracking, keine Werbung: Schriften und Bilder kommen von diesem Server, und der einzige fremde Dienst ist der Push-Dienst der Benachrichtigungen, die du selbst einschaltest.',
     purposeTitle: 'Wofür und wie lange',
     purpose:
       'Die Daten sind zum Spielen nötig (dein Konto und dein Spiel) und um die Welt vor Missbrauch zu schützen (Adress-Grenzen und Protokolle); im Sinne der DSGVO Art. 6 Abs. 1 lit. b und f. Sie bleiben, solange die Welt läuft; die Sicherungen der Datenbank werden 14 Tage aufbewahrt, sofern der Betreiber sie nicht länger behält.',
+    pushTitle: 'Benachrichtigungen',
+    push: 'Wenn du Benachrichtigungen für ein Gerät einschaltest, speichert diese Welt die Adresse, die dein Browser für dieses Gerät bei seinem Push-Dienst bekommen hat (betrieben vom Hersteller des Browsers, etwa Google, Mozilla, Apple oder Microsoft), zwei Schlüssel zum Verschlüsseln der Benachrichtigungen und die Spielsprache auf dem Gerät. Jede Benachrichtigung geht verschlüsselt an diesen Push-Dienst, der sie nicht lesen kann; er erfährt nur, dass und wann etwas gesendet wurde. Die Adresse wird gelöscht, wenn du die Benachrichtigungen ausschaltest oder dich auf dem Gerät abmeldest, wenn sich dein Passwort ändert und wenn der Push-Dienst meldet, dass es das Gerät nicht mehr gibt.',
     rightsTitle: 'Deine Rechte',
     rights:
       'Du kannst den Betreiber fragen, was über dich gespeichert ist, und es berichtigen oder löschen lassen. Im Spiel heißt Löschen: Der Betreiber löscht deinen Spieler, du kannst dich nicht mehr anmelden und deine Dörfer werden zu Barbarendörfern. Dein Kontoeintrag, dein Name und was du geschrieben hast bleiben, weil alte Berichte, Nachrichten und Chat-Zeilen darauf verweisen; nur deine Notizen zu Dörfern werden gelöscht. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.',
@@ -2229,6 +2373,13 @@ export const de: Dictionary = {
     LAST_ADMIN: 'Der letzte Admin kann nicht aufhören, Admin zu sein. Mach zuerst jemand anderen zum Admin.',
     TOO_MANY_ADMIN_ATTEMPTS: 'Zu viele falsche Host-Tokens. Warte eine Minute.',
     WRONG_PASSWORD: 'Das aktuelle Passwort ist falsch.',
+    LOCAL_LOGIN_OFF: 'Auf dieser Welt meldest du dich über den Kontoserver an.',
+    ACCOUNT_LINKED: 'Dieses Konto meldet sich über den Kontoserver an. Ändere das Passwort dort.',
+    EXTERNAL_LOGIN_MISSING: 'Deine Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.',
+    EXTERNAL_NAME_INVALID:
+      'Dein Name beim Kontoserver passt nicht zu den Namensregeln dieser Welt (3–24 Buchstaben, Ziffern, _ und -).',
+    LINK_NOT_ALLOWED: 'Verknüpfen ist gerade nicht möglich.',
+    PUSH_UNAVAILABLE: 'Diese Welt sendet keine Benachrichtigungen.',
     ACCOUNT_BANNED: 'Dieses Konto ist gesperrt.',
     TOO_MANY_REQUESTS: 'Zu viele Anfragen. Bitte langsamer.',
     CANNOT_BAN_ADMIN: 'Admins können nicht gesperrt werden. Nimm zuerst die Admin-Rolle weg.',

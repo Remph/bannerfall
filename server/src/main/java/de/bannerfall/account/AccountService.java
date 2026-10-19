@@ -50,6 +50,7 @@ public class AccountService implements UserDetailsService {
     private final AccountStates states;
     private final ApplicationEventPublisher events;
     private final AchievementService achievements;
+    private final AccountServerSettings accountServer;
 
     AccountService(
             AccountRepository accounts,
@@ -63,7 +64,8 @@ public class AccountService implements UserDetailsService {
             LoginRateLimiter rateLimiter,
             AccountStates states,
             ApplicationEventPublisher events,
-            AchievementService achievements) {
+            AchievementService achievements,
+            AccountServerSettings accountServer) {
         this.accounts = accounts;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
@@ -76,6 +78,7 @@ public class AccountService implements UserDetailsService {
         this.states = states;
         this.events = events;
         this.achievements = achievements;
+        this.accountServer = accountServer;
     }
 
     /**
@@ -87,22 +90,47 @@ public class AccountService implements UserDetailsService {
      */
     @Transactional
     public Account register(RegisterRequest request) {
-        // Invite code first, so strangers can't probe which usernames exist.
-        if (!inviteCodeMatches(request.inviteCode())) {
-            throw new GameRuleException(ErrorCode.INVALID_INVITE_CODE, "Invalid invite code");
+        if (!accountServer.localLoginAllowed()) {
+            throw localLoginOff();
         }
+        // Invite code first, so strangers can't probe which usernames exist.
+        checkInviteCode(request.inviteCode());
         if (accounts.existsByUsernameKey(Account.keyOf(request.username()))) {
             throw usernameTaken();
         }
-        // The slow hash before the lock below, which every registration and the opening share.
+        // The slow hash before the lock in createPlayer, which every registration and the opening
+        // share.
         String passwordHash = passwordEncoder.encode(request.password());
+        return createPlayer(
+                new Account(request.username(), passwordHash, Role.PLAYER, clock.instant()));
+    }
+
+    /**
+     * Like {@link #register}, for a player of the account server (1.5): the name is his name there,
+     * the account has no password here. The name is already checked against the rules of {@link
+     * RegisterRequest}.
+     */
+    @Transactional
+    Account registerExternal(String username, String issuer, String subject, String inviteCode) {
+        checkInviteCode(inviteCode);
+        if (accounts.existsByUsernameKey(Account.keyOf(username))) {
+            throw usernameTaken();
+        }
+        return createPlayer(
+                Account.external(username, issuer, subject, Role.PLAYER, clock.instant()));
+    }
+
+    /**
+     * Saves the new account with its player and starting village; in the pre-game only the player
+     * (the village comes with the opening).
+     */
+    private Account createPlayer(Account newAccount) {
         // Under the row lock: an opening that is placing the waiting players right now finishes
         // first, and this registration then gets its village like any later one.
         boolean pregame = worldService.lockedPhase() == WorldPhase.PREGAME;
-        Account account =
-                new Account(request.username(), passwordHash, Role.PLAYER, clock.instant());
+        Account account;
         try {
-            account = accounts.saveAndFlush(account);
+            account = accounts.saveAndFlush(newAccount);
         } catch (DataIntegrityViolationException e) {
             // Two registrations with the same name at the same moment: the unique index decides.
             throw usernameTaken();
@@ -157,15 +185,25 @@ public class AccountService implements UserDetailsService {
      * Sets a new password chosen by the host (M14d, 08-host-console §2); there is no e-mail, so
      * this is the way back in for a player who forgot his. Also lifts a login block of the account
      * and ends its open sessions (M14e). The password is already checked ({@link #PASSWORD_MIN} to
-     * {@link #PASSWORD_MAX} characters).
+     * {@link #PASSWORD_MAX} characters). An account of the account server (1.5) becomes a local
+     * account again: the host's way back if the world turns the account server off. Not while the
+     * world takes only the account server: the player could log in neither way then.
      *
      * @return the account
+     * @throws GameRuleException {@code ACCOUNT_LINKED} for an account of the account server in mode
+     *     {@code REQUIRED}
      */
     @Transactional
     public Account resetPassword(long accountId, String password) {
         Account account =
                 accounts.findById(accountId)
                         .orElseThrow(() -> new NotFoundException(ErrorCode.ACCOUNT_NOT_FOUND));
+        if (account.isLinked()) {
+            if (!accountServer.localLoginAllowed()) {
+                throw accountLinked();
+            }
+            account.unlink();
+        }
         account.changePasswordHash(passwordEncoder.encode(password));
         rateLimiter.forget(account.getUsernameKey());
         sessionsEnded(account);
@@ -181,7 +219,10 @@ public class AccountService implements UserDetailsService {
      * @return the account with its new session version
      * @throws ApiException 429 {@code TOO_MANY_LOGIN_ATTEMPTS} while the account's logins from this
      *     address are blocked
-     * @throws GameRuleException {@code WRONG_PASSWORD} if the current password is wrong
+     * @throws GameRuleException {@code WRONG_PASSWORD} if the current password is wrong, {@code
+     *     ACCOUNT_LINKED} if the account logs in through the account server (1.5)
+     * @throws ApiException 403 {@code LOCAL_LOGIN_OFF} if the world logs in only through the
+     *     account server
      */
     @Transactional
     public Account changePassword(
@@ -189,6 +230,23 @@ public class AccountService implements UserDetailsService {
         Account account =
                 accounts.findById(accountId)
                         .orElseThrow(() -> new NotFoundException(ErrorCode.ACCOUNT_NOT_FOUND));
+        if (account.isLinked()) {
+            throw accountLinked();
+        }
+        if (!accountServer.localLoginAllowed()) {
+            throw localLoginOff();
+        }
+        checkPassword(account, currentPassword, address);
+        account.changePasswordHash(passwordEncoder.encode(newPassword));
+        sessionsEnded(account);
+        return account;
+    }
+
+    /**
+     * The account's current password, typed again for a change only its owner may make (a new
+     * password, linking it to the account server). Wrong tries count like failed logins.
+     */
+    void checkPassword(Account account, String currentPassword, String address) {
         String key = account.getUsernameKey();
         if (!rateLimiter.tryAttempt(key, address)) {
             throw new ApiException(
@@ -196,13 +254,11 @@ public class AccountService implements UserDetailsService {
                     ErrorCode.TOO_MANY_LOGIN_ATTEMPTS,
                     "Too many wrong passwords, try again in a minute");
         }
-        if (!passwordEncoder.matches(currentPassword, account.getPasswordHash())) {
+        if (account.getPasswordHash() == null
+                || !passwordEncoder.matches(currentPassword, account.getPasswordHash())) {
             throw new GameRuleException(ErrorCode.WRONG_PASSWORD, "The current password is wrong");
         }
         rateLimiter.recordSuccess(key, address);
-        account.changePasswordHash(passwordEncoder.encode(newPassword));
-        sessionsEnded(account);
-        return account;
     }
 
     /**
@@ -247,9 +303,17 @@ public class AccountService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) {
+        // An account of the account server has no password here: like an unknown name.
         return accounts.findByUsernameKey(Account.keyOf(username))
+                .filter(account -> !account.isLinked())
                 .map(AccountPrincipal::new)
                 .orElseThrow(() -> new UsernameNotFoundException("Unknown user"));
+    }
+
+    private void checkInviteCode(String given) {
+        if (!inviteCodeMatches(given)) {
+            throw new GameRuleException(ErrorCode.INVALID_INVITE_CODE, "Invalid invite code");
+        }
     }
 
     private boolean inviteCodeMatches(String given) {
@@ -259,6 +323,19 @@ public class AccountService implements UserDetailsService {
         return MessageDigest.isEqual(
                 inviteCode.getBytes(StandardCharsets.UTF_8),
                 given.getBytes(StandardCharsets.UTF_8));
+    }
+
+    static ApiException localLoginOff() {
+        return new ApiException(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.LOCAL_LOGIN_OFF,
+                "This world only takes logins through its account server");
+    }
+
+    private static GameRuleException accountLinked() {
+        return new GameRuleException(
+                ErrorCode.ACCOUNT_LINKED,
+                "This account logs in through the account server and has no password here");
     }
 
     private static GameRuleException usernameTaken() {
