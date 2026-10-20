@@ -239,6 +239,10 @@
   font-size: 0.9rem;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* "2.000 im Dorf" and "(2.000 gesamt)" stay whole; the total takes a second line only where the two don't fit next to Dismiss (320 px phones, German at 360 px, five-digit counts) */
+.atHome > span {
   white-space: nowrap;
 }
 

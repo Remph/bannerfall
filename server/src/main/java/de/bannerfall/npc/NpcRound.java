@@ -197,15 +197,9 @@ public class NpcRound {
         WorldSettings settings = worldService.settings();
         // the other lords' commands to each human in the cap window (a handful of rows)
         Map<Long, Integer> toHumans = new HashMap<>();
-        for (NpcBrain other : brains.findAll()) {
-            if (other.getPlayerId() == playerId) {
-                continue;
-            }
-            for (NpcMemory.SentAttack sent : other.getMemory().attacksSent()) {
-                if (sent.at().isAfter(now.minus(NpcBalance.CAP_WINDOW))) {
-                    toHumans.merge(sent.targetPlayerId(), 1, Integer::sum);
-                }
-            }
+        for (NpcBrainRepository.AttacksOnPlayer sent :
+                brains.attacksSentByOthersSince(playerId, now.minus(NpcBalance.CAP_WINDOW))) {
+            toHumans.put(sent.getTarget(), sent.getAttacks());
         }
         Difficulty difficulty = balance.difficulty();
         Set<Long> mates = guilds.mates(playerId);

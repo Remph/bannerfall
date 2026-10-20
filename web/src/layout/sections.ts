@@ -104,3 +104,70 @@ export function visibleSections(keys: readonly SectionKey[], shown: OptionalSect
 export function bannerHallPath(villageId: number, bannersOn: boolean): string {
   return bannersOn ? `/v/${villageId}/banners` : recruitPath(villageId, 'BANNER_HALL');
 }
+
+/**
+ * What a page lights in the navigation (1.5.1): a section, the own profile, which has its own entry,
+ * or one of the settings menu's pages (the gear on desktop, More on phones).
+ */
+export type NavEntry = SectionKey | 'profile' | 'settings';
+
+/**
+ * The navigation entry a page belongs to (1.5.1): its own section, or for a page without an entry
+ * the section its back link leads to, as the warehouse and smithy light the village overview. Other
+ * players' profiles and the statistics light the ranking, another guild's page the guild; the own
+ * profile its own entry. Nothing for anything unknown.
+ * `bannersOn`: without banners the Banner Hall item opens the recruit screen's hall tab (1.4).
+ */
+export function navEntry(pathname: string, ownPlayerId: number, bannersOn: boolean): NavEntry | undefined {
+  const village = /^\/v\/\d+(?:\/([^/]+)(?:\/([^/]+))?)?\/?/.exec(pathname);
+  if (village !== null) {
+    const [, page, sub] = village;
+    switch (page) {
+      case undefined:
+      case 'warehouse':
+      case 'smithy':
+        return 'village';
+      case 'hq':
+        return 'townHall';
+      case 'recruit':
+        return !bannersOn && sub === 'banner_hall' ? 'bannerHall' : 'recruit';
+      case 'banners':
+        return 'bannerHall';
+      case 'map':
+        return 'map';
+      case 'rally':
+        return 'rallyPoint';
+      case 'farm':
+        return 'farm';
+      case 'market':
+        return 'market';
+      default:
+        return undefined;
+    }
+  }
+  const [, first, second] = pathname.split('/');
+  switch (first) {
+    case 'reports':
+      return 'reports';
+    case 'messages':
+      return 'messages';
+    case 'ranking':
+    case 'statistics':
+      return 'ranking';
+    case 'players':
+      return second === String(ownPlayerId) ? 'profile' : 'ranking';
+    case 'achievements':
+      return 'achievements';
+    case 'guild':
+    case 'guilds':
+      return 'guild';
+    case 'notifications':
+    case 'password':
+    case 'about':
+    case 'privacy':
+    case 'admin':
+      return 'settings';
+    default:
+      return undefined;
+  }
+}

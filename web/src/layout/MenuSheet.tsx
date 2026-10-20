@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { NavLink } from 'react-router';
 import { errorMessage } from '../api/errors';
 import { useCurrentAccount, useLogout } from '../api/queries/auth';
 import { Button } from '../components/Button';
@@ -11,6 +11,7 @@ import { Sheet } from '../components/Sheet';
 import { VersionTag } from '../components/VersionTag';
 import { useI18n } from '../i18n';
 import { languageNames, languages } from '../i18n/language';
+import { playerPath } from '../pages/ranking/rankingPaths';
 import { applyThemeMode, loadThemeMode, themeModes, type ThemeMode } from '../theme/theme';
 import styles from './MenuSheet.module.css';
 import { MoreLinks } from './navigation';
@@ -26,21 +27,32 @@ interface MenuSheetProps {
   onOpenChat?: () => void;
   /** The "World settings" entry (M14g); missing in the pre-game, where the page lists them. */
   onOpenWorldInfo?: () => void;
+  /**
+   * The "My profile" row (1.5.1) at the top of the desktop gear menu; on phones the More sheet has
+   * it as a tile. Off in the pre-game, which has no profile pages.
+   */
+  profile?: boolean;
 }
 
-export function MenuSheet({ kind, villageId, onClose, onOpenChat, onOpenWorldInfo }: MenuSheetProps) {
+export function MenuSheet({ kind, villageId, onClose, onOpenChat, onOpenWorldInfo, profile = false }: MenuSheetProps) {
   const { t } = useI18n();
   return (
     <Sheet open={kind !== null} onClose={onClose} title={kind === 'more' ? t.nav.more : t.nav.settings}>
       {kind === 'more' && onOpenChat !== undefined && (
         <MoreLinks villageId={villageId} onNavigate={onClose} onOpenChat={onOpenChat} />
       )}
-      <Settings onNavigate={onClose} onOpenWorldInfo={onOpenWorldInfo} />
+      <Settings onNavigate={onClose} onOpenWorldInfo={onOpenWorldInfo} profile={profile && kind === 'settings'} />
     </Sheet>
   );
 }
 
-function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onOpenWorldInfo?: () => void }) {
+interface SettingsProps {
+  onNavigate: () => void;
+  onOpenWorldInfo?: () => void;
+  profile: boolean;
+}
+
+function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
   const { t, language, setLanguage } = useI18n();
   const me = useCurrentAccount();
   const logout = useLogout();
@@ -72,6 +84,15 @@ function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onO
         />
       </div>
       <ul className={styles.rows}>
+        {profile && (
+          <li>
+            <NavLink end className={styles.row} to={playerPath(me.playerId)} onClick={onNavigate}>
+              <Icon name="profile" className={styles.rowIcon} />
+              <span>{t.nav.profile}</span>
+              <Icon name="chevronRight" className={styles.rowChevron} />
+            </NavLink>
+          </li>
+        )}
         {onOpenWorldInfo !== undefined && (
           <li>
             <button type="button" className={styles.row} onClick={onOpenWorldInfo}>
@@ -82,40 +103,40 @@ function Settings({ onNavigate, onOpenWorldInfo }: { onNavigate: () => void; onO
           </li>
         )}
         <li>
-          <Link className={styles.row} to="/notifications" onClick={onNavigate}>
+          <NavLink end className={styles.row} to="/notifications" onClick={onNavigate}>
             <Icon name="bell" className={styles.rowIcon} />
             <span>{t.push.link}</span>
             <Icon name="chevronRight" className={styles.rowChevron} />
-          </Link>
+          </NavLink>
         </li>
         <li>
-          <Link className={styles.row} to="/password" onClick={onNavigate}>
+          <NavLink end className={styles.row} to="/password" onClick={onNavigate}>
             <Icon name="settings" className={styles.rowIcon} />
             <span>{t.settings.changePassword}</span>
             <Icon name="chevronRight" className={styles.rowChevron} />
-          </Link>
+          </NavLink>
         </li>
         <li>
-          <Link className={styles.row} to="/about" onClick={onNavigate}>
+          <NavLink end className={styles.row} to="/about" onClick={onNavigate}>
             <Icon name="info" className={styles.rowIcon} />
             <span>{t.about.link}</span>
             <Icon name="chevronRight" className={styles.rowChevron} />
-          </Link>
+          </NavLink>
         </li>
         <li>
-          <Link className={styles.row} to="/privacy" onClick={onNavigate}>
+          <NavLink end className={styles.row} to="/privacy" onClick={onNavigate}>
             <Icon name="lock" className={styles.rowIcon} />
             <span>{t.privacy.link}</span>
             <Icon name="chevronRight" className={styles.rowChevron} />
-          </Link>
+          </NavLink>
         </li>
         {me.role === 'ADMIN' && (
           <li>
-            <Link className={styles.row} to="/admin" onClick={onNavigate}>
+            <NavLink end className={styles.row} to="/admin" onClick={onNavigate}>
               <Icon name="shield" className={styles.rowIcon} />
               <span>{t.admin.link}</span>
               <Icon name="chevronRight" className={styles.rowChevron} />
-            </Link>
+            </NavLink>
           </li>
         )}
       </ul>

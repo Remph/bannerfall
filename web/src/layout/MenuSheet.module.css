@@ -3,12 +3,21 @@
   gap: var(--space-3);
 }
 
+/* language and theme: the label beside its switch, so the gear menu fits a 700 px window (1.5.1);
+   below it where the screen is too narrow for both */
 .setting {
-  display: grid;
-  gap: var(--space-1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.setting > :last-child {
+  flex: 1 1 15rem;
 }
 
 .label {
+  min-width: 8.5rem;
   font-weight: 700;
 }
 
@@ -62,6 +71,10 @@
 
 .row:hover {
   background: var(--color-well);
+}
+
+.row[aria-current='page'] {
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
 .row span {

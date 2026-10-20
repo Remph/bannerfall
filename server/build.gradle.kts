@@ -67,7 +67,10 @@ tasks.named<Test>("test") {
     val updateOpenApi = project.hasProperty("updateOpenApi")
     inputs.files("../web/src/api/openapi.json")
     systemProperty("bannerfall.updateOpenApi", updateOpenApi)
-    outputs.upToDateWhen { !updateOpenApi }
+    // CareerReportSampleTest compares the career report with its sample (-PupdateCareerSample)
+    val updateCareerSample = project.hasProperty("updateCareerSample")
+    systemProperty("bannerfall.updateCareerSample", updateCareerSample)
+    outputs.upToDateWhen { !updateOpenApi && !updateCareerSample }
 }
 
 tasks.register<Test>("simulationTest") {

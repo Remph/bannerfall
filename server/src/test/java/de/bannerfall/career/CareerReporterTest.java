@@ -177,6 +177,39 @@ class CareerReporterTest {
     }
 
     @Test
+    void aReportTheAccountServerRejectsHoldsBackNoOtherPlayer() throws Exception {
+        TestPlayer bad = TestPlayer.register(mockMvc);
+        String badSubject = linkedPlayer(bad);
+        TestPlayer good = TestPlayer.register(mockMvc);
+        String goodSubject = linkedPlayer(good);
+        provider.rejectCareerOf(badSubject, true);
+        int rejections = provider.careerRejections();
+        try {
+            // other tests' players may change too (ranks): only these two count here
+            reporter.report();
+            assertThat(provider.careerRejections()).isGreaterThan(rejections);
+            List<String> bodies = provider.takeCareerReports();
+            assertThat(reportOf(bodies, goodSubject)).isNotNull();
+            assertThat(reportOf(bodies, badSubject)).isNull();
+
+            // unchanged, the rejected report isn't sent again
+            rejections = provider.careerRejections();
+            reporter.report();
+            assertThat(provider.careerRejections()).isEqualTo(rejections);
+
+            // changed, it is
+            provider.rejectCareerOf(badSubject, false);
+            jdbc.sql("update player set points = points + 1 where id = ?")
+                    .param(bad.playerId)
+                    .update();
+            reporter.report();
+            assertThat(reportOf(provider.takeCareerReports(), badSubject)).isNotNull();
+        } finally {
+            provider.rejectCareerOf(badSubject, false);
+        }
+    }
+
+    @Test
     void theEndOfTheWorldTellsWhetherHisSideWon() throws Exception {
         TestPlayer winner = TestPlayer.register(mockMvc);
         String subject = linkedPlayer(winner);

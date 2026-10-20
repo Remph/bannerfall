@@ -121,6 +121,8 @@ export const en = {
     /** The two groups of the phone's More sheet (1.4). */
     moreVillage: 'Village',
     morePlayer: 'Player',
+    /** The player's own profile (1.5.1): More sheet on phones, the gear menu on desktop. */
+    profile: 'My profile',
   },
   settings: {
     loggedInAs: (name: string) => `Logged in as ${name}`,
@@ -569,8 +571,8 @@ export const en = {
     toTownHall: 'Build it in the Town Hall',
     unitsTitle: (building: string) => `Units (${building})`,
     atHome: (amount: string) => `${amount} at home`,
-    /** At home and all of the village's own units, the ones away included. */
-    atHomeOfTotal: (amount: string, total: string) => `${amount} at home (${total} total)`,
+    /** After "… at home": all of the village's own units, the ones away included. */
+    ofTotal: (total: string) => `(${total} total)`,
     /** Names the cost list of one unit (screen readers). */
     perUnit: 'Cost per unit',
     /** Label of the cost list for the typed count. */
@@ -1217,6 +1219,8 @@ export const en = {
       merchants: 'Merchants',
     },
     sendTitle: 'Send resources',
+    ownVillages: 'Own villages',
+    ownVillagesTitle: 'Send to an own village',
     amountLabel: (resource: string) => `Amount to send: ${resource}`,
     total: 'Total',
     merchantsNeeded: 'Merchants needed (free)',

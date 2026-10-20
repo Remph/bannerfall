@@ -66,6 +66,7 @@ describe('staleQueries', () => {
       ['banners'],
       ['smithy', 4],
       ['paladin'],
+      ['hallTraining', 4],
     ]);
   });
 
@@ -111,6 +112,8 @@ describe('staleQueries', () => {
       ['me'],
       ['banners'],
       ['smithy', 1],
+      ['hallTraining', 1],
+      ['market', 1],
     ]);
   });
 
@@ -167,6 +170,9 @@ describe('staleQueries', () => {
       ['mapMovements'],
       ['banners'],
       ['paladin'],
+      ['hallTraining', 4],
+      ['mapChunk'],
+      ['player'],
     ];
     expect(staleQueries({ type: 'VILLAGE_LOST', villageId: 4 })).toEqual(expected);
     expect(staleQueries({ type: 'VILLAGE_CONQUERED', villageId: 4 })).toEqual(expected);
@@ -398,5 +404,84 @@ describe('the red counter', () => {
     expect(attackedVillageId(ben, 1)).toBe(2);
     expect(attackedVillageId(ben, undefined)).toBe(2);
     expect(attackedVillageId(me([{ id: 1, name: 'A', incomingAttacks: 0 }]), 1)).toBeUndefined();
+  });
+});
+
+describe('every query key and the events', () => {
+  // one of each type, all about village 1 (WORLD_OPENED reloads everything, so it proves nothing)
+  const tomburg = { id: 1, name: 'Tomburg', x: 40, y: 41, playerId: 3, playerName: 'Tom' };
+  const samples: GameNotification[] = [
+    { type: 'VILLAGE_UPDATED', villageId: 1 },
+    { type: 'INCOMING_ATTACK', targetVillageId: 1, sourceVillage: tomburg, sourcePlayerName: 'Tom', arriveAt: '' },
+    { type: 'REPORT_CREATED', reportId: 5, kind: 'ATTACK', sharedBy: null },
+    { type: 'BUILD_COMPLETE', villageId: 1, building: 'MARKET', level: 3 },
+    { type: 'SUPPORT_ARRIVED', villageId: 1 },
+    { type: 'VILLAGE_LOST', villageId: 1 },
+    { type: 'VILLAGE_CONQUERED', villageId: 1 },
+    { type: 'WORLD_ENDED', reason: 'DOMINATION', winnerName: 'Iron Wolves' },
+    clock(null, null, false, false),
+    { type: 'GUILD_INVITED', guildId: 3, guildName: 'Iron Wolves' },
+    { type: 'GUILD_CHANGED' },
+    { type: 'MESSAGE_RECEIVED', fromPlayerId: 7, fromPlayerName: 'Anna' },
+    { type: 'ACHIEVEMENT_EARNED', achievement: 'VICTOR', leveled: true, level: 1 },
+    { type: 'BANNER_FOUND', bannerType: 'WAR', tier: 2, village: tomburg },
+    { type: 'BANNER_STOLEN', bannerType: 'WAR', tier: 2, village: tomburg, lost: true },
+  ];
+
+  /**
+   * Keys no event changes, and why. A new query key goes either into an event's list in
+   * `staleQueries` or here, so a page that events change can't be forgotten again (1.5.1).
+   */
+  const noEvents: Record<string, string> = {
+    banNoticeKey: 'set by a refused login, not fetched',
+    chatQueryKey: 'the chat topics on the socket update it (RealtimeProvider)',
+    guildChatQueryKey: 'the chat topics on the socket update it (RealtimeProvider)',
+    pushQueryKey: 'this device’s own push setting',
+    worldStatisticsQueryKey: 'world totals, no event for them; loaded when the page opens',
+    recruitTemplatesQueryKey: 'only the player changes them, on this page',
+    farmTemplatesQueryKey: 'only the player changes them, on this page',
+    recentRecipientsQueryKey: 'only the player changes them, by sharing',
+    blocksQueryKey: 'only the player changes them, on this page',
+    reportQueryKey: 'a report doesn’t change once written',
+  };
+
+  const modules: Record<string, Record<string, unknown>> = import.meta.glob(
+    ['../api/queries/*.ts', '!../api/queries/*.test.ts'],
+    { eager: true },
+  );
+
+  function startsWith(key: readonly unknown[], prefix: readonly unknown[]): boolean {
+    return prefix.every((part, index) => key[index] === part);
+  }
+
+  it('each is refreshed by an event or listed as one no event changes', () => {
+    const stale = samples.flatMap(staleQueries);
+    expect(stale).not.toContainEqual([]);
+    const forgotten: string[] = [];
+    const listedButRefreshed: string[] = [];
+    const seen = new Set<string>();
+    for (const module of Object.values(modules)) {
+      for (const [name, value] of Object.entries(module)) {
+        if (!name.endsWith('Key')) {
+          continue;
+        }
+        // a function gets village 1 (or page 1): its other arguments don't change the prefix
+        const key: unknown = typeof value === 'function' ? (value as (id: number) => unknown)(1) : value;
+        if (!Array.isArray(key)) {
+          continue;
+        }
+        seen.add(name);
+        const refreshed = stale.some((prefix) => startsWith(key, prefix));
+        if (!refreshed && !(name in noEvents)) {
+          forgotten.push(name);
+        }
+        if (refreshed && name in noEvents) {
+          listedButRefreshed.push(name);
+        }
+      }
+    }
+    expect(forgotten).toEqual([]);
+    expect(listedButRefreshed).toEqual([]);
+    expect(Object.keys(noEvents).filter((name) => !seen.has(name))).toEqual([]);
   });
 });

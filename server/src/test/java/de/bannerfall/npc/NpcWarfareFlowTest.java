@@ -254,27 +254,43 @@ class NpcWarfareFlowTest {
         round(lord);
         assertThat(attacksTo(lord, human.villageId)).hasSize(1);
 
-        // all lords together: 8 a day per human on NORMAL, the other lord sent them
-        deleteMovementsOf(lord);
+        // all lords together: 8 a day per human on NORMAL. The other lord sent 7: one more fits
         clock.advance(Duration.ofHours(2)); // past the farm cooldown
         Instant third = clock.instant();
-        remember(
-                lord,
-                m -> {
-                    m.attacksSent.clear();
-                    m.farmed.clear();
-                    m.intel.put(human.villageId, emptyIntel(third, human.playerId));
-                });
+        freshStart(lord, human);
         remember(
                 other,
                 m -> {
-                    for (int i = 0; i < 8; i++) {
+                    for (int i = 0; i < 7; i++) {
                         m.attacksSent.add(
                                 new NpcMemory.SentAttack(human.playerId, third.minusSeconds(60)));
                     }
                 });
         round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+
+        // the other lord sent 8: none more
+        freshStart(lord, human);
+        remember(other, m -> m.attacksSent.add(new NpcMemory.SentAttack(human.playerId, third)));
+        round(lord);
         assertThat(attacksTo(lord, human.villageId)).isEmpty();
+    }
+
+    /**
+     * The lord as before its first command to the human: none under way, the axemen (who left with
+     * the last one) home again, nothing sent or farmed in its memory, fresh intel of the target.
+     */
+    private void freshStart(long lord, TestPlayer human) {
+        deleteMovementsOf(lord);
+        units(villageOf(lord), Map.of(UnitType.AXEMAN, 50));
+        Instant now = clock.instant();
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                    m.intel.put(human.villageId, emptyIntel(now, human.playerId));
+                });
     }
 
     @Test

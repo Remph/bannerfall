@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
-import { Link, NavLink, useLocation, useMatch } from 'react-router';
+import { Link, useLocation } from 'react-router';
+import { useCurrentAccount } from '../api/queries/auth';
 import { useUnreadMessages } from '../api/queries/messages';
 import { useUnreadReports } from '../api/queries/reports';
 import { useMyGuild } from '../api/queries/guilds';
@@ -9,8 +10,10 @@ import { bannerHallAvailable } from '../game/banners';
 import { badgeText } from '../game/reports';
 import { guildSectionVisible } from '../game/guilds';
 import { useT } from '../i18n';
+import { playerPath } from '../pages/ranking/rankingPaths';
 import { useChatUnread } from '../realtime/chatSeen';
 import styles from './navigation.module.css';
+import { useNavEntry } from './useNavEntry';
 import {
   desktopSections,
   moreGroups,
@@ -18,6 +21,7 @@ import {
   bannerHallPath,
   sections,
   visibleSections,
+  type NavEntry,
   type OptionalSections,
   type SectionKey,
 } from './sections';
@@ -49,18 +53,14 @@ interface SectionLinkProps {
 /**
  * A link to a section, or a dimmed "coming soon" entry while its screen doesn't exist yet (or, for
  * a per-village section, while the player has no village).
- * NavLink sets aria-current="page" on the active link; the CSS highlights that. The bars' links
- * cross-fade the page (View Transitions, 1.3), except to the page already open; the menu sheet's
- * links don't, as the sheet closes.
+ * The link of the open page's entry gets aria-current="page" (`useNavEntry`); the CSS highlights
+ * that. The bars' links cross-fade the page (View Transitions, 1.3), except to the page already
+ * open; the menu sheet's links don't, as the sheet closes.
  */
 function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = false, children }: SectionLinkProps) {
   const t = useT();
-  // the warehouse (M22) and smithy (M30) pages have no entry of their own: they are part of the village overview, so that tab stays lit
-  const onWarehouse = useMatch('/v/:villageId/warehouse') !== null;
-  const onSmithy = useMatch('/v/:villageId/smithy') !== null;
-  // without banners the Banner Hall item opens the recruit screen's hall tab; there it is lit, not Recruit (1.4)
   const bannersOn = useWorld().data?.bannersEnabled !== false;
-  const onHallTab = useMatch('/v/:villageId/recruit/banner_hall') !== null;
+  const current = useNavEntry() === sectionKey;
   const { pathname } = useLocation();
   const section = sections[sectionKey];
   const target =
@@ -81,32 +81,16 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
       </span>
     );
   }
-  const viewTransition = onNavigate === undefined && pathname !== target;
-  if (sectionKey === 'village' && (onWarehouse || onSmithy)) {
-    return (
-      <Link viewTransition={viewTransition} to={target} className={className} aria-current="page" onClick={onNavigate}>
-        {children}
-      </Link>
-    );
-  }
-  if (sectionKey === 'recruit' && !bannersOn && onHallTab) {
-    return (
-      <Link viewTransition={viewTransition} to={target} className={className} onClick={onNavigate}>
-        {children}
-      </Link>
-    );
-  }
-  // `end`: the village overview /v/1 is not "active" on /v/1/hq.
   return (
-    <NavLink
-      viewTransition={viewTransition}
+    <Link
+      viewTransition={onNavigate === undefined && pathname !== target}
       to={target}
-      end={sectionKey === 'village'}
       className={className}
+      aria-current={current ? 'page' : undefined}
       onClick={onNavigate}
     >
       {children}
-    </NavLink>
+    </Link>
   );
 }
 
@@ -217,6 +201,9 @@ interface TabBarProps {
 /** Phone: the tab bar at the bottom, within thumb reach. */
 export function TabBar({ villageId, onMore, inFlow = false }: TabBarProps) {
   const t = useT();
+  const entry = useNavEntry();
+  // every page without a tab of its own is behind "More", so that tab is lit there (1.5.1)
+  const behindMore = entry !== undefined && !(phoneTabs as readonly NavEntry[]).includes(entry);
   return (
     <nav className={inFlow ? `${styles.tabBar} ${styles.tabBarInFlow}` : styles.tabBar} aria-label={t.nav.label}>
       {phoneTabs.map((key) => (
@@ -229,7 +216,13 @@ export function TabBar({ villageId, onMore, inFlow = false }: TabBarProps) {
           <span>{key === 'rallyPoint' ? t.nav.troops : t.nav[key]}</span>
         </SectionLink>
       ))}
-      <button type="button" className={styles.tab} onClick={onMore} aria-haspopup="dialog">
+      <button
+        type="button"
+        className={styles.tab}
+        onClick={onMore}
+        aria-haspopup="dialog"
+        aria-current={behindMore ? 'page' : undefined}
+      >
         <span className={styles.tabIcon}>
           <Icon name="more" />
           <MoreBadge className={styles.tabBadge} />
@@ -248,11 +241,14 @@ interface MoreLinksProps {
 
 /**
  * Phone: the sections that don't fit into the tab bar (inside the More sheet), and the chat, in
- * the desktop's two groups: the village's pages, then the player's (1.4). Unread counts sit on the
- * icon, like in the tab bar, so a long label never wraps under them.
+ * the desktop's two groups: the village's pages, then the player's (1.4), which opens with the
+ * player's own profile (1.5.1; on desktop it is in the gear menu). Unread counts sit on the icon,
+ * like in the tab bar, so a long label never wraps under them.
  */
 export function MoreLinks({ villageId, onNavigate, onOpenChat }: MoreLinksProps) {
   const t = useT();
+  const me = useCurrentAccount();
+  const entry = useNavEntry();
   const shown = useOptionalSections();
   const headingId = useId();
   const item = (key: SectionKey) => (
@@ -278,6 +274,19 @@ export function MoreLinks({ villageId, onNavigate, onOpenChat }: MoreLinksProps)
         {t.nav.morePlayer}
       </h3>
       <ul className={styles.moreList} aria-labelledby={`${headingId}-player`}>
+        <li>
+          <Link
+            to={playerPath(me.playerId)}
+            className={styles.moreItem}
+            aria-current={entry === 'profile' ? 'page' : undefined}
+            onClick={onNavigate}
+          >
+            <span className={styles.moreIcon}>
+              <Icon name="profile" />
+            </span>
+            <span className={styles.moreLabel}>{t.nav.profile}</span>
+          </Link>
+        </li>
         {visibleSections(moreGroups.player, shown).flatMap((key) =>
           key === 'messages'
             ? [

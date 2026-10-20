@@ -12,7 +12,7 @@ import { paladinQueryKey } from '../api/queries/paladin';
 import { playerQueryKey, rankingQueryKey } from '../api/queries/ranking';
 import { recruitmentQueryKey } from '../api/queries/recruitment';
 import { reportsQueryKey } from '../api/queries/reports';
-import { smithyQueryKey } from '../api/queries/smithy';
+import { hallTrainingQueryKey, smithyQueryKey } from '../api/queries/smithy';
 import { myGuildQueryKey, guildsQueryKey } from '../api/queries/guilds';
 import { troopsQueryKey } from '../api/queries/troops';
 import { villageQueryKey } from '../api/queries/villages';
@@ -111,6 +111,8 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         bannersQueryKey,
         smithyQueryKey(notification.villageId),
         paladinQueryKey,
+        // catapults also lower the hall that Hall training needs (1.4)
+        hallTrainingQueryKey(notification.villageId),
       ];
     case 'INCOMING_ATTACK':
       return [
@@ -143,6 +145,9 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         // the Banner Hall's level caps the banner, the Smithy's opens research (1.2)
         bannersQueryKey,
         smithyQueryKey(notification.villageId),
+        // the Banner Hall's level opens Hall training (1.4), the Market's gives merchants
+        hallTrainingQueryKey(notification.villageId),
+        marketQueryKey(notification.villageId),
       ];
     case 'SUPPORT_ARRIVED':
       return [troopsQueryKey(notification.villageId), villageQueryKey(notification.villageId), mapMovementsQueryKey];
@@ -190,6 +195,10 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         bannersQueryKey,
         // the village count gives the paladin slots, and paladins outside a lost village are gone
         paladinQueryKey,
+        hallTrainingQueryKey(notification.villageId),
+        // its owner's colour on the map, and the village count on the profiles
+        mapQueryKey,
+        playerQueryKey,
       ];
   }
 }

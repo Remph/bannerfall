@@ -13,11 +13,13 @@
   max-width: none;
 }
 
-/* in view below the bars while the list scrolls; scrolls by itself when the item is longer */
+/* in view below the bars while the list scrolls; scrolls by itself when the item is longer. It ends
+   just above the window's bottom wherever it starts: lower down while the page head above the split
+   is still in view (`--detail-top`, set by ListDetail), so its own scroll reaches the end (1.5.1). */
 .detail {
   position: sticky;
   top: calc(var(--app-header-height, 0px) + var(--space-3));
-  max-height: calc(100dvh - var(--app-header-height, 0px) - 2 * var(--space-3));
+  max-height: calc(100dvh - var(--detail-top, calc(var(--app-header-height, 0px) + var(--space-3))) - var(--space-3));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;

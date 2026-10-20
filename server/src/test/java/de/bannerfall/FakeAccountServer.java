@@ -56,6 +56,8 @@ public final class FakeAccountServer {
     private final AtomicInteger tokenCalls = new AtomicInteger();
     private final List<String> careerReports = new CopyOnWriteArrayList<>();
     private volatile int careerStatus = 200;
+    private final List<String> rejectedSubjects = new CopyOnWriteArrayList<>();
+    private final AtomicInteger careerRejections = new AtomicInteger();
 
     private FakeAccountServer() throws Exception {
         key = new RSAKeyGenerator(2048).keyID("test-key").generate();
@@ -119,6 +121,23 @@ public final class FakeAccountServer {
     /** What the career address answers from now on (200 by default). */
     public void careerStatus(int status) {
         careerStatus = status;
+    }
+
+    /**
+     * Whether a request with {@code subject}'s report is answered with 400, as one the real server
+     * finds invalid.
+     */
+    public void rejectCareerOf(String subject, boolean reject) {
+        if (reject) {
+            rejectedSubjects.add(subject);
+        } else {
+            rejectedSubjects.remove(subject);
+        }
+    }
+
+    /** How many career requests were answered with 400 so far. */
+    public int careerRejections() {
+        return careerRejections.get();
     }
 
     /** A logout token (Back-Channel Logout) for {@code subject}, signed with the provider's key. */
@@ -238,6 +257,12 @@ public final class FakeAccountServer {
             return;
         }
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        // as the real server's validation: one invalid player fails the whole request
+        if (rejectedSubjects.stream().anyMatch(subject -> body.contains("\"" + subject + "\""))) {
+            careerRejections.incrementAndGet();
+            answer(exchange, 400, "{}");
+            return;
+        }
         if (careerStatus == 200) {
             careerReports.add(body);
         }

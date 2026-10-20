@@ -233,6 +233,12 @@ button.moreItem {
   cursor: pointer;
 }
 
+/* the open page's entry, marked like the current village in the village switcher (1.5.1) */
+.moreItem[aria-current='page'] {
+  border-color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
 .moreItem[aria-disabled='true'] {
   opacity: 0.5;
 }

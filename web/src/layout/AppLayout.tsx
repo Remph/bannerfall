@@ -30,6 +30,7 @@ import { MenuSheet, type MenuKind } from './MenuSheet';
 import { DesktopNav, TabBar } from './navigation';
 import { loadResourceDetails, saveResourceDetails } from './resourceDetails';
 import { useCurrentVillageId } from './useCurrentVillageId';
+import { useNavEntry } from './useNavEntry';
 import { DESKTOP_QUERY, useMediaQuery } from './useMediaQuery';
 import { VillageSwitcher } from './VillageSwitcher';
 import { isOpenWithoutVillage } from './withoutVillage';
@@ -91,6 +92,9 @@ function GameFrame() {
   // Without a village (all conquered, M11) only "/" (the respawn screen) and the pages that aren't about one village are open.
   const { pathname } = useLocation();
   const allowedWithoutVillage = isOpenWithoutVillage(pathname);
+  // the own profile and the settings pages are in the gear menu, so the gear is lit there (1.5.1)
+  const navEntry = useNavEntry();
+  const onSettingsPage = navEntry === 'profile' || navEntry === 'settings';
   const villageId = useCurrentVillageId();
   // Same query (and cache entry) as the village page: one request serves both.
   const village = useVillage(villageId);
@@ -154,6 +158,7 @@ function GameFrame() {
             onClick={() => setMenu('settings')}
             aria-label={t.nav.settings}
             aria-haspopup="dialog"
+            aria-current={onSettingsPage ? 'page' : undefined}
           >
             <Icon name="settings" />
           </button>
@@ -185,6 +190,7 @@ function GameFrame() {
           setMenu(null);
           setWorldInfoOpen(true);
         }}
+        profile
       />
       <Sheet open={worldInfoOpen} onClose={() => setWorldInfoOpen(false)} title={t.worldInfo.title}>
         <WorldInfo />

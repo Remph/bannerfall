@@ -20,6 +20,7 @@ Not affiliated with any existing game. Own name, own numbers, own graphics.
 | `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`), the hosting guide (`hosting.md`) and the README header images (`images/`) |
 | `compose.yaml` | Local development database (PostgreSQL 18) |
 | `Dockerfile`, `compose.prod.yaml`, `Caddyfile`, `.env.example` | Production: the image, app + database + Caddy, settings template |
+| `edge/` | The shared Caddy for several worlds on one server (`docs/hosting.md`, section 12) |
 | `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore`, `bannerfall-update` |
 | `.run/` | Shared IntelliJ run configurations |
 
@@ -143,9 +144,9 @@ The database migrates itself at start (Flyway). Everybody is logged out by an up
 
 **Updating in one command** (since 1.4.1, in a git checkout on the server): `ops/bannerfall-update 1.4.1` does the steps of an update in order and stops at the first one that fails. It checks that the checkout has no local changes, fetches the tags, pulls the image for exactly that version (the image `BANNERFALL_IMAGE` names now, with the new tag; `--repo` names another, `--build` builds `bannerfall:<version>` on the server instead), checks the tag out, checks that its `compose.prod.yaml` works with your `.env`, takes a backup with `ops/bannerfall-backup`, warns the players in the chat, waits a minute (`--wait <seconds>`, `0` for no warning), sets `BANNERFALL_IMAGE` in `.env`, restarts the app, waits until it is healthy and reports the new version, and runs `bannerfall-admin check`. It shows the plan and asks once first (`--yes` skips the question). Nothing changes for the players before the backup is done, and stopping it before the restart (Ctrl+C, or a dropped connection) puts the old checkout back. If the new version doesn't come up and ran no database migration, the script puts the old image and checkout back by itself. If it already migrated the database, it stops and prints how to restore the backup it took. Read the release notes first, since some releases add settings or need a step of their own. `ops/bannerfall-update --help` lists the options.
 
-**Updating a running world to 1.2.** Make a backup first (`ops/bannerfall-backup`, see *Backups*): the migrations V24 to V29 only go forward, so the way back to 1.1 is restoring that dump. The update keeps the old game for barbarian walls and unit levels (both off until you switch them on) but **switches banners and the paladin on** in a running world. Decide before or right after the update:
+**Feature switches.** Some of the bigger features can be switched per world. A new world starts with banners and the paladin on and barbarian walls and unit levels off. What each release switches in a running world is in its release notes (`docs/releases/`, *Heads-up for running worlds*).
 
-| Feature | Setting (`bannerfall-admin world set …`, or the admin page, tab World) | After the update |
+| Feature | Setting (`bannerfall-admin world set …`, or the admin page, tab World) | Default |
 |---|---|---|
 | Barbarian walls (02 §11) | `barbarian-walls-enabled true`; also `barbarian-wall-start-days`, `barbarian-wall-max-level`, `barbarian-walls-rebuild` | off |
 | Unit levels in the Smithy (02 §5.4) | `unit-levels-enabled true` | off |
@@ -155,7 +156,7 @@ The database migrates itself at start (Flyway). Everybody is logged out by an up
 **First steps in a new world** (order matters: do 1 and 2 before telling anybody the address). A fresh production world starts in the **pre-game** (M14g): friends can register and chat, nobody has a village yet, and the map is created at the **opening time** you set in step 5 (or on the admin page, tab World). Until then you can still change everything, including map size, barbarians and NPC lords.
 
 1. Change the invite code (the default is `change-me`): `docker compose -f compose.prod.yaml exec app bannerfall-admin world set invite-code <secret>`
-2. Set the world speed and the beginner protection (for a small group playing a week or two, speed 6 and 36 hours work well; the defaults are 1 and 72): `... bannerfall-admin world set speed 6`, `... bannerfall-admin world set beginner-protection-hours 36`. A new world starts with banners and the paladin on and barbarian walls and unit levels off; the table under *Updating a running world to 1.2* above has the switches.
+2. Set the world speed and the beginner protection (for a small group playing a week or two, speed 6 and 36 hours work well; the defaults are 1 and 72): `... bannerfall-admin world set speed 6`, `... bannerfall-admin world set beginner-protection-hours 36`. The table under *Feature switches* above has the switches for banners, the paladin, barbarian walls and unit levels.
 3. Register yourself in the browser, then make yourself admin: `... bannerfall-admin player YourName role admin --yes` (log in again; the `/admin` page works from then on).
 4. Tell your friends the address and the invite code. They can register right away.
 5. Set the opening time (Berlin time) and, if you like, check the settings once more on the admin page: `... bannerfall-admin world open --at "2026-10-17 18:00"` (`--clear` takes the time back, `--now` opens at once). At that moment every registered player gets a village and the game starts. The login page shows the opening time and a countdown.
@@ -200,7 +201,8 @@ A backup of the old server also moves the world to a new one: install the stack 
 
 ```
 cd server
-./gradlew test            # needs Docker running
+./gradlew check           # the tests (needs Docker running) and spotlessCheck
+./gradlew test            # the tests only
 ./gradlew simulationTest  # the NPC lord simulation (~15 min, prints balance tables)
 ./gradlew spotlessApply   # format Java (google-java-format, AOSP style) and Gradle files
 ./gradlew spotlessCheck   # fails if something is not formatted (also part of ./gradlew check)
@@ -209,12 +211,16 @@ cd web
 pnpm test
 pnpm format               # Prettier
 pnpm format:check
+pnpm lint                 # ESLint
+pnpm check:api            # the API types match src/api/openapi.json
 pnpm build
 ```
 
+There is no CI on pull requests in the development repository: run these before you open one.
+
 After changing REST endpoints, update the web's copy of the API description and regenerate the typed
 API client: `cd server && ./gradlew test --tests '*OpenApiSnapshotTest' -PupdateOpenApi`, then
-`cd web && pnpm gen:api`. CI fails while either is out of date (`OpenApiSnapshotTest`, `pnpm check:api`).
+`cd web && pnpm gen:api`. The checks fail while either is out of date (`OpenApiSnapshotTest`, `pnpm check:api`).
 
 ## Versions (recorded at M0, 2026-10-02)
 

@@ -4,6 +4,13 @@
   gap: var(--space-1);
 }
 
+/* Below 360 px (320 px phones): − / count / + and the chip can be wider than a card, so the chip may take a second line */
+@media (max-width: 359.98px) {
+  .group {
+    flex-wrap: wrap;
+  }
+}
+
 .input {
   width: 4.75rem;
   min-height: var(--touch-target);

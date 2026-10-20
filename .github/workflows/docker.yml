@@ -28,8 +28,10 @@ concurrency:
 
 jobs:
   docker:
-    # In a private repository a push to main only repeats the run of the pull request it merged,
-    # so it is skipped there. A public repository gets its releases as pushes to main and tests them.
+    # In a private repository a push to main is skipped to save the limited Actions minutes. Pull
+    # requests aren't run here either, so nothing re-checks a merge by itself: the checks run by hand
+    # on the branch, and "Run workflow" checks main. A public repository gets its releases as pushes
+    # to main and tests them.
     if: github.event_name != 'push' || github.ref_name != 'main' || !github.event.repository.private
     runs-on: ubuntu-latest
     timeout-minutes: 15

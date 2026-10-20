@@ -258,6 +258,14 @@ const icons = {
       />
     </>,
   ],
+  /** One person, drawn like the guild's: the player's own profile (1.5.1). */
+  profile: [
+    24,
+    <>
+      <circle cx="12" cy="8" r="3.5" {...stroke} strokeWidth={1.8} />
+      <path d="M5 20 C5 13.5 19 13.5 19 20 Z" {...stroke} strokeWidth={1.8} />
+    </>,
+  ],
   reports: [24, <path d="M6 3 H15 L19 7 V21 H6 Z M9 10 H16 M9 14 H16 M9 18 H13" {...stroke} strokeWidth={1.8} />],
   more: [
     24,

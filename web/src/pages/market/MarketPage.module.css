@@ -65,6 +65,63 @@
 
 .target {
   max-width: 22rem;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.target > :first-child {
+  justify-self: stretch;
+}
+
+/* ---------- own villages as the target (1.5.1) ---------- */
+.pickOwn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ownList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ownVillage {
+  width: 100%;
+  min-height: 3.5rem;
+  display: grid;
+  align-content: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ownVillage:hover {
+  background: var(--color-well);
+}
+
+.ownVillage[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.ownName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ownMeta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .empty {

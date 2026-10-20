@@ -107,6 +107,8 @@ export const de: Dictionary = {
     /** The two groups of the phone's More sheet (1.4). */
     moreVillage: 'Dorf',
     morePlayer: 'Spieler',
+    /** The player's own profile (1.5.1): More sheet on phones, the gear menu on desktop. */
+    profile: 'Mein Profil',
   },
   settings: {
     loggedInAs: (name: string) => `Angemeldet als ${name}`,
@@ -320,7 +322,7 @@ export const de: Dictionary = {
   },
   units: {
     SPEARMAN: 'Speerträger',
-    SWORDSMAN: 'Schwertkämpfer',
+    SWORDSMAN: 'Schwert\u00adkämpfer', // soft hyphen: a 320 px recruit row breaks it as "Schwert-kämpfer", not mid-syllable
     AXEMAN: 'Axtkämpfer',
     SCOUT: 'Späher',
     LIGHT_CAVALRY: 'Leichte Kavallerie',
@@ -520,7 +522,7 @@ export const de: Dictionary = {
     toTownHall: 'Im Rathaus bauen',
     unitsTitle: (building: string) => `Einheiten (${building})`,
     atHome: (amount: string) => `${amount} im Dorf`,
-    atHomeOfTotal: (amount: string, total: string) => `${amount} im Dorf (${total} gesamt)`,
+    ofTotal: (total: string) => `(${total} gesamt)`,
     perUnit: 'Kosten pro Einheit',
     total: (count: string) => `Gesamt für ${count}:`,
     time: 'Ausbildungszeit',
@@ -1092,6 +1094,8 @@ export const de: Dictionary = {
       merchants: 'Händler',
     },
     sendTitle: 'Rohstoffe schicken',
+    ownVillages: 'Eigene Dörfer',
+    ownVillagesTitle: 'An ein eigenes Dorf schicken',
     amountLabel: (resource: string) => `Menge zum Schicken: ${resource}`,
     total: 'Gesamt',
     merchantsNeeded: 'Nötige Händler (frei)',

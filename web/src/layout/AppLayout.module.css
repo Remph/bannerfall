@@ -152,6 +152,12 @@
     background: var(--color-bar-hover);
   }
 
+  /* on a page of the gear menu (the own profile, the settings pages), like the tab row's lit item (1.5.1) */
+  .settingsButton[aria-current='page'] {
+    background: var(--color-bar-hover);
+    color: var(--color-highlight);
+  }
+
   /* at the bottom: room for the chat button, so it never covers the end of a page */
   .main {
     padding: var(--space-4) var(--space-3) 5rem;

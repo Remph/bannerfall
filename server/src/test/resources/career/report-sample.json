@@ -1,0 +1,367 @@
+{
+  "world" : {
+    "name" : "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "startedAt" : "2026-10-12T10:00:00Z",
+    "phase" : "ENDED",
+    "endedAt" : "2026-10-12T10:00:00Z"
+  },
+  "players" : [ {
+    "subject" : "subject-of-the-winner",
+    "name" : "PPPPPPPPPPPPPPPPPPPPPPPP",
+    "joinedAt" : "2026-10-12T10:00:00Z",
+    "points" : 2147483647,
+    "villages" : 2147483647,
+    "rank" : 1,
+    "deleted" : false,
+    "achievements" : [ {
+      "key" : "PIONEER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FOREMAN",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SCHOLAR",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SIEGECRAFT",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "NOBLE_BLOOD",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FIRST_BLOOD",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BREACH",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "PYRRHIC_VICTORY",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "AVENGER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "DEMOLISHER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LUCKY_STRIKE",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SHIELD",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SPY_CATCHER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LAST_STAND",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BROTHERS_IN_ARMS",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "CONQUEROR",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "TOPPLER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LORD_BREAKER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FALLEN",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "PHOENIX",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FIRST_DEAL",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FIRST_WORDS",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "GUILD_FOUNDER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "GUILD_MEMBER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "STANDARD_BEARER",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "COLOURS_RAISED",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "COLOURS_LOST",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "FULL_SET",
+      "leveled" : false,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "GROWTH",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "GROWTH",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "GROWTH",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LANDLORD",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LANDLORD",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "LANDLORD",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "STANDING_ARMY",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "STANDING_ARMY",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "STANDING_ARMY",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VICTOR",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VICTOR",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VICTOR",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "PLUNDERER",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "PLUNDERER",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "PLUNDERER",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SLAYER",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SLAYER",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "SLAYER",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BULWARK",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BULWARK",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BULWARK",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "WARDEN",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "WARDEN",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "WARDEN",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "MERCHANT_PRINCE",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "MERCHANT_PRINCE",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "MERCHANT_PRINCE",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VETERAN",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VETERAN",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "VETERAN",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_COLLECTOR",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_COLLECTOR",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_COLLECTOR",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_THIEF",
+      "leveled" : true,
+      "level" : 1,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_THIEF",
+      "leveled" : true,
+      "level" : 2,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    }, {
+      "key" : "BANNER_THIEF",
+      "leveled" : true,
+      "level" : 3,
+      "earnedAt" : "2026-10-12T10:00:00Z"
+    } ],
+    "result" : {
+      "reason" : "DOMINATION",
+      "endedAt" : "2026-10-12T10:00:00Z",
+      "won" : true,
+      "place" : 1,
+      "side" : "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+    },
+    "stats" : {
+      "attacksWon" : 9223372036854775807,
+      "defencesWon" : 9223372036854775807,
+      "unitsKilled" : 9223372036854775807,
+      "villagesConquered" : 9223372036854775807
+    }
+  }, {
+    "subject" : "subject-of-the-deleted",
+    "name" : "pppppppppppppppppppppppp",
+    "joinedAt" : "2026-10-12T10:00:00Z",
+    "points" : 0,
+    "villages" : 0,
+    "rank" : null,
+    "deleted" : true,
+    "achievements" : [ ],
+    "result" : null,
+    "stats" : {
+      "attacksWon" : 0,
+      "defencesWon" : 0,
+      "unitsKilled" : 0,
+      "villagesConquered" : 0
+    }
+  } ]
+}

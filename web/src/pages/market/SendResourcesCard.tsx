@@ -19,13 +19,15 @@ import { useTargetVillage } from '../rally/useTargetVillage';
 import { villageLabel } from '../rally/villageLabel';
 import { AmountField } from './AmountField';
 import styles from './MarketPage.module.css';
+import { OwnVillagePicker } from './OwnVillagePicker';
 
 const NOTHING: ResourceAmounts = { wood: 0, clay: 0, iron: 0 };
 
 /**
- * Send resources (05-frontend §3): the target field (prefilled from `?x=&y=`, the map's button),
- * how much of each resource, and what that takes – merchants and travel time. Sending is final
- * (the goods leave at once), so the summary above the button says everything the server will do.
+ * Send resources (05-frontend §3): the target field (prefilled from `?x=&y=`, the map's button,
+ * or picked from the player's own villages), how much of each resource, and what that takes –
+ * merchants and travel time. Sending is final (the goods leave at once), so the summary above the
+ * button says everything the server will do.
  */
 export function SendResourcesCard({ village, market }: { village: Village; market: Market }) {
   const { t, language } = useI18n();
@@ -119,6 +121,15 @@ export function SendResourcesCard({ village, market }: { village: Village; marke
             placeholder="48|52"
             hint={hint}
             error={targetError}
+          />
+          <OwnVillagePicker
+            village={village}
+            target={field}
+            onPick={(coords) => {
+              setTarget(`${coords.x}|${coords.y}`);
+              setTargetError(undefined);
+              setSent(null);
+            }}
           />
         </div>
         <ul className={styles.amounts}>

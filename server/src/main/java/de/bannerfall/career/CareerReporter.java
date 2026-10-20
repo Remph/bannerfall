@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,6 +45,10 @@ import tools.jackson.databind.json.JsonMapper;
  * since the last time ({@code career_sync} keeps a hash of what was sent), at most {@link #BATCH}
  * per request, authenticated with this world's client id and secret. Nothing waits for it: it runs
  * on its own thread, and a failed round is simply the next round's work.
+ *
+ * <p>A batch the account server rejects as invalid (400) is sent again one player at a time, so a
+ * single report it won't take doesn't hold back the others. That report is not sent again until it
+ * changes (or the server restarts); the log names its subject.
  */
 @Component
 public class CareerReporter {
@@ -109,6 +114,15 @@ public class CareerReporter {
 
     private record Linked(long accountId, PlayerReport report) {}
 
+    /** What the account server did with a request. */
+    private enum Answer {
+        TAKEN,
+        /** 400: something in the request is invalid; sending it again won't help. */
+        REJECTED,
+        /** Not reached, or any other answer: the next round tries again. */
+        FAILED
+    }
+
     private final AccountServerSettings settings;
     private final JdbcClient jdbc;
     private final PlayerRepository players;
@@ -120,6 +134,9 @@ public class CareerReporter {
             Executors.newSingleThreadExecutor(
                     Thread.ofPlatform().name("career-report").daemon().factory());
     private final AtomicBoolean running = new AtomicBoolean();
+
+    /** The hash of the report the account server rejected, per account: not sent again as is. */
+    private final Map<Long, String> rejected = new ConcurrentHashMap<>();
 
     CareerReporter(
             AccountServerSettings settings,
@@ -164,7 +181,8 @@ public class CareerReporter {
     /**
      * One round: sends the reports that changed since they were last sent.
      *
-     * @return how many players were reported; stops at the first failed request
+     * @return how many players were reported; stops at the first failed request, goes on after a
+     *     rejected one
      */
     public int report() {
         if (!settings.careerReports()) {
@@ -181,7 +199,8 @@ public class CareerReporter {
         Map<Long, String> hashes = new HashMap<>();
         for (Linked linked : linkedPlayers(current)) {
             String hash = hash(current, linked.report());
-            if (!hash.equals(sent.get(linked.accountId()))) {
+            if (!hash.equals(sent.get(linked.accountId()))
+                    && !hash.equals(rejected.get(linked.accountId()))) {
                 changed.add(linked);
                 hashes.put(linked.accountId(), hash);
             }
@@ -189,25 +208,55 @@ public class CareerReporter {
         int reported = 0;
         for (int from = 0; from < changed.size(); from += BATCH) {
             List<Linked> batch = changed.subList(from, Math.min(from + BATCH, changed.size()));
-            if (!send(new Report(current, batch.stream().map(Linked::report).toList()))) {
+            Answer answer = send(current, batch);
+            if (answer == Answer.TAKEN) {
+                reported += markSent(batch, hashes);
+                continue;
+            }
+            if (answer == Answer.FAILED) {
                 break;
             }
-            Timestamp now = Timestamp.from(clock.instant());
+            // one player at a time, to find the reports the account server won't take
             for (Linked linked : batch) {
-                jdbc.sql(
-                                """
-                                insert into career_sync (account_id, sent_hash, sent_at)
-                                values (:account, :hash, :at)
-                                on conflict (account_id)
-                                do update set sent_hash = excluded.sent_hash, sent_at = excluded.sent_at
-                                """)
-                        .param("account", linked.accountId())
-                        .param("hash", hashes.get(linked.accountId()))
-                        .param("at", now)
-                        .update();
+                Answer alone = batch.size() == 1 ? answer : send(current, List.of(linked));
+                if (alone == Answer.FAILED) {
+                    return logged(reported);
+                }
+                if (alone == Answer.TAKEN) {
+                    reported += markSent(List.of(linked), hashes);
+                } else {
+                    rejected.put(linked.accountId(), hashes.get(linked.accountId()));
+                    log.warn(
+                            "The account server rejected the career report of subject {}; it"
+                                    + " is sent again when it changes",
+                            linked.report().subject());
+                }
             }
-            reported += batch.size();
         }
+        return logged(reported);
+    }
+
+    /** Remembers what was sent, so it goes out again only after a change. */
+    private int markSent(List<Linked> batch, Map<Long, String> hashes) {
+        Timestamp now = Timestamp.from(clock.instant());
+        for (Linked linked : batch) {
+            jdbc.sql(
+                            """
+                            insert into career_sync (account_id, sent_hash, sent_at)
+                            values (:account, :hash, :at)
+                            on conflict (account_id)
+                            do update set sent_hash = excluded.sent_hash, sent_at = excluded.sent_at
+                            """)
+                    .param("account", linked.accountId())
+                    .param("hash", hashes.get(linked.accountId()))
+                    .param("at", now)
+                    .update();
+            rejected.remove(linked.accountId());
+        }
+        return batch.size();
+    }
+
+    private static int logged(int reported) {
         if (reported > 0) {
             log.info("Reported the careers of {} players to the account server", reported);
         }
@@ -398,7 +447,8 @@ public class CareerReporter {
         }
     }
 
-    private boolean send(Report report) {
+    private Answer send(World world, List<Linked> batch) {
+        Report report = new Report(world, batch.stream().map(Linked::report).toList());
         String credentials =
                 URLEncoder.encode(settings.clientId(), StandardCharsets.UTF_8)
                         + ":"
@@ -414,21 +464,29 @@ public class CareerReporter {
                                                 .encodeToString(
                                                         credentials.getBytes(
                                                                 StandardCharsets.UTF_8)))
-                        .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(report)))
+                        .POST(HttpRequest.BodyPublishers.ofString(toJson(report)))
                         .build();
         try {
             int status = http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
             if (status / 100 == 2) {
-                return true;
+                return Answer.TAKEN;
             }
             log.warn("The account server answered the career report with {}", status);
+            if (status == 400) {
+                return Answer.REJECTED;
+            }
         } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
             log.warn("The account server missed the career report: {}", e.toString());
         }
-        return false;
+        return Answer.FAILED;
+    }
+
+    /** A report as the account server gets it; {@code CareerReportSampleTest} keeps a sample. */
+    static String toJson(Report report) {
+        return JSON.writeValueAsString(report);
     }
 
     private static String hash(World world, PlayerReport report) {

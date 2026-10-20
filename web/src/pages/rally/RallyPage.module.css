@@ -188,6 +188,13 @@
   gap: var(--space-2);
 }
 
+/* Below 360 px (320 px phones): the two buttons side by side are wider than the card, so they stack */
+@media (max-width: 359.98px) {
+  .sendActions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sendActions > button {
   display: inline-flex;
   align-items: center;

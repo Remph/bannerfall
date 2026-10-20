@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { InListDetailContext } from './listDetailContext';
 import styles from './ListDetail.module.css';
 
@@ -40,6 +40,8 @@ export function ListDetail({ list, detail, empty, label, openKey, fill = false }
     shownKey.current = openKey;
   }, [openKey]);
 
+  useDetailTop(detailRef);
+
   return (
     <div className={styles.split}>
       <div className={styles.list}>{list}</div>
@@ -59,4 +61,43 @@ export function ListDetail({ list, detail, empty, label, openKey, fill = false }
       </section>
     </div>
   );
+}
+
+/**
+ * Where the detail column starts in the window, as `--detail-top` on it, so it ends just above the
+ * window's bottom (1.5.1): while the page head above the split is in view it starts lower than where
+ * it sticks, and its own scroll would otherwise end below the window. Never above where it sticks
+ * (at the end of a long list the page pushes it up; then it keeps the stuck height).
+ */
+function useDetailTop(detailRef: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const detail = detailRef.current;
+    if (detail === null || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const stuckTop = parseFloat(getComputedStyle(detail).top) || 0;
+      const top = Math.round(Math.max(detail.getBoundingClientRect().top, stuckTop));
+      detail.style.setProperty('--detail-top', `${top}px`);
+    };
+    const schedule = () => {
+      if (frame === 0) {
+        frame = requestAnimationFrame(measure);
+      }
+    };
+    measure();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    // the page head above the split or the bars change height (filters wrap, select mode)
+    const observer = new ResizeObserver(schedule);
+    observer.observe(document.body);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      observer.disconnect();
+    };
+  }, [detailRef]);
 }

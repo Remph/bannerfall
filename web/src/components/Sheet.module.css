@@ -76,6 +76,8 @@
 @media (min-width: 640px) {
   .sheet {
     width: min(28rem, 100% - 2rem);
+    /* centred, so it may use the window's height (the gear menu fits a 700 px window, 1.5.1) */
+    max-height: calc(100dvh - 2rem);
     margin: auto;
     border: 3px double var(--color-border);
     border-radius: var(--radius);

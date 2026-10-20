@@ -553,10 +553,15 @@ function UnitHead(props: { unit: RecruitUnit; atHome: number; total: number | un
       </span>
       <span className={styles.unitTitle}>
         <h3 className={styles.name}>{t.units[unit.unit]}</h3>
+        {/* two unbreakable parts: a narrow row breaks the line only before the total */}
         <span className={styles.atHome}>
-          {total === undefined
-            ? t.recruit.atHome(formatNumber(atHome, language))
-            : t.recruit.atHomeOfTotal(formatNumber(atHome, language), formatNumber(total, language))}
+          <span>{t.recruit.atHome(formatNumber(atHome, language))}</span>
+          {total !== undefined && (
+            <>
+              {' '}
+              <span>{t.recruit.ofTotal(formatNumber(total, language))}</span>
+            </>
+          )}
         </span>
       </span>
       {/* the same place in every row, empty while no unit is home (1.3) */}
