@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  appendMines,
   appendNextLevel,
   changeLevel,
   fromApiLines,
@@ -30,7 +31,7 @@ const STABLE_LEVEL = 2;
 const WOOD_LEVEL = 7;
 
 const build = (
-  building: 'WOODCUTTER' | 'HEADQUARTERS' | 'BARRACKS' | 'SMITHY' | 'STABLE',
+  building: 'WOODCUTTER' | 'CLAY_PIT' | 'IRON_MINE' | 'HEADQUARTERS' | 'BARRACKS' | 'SMITHY' | 'STABLE',
   level: number,
 ): PlanLine => ({
   kind: 'build',
@@ -74,6 +75,28 @@ describe('appendNextLevel', () => {
 
   it('adds nothing at the top level', () => {
     expect(appendNextLevel([wood(TOP)], 'WOODCUTTER', buildings)).toEqual([wood(TOP)]);
+  });
+});
+
+describe('appendMines', () => {
+  const withMines: PlanBuilding[] = [
+    ...buildings,
+    { building: 'CLAY_PIT', startLevel: 0, maxLevel: TOP, requires: [], available: true },
+    { building: 'IRON_MINE', startLevel: 0, maxLevel: TOP, requires: [], available: true },
+  ];
+
+  it('appends the next level of each mine, in mine order', () => {
+    expect(appendMines([wood(SOME)], withMines)).toEqual([
+      wood(SOME),
+      wood(SOME + 1),
+      build('CLAY_PIT', 1),
+      build('IRON_MINE', 1),
+    ]);
+  });
+
+  it('leaves out a mine at its top level', () => {
+    const lines = [wood(TOP)];
+    expect(appendMines(lines, withMines)).toEqual([wood(TOP), build('CLAY_PIT', 1), build('IRON_MINE', 1)]);
   });
 });
 

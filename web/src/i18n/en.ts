@@ -360,7 +360,7 @@ export const en = {
     guildMaxMembers: 'Most members per guild',
     guildStartTogether: 'Guild mates start next to each other',
     guildStartTogetherHint:
-      'Players in a guild at the opening get villages a few fields apart; who loses his last village may start again next to his guild.',
+      'Players in a guild at the opening get villages a few fields apart; a player who loses their last village may start again next to their guild.',
     guildsStartTogether: 'on, mates start together',
     morale: 'Morale',
     moraleHint: 'Attacks on much smaller players hit weaker. Only the attack changes, never the defence.',
@@ -384,7 +384,8 @@ export const en = {
     standardTheft: 'Standard theft',
     standardTheftHint: 'Defenders can take the standard of an attack they beat.',
     nightBonus: 'Night bonus',
-    nightBonusHint: (from: string, to: string) => `Villages defend more strongly from ${from}:00 to ${to}:00.`,
+    nightBonusHint: (from: string, to: string) =>
+      `Villages defend more strongly from ${from}:00 to ${to}:00 German time.`,
     market: 'Market exchange',
     marketHint: 'Trade with the market itself, not only with players.',
     victoryMode: 'Victory',
@@ -928,6 +929,7 @@ export const en = {
     recruiting: (letter: string, name: string) => `Keeps recruit template ${letter} ${name} filled.`,
     recruitingGone: (letter: string) => `Recruit template ${letter} no longer exists: nothing is recruited.`,
     missing: (list: string) => `Missing: ${list}`,
+    needsShort: (list: string) => `needs ${list}`,
     templateFull: 'The template is full.',
     byHand: (list: string) => `${list}: you recruit these yourself.`,
     planTitle: (letter: string, name: string) => `Plan ${letter} · ${name}`,
@@ -952,9 +954,36 @@ export const en = {
     reorderDone: 'Done',
     empty: 'No lines yet. Add a building, or take the levels of this village.',
     fromVillage: "Take this village's levels",
+    /** Sharing a plan as a code (1.6.1). */
+    code: {
+      share: 'Share as code',
+      import: 'Use a code',
+      shareTitle: 'Share this plan',
+      shareHint: 'Copy the code and send it in a message. The other player pastes it under “Use a code”, on any world.',
+      importTitle: 'Use a code',
+      importHint:
+        'Paste a plan code. Its lines replace the lines in this editor; nothing is saved until you save. A recruit line uses the template with the same letter in your list.',
+      label: 'Plan code',
+      copy: 'Copy code',
+      copied: 'Copied.',
+      copyFailed: 'Could not copy. Select the code and copy it by hand.',
+      apply: 'Use this plan',
+      errors: {
+        empty: 'Paste a code first.',
+        tooLong: 'That text is far too long for a plan code.',
+        format: 'That is not a plan code. It starts with BFP1.',
+        badName: 'The plan’s name in the code is not valid (1 to 16 characters).',
+        tooManyLines: 'The plan has too many lines.',
+        unknownBuilding: 'The code names a building this game does not have.',
+        badLevel: 'The code has a level that a building cannot have.',
+        badTemplate: 'The code names a recruit template other than A to E.',
+        twoRecruitLines: 'A plan has at most one recruit line.',
+      },
+    },
     addBuilding: '+ Building',
     addRecruit: '+ Start recruiting',
     addTitle: 'Add a line',
+    addMines: 'All three mines',
     addHint: 'Each tap adds the next level. A missing requirement comes in front of it.',
     addClose: 'Close',
     recruitTitle: 'Start recruiting which template?',
@@ -1419,6 +1448,7 @@ export const en = {
     outgoingTitle: 'Outgoing',
     noOutgoing: 'No commands on the way.',
     incomingTitle: 'Incoming',
+    attackCount: (count: number) => (count === 1 ? '1 attack' : `${count} attacks`),
     noIncoming: 'Nothing is on its way here.',
     /** Followed by the village: "Attack on Hilltop (48|52)". */
     outgoing: {
@@ -1984,6 +2014,26 @@ export const en = {
     listTitle: (village: string) => `Targets of ${village}`,
     empty: 'No targets yet. Add a village with the form, or use “Add to farm list” on the map.',
     count: (count: number, max: number) => `${count} of ${max} targets`,
+    copyMenu: 'Copy entries to another village',
+    copyMore: (village: string) => `More for the list of ${village}`,
+    copyTitle: 'Copy entries to…',
+    copyHint:
+      'Adds the entries the other village lacks, each with its template or units. Nothing changes in this list, and nothing in the other list that is there already.',
+    /** Names the village the entries went to: the sheet stays open for the next one. */
+    copyResult: (
+      village: string,
+      result: { copied: number; alreadyThere: number; ownVillage: number; listFull: number },
+    ) =>
+      `${village}: ` +
+      [
+        result.copied === 1 ? '1 entry copied' : `${result.copied} entries copied`,
+        result.alreadyThere > 0 ? `${result.alreadyThere} there already` : '',
+        result.ownVillage > 0 ? `${result.ownVillage} left out (your own village)` : '',
+        result.listFull > 0 ? `${result.listFull} did not fit (at most 50)` : '',
+      ]
+        .filter((part) => part !== '')
+        .join(', ') +
+      '.',
     addTitle: 'Add a target',
     add: 'Add to list',
     countLabel: (unit: string) => `Units to send: ${unit}`,
@@ -2644,7 +2694,7 @@ export const en = {
     },
     players: {
       title: 'Players',
-      hint: 'Human players; deleting a player is on his profile. A role change counts at once.',
+      hint: 'Human players; deleting a player is on their profile. A role change counts at once.',
       empty: 'No players yet.',
       adminTag: 'admin',
       deletedTag: 'deleted',
@@ -2668,10 +2718,10 @@ export const en = {
       bannedForGood: (reason: string) => `Banned for good: ${reason}`,
       banTitle: (name: string) => `Ban ${name}?`,
       banHint:
-        'He cannot log in and his open sessions end. A timed ban leaves his villages alone; for good turns them barbarian.',
+        'They cannot log in and their open sessions end. A timed ban leaves their villages alone; for good turns them barbarian.',
       banLength: 'How long',
       banLengths: { '1': '1 day', '7': '1 week', '30': '1 month', forever: 'For good' },
-      banReason: 'Reason (he sees it at login)',
+      banReason: 'Reason (shown at login)',
       banConfirm: 'Ban',
     },
     suspicious: {
@@ -2757,7 +2807,7 @@ export const en = {
       villageNameLanguageHint:
         "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
       guildStartTogetherHint:
-        'At the opening, players who are in a guild by then get villages a few fields apart; a player who lost his last village may start again next to his guild.',
+        'At the opening, players who are in a guild by then get villages a few fields apart; a player who lost their last village may start again next to their guild.',
       npcGuildsHint:
         'Lords from 850 points team up with a lord within 15 fields (more on a wider map): they never attack each other, help defend each other and avenge each other. You can rearrange them in the NPC lords tab.',
       npcGuildsOff: 'Saving this ends every lord guild and clears your placements.',
@@ -2864,7 +2914,7 @@ export const en = {
         guildMaxMembers: 'Most members per guild',
         npcGuildMaxMembers: 'Most lords per lord guild',
         moraleFloor: 'Lowest morale (%)',
-        nightBonusStartHour: 'Night from (hour, German time)',
+        nightBonusStartHour: 'Night from (hour)',
         nightBonusEndHour: 'Night until (hour)',
         nightBonusFactor: 'Defence ×',
         paladinMaxSlots: 'Most slots',

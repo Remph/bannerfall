@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bannerfall-update <version> [options] – updates this world to a release in one go
-# (README "Updating a running world", docs/hosting.md §10).
+# (README "Deploying", docs/hosting.md §10).
 #
 #   ops/bannerfall-update 1.4.1
 #

@@ -354,7 +354,8 @@ export const de: Dictionary = {
     standardTheft: 'Standartenraub',
     standardTheftHint: 'Verteidiger können die Standarte eines abgewehrten Angriffs nehmen.',
     nightBonus: 'Nachtbonus',
-    nightBonusHint: (from: string, to: string) => `Dörfer verteidigen sich von ${from}:00 bis ${to}:00 Uhr stärker.`,
+    nightBonusHint: (from: string, to: string) =>
+      `Dörfer verteidigen sich von ${from}:00 bis ${to}:00 Uhr deutscher Zeit stärker.`,
     market: 'Tausch mit dem Markt',
     marketHint: 'Mit dem Markt selbst handeln, nicht nur mit Spielern.',
     victoryMode: 'Sieg',
@@ -853,6 +854,7 @@ export const de: Dictionary = {
     recruitingGone: (letter: string) =>
       `Die Rekrutier-Vorlage ${letter} gibt es nicht mehr: Es wird nichts rekrutiert.`,
     missing: (list: string) => `Fehlen: ${list}`,
+    needsShort: (list: string) => `braucht ${list}`,
     templateFull: 'Die Vorlage ist voll.',
     byHand: (list: string) => `${list}: rekrutierst du selbst.`,
     planTitle: (letter: string, name: string) => `Plan ${letter} · ${name}`,
@@ -875,9 +877,37 @@ export const de: Dictionary = {
     reorderDone: 'Fertig',
     empty: 'Noch keine Zeilen. Füge ein Gebäude hinzu oder übernimm die Stufen dieses Dorfs.',
     fromVillage: 'Stufen dieses Dorfs übernehmen',
+    /** Einen Plan als Code teilen (1.6.1). */
+    code: {
+      share: 'Als Code teilen',
+      import: 'Code einfügen',
+      shareTitle: 'Plan teilen',
+      shareHint:
+        'Kopiere den Code und schick ihn in einer Nachricht. Wer ihn bekommt, fügt ihn unter „Code einfügen“ ein, auf jeder Welt.',
+      importTitle: 'Code einfügen',
+      importHint:
+        'Füge einen Plan-Code ein. Seine Zeilen ersetzen die Zeilen in diesem Editor; gespeichert wird erst, wenn du speicherst. Eine Rekrutier-Zeile nimmt die Vorlage mit demselben Buchstaben aus deiner Liste.',
+      label: 'Plan-Code',
+      copy: 'Code kopieren',
+      copied: 'Kopiert.',
+      copyFailed: 'Kopieren hat nicht geklappt. Markiere den Code und kopiere ihn von Hand.',
+      apply: 'Diesen Plan übernehmen',
+      errors: {
+        empty: 'Füge zuerst einen Code ein.',
+        tooLong: 'Der Text ist viel zu lang für einen Plan-Code.',
+        format: 'Das ist kein Plan-Code. Er beginnt mit BFP1.',
+        badName: 'Der Name des Plans im Code ist ungültig (1 bis 16 Zeichen).',
+        tooManyLines: 'Der Plan hat zu viele Zeilen.',
+        unknownBuilding: 'Der Code nennt ein Gebäude, das es in diesem Spiel nicht gibt.',
+        badLevel: 'Der Code hat eine Stufe, die ein Gebäude nicht haben kann.',
+        badTemplate: 'Der Code nennt eine andere Rekrutier-Vorlage als A bis E.',
+        twoRecruitLines: 'Ein Plan hat höchstens eine Rekrutier-Zeile.',
+      },
+    },
     addBuilding: '+ Gebäude',
     addRecruit: '+ Rekrutieren starten',
     addTitle: 'Zeile anhängen',
+    addMines: 'Alle drei Minen',
     addHint: 'Jeder Tipp hängt die nächste Stufe an. Fehlt eine Voraussetzung, kommt sie davor mit hinein.',
     addClose: 'Schließen',
     recruitTitle: 'Welche Vorlage soll rekrutiert werden?',
@@ -1296,6 +1326,7 @@ export const de: Dictionary = {
     outgoingTitle: 'Ausgehend',
     noOutgoing: 'Keine Befehle unterwegs.',
     incomingTitle: 'Eintreffend',
+    attackCount: (count: number) => (count === 1 ? '1 Angriff' : `${count} Angriffe`),
     noIncoming: 'Nichts ist hierher unterwegs.',
     outgoing: { ATTACK: 'Angriff auf', SUPPORT: 'Unterstützung für', RETURN: 'Rückkehr nach' },
     incoming: { ATTACK: 'Angriff von', SUPPORT: 'Unterstützung von', RETURN: 'Rückkehr von' },
@@ -1789,6 +1820,26 @@ export const de: Dictionary = {
     listTitle: (village: string) => `Ziele von ${village}`,
     empty: 'Noch keine Ziele. Füge ein Dorf mit dem Formular hinzu oder nutze „Zur Farmliste“ auf der Karte.',
     count: (count: number, max: number) => `${count} von ${max} Zielen`,
+    copyMenu: 'Einträge in ein anderes Dorf kopieren',
+    copyMore: (village: string) => `Mehr zur Liste von ${village}`,
+    copyTitle: 'Einträge kopieren nach …',
+    copyHint:
+      'Hängt die Einträge an, die das andere Dorf noch nicht hat, jeweils mit Vorlage oder Truppen. In dieser Liste ändert sich nichts, und was in der anderen Liste schon steht, bleibt.',
+    /** Nennt das Dorf, in das kopiert wurde: das Blatt bleibt für das nächste offen. */
+    copyResult: (
+      village: string,
+      result: { copied: number; alreadyThere: number; ownVillage: number; listFull: number },
+    ) =>
+      `${village}: ` +
+      [
+        result.copied === 1 ? '1 Eintrag kopiert' : `${result.copied} Einträge kopiert`,
+        result.alreadyThere > 0 ? `${result.alreadyThere} schon vorhanden` : '',
+        result.ownVillage > 0 ? `${result.ownVillage} übergangen (eigenes Dorf)` : '',
+        result.listFull > 0 ? `${result.listFull} passten nicht mehr hinein (höchstens 50)` : '',
+      ]
+        .filter((part) => part !== '')
+        .join(', ') +
+      '.',
     addTitle: 'Ziel hinzufügen',
     add: 'Zur Liste hinzufügen',
     countLabel: (unit: string) => `Zu schickende Einheiten: ${unit}`,
@@ -2468,7 +2519,7 @@ export const de: Dictionary = {
         'Er kann sich nicht mehr einloggen und seine offenen Sitzungen enden. Eine befristete Sperre lässt seine Dörfer; für immer macht sie zu Barbarendörfern.',
       banLength: 'Wie lange',
       banLengths: { '1': '1 Tag', '7': '1 Woche', '30': '1 Monat', forever: 'Für immer' },
-      banReason: 'Grund (sieht er beim Login)',
+      banReason: 'Grund (wird beim Login angezeigt)',
       banConfirm: 'Sperren',
     },
     suspicious: {
@@ -2657,7 +2708,7 @@ export const de: Dictionary = {
         guildMaxMembers: 'Höchstens Mitglieder je Gilde',
         npcGuildMaxMembers: 'Höchstens Fürsten je Fürstengilde',
         moraleFloor: 'Niedrigste Moral (%)',
-        nightBonusStartHour: 'Nacht ab (Stunde, deutsche Zeit)',
+        nightBonusStartHour: 'Nacht ab (Stunde)',
         nightBonusEndHour: 'Nacht bis (Stunde)',
         nightBonusFactor: 'Verteidigung ×',
         paladinMaxSlots: 'Höchstens Plätze',

@@ -2,7 +2,7 @@
 
 A step-by-step guide for running one Bannerfall world (a "realm") on a small Linux server of your own. It assumes Ubuntu 24.04 LTS on a rented virtual server, but any Linux host with Docker works the same way from step 4 on. The README has the reference for everything mentioned here (*Operating the server*, *Deploying*, *Backups*).
 
-Plan about two hours the first time, most of it waiting for DNS. The commands use `1.6.0` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
+Plan about two hours the first time, most of it waiting for DNS. The commands use `1.6.1` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
 
 ## 0. What you need
 
@@ -89,13 +89,13 @@ alias bfa='docker compose -f /opt/bannerfall/compose.prod.yaml exec app bannerfa
 
 ## 4. Get the code
 
-Each release is a tag (`v1.6.0`, …). Check out the newest one:
+Each release is a tag (`v1.6.1`, …). Check out the newest one:
 ```
 sudo mkdir -p /opt/bannerfall && sudo chown deploy:deploy /opt/bannerfall
 git clone https://github.com/Remph/bannerfall.git /opt/bannerfall
 cd /opt/bannerfall
 git tag --sort=-v:refname | head -3
-git checkout v1.6.0                        # the newest tag from the list
+git checkout v1.6.1                        # the newest tag from the list
 ```
 (`git checkout` of a tag says `You are in 'detached HEAD' state`: that is expected, the folder stays exactly on that release.)
 
@@ -108,7 +108,7 @@ chmod 600 .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_ADMIN_TOKEN=.*/BANNERFALL_ADMIN_TOKEN=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_DOMAIN=.*/BANNERFALL_DOMAIN=play.example.com/" .env
-sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.0|" .env
+sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.1|" .env
 nano .env
 ```
 Check in `nano` that these are filled:
@@ -119,7 +119,7 @@ Check in `nano` that these are filled:
 | `BANNERFALL_ADMIN_TOKEN` | the random value (at least 32 characters; compose and the server refuse to start without it) |
 | `COMPOSE_PROFILES` | `caddy` (the template's default) |
 | `BANNERFALL_DOMAIN` | your realm's name |
-| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:1.6.0`); `bannerfall:1.6.0` if you build it yourself in step 6 |
+| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:1.6.1`); `bannerfall:1.6.1` if you build it yourself in step 6 |
 | `TZ` | your time zone (for log times; the command line's dates are always Berlin time, see step 9) |
 | `BANNERFALL_OPERATOR_NAME`, `BANNERFALL_OPERATOR_CONTACT` | who runs the realm and how players reach you (usually an email address); shown on the privacy page (`/privacy`), linked under the login and register forms. Empty, the page only explains what the game stores |
 
@@ -131,12 +131,12 @@ Leave the port lines commented out unless you need them (README, *Ports*), and d
 
 Every release is published as a ready image, built from exactly the tagged code (x86-64 only). Pull it:
 ```
-docker pull ghcr.io/remph/bannerfall:1.6.0
+docker pull ghcr.io/remph/bannerfall:1.6.1
 ```
-**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:1.6.0` in `.env` for it:
+**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:1.6.1` in `.env` for it:
 ```
 cd /opt/bannerfall
-docker build -t bannerfall:1.6.0 --build-arg VERSION=1.6.0 .
+docker build -t bannerfall:1.6.1 --build-arg VERSION=1.6.1 .
 ```
 If it dies with `Killed`, check `free -h` (swap, step 2) and run it again; finished layers are cached.
 
@@ -171,6 +171,8 @@ Add (daily at 03:17):
 17 3 * * * /opt/bannerfall/ops/bannerfall-backup >> /opt/bannerfall/backups/backup.log 2>&1
 ```
 A backup on the same disk does not survive losing the server: copy the newest files from `/opt/bannerfall/backups` to your PC now and then (`scp`, `rsync` or your SSH client's file browser), and always before an update. Provider snapshots are a cheap extra undo before big updates.
+
+To be told when a backup does not happen, create a check at a "dead man's switch" service (the free plan of healthchecks.io is enough; period one day) and put its address in front of the cron command: `17 3 * * * BACKUP_PING_URL=https://hc-ping.com/<your-check-id> /opt/bannerfall/ops/bannerfall-backup >> /opt/bannerfall/backups/backup.log 2>&1`. A good backup requests the address, a failed one requests it with `/fail` added, and you get a mail when nothing arrives. The address must be a plain `https://…` address without a query string, and `curl` must exist on the server. A free uptime monitor can watch the world from outside too (an HTTP check on `https://play.example.com/api/ping`).
 
 ## 9. Open the world
 
@@ -241,7 +243,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-edge && sudo chown deploy:deploy /opt/bannerfall-edge
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-edge
-   cd /opt/bannerfall-edge && git checkout v1.6.0          # the tag your world runs
+   cd /opt/bannerfall-edge && git checkout v1.6.1          # the tag your world runs
    cd edge && cp sites.caddy.example sites.caddy && nano sites.caddy
    ```
    Keep one block, your first world's: its domain and its `APP_PORT` (8461 unless you changed it). Delete the second example block. `sites.caddy` is this server's list and stays out of git, like `.env`.
@@ -275,7 +277,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-two && sudo chown deploy:deploy /opt/bannerfall-two
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-two
-   cd /opt/bannerfall-two && git checkout v1.6.0
+   cd /opt/bannerfall-two && git checkout v1.6.1
    ```
 3. `.env` as in step 5, with new secrets, and these differences:
 

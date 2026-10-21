@@ -193,6 +193,63 @@ public class FarmService {
     }
 
     /**
+     * Copies the village's list to another village of the player (1.6.1): the entries that the
+     * other list lacks are appended in the same order with the same template or own units, until
+     * the other list is full. Nothing of the other list changes, and the source stays as it is.
+     *
+     * @throws GameRuleException {@code SAME_VILLAGE} when both are the same village
+     * @throws NotFoundException {@code VILLAGE_NOT_FOUND} if one isn't the player's
+     */
+    @Transactional
+    public FarmCopyDto copy(long villageId, long playerId, long toVillageId) {
+        if (villageId == toVillageId) {
+            throw new GameRuleException(ErrorCode.SAME_VILLAGE, "That is this village");
+        }
+        // both are locked in ascending id order (01-architecture §4.5)
+        locker.lockOwned(Math.min(villageId, toVillageId), playerId);
+        locker.lockOwned(Math.max(villageId, toVillageId), playerId);
+        List<FarmTarget> entries = targets.findByVillageIdOrderByIdAsc(villageId);
+        Set<Long> there = new HashSet<>();
+        for (FarmTarget entry : targets.findByVillageIdOrderByIdAsc(toVillageId)) {
+            there.add(entry.getTargetVillageId());
+        }
+        Map<Long, Village> byId = new HashMap<>();
+        for (Village target :
+                villages.findAllWithPlayer(
+                        entries.stream().map(FarmTarget::getTargetVillageId).toList())) {
+            byId.put(target.getId(), target);
+        }
+        Instant now = clock.instant();
+        int copied = 0;
+        int alreadyThere = 0;
+        int ownVillage = 0;
+        int listFull = 0;
+        for (FarmTarget entry : entries) {
+            Village target = byId.get(entry.getTargetVillageId());
+            Player owner = target == null ? null : target.getPlayer();
+            if (entry.getTargetVillageId() == toVillageId
+                    || owner != null && owner.getId() == playerId) {
+                ownVillage++;
+            } else if (there.contains(entry.getTargetVillageId())) {
+                alreadyThere++;
+            } else if (there.size() >= MAX_TARGETS) {
+                listFull++;
+            } else {
+                targets.save(
+                        new FarmTarget(
+                                toVillageId,
+                                entry.getTargetVillageId(),
+                                entry.getUnits().copy(),
+                                entry.getTemplateId(),
+                                now));
+                there.add(entry.getTargetVillageId());
+                copied++;
+            }
+        }
+        return new FarmCopyDto(copied, alreadyThere, ownVillage, listFull);
+    }
+
+    /**
      * Changes what a target is sent: another template or own units.
      *
      * @throws ApiException 400 {@code VALIDATION} as for {@link #add}

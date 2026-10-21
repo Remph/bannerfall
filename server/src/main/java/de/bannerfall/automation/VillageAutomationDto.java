@@ -3,6 +3,7 @@ package de.bannerfall.automation;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.recruit.RecruitTemplateLetter;
+import de.bannerfall.rules.Requirement;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +29,8 @@ import java.util.Map;
  *     recruiting)
  * @param byHand units of the recruit template the automation never recruits (nobles, banner
  *     thieves)
+ * @param blocked the units in {@code missing} the village can't recruit yet, with the requirements
+ *     it lacks (e.g. swordsmen without a Smithy); never recruited until they are met
  */
 public record VillageAutomationDto(
         AutomationState state,
@@ -43,4 +46,5 @@ public record VillageAutomationDto(
         @Schema(nullable = true) Instant readyAt,
         @Schema(nullable = true) RecruitTemplateLetter recruiting,
         Map<UnitType, Integer> missing,
-        List<UnitType> byHand) {}
+        List<UnitType> byHand,
+        Map<UnitType, List<Requirement>> blocked) {}

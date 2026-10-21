@@ -102,6 +102,10 @@ tasks.register<Test>("simulationTest") {
         "simFarmShare" to "simulation.farmShare",
         "simFarmRest" to "simulation.farmRest",
         "simLabel" to "simulation.label",
+        // world speed, number of lords and an SQL file with the world settings (1.6.1)
+        "simSpeed" to "simulation.speed",
+        "simLords" to "simulation.lords",
+        "simSqlFile" to "simulation.sqlFile",
         // lord guilds (09 §13): -PsimLordGuilds=true
         "simLordGuilds" to "simulation.lordGuilds",
         // lord banners (09 §14): -PsimLordBanners=true

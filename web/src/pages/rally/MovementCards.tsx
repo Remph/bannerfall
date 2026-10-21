@@ -35,7 +35,17 @@ const movementIcons: Record<MovementKind, IconName> = { ATTACK: 'troops', SUPPOR
  * be cancelled for a short while after it left (the button shows how long), after a confirmation;
  * the troops then turn around. An attack has a bell (1.6) for "notify me when they're back".
  */
-export function OutgoingCard({ villageId, movements }: { villageId: number; movements: readonly Movement[] }) {
+export function OutgoingCard({
+  villageId,
+  movements,
+  folded,
+  onToggle,
+}: {
+  villageId: number;
+  movements: readonly Movement[];
+  folded: boolean;
+  onToggle: () => void;
+}) {
   const t = useT();
   const now = useGameNow();
   const cancel = useCancelMovement(villageId);
@@ -58,7 +68,15 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
   }
 
   return (
-    <Card title={t.rally.outgoingTitle} id="outgoing">
+    <Card
+      title={t.rally.outgoingTitle}
+      id="outgoing"
+      collapse={{
+        collapsed: folded,
+        onToggle,
+        summary: <span className={styles.foldCount}>{movements.length}</span>,
+      }}
+    >
       {movements.length === 0 ? (
         <p className={styles.empty}>{t.rally.noOutgoing}</p>
       ) : (
@@ -213,14 +231,39 @@ export function CancelConfirm({ movement, pending, onKeep, onConfirm }: CancelCo
  * the village's own troops coming home. That another player's attack hides its troops and start is
  * said once above the list (1.3); each such attack links to the attacker on the map instead.
  */
-export function IncomingCard({ villageId, incoming }: { villageId: number; incoming: readonly IncomingMovement[] }) {
+export function IncomingCard({
+  villageId,
+  incoming,
+  folded,
+  onToggle,
+}: {
+  villageId: number;
+  incoming: readonly IncomingMovement[];
+  folded: boolean;
+  onToggle: () => void;
+}) {
   const t = useT();
   // the server hides the units of every attack except the player's own (a later wave on a village
   // he conquered meanwhile, it arrives like a support)
   const hidden = (movement: IncomingMovement) => movement.kind === 'ATTACK' && movement.units === null;
   const night = useWorld().data?.nightBonus;
+  const attacks = incoming.filter(hidden).length;
   return (
-    <Card title={t.rally.incomingTitle} id="incoming">
+    <Card
+      title={t.rally.incomingTitle}
+      id="incoming"
+      collapse={{
+        collapsed: folded,
+        onToggle,
+        // folded away, a hostile attack still shows in the title, in red
+        summary: (
+          <>
+            <span className={styles.foldCount}>{incoming.length}</span>
+            {attacks > 0 && <span className={styles.foldAttack}>{t.rally.attackCount(attacks)}</span>}
+          </>
+        ),
+      }}
+    >
       {incoming.some(hidden) && <p className={styles.incomingNote}>{t.rally.attacksHidden}</p>}
       {incoming.length === 0 ? (
         <p className={styles.empty}>{t.rally.noIncoming}</p>

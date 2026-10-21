@@ -748,6 +748,132 @@ class FarmFlowTest {
         }
     }
 
+    // ---- copying a list to another village (1.6.1) ----
+
+    private String copyBody(long toVillageId) {
+        return "{\"toVillageId\":" + toVillageId + "}";
+    }
+
+    @Test
+    void aListIsCopiedToAnotherVillageWithItsTemplatesAndUnitsAndNothingTwice() throws Exception {
+        Placed barbarian = barbarianVillage();
+        Placed second = barbarianVillage();
+        try {
+            jdbc.sql("update village set player_id = ? where id = ?")
+                    .params(farmer.playerId, second.id())
+                    .update();
+            farmer.browser
+                    .put("/api/farm-templates/A", "{\"units\":{\"AXEMAN\":5}}")
+                    .andExpect(status().isOk());
+            addOk(victimAt, "{\"AXEMAN\":3}");
+            farmer.browser
+                    .post(
+                            path(farmer),
+                            "{\"target\":{\"x\":%d,\"y\":%d},\"template\":\"A\"}"
+                                    .formatted(barbarian.at().x(), barbarian.at().y()))
+                    .andExpect(status().isCreated());
+            String copy = path(farmer) + "/copy";
+
+            farmer.browser
+                    .post(copy, copyBody(second.id()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.copied").value(2))
+                    .andExpect(jsonPath("$.alreadyThere").value(0))
+                    .andExpect(jsonPath("$.ownVillage").value(0))
+                    .andExpect(jsonPath("$.listFull").value(0));
+            farmer.browser
+                    .get("/api/villages/" + second.id() + "/farm-targets")
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$[0].target.playerId").value(victim.playerId))
+                    .andExpect(jsonPath("$[0].units.AXEMAN").value(3))
+                    .andExpect(jsonPath("$[0].template").value(nullValue()))
+                    .andExpect(jsonPath("$[1].target.id").value(barbarian.id()))
+                    .andExpect(jsonPath("$[1].template").value("A"))
+                    .andExpect(jsonPath("$[1].units.AXEMAN").value(5));
+            // the source is as it was
+            farmer.browser.get(path(farmer)).andExpect(jsonPath("$", hasSize(2)));
+
+            // again: everything is there already
+            farmer.browser
+                    .post(copy, copyBody(second.id()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.copied").value(0))
+                    .andExpect(jsonPath("$.alreadyThere").value(2));
+        } finally {
+            jdbc.sql("delete from farm_target where village_id = ?").param(second.id()).update();
+            jdbc.sql("delete from village where id in (?, ?)")
+                    .params(barbarian.id(), second.id())
+                    .update();
+        }
+    }
+
+    @Test
+    void copyingPassesOverVillagesOfYourOwnAndStopsAtAFullList() throws Exception {
+        Placed second = barbarianVillage();
+        List<Placed> fillers = new java.util.ArrayList<>();
+        try {
+            addOk(victimAt, "{\"AXEMAN\":3}");
+            // the other village is a target of the list too, until it is the farmer's
+            addOk(second.at(), "{\"AXEMAN\":1}");
+            jdbc.sql("update village set player_id = ? where id = ?")
+                    .params(farmer.playerId, second.id())
+                    .update();
+            String secondList = "/api/villages/" + second.id() + "/farm-targets";
+            for (int i = 0; i < FarmService.MAX_TARGETS - 1; i++) {
+                Placed filler = barbarianVillage();
+                fillers.add(filler);
+                farmer.browser
+                        .post(secondList, addBody(filler.at(), "{\"AXEMAN\":1}"))
+                        .andExpect(status().isCreated());
+            }
+
+            // 49 of 50 places are taken: the victim fits, the other village itself is passed over
+            farmer.browser
+                    .post(path(farmer) + "/copy", copyBody(second.id()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.copied").value(1))
+                    .andExpect(jsonPath("$.ownVillage").value(1))
+                    .andExpect(jsonPath("$.listFull").value(0));
+            // the list is full now: another entry has no place
+            Placed another = barbarianVillage();
+            fillers.add(another);
+            addOk(another.at(), "{\"AXEMAN\":1}");
+            farmer.browser
+                    .post(path(farmer) + "/copy", copyBody(second.id()))
+                    .andExpect(jsonPath("$.copied").value(0))
+                    .andExpect(jsonPath("$.alreadyThere").value(1))
+                    .andExpect(jsonPath("$.ownVillage").value(1))
+                    .andExpect(jsonPath("$.listFull").value(1));
+            farmer.browser
+                    .get(secondList)
+                    .andExpect(jsonPath("$", hasSize(FarmService.MAX_TARGETS)));
+        } finally {
+            jdbc.sql("delete from farm_target where village_id in (?, ?)")
+                    .params(farmer.villageId, second.id())
+                    .update();
+            for (Placed filler : fillers) {
+                jdbc.sql("delete from village where id = ?").param(filler.id()).update();
+            }
+            jdbc.sql("delete from village where id = ?").param(second.id()).update();
+        }
+    }
+
+    @Test
+    void copyingNeedsTwoVillagesOfYours() throws Exception {
+        String copy = path(farmer) + "/copy";
+        farmer.browser
+                .post(copy, copyBody(farmer.villageId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SAME_VILLAGE"));
+        farmer.browser
+                .post(copy, copyBody(victim.villageId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("VILLAGE_NOT_FOUND"));
+        // another player's list is not reachable either
+        victim.browser.post(copy, copyBody(victim.villageId)).andExpect(status().isNotFound());
+        farmer.browser.post(copy, "{}").andExpect(status().isBadRequest());
+    }
+
     private record Placed(long id, Coordinates at) {}
 
     /** A barbarian village on a free field of a row near the bottom of the test map. */

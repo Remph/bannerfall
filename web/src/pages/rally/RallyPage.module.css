@@ -719,3 +719,20 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* what a folded movement card still says next to its title (1.6.1): how many, and hostile attacks in red */
+.foldCount,
+.foldAttack {
+  flex: none;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.foldAttack {
+  color: var(--color-danger);
+}

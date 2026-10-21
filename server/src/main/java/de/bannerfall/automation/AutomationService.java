@@ -30,6 +30,7 @@ import de.bannerfall.recruit.RecruitTemplateLetter;
 import de.bannerfall.recruit.RecruitTemplateRepository;
 import de.bannerfall.rules.BannerEffect;
 import de.bannerfall.rules.BuildRules;
+import de.bannerfall.rules.Requirement;
 import de.bannerfall.unit.UnitCounts;
 import de.bannerfall.unit.UnitService;
 import de.bannerfall.village.Village;
@@ -143,11 +144,18 @@ public class AutomationService {
         Village village = locker.lockOwned(villageId, playerId);
         Instant now = clock.instant();
         Look look = look(village, now);
-        if (look.state == AutomationState.READY) {
+        List<RecruitBuildingDto> buildings = recruitment(look, villageId, playerId);
+        // units lost in a battle are refilled now, not at the look up to 30 minutes away
+        if (look.state == AutomationState.READY || look.refills(buildings)) {
             scheduler.scheduleNoLaterThan(
                     GameEventKind.AUTOMATION_CHECK, villageId, now.plus(AFTER), null);
         }
-        return look.dto();
+        return look.dto(buildings);
+    }
+
+    /** The village's recruiting buildings while there is a recruit template to look at. */
+    private List<RecruitBuildingDto> recruitment(Look look, long villageId, long playerId) {
+        return look.goal == null ? List.of() : recruitService.recruitment(villageId, playerId);
     }
 
     /**
@@ -165,7 +173,7 @@ public class AutomationService {
         if (plan == null) {
             automations.deleteForVillage(villageId);
             automations.flush();
-            return look(village, clock.instant()).dto();
+            return look(village, clock.instant()).dto(List.of());
         }
         if (plans.findByPlayerIdAndLetter(playerId, plan).isEmpty()) {
             throw new NotFoundException(ErrorCode.BUILD_PLAN_NOT_FOUND);
@@ -184,7 +192,8 @@ public class AutomationService {
             scheduler.scheduleNoLaterThan(
                     GameEventKind.AUTOMATION_CHECK, villageId, clock.instant(), null);
         }
-        return look(village, clock.instant()).dto();
+        Look look = look(village, clock.instant());
+        return look.dto(recruitment(look, villageId, playerId));
     }
 
     /** A changed plan: the villages working through it look at once. */
@@ -498,7 +507,7 @@ public class AutomationService {
         return a.isBefore(b) ? a : b;
     }
 
-    /** What one look found; {@link #dto()} is the status. */
+    /** What one look found; {@link #dto} is the status. */
     private static final class Look {
         final WorldSettings world;
         final Player owner;
@@ -545,22 +554,60 @@ public class AutomationService {
                     && state != AutomationState.NO_PLAN;
         }
 
-        VillageAutomationDto dto() {
-            Map<UnitType, Integer> missing = new EnumMap<>(UnitType.class);
-            List<UnitType> byHand = new ArrayList<>();
-            if (goal != null) {
-                goal.forEach(
-                        (type, count) -> {
-                            if (count <= 0) {
-                                return;
-                            }
-                            if (AutomationPlanning.BY_HAND.contains(type)) {
-                                byHand.add(type);
-                            } else if (count > units.get(type)) {
-                                missing.put(type, count - units.get(type));
-                            }
-                        });
+        /**
+         * Whether a look could recruit something: the template lacks units the village can recruit
+         * (the blocked ones wait for a building).
+         */
+        boolean refills(List<RecruitBuildingDto> buildings) {
+            if (goal == null || !active()) {
+                return false;
             }
+            Map<UnitType, Integer> missing = new EnumMap<>(UnitType.class);
+            Map<UnitType, List<Requirement>> blocked = new EnumMap<>(UnitType.class);
+            collect(buildings, missing, blocked, new ArrayList<>());
+            return missing.size() > blocked.size();
+        }
+
+        /**
+         * Splits the goal: what the village lacks goes to {@code missing}, and the units of those
+         * it can't recruit yet also to {@code blocked} with their unmet requirements; the units the
+         * automation never recruits go to {@code byHand}. Units the world doesn't list (switched
+         * off) are left out.
+         */
+        private void collect(
+                List<RecruitBuildingDto> buildings,
+                Map<UnitType, Integer> missing,
+                Map<UnitType, List<Requirement>> blocked,
+                List<UnitType> byHand) {
+            if (goal == null) {
+                return;
+            }
+            Map<UnitType, RecruitBuildingDto.RecruitUnitDto> listed = new EnumMap<>(UnitType.class);
+            for (RecruitBuildingDto building : buildings) {
+                building.units().forEach(unit -> listed.put(unit.unit(), unit));
+            }
+            goal.forEach(
+                    (type, count) -> {
+                        if (count <= 0) {
+                            return;
+                        }
+                        if (AutomationPlanning.BY_HAND.contains(type)) {
+                            byHand.add(type);
+                        } else if (count > units.get(type) && listed.containsKey(type)) {
+                            RecruitBuildingDto.RecruitUnitDto unit = listed.get(type);
+                            missing.put(type, count - units.get(type));
+                            if (!unit.available()) {
+                                blocked.put(type, unit.missing());
+                            }
+                        }
+                    });
+        }
+
+        VillageAutomationDto dto(List<RecruitBuildingDto> buildings) {
+            Map<UnitType, Integer> missing = new EnumMap<>(UnitType.class);
+            Map<UnitType, List<Requirement>> blocked = new EnumMap<>(UnitType.class);
+            List<UnitType> byHand = new ArrayList<>();
+            collect(buildings, missing, blocked, byHand);
             return new VillageAutomationDto(
                     state,
                     world.automationVillages(),
@@ -575,7 +622,8 @@ public class AutomationService {
                     readyAt,
                     goal == null ? null : recruitLetter,
                     missing,
-                    byHand);
+                    byHand,
+                    blocked);
         }
     }
 }

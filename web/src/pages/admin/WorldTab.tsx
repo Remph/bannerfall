@@ -984,19 +984,6 @@ function RulesSection({ editor }: { editor: Editor }) {
           />
         </Fields>
       </NumberToggle>
-      <NumberToggle editor={editor} row="automation" name="automationVillages" hint={labels.automationHint}>
-        <Fields>
-          <Field
-            editor={editor}
-            row="automation"
-            name="automationVillages"
-            label={fields.automationVillages}
-            step="1"
-            min="0"
-            max="100"
-          />
-        </Fields>
-      </NumberToggle>
       <Plain>
         <Fields>
           <Field
@@ -1010,6 +997,19 @@ function RulesSection({ editor }: { editor: Editor }) {
           />
         </Fields>
       </Plain>
+      <NumberToggle editor={editor} row="automation" name="automationVillages" hint={labels.automationHint}>
+        <Fields>
+          <Field
+            editor={editor}
+            row="automation"
+            name="automationVillages"
+            label={fields.automationVillages}
+            step="1"
+            min="0"
+            max="100"
+          />
+        </Fields>
+      </NumberToggle>
     </Group>
   );
   return (

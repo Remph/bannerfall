@@ -153,6 +153,14 @@ export function appendNextLevel(
   return appendBuilding(lines, building, reached + 1, buildings);
 }
 
+/** The three mines, in the order "+ All three mines" adds them. */
+export const MINES: readonly BuildingType[] = ['WOODCUTTER', 'CLAY_PIT', 'IRON_MINE'];
+
+/** "+ All three mines": each mine's next level after the lines, the ones at their top level left out. */
+export function appendMines(lines: readonly PlanLine[], buildings: readonly PlanBuilding[]): PlanLine[] {
+  return MINES.reduce<PlanLine[]>((result, mine) => appendNextLevel(result, mine, buildings), [...lines]);
+}
+
 /** "+ Start recruiting": the recruit line at the end, or the one there is pointed at `template`. */
 export function setRecruitLine(lines: readonly PlanLine[], template: TemplateLetter): PlanLine[] {
   if (lines.some((line) => line.kind === 'recruit')) {

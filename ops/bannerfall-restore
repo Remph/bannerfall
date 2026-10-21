@@ -35,7 +35,7 @@ done
 # A copy of what is there now, in its own folder (a dump of the same minute in backups/ would
 # otherwise be overwritten, maybe the very file being restored). A database too broken to dump
 # doesn't stop the restore: that may be why it runs.
-if BACKUP_DIR=backups/pre-restore ops/bannerfall-backup; then
+if BACKUP_PING_URL='' BACKUP_DIR=backups/pre-restore ops/bannerfall-backup; then
   echo "The database as it was is in backups/pre-restore/."
 else
   echo "Could not dump the current database first; restoring anyway." >&2

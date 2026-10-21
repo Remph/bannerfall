@@ -244,4 +244,51 @@ describe('RallyPage', () => {
     open(undefined, data, { mapSize: 100 }, 0);
     expect(screen.queryByRole('button', { name: /Notify me when they’re back/ })).toBeNull();
   });
+
+  describe('folding the movement cards (1.6.1)', () => {
+    const attack = {
+      id: 2,
+      kind: 'ATTACK' as const,
+      sourceVillage: { id: 901, name: 'Hilltop', x: 52, y: 60, playerId: 7, playerName: 'Jonas' },
+      sourcePlayerName: 'Jonas',
+      departAt: null,
+      arriveAt: '2026-10-15T20:50:00Z',
+      units: null,
+    };
+
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    it('folds a card by its title, leaves a count and remembers it on this device', () => {
+      open();
+      const title = screen.getByRole('button', { name: /Incoming/ });
+      expect(title.getAttribute('aria-expanded')).toBe('true');
+
+      fireEvent.click(title);
+      expect(title.getAttribute('aria-expanded')).toBe('false');
+      expect(title.textContent).toContain('1');
+      expect(localStorage.getItem('bannerfall.rally.foldIncoming')).toBe('folded');
+      expect(localStorage.getItem('bannerfall.rally.foldOutgoing')).toBeNull();
+
+      fireEvent.click(title);
+      expect(title.getAttribute('aria-expanded')).toBe('true');
+      expect(localStorage.getItem('bannerfall.rally.foldIncoming')).toBeNull();
+    });
+
+    it('starts folded as it was left, and says a hostile attack in the title', () => {
+      localStorage.setItem('bannerfall.rally.foldIncoming', 'folded');
+      open(`/v/${village.id}/rally`, { ...troops, incoming: [...troops.incoming, attack] });
+
+      const title = screen.getByRole('button', { name: /Incoming/ });
+      expect(title.getAttribute('aria-expanded')).toBe('false');
+      expect(title.textContent).toContain('1 attack');
+    });
+
+    it('opens the card the address asks for, folded or not', () => {
+      localStorage.setItem('bannerfall.rally.foldIncoming', 'folded');
+      open(`/v/${village.id}/rally#incoming`);
+
+      expect(screen.getByRole('button', { name: /Incoming/ }).getAttribute('aria-expanded')).toBe('true');
+    });
+  });
 });

@@ -589,4 +589,57 @@ class AutomationFlowTest {
         look();
         player.recruitment().andExpect(jsonPath("$[0].queue[0].count").value(5));
     }
+
+    @Test
+    void aUnitTheVillageCannotRecruitYetNamesWhatItNeeds() throws Exception {
+        unlock();
+        setLevel(BuildingType.BARRACKS, 1);
+        setLevel(BuildingType.WAREHOUSE, 10);
+        setStock(5000);
+        player.browser
+                .put(
+                        "/api/recruit-templates/B",
+                        "{\"name\":\"Mix\",\"units\":{\"SPEARMAN\":10,\"SWORDSMAN\":10}}")
+                .andExpect(status().isOk());
+        savePlan("A", "[{\"level\":0,\"recruit\":\"B\"}]");
+        switchOn("A");
+        look();
+        player.browser
+                .get(automation())
+                .andExpect(jsonPath("$.missing.SWORDSMAN").value(10))
+                .andExpect(jsonPath("$.missing.SPEARMAN").doesNotExist())
+                .andExpect(jsonPath("$.blocked.SWORDSMAN[0].building").value("SMITHY"))
+                .andExpect(jsonPath("$.blocked.SWORDSMAN[0].level").value(1))
+                .andExpect(jsonPath("$.blocked.SPEARMAN").doesNotExist());
+    }
+
+    @Test
+    void openingTheStatusAfterLossesLooksAtOnceInsteadOfAtTheFallback() throws Exception {
+        unlock();
+        setLevel(BuildingType.BARRACKS, 1);
+        setLevel(BuildingType.WAREHOUSE, 10);
+        setStock(5000);
+        player.browser
+                .put("/api/recruit-templates/B", "{\"name\":\"Deff\",\"units\":{\"SPEARMAN\":20}}")
+                .andExpect(status().isOk());
+        savePlan("A", "[{\"level\":0,\"recruit\":\"B\"}]");
+        switchOn("A");
+        look();
+        player.recruitment().andExpect(jsonPath("$[0].queue[0].count").value(20));
+        clock.advance(Duration.ofDays(1));
+        look();
+        jdbc.sql(
+                        "update unit_stack set u_spearman = 15 where home_village_id = ?"
+                                + " and location_village_id = ?")
+                .params(player.villageId, player.villageId)
+                .update();
+        setStock(5000);
+        // the next look is up to 30 minutes away; opening the status moves it to now
+        player.browser.get(automation()).andExpect(jsonPath("$.missing.SPEARMAN").value(5));
+        assertThat(pendingLooks()).hasSize(1);
+        assertThat(pendingLooks().getFirst()).isBefore(clock.instant().plusSeconds(5));
+        clock.advance(Duration.ofSeconds(2));
+        look();
+        player.recruitment().andExpect(jsonPath("$[0].queue[0].count").value(5));
+    }
 }

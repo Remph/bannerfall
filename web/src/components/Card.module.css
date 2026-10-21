@@ -15,6 +15,34 @@
   color: var(--color-text);
 }
 
+/* a foldable card: the whole title line is the button (at least a touch target high) */
+.title:has(> .toggle) {
+  padding: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggleIcon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  color: var(--color-text-muted);
+}
+
 /* a title with a control at its right; the control wraps below on very narrow screens */
 .header {
   display: flex;

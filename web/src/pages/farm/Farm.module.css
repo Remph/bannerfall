@@ -343,12 +343,9 @@
   color: var(--color-danger);
 }
 
-/* says the row opens, at the end of the name's line (the facts below get the full width); turned
-   up while it is open */
+/* says the row opens, centred in the row's height at its end; turned up while it is open */
 .chevron {
   flex: none;
-  align-self: center;
-  margin-left: auto;
   display: grid;
   place-items: center;
   width: 1.5rem;
@@ -575,4 +572,42 @@
   flex: none;
   width: 1em;
   height: 1em;
+}
+
+/* the sheet that copies the list to another village (1.6.1) */
+.copySheet {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.copyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.copyRow {
+  display: grid;
+  gap: 0.05rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--space-2) 0;
+  border: 0;
+  border-top: 1px solid var(--color-divider);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.copyRow:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.copyName {
+  font-weight: 700;
 }

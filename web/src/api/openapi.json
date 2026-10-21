@@ -1120,6 +1120,43 @@
         }
       }
     },
+    "/api/villages/{villageId}/farm-targets/copy" : {
+      "post" : {
+        "tags" : [ "farm-controller" ],
+        "operationId" : "copy",
+        "parameters" : [ {
+          "name" : "villageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FarmCopyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FarmCopyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/villages/{villageId}/dismiss-orders" : {
       "post" : {
         "tags" : [ "recruit-controller" ],
@@ -4858,6 +4895,20 @@
         },
         "required" : [ "enabled", "plan" ]
       },
+      "Requirement" : {
+        "type" : "object",
+        "properties" : {
+          "building" : {
+            "type" : "string",
+            "enum" : [ "HEADQUARTERS", "BARRACKS", "STABLE", "WORKSHOP", "ACADEMY", "SMITHY", "RALLY_POINT", "MARKET", "WOODCUTTER", "CLAY_PIT", "IRON_MINE", "FARM", "WAREHOUSE", "HIDING_PLACE", "WALL", "BANNER_HALL" ]
+          },
+          "level" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "building", "level" ]
+      },
       "VillageAutomationDto" : {
         "type" : "object",
         "properties" : {
@@ -4920,9 +4971,18 @@
               "type" : "string",
               "enum" : [ "SPEARMAN", "SWORDSMAN", "AXEMAN", "SCOUT", "LIGHT_CAVALRY", "HEAVY_CAVALRY", "RAM", "CATAPULT", "NOBLE", "PALADIN", "BANNER_THIEF", "ARCHER", "MOUNTED_ARCHER" ]
             }
+          },
+          "blocked" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/Requirement"
+              }
+            }
           }
         },
-        "required" : [ "building", "byHand", "enabled", "level", "line", "lineCount", "missing", "pausedByCancel", "plan", "readyAt", "recruiting", "state", "villages", "villagesNeeded" ]
+        "required" : [ "blocked", "building", "byHand", "enabled", "level", "line", "lineCount", "missing", "pausedByCancel", "plan", "readyAt", "recruiting", "state", "villages", "villagesNeeded" ]
       },
       "VillageNoteRequest" : {
         "type" : "object",
@@ -6549,6 +6609,38 @@
           }
         },
         "required" : [ "reason", "targetId" ]
+      },
+      "FarmCopyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "toVillageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "toVillageId" ]
+      },
+      "FarmCopyDto" : {
+        "type" : "object",
+        "properties" : {
+          "copied" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "alreadyThere" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ownVillage" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "listFull" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "alreadyThere", "copied", "listFull", "ownVillage" ]
       },
       "DismissOrderRequest" : {
         "type" : "object",
@@ -8546,20 +8638,6 @@
           }
         },
         "required" : [ "affordable", "cost", "durationSeconds", "level", "missing", "requires", "villageBusy" ]
-      },
-      "Requirement" : {
-        "type" : "object",
-        "properties" : {
-          "building" : {
-            "type" : "string",
-            "enum" : [ "HEADQUARTERS", "BARRACKS", "STABLE", "WORKSHOP", "ACADEMY", "SMITHY", "RALLY_POINT", "MARKET", "WOODCUTTER", "CLAY_PIT", "IRON_MINE", "FARM", "WAREHOUSE", "HIDING_PLACE", "WALL", "BANNER_HALL" ]
-          },
-          "level" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "building", "level" ]
       },
       "SmithyDto" : {
         "type" : "object",

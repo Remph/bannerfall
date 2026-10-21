@@ -442,6 +442,14 @@
   cursor: pointer;
 }
 
+/* the three mines in one tile, as wide as two */
+.addTileWide {
+  grid-column: span 2;
+  grid-auto-flow: column;
+  aspect-ratio: auto;
+  gap: var(--space-1);
+}
+
 .addTile:disabled {
   opacity: 0.4;
   cursor: default;
@@ -450,6 +458,11 @@
 .addTile svg {
   width: 1.6rem;
   height: 1.6rem;
+}
+
+.addTileWide svg {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 .actions {
@@ -496,4 +509,37 @@
 .rowChevron {
   flex: none;
   color: var(--color-text-muted);
+}
+
+/* the sheet that shares a plan as a code or takes one (1.6.1) */
+.codeBody {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.codeField {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: max(1rem, 16px);
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+
+.codeField:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.codeLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
 }

@@ -436,6 +436,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/villages/{villageId}/farm-targets/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/villages/{villageId}/dismiss-orders": {
         parameters: {
             query?: never;
@@ -2562,6 +2578,12 @@ export interface components {
             plan: "A" | "B" | "C" | "D" | "E" | null;
             enabled: boolean;
         };
+        Requirement: {
+            /** @enum {string} */
+            building: "HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL";
+            /** Format: int32 */
+            level: number;
+        };
         VillageAutomationDto: {
             /** @enum {string} */
             state: "LOCKED" | "OFF" | "PAUSED" | "NO_PLAN" | "READY" | "WAITING_RESOURCES" | "WAITING_QUEUE" | "WAITING_UPGRADE" | "BLOCKED" | "DONE";
@@ -2589,6 +2611,9 @@ export interface components {
                 [key: string]: number;
             };
             byHand: ("SPEARMAN" | "SWORDSMAN" | "AXEMAN" | "SCOUT" | "LIGHT_CAVALRY" | "HEAVY_CAVALRY" | "RAM" | "CATAPULT" | "NOBLE" | "PALADIN" | "BANNER_THIEF" | "ARCHER" | "MOUNTED_ARCHER")[];
+            blocked: {
+                [key: string]: components["schemas"]["Requirement"][];
+            };
         };
         VillageNoteRequest: {
             text: string;
@@ -3210,6 +3235,20 @@ export interface components {
             targetId: number;
             /** @enum {string} */
             reason: "NOT_ENOUGH_UNITS" | "PROTECTED_TARGET" | "OWN_VILLAGE" | "ENDS_OWN_PROTECTION";
+        };
+        FarmCopyRequest: {
+            /** Format: int64 */
+            toVillageId: number;
+        };
+        FarmCopyDto: {
+            /** Format: int32 */
+            copied: number;
+            /** Format: int32 */
+            alreadyThere: number;
+            /** Format: int32 */
+            ownVillage: number;
+            /** Format: int32 */
+            listFull: number;
         };
         DismissOrderRequest: {
             /** @enum {string} */
@@ -3961,12 +4000,6 @@ export interface components {
             missing: components["schemas"]["Requirement"][];
             affordable: boolean;
             villageBusy: boolean;
-        };
-        Requirement: {
-            /** @enum {string} */
-            building: "HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL";
-            /** Format: int32 */
-            level: number;
         };
         SmithyDto: {
             /** Format: int32 */
@@ -5853,6 +5886,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FarmSendAllDto"];
+                };
+            };
+        };
+    };
+    copy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                villageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FarmCopyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FarmCopyDto"];
                 };
             };
         };

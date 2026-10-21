@@ -46,6 +46,18 @@ class FarmController {
         return farmService.add(villageId, playerService.idOf(me.accountId()), body);
     }
 
+    /**
+     * Copies the list to another village of the player (1.6.1): the entries it lacks are appended
+     * in the same order; the answer counts what was copied and what was passed over.
+     */
+    @PostMapping("/copy")
+    FarmCopyDto copy(
+            @PathVariable long villageId,
+            @Valid @RequestBody FarmCopyRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return farmService.copy(villageId, playerService.idOf(me.accountId()), body.toVillageId());
+    }
+
     @PutMapping("/{targetId}")
     FarmTargetDto changeUnits(
             @PathVariable long villageId,

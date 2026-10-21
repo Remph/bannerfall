@@ -8,18 +8,33 @@
 #
 # BACKUP_DIR: where the dumps go (default: backups/ next to compose.prod.yaml)
 # KEEP_DAYS:  how long to keep them (default 14)
+# BACKUP_PING_URL: optional, the address of a free "dead man's switch" check (for example a
+#   healthchecks.io check). A good backup requests the address, a failed one requests it with
+#   /fail added, and the service mails you when neither happens in time. Put it in front of the
+#   command in cron: 17 3 * * * BACKUP_PING_URL=https://hc-ping.com/<id> /opt/bannerfall/ops/...
 set -euo pipefail
 # A dump holds every account (password hashes included): readable for its owner only.
 umask 077
 
 cd "$(dirname "$0")/.."
+
+# Tells the check service how it went; never makes the backup itself fail.
+ping() {
+  [ -z "${BACKUP_PING_URL:-}" ] || curl -fsS -m 10 --retry 2 -o /dev/null "${BACKUP_PING_URL%/}$1" || true
+}
+
 BACKUP_DIR="${BACKUP_DIR:-backups}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 mkdir -p "$BACKUP_DIR"
 
 target="$BACKUP_DIR/bannerfall-$(date +%F-%H%M).sql.gz"
 partial="$target.part"
-trap 'rm -f "$partial"' EXIT
+cleanup() {
+  local status=$?
+  rm -f "$partial"
+  [ "$status" -eq 0 ] || ping /fail
+}
+trap cleanup EXIT
 
 # --clean --if-exists: the dump can be loaded over an existing database too.
 docker compose -f compose.prod.yaml exec -T db \
@@ -38,3 +53,4 @@ trap - EXIT
 
 find "$BACKUP_DIR" -maxdepth 1 -name 'bannerfall-*.sql.gz' -mtime "+$KEEP_DAYS" -delete
 echo "$(date -Is) backup ok: $target ($(du -h "$target" | cut -f1))"
+ping ""

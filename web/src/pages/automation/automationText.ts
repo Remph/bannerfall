@@ -50,11 +50,27 @@ export function statusText(
   return stateTexts[status.state]({ t, language, nowMs, status, next: nextText(t, status) });
 }
 
-/** "Spearman 340, Swordsman 120": what the recruit template still lacks, in unit order. */
-export function missingText(t: Dictionary, language: Language, missing: VillageAutomation['missing']): string {
+/**
+ * "Spearman 340, Swordsman 120 (needs Smithy 1)": what the recruit template still lacks, in unit
+ * order; a unit the village can't recruit yet says what it needs.
+ */
+export function missingText(
+  t: Dictionary,
+  language: Language,
+  missing: VillageAutomation['missing'],
+  blocked: VillageAutomation['blocked'] = {},
+): string {
   return unitTypes
     .filter((type) => (missing[type] ?? 0) > 0)
-    .map((type) => `${t.units[type]} ${formatNumber(missing[type] ?? 0, language)}`)
+    .map((type) => {
+      const text = `${t.units[type]} ${formatNumber(missing[type] ?? 0, language)}`;
+      const requirements = blocked[type] ?? [];
+      if (requirements.length === 0) {
+        return text;
+      }
+      const needs = requirements.map((r) => t.townHall.requirement(t.buildings[r.building], r.level)).join(', ');
+      return `${text} (${t.automation.needsShort(needs)})`;
+    })
     .join(', ');
 }
 

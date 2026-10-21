@@ -130,6 +130,25 @@ export function useSendAllFarm(villageId: number) {
   });
 }
 
+/**
+ * POST …/farm-targets/copy (1.6.1): the entries of this village's list that another village of the
+ * player lacks are added to its list; the answer counts what was copied and what was passed over.
+ */
+export function useCopyFarmList(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (toVillageId: number) =>
+      expectData(
+        api.POST('/api/villages/{villageId}/farm-targets/copy', {
+          params: { path: { villageId } },
+          body: { toVillageId },
+        }),
+      ),
+    // every list: the one copied to may be open in another tab or come back later
+    onSettled: () => queryClient.invalidateQueries({ queryKey: farmListsQueryKey }),
+  });
+}
+
 /** The troops of a template choice (`TemplateChoice`): the template, or the own counts for `null`. */
 export function troopsOfChoice(letter: TemplateLetter | null, counts: UnitMap): FarmTroops {
   return letter === null ? { units: templateOf(counts) } : { template: letter };

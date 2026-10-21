@@ -8,6 +8,7 @@ import { formatCoords } from '../../game/format';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { VillageError } from '../village/VillageError';
+import { cardOfHash, useFoldedCards } from './collapsedCards';
 import { IncomingCard, OutgoingCard } from './MovementCards';
 import styles from './RallyPage.module.css';
 import { initialRallyPart, opensMoves, simulatorPath, type RallyPart } from './rallyPaths';
@@ -73,11 +74,16 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
   const { hash, key } = useLocation();
   const [part, setPart] = useState<RallyPart>(() => initialRallyPart(troops.incoming, search, hash));
   // set while rendering, so the card is visible before Rally's effect scrolls to it
+  const cards = useFoldedCards(cardOfHash(hash));
   const [visit, setVisit] = useState(key);
   if (visit !== key) {
     setVisit(key);
     if (opensMoves(hash)) {
       setPart('moves');
+    }
+    const asked = cardOfHash(hash);
+    if (asked !== undefined) {
+      cards.ask(asked);
     }
   }
   const moving = troops.outgoing.length + troops.incoming.length;
@@ -110,8 +116,18 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
         </div>
         <div className={styles.moves}>
           {/* what comes at the village first, also above a long list of own farm runs (1.3) */}
-          <IncomingCard villageId={village.id} incoming={troops.incoming} />
-          <OutgoingCard villageId={village.id} movements={troops.outgoing} />
+          <IncomingCard
+            villageId={village.id}
+            incoming={troops.incoming}
+            folded={cards.folded('incoming')}
+            onToggle={() => cards.toggle('incoming')}
+          />
+          <OutgoingCard
+            villageId={village.id}
+            movements={troops.outgoing}
+            folded={cards.folded('outgoing')}
+            onToggle={() => cards.toggle('outgoing')}
+          />
         </div>
         <div className={styles.troops}>
           <TroopsCard villageId={village.id} troops={troops} />

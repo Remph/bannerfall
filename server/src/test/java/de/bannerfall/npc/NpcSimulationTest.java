@@ -18,6 +18,7 @@ import de.bannerfall.rules.Production;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.world.WorldInitializer;
 import de.bannerfall.world.WorldService;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -32,6 +33,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -59,15 +61,19 @@ import org.springframework.test.web.servlet.MockMvc;
  * archers (1.6, 02-game-rules §5.6): {@code -PsimArchers=true}; morale (1.6, 02 §8.2, on by
  * default): {@code -PsimMorale=false}; learning lords (1.6, 09 §15): {@code
  * -PsimLordLearning=true}; lord shipments (1.6, 09 §5.5) are on unless {@code
- * -PsimShipments=false}.
+ * -PsimShipments=false}. World speed, lord count and the settings of a real world (1.6.1): {@code
+ * -PsimSpeed=6}, {@code -PsimLords=3}, {@code -PsimSqlFile=…} (UPDATE statements for {@code
+ * world_settings}, separated by semicolons). A world that ends (a lord guild wins by domination)
+ * ends the run at that day.
  */
 @Tag("simulation")
 @IntegrationTest
 class NpcSimulationTest {
 
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
-    private static final double SPEED = 3.0;
-    private static final int LORDS = 6;
+    private static final double SPEED =
+            Double.parseDouble(System.getProperty("simulation.speed", "3.0"));
+    private static final int LORDS = Integer.getInteger("simulation.lords", 6);
     private static final Duration SAMPLE = Duration.ofHours(6);
     private static final Duration MAX_STEP = Duration.ofMinutes(10);
 
@@ -204,7 +210,9 @@ class NpcSimulationTest {
         List<Send> sends = new ArrayList<>();
         Map<Long, int[]> pointsByDay = new HashMap<>();
         int[] checkpoint = {0};
-        while (clock.instant().isBefore(end)) {
+        // a world that has ended (a lord guild won by domination) stops the clock at its end time
+        // and `processDue` goes on from there: the loop would never reach `end`
+        while (clock.instant().isBefore(end) && !worldEnded()) {
             Instant now = clock.instant();
             Instant next =
                     jdbc.sql("select min(due_at) from game_event where status = 'PENDING'")
@@ -228,6 +236,13 @@ class NpcSimulationTest {
             }
         }
         sampleAcademies(start, academyDay);
+        if (worldEnded()) {
+            System.out.printf(
+                    Locale.ROOT,
+                    "WORLD ENDED (victory) on day %.1f of %d%n",
+                    Duration.between(start, clock.instant()).toMinutes() / 1440.0,
+                    days);
+        }
         Duration wall = Duration.ofNanos(System.nanoTime() - wallStart);
 
         Result result =
@@ -242,7 +257,13 @@ class NpcSimulationTest {
                         (int) orders[1],
                         sends,
                         pointsByDay);
-        String text = result.render() + shipmentLine() + lordGuildLines() + learningLines();
+        String text =
+                result.render()
+                        + shipmentLine()
+                        + armyLines()
+                        + oneVillageLines()
+                        + lordGuildLines()
+                        + learningLines();
         System.out.println(text);
         Path dir = Path.of("build", "simulation");
         Files.createDirectories(dir);
@@ -1153,6 +1174,20 @@ class NpcSimulationTest {
                     .param(new NpcDifficultyConverter().convertToDatabaseColumn(custom))
                     .update();
         }
+        String sqlFile = System.getProperty("simulation.sqlFile");
+        if (sqlFile != null) {
+            // the world settings of a real world, e.g. the export's world_settings as UPDATE
+            // statements separated by semicolons
+            try {
+                for (String statement : Files.readString(Path.of(sqlFile)).split(";")) {
+                    if (!statement.isBlank()) {
+                        jdbc.sql(statement.strip()).update();
+                    }
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
         worldService.reload();
         System.out.printf(
                 Locale.ROOT,
@@ -1165,6 +1200,11 @@ class NpcSimulationTest {
                 balance.difficulty().farmLootShare(),
                 balance.difficulty().farmRest(),
                 balance.general().farmCooldownMinutes());
+    }
+
+    private boolean worldEnded() {
+        Instant endedAt = worldService.endedAt();
+        return endedAt != null && !clock.instant().isBefore(endedAt);
     }
 
     private void resetWorld() {
@@ -1183,6 +1223,166 @@ class NpcSimulationTest {
                 .param(thinkMinutes)
                 .update();
         worldService.reload();
+    }
+
+    /**
+     * The unit columns of {@code unit_stack}, in table order (new unit types come in by
+     * themselves).
+     */
+    private List<String> unitColumns() {
+        return jdbc.sql(
+                        "select column_name from information_schema.columns where table_name ="
+                                + " 'unit_stack' and column_name like 'u\\_%' order by"
+                                + " ordinal_position")
+                .query(String.class)
+                .list();
+    }
+
+    /**
+     * What each lord has in units at the end, by type, everywhere (1.6.1): the only way to see
+     * whether lords recruit archers (09 §5.3, 02-game-rules §5.6), and how the armies are made up.
+     */
+    private String armyLines() {
+        List<String> columns = unitColumns();
+        String sums =
+                columns.stream()
+                        .map(column -> "coalesce(sum(u." + column + "), 0) as " + column)
+                        .collect(Collectors.joining(", "));
+        StringBuilder out = new StringBuilder("\nUnits of the lords at the end (home and away):\n");
+        jdbc.sql(
+                        "select p.name, "
+                                + sums
+                                + " from player p left join village v on v.player_id = p.id left"
+                                + " join unit_stack u on u.home_village_id = v.id where p.npc group"
+                                + " by p.id, p.name order by p.id")
+                .query(
+                        (rs, row) -> {
+                            StringBuilder units = new StringBuilder();
+                            for (String column : columns) {
+                                if (rs.getLong(column) > 0) {
+                                    units.append(
+                                            String.format(
+                                                    Locale.ROOT,
+                                                    "%s %d, ",
+                                                    column.substring(2).toLowerCase(Locale.ROOT),
+                                                    rs.getLong(column)));
+                                }
+                            }
+                            out.append(
+                                    String.format(
+                                            Locale.ROOT,
+                                            "  %-20s %s%n",
+                                            rs.getString("name"),
+                                            units.isEmpty()
+                                                    ? "none"
+                                                    : units.substring(0, units.length() - 2)));
+                            return null;
+                        })
+                .list();
+        return out.toString();
+    }
+
+    /**
+     * A lord that ends with one village or none (the stuck lords of the 1.6 simulation): what its
+     * village holds, what it spent its last days on and what happened to it (1.6.1). Reading aid
+     * for the next run, not a target.
+     */
+    private String oneVillageLines() {
+        StringBuilder out = new StringBuilder();
+        List<Map<String, Object>> lords =
+                jdbc.sql(
+                                "select p.id, p.name, b.personality, (select count(*) from village"
+                                    + " v where v.player_id = p.id) as villages from player p join"
+                                    + " npc_brain b on b.player_id = p.id where p.npc order by"
+                                    + " p.id")
+                        .query()
+                        .listOfRows();
+        List<String> columns = unitColumns();
+        for (Map<String, Object> lord : lords) {
+            if (((Number) lord.get("villages")).intValue() > 1) {
+                continue;
+            }
+            long id = ((Number) lord.get("id")).longValue();
+            if (out.isEmpty()) {
+                out.append("\nLords that end with one village or none:\n");
+            }
+            out.append(
+                    String.format(
+                            Locale.ROOT,
+                            "  %s (%s), %s village(s)%n",
+                            lord.get("name"),
+                            lord.get("personality"),
+                            lord.get("villages")));
+            for (Map<String, Object> village :
+                    jdbc.sql("select * from village where player_id = ?")
+                            .param(id)
+                            .query()
+                            .listOfRows()) {
+                StringBuilder levels = new StringBuilder();
+                village.forEach(
+                        (key, value) -> {
+                            if (key.startsWith("b_") && ((Number) value).intValue() > 0) {
+                                levels.append(key.substring(2))
+                                        .append(' ')
+                                        .append(value)
+                                        .append(", ");
+                            }
+                        });
+                out.append(
+                        String.format(
+                                Locale.ROOT,
+                                "    points %s, stock %s/%s/%s, buildings %s%n",
+                                village.get("points"),
+                                village.get("wood"),
+                                village.get("clay"),
+                                village.get("iron"),
+                                levels));
+                long villageId = ((Number) village.get("id")).longValue();
+                String troops =
+                        columns.stream()
+                                .map(column -> "coalesce(sum(" + column + "), 0)")
+                                .collect(Collectors.joining(" + "));
+                long home =
+                        jdbc.sql("select " + troops + " from unit_stack where home_village_id = ?")
+                                .param(villageId)
+                                .query(Long.class)
+                                .single();
+                int orders =
+                        jdbc.sql("select count(*) from build_order where village_id = ?")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single();
+                int recruits =
+                        jdbc.sql("select count(*) from recruit_order where village_id = ?")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single();
+                out.append(
+                        String.format(
+                                Locale.ROOT,
+                                "    units %d, build orders open %d, recruit orders open %d%n",
+                                home,
+                                orders,
+                                recruits));
+            }
+            Map<String, Object> reports =
+                    jdbc.sql(
+                                    "select count(*) filter (where kind = 'DEFENSE') as defended,"
+                                        + " count(*) filter (where kind = 'ATTACK') as attacked,"
+                                        + " count(*) filter (where kind = 'SCOUT') as scouted from"
+                                        + " report where player_id = ?")
+                            .param(id)
+                            .query()
+                            .singleRow();
+            out.append(
+                    String.format(
+                            Locale.ROOT,
+                            "    reports: defended %s, own attacks %s, scoutings %s%n",
+                            reports.get("defended"),
+                            reports.get("attacked"),
+                            reports.get("scouted")));
+        }
+        return out.toString();
     }
 
     /** The lords' shipments of the run (09 §5.5): trips and resources moved. */

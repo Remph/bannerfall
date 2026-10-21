@@ -25,6 +25,7 @@ const base: VillageAutomation = {
   recruiting: null,
   missing: {},
   byHand: [],
+  blocked: {},
 };
 
 describe('statusText', () => {
@@ -55,5 +56,11 @@ describe('missingText and byHandText', () => {
       'Spearman 340, Swordsman 120',
     );
     expect(byHandText(en, ['NOBLE'])).toBe(en.units.NOBLE);
+  });
+
+  it('says what a unit needs that the village cannot recruit yet', () => {
+    expect(
+      missingText(en, 'en', { SWORDSMAN: SWORDS, SPEARMAN: SPEARS }, { SWORDSMAN: [{ building: 'SMITHY', level: 1 }] }),
+    ).toBe('Spearman 340, Swordsman 120 (needs Smithy 1)');
   });
 });

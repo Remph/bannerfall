@@ -222,7 +222,7 @@ function StatusLines({ status, templates }: { status: VillageAutomation; templat
                 {t.automation.recruiting(template.letter, template.name)}{' '}
                 {Object.keys(status.missing).length === 0
                   ? t.automation.templateFull
-                  : t.automation.missing(missingText(t, language, status.missing))}
+                  : t.automation.missing(missingText(t, language, status.missing, status.blocked))}
               </>
             )}
           </span>

@@ -148,9 +148,6 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
               <span className={styles.coords}>{formatCoords(village.x, village.y)}</span>
               {/* phones: in the opened part only (an NPC lord's village name holds it anyway) */}
               {village.playerName != null && <span className={styles.owner}>{village.playerName}</span>}
-              <span className={styles.chevron} aria-hidden="true">
-                <Icon name="chevronDown" />
-              </span>
             </span>
             <span className={styles.facts}>
               <span>
@@ -198,6 +195,9 @@ export function TargetRow({ villageId, target, home, note, sendingAll = false }:
                 <span className={styles.villageNoteText}>{target.note}</span>
               </span>
             )}
+          </span>
+          <span className={styles.chevron} aria-hidden="true">
+            <Icon name="chevronDown" />
           </span>
         </button>
         <Button

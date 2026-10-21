@@ -11,6 +11,8 @@ import { TextField } from '../../components/TextField';
 import {
   MAX_PLAN_LINES,
   MAX_PLAN_NAME,
+  MINES,
+  appendMines,
   appendNextLevel,
   changeLevel,
   isSavable,
@@ -29,6 +31,7 @@ import { byBuildingOrder } from '../../game/gameData';
 import type { RecruitTemplate } from '../../game/recruitTemplates';
 import { useT } from '../../i18n';
 import styles from './AutomationPage.module.css';
+import { PlanCodeSheet, type CodeMode } from './PlanCodeSheet';
 import { PlanLineView } from './PlanLineView';
 
 interface PlanPickerProps {
@@ -127,6 +130,7 @@ export function PlanEditor({ letter, plan, village, buildings, templates, onSave
   const [reorder, setReorder] = useState(false);
   const [adding, setAdding] = useState<Adding>('none');
   const [deleting, setDeleting] = useState(false);
+  const [code, setCode] = useState<CodeMode>();
   const change = (next: readonly PlanLine[]) => {
     setLines(next);
     save.reset();
@@ -148,11 +152,6 @@ export function PlanEditor({ letter, plan, village, buildings, templates, onSave
         />
         <div className={styles.editBar}>
           <span className={styles.muted}>{t.automation.linesHint(lines.length)}</span>
-          {lines.length > 1 && (
-            <button type="button" className={styles.link} onClick={() => setReorder(!reorder)}>
-              {reorder ? t.automation.reorderDone : t.automation.reorder}
-            </button>
-          )}
         </div>
         {lines.length === 0 ? (
           <p className={styles.muted}>{t.automation.empty}</p>
@@ -187,6 +186,12 @@ export function PlanEditor({ letter, plan, village, buildings, templates, onSave
             ))}
           </ol>
         )}
+        {/* below the lines: after 30 or more, a tap on "Done" needs no scrolling back up */}
+        {lines.length > 1 && (
+          <button type="button" className={styles.link} onClick={() => setReorder(!reorder)}>
+            {reorder ? t.automation.reorderDone : t.automation.reorder}
+          </button>
+        )}
         {lines.length > MAX_PLAN_LINES && <ErrorMessage>{t.automation.tooMany(MAX_PLAN_LINES)}</ErrorMessage>}
         <AddBox
           adding={adding}
@@ -196,13 +201,23 @@ export function PlanEditor({ letter, plan, village, buildings, templates, onSave
           onAdding={setAdding}
           onChange={change}
         />
-        <button
-          type="button"
-          className={styles.link}
-          onClick={() => change(linesFromLevels(village.buildings, buildings))}
-        >
-          <Icon name="village" /> {t.automation.fromVillage}
-        </button>
+        <div className={styles.codeLinks}>
+          <button
+            type="button"
+            className={styles.link}
+            onClick={() => change(linesFromLevels(village.buildings, buildings))}
+          >
+            <Icon name="village" /> {t.automation.fromVillage}
+          </button>
+          {lines.length > 0 && (
+            <button type="button" className={styles.link} onClick={() => setCode('share')}>
+              <Icon name="code" /> {t.automation.code.share}
+            </button>
+          )}
+          <button type="button" className={styles.link} onClick={() => setCode('import')}>
+            <Icon name="code" /> {t.automation.code.import}
+          </button>
+        </div>
         {save.isError && <ErrorMessage>{errorMessage(t, save.error)}</ErrorMessage>}
         <div className={styles.actions}>
           {plan !== undefined && (
@@ -229,6 +244,19 @@ export function PlanEditor({ letter, plan, village, buildings, templates, onSave
           </Button>
         </div>
       </div>
+      <PlanCodeSheet
+        mode={code}
+        name={name}
+        lines={lines}
+        buildings={buildings}
+        onApply={(codeName, codeLines) => {
+          setName(codeName);
+          change(codeLines);
+          setReorder(false);
+          setCode(undefined);
+        }}
+        onClose={() => setCode(undefined)}
+      />
       <ConfirmSheet
         open={deleting}
         title={t.automation.deleteTitle(letter)}
@@ -386,6 +414,7 @@ function AddBox({ adding, lines, buildings, templates, onAdding, onChange }: Add
     );
   }
   const reached = reachedAbove(lines, lines.length, buildings);
+  const bundle = appendMines(lines, buildings);
   const offered = buildings.filter((info) => info.available).sort((a, b) => byBuildingOrder(a.building, b.building));
   return (
     <div className={styles.addBox}>
@@ -404,6 +433,18 @@ function AddBox({ adding, lines, buildings, templates, onAdding, onChange }: Add
             <Icon name={info.building} />
           </button>
         ))}
+        <button
+          type="button"
+          className={`${styles.addTile} ${styles.addTileWide}`}
+          aria-label={t.automation.addMines}
+          title={t.automation.addMines}
+          disabled={bundle.length === lines.length || bundle.length > MAX_PLAN_LINES}
+          onClick={() => onChange(bundle)}
+        >
+          {MINES.map((mine) => (
+            <Icon key={mine} name={mine} />
+          ))}
+        </button>
       </div>
       <p className={styles.muted}>{t.automation.addHint}</p>
       <button type="button" className={styles.link} onClick={() => onAdding('none')}>

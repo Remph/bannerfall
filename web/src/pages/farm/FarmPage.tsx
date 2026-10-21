@@ -6,6 +6,7 @@ import { useFarmTargets, useSendAllFarm } from '../../api/queries/farm';
 import { useVillage } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { Card } from '../../components/Card';
+import { MoreMenu } from '../../components/MoreMenu';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import {
@@ -23,6 +24,7 @@ import { useOffersReturnPush, useRememberedChoice } from '../../push/returnChoic
 import { VillageError } from '../village/VillageError';
 import { targetFromSearch } from '../rally/rallyPaths';
 import { AddTargetCard } from './AddTargetCard';
+import { CopyListSheet } from './CopyListSheet';
 import { SendAllBar } from './SendAllBar';
 import { unitsFromState } from './farmPaths';
 import styles from './Farm.module.css';
@@ -78,6 +80,7 @@ function Farm({ villageId }: { villageId: number }) {
   const initialTarget = targetFromSearch(params);
   // from an attack report's "Add to farm list": the units it sent (M38)
   const initialUnits = unitsFromState(useLocation().state);
+  const [copying, setCopying] = useState(false);
   const [part, setPart] = useState<'targets' | 'templates'>(
     useLocation().hash === '#templates' ? 'templates' : 'targets',
   );
@@ -121,7 +124,18 @@ function Farm({ villageId }: { villageId: number }) {
       <div className={styles.columns} data-part={part}>
         {initialTarget !== '' && <div className={styles.formColumn}>{add}</div>}
         <div className={styles.listColumn}>
-          <Card title={t.farm.listTitle(village.data.name)}>
+          <Card
+            title={t.farm.listTitle(village.data.name)}
+            action={
+              // the rarer action behind "…"; needs a second village and something to copy
+              me.villages.length > 1 && targets.data !== undefined && targets.data.length > 0 ? (
+                <MoreMenu
+                  label={t.farm.copyMore(village.data.name)}
+                  items={[{ label: t.farm.copyMenu, icon: 'village', onSelect: () => setCopying(true) }]}
+                />
+              ) : undefined
+            }
+          >
             {targets.isError ? (
               <div className={styles.body}>
                 <ErrorMessage>{errorMessage(t, targets.error)}</ErrorMessage>
@@ -184,6 +198,7 @@ function Farm({ villageId }: { villageId: number }) {
         </div>
         {initialTarget === '' && <div className={styles.formColumn}>{add}</div>}
       </div>
+      <CopyListSheet open={copying} onClose={() => setCopying(false)} villageId={villageId} />
     </div>
   );
 }
