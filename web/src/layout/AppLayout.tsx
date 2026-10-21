@@ -10,6 +10,7 @@ import { ResourceBar } from '../components/ResourceBar';
 import { ServerClock } from '../components/ServerClock';
 import { Sheet } from '../components/Sheet';
 import { setFrozenAt } from '../game/serverTime';
+import { SOURCE_URL } from '../game/version';
 import { ToastProvider } from '../components/ToastProvider';
 import { VersionTag } from '../components/VersionTag';
 import { useT } from '../i18n';
@@ -176,6 +177,16 @@ function GameFrame() {
       </main>
       <footer ref={footerRef} className={styles.footer}>
         {t.settings.serverTime} <ServerClock /> <VersionTag />
+        <span aria-hidden="true">·</span>
+        <a
+          className={styles.footerLink}
+          href={SOURCE_URL}
+          target="_blank"
+          rel="noopener"
+          title={t.settings.sourceTitle}
+        >
+          {t.settings.source}
+        </a>
       </footer>
       <TabBar villageId={villageId} onMore={() => setMenu('more')} inFlow={fullScreen} />
       <MenuSheet

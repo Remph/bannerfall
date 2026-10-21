@@ -210,12 +210,13 @@ export function useLogout() {
 
 /**
  * POST /api/me/respawn: a player whose last village was conquered (`needsRespawn`) starts again
- * with a new village. Afterwards /api/me is fetched again (village list, protection).
+ * with a new village, next to his guild when `nearGuild` (1.6, `respawnNearGuild`). Afterwards
+ * /api/me is fetched again (village list, protection).
  */
 export function useRespawn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => expectData(api.POST('/api/me/respawn')),
+    mutationFn: (nearGuild: boolean) => expectData(api.POST('/api/me/respawn', { body: { nearGuild } })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: meQueryKey }),
   });
 }

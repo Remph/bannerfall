@@ -48,7 +48,8 @@ final class NpcTurn {
             boolean braked,
             boolean farmBudgetSpent,
             Set<Long> guildMates,
-            Set<Long> mateTrainTargets) {}
+            Set<Long> mateTrainTargets,
+            NpcLearning.Lesson lesson) {}
 
     final View view;
     final Village village;

@@ -5,11 +5,70 @@
   </picture>
 </h1>
 
-A browser strategy game in the style of the classic "villages, troops, attacks" games, built for a small group of friends: build up villages, train troops, attack and support each other, conquer villages, trade, found guilds, chat and collect achievements. Version 1.2 adds unit levels researched in the Smithy, the paladin and banners (found in battle, flown from the Banner Hall, fused and stolen), and barbarians that build walls. Computer-controlled NPC lords and passive barbarian villages fill the world when only a few people play.
+<p align="center"><b>A browser strategy game for a group of friends: build villages, raise armies, take your neighbours' villages and hold the map.</b><br>
+Free software you host yourself, in English and German, made for phones first.</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-map-dark.png">
+  <img src="docs/images/readme-map-light.png" alt="The map on a desktop: villages of the player, guild mates, other players, NPC lords and barbarians among forests and a river, with the overview map beside it">
+</picture>
+
+Bannerfall is a strategy game in the style of the classic "villages, troops, attacks" browser games, built for a small group of friends on a server of their own. Everyone starts with one village, builds it up, trains troops, raids barbarians and attacks or supports the others; nobles take villages over, and a world ends when one side holds the map, holds the banner keeps or leads on an end date the host sets. Computer-controlled NPC lords and barbarian villages fill the world when only a few people play, so two friends against twenty lords is a full round too.
+
+Version 1.6 makes Bannerfall feature complete: what was planned for the game is in, and later releases fix and polish.
+
+## A round in twenty seconds
+
+![From the village to the map, an attack with nobles on a barbarian village, the conquest report and the new village on the map](docs/images/readme-clip.gif)
+
+<sub>Recorded in a development world, where travel times can be skipped; sped up 1.5 times.</sub>
+
+<p align="center">
+  <img src="docs/images/readme-phone-village.png" alt="A village on a phone: the drawn village picture with every building and its level" width="260">
+  &nbsp;
+  <img src="docs/images/readme-phone-map.png" alt="The map on a phone in dark mode" width="260">
+  &nbsp;
+  <img src="docs/images/readme-phone-report.png" alt="A battle report on a phone: an attack beaten off, with the units sent, lost and survived" width="260">
+</p>
+
+## What is in the game
+
+**Villages**
+- Sixteen buildings, shown as a drawn village or as a list, with a build queue; buildings can be demolished again, one level at a time.
+- Wood, clay and iron, a warehouse, a hiding place and a farm that limits the population.
+- A market for sending resources to your own and other villages, trade offers between players, and an exchange with the market itself.
+- Village automation from the third village on: build plans that work through their buildings and levels by themselves, also while you are offline, and refill a recruit template.
+- A private note on any village.
+
+**Troops and battle**
+- Thirteen units: infantry, cavalry, scouts, rams, catapults, nobles, the paladin and the banner thief; archers and mounted archers are optional.
+- Attacks, supports and scouting, attack trains (several attacks that land together, in order), walls, rams, catapults, loot and luck. Morale weakens attacks on much smaller players; a night bonus is optional.
+- Conquest with nobles, who lower a village's loyalty; every village and noble beyond the first few makes the next noble dearer.
+- Unit levels researched in the Smithy (optional), the paladin and the banner thief trained in the Banner Hall.
+- Banners found in battle, flown from the Banner Hall, fused and stolen, and standards that only paladins carry.
+- Battle and scout reports, an attack simulator, a farm list with troop templates and "send all", and recruit templates.
+
+**The world**
+- A drawn map with terrain, movement lines and markers, owner and guild colours, an overview map and farming straight from the map.
+- Barbarian villages that grow and can build walls. NPC lords with their own personalities play the same game: they build, farm, attack, conquer, join lord guilds, ship their surplus and can learn from the players' attacks.
+- Four map spreads (Close, Normal, Wide, Vast), and friends in one guild start next to each other.
+- Victory by domination (holding most of the villages), by holding the banner keeps around the centre, or by the most points on an end date. An ended world freezes and stays readable.
+
+**Together**
+- Guilds with their own chat, a world chat, private messages and blocking.
+- A ranking by points, attacks, defence and loot, statistics with daily charts, and achievements.
+- Push notifications on the phone or computer while the game is closed: incoming attacks, a lost village, messages, returning troops, a full warehouse.
+- Built for phones and touch first, then widened for the desktop; light and dark mode, five colour themes, medieval or classic icons; English and German.
+
+**For the host**
+- One Docker image with PostgreSQL behind Caddy, which fetches the HTTPS certificate by itself.
+- A guided setup for a new world: a starting point (*Friends' round*, *Long-running world*, *Together against the lords* or *Custom*), then the pace, map, opponents, rules, victory and opening time.
+- An admin page and the `bannerfall-admin` command line: players, bans, world settings, events, NPC lords, an audit log and a log of suspicious requests.
+- Daily backups, a restore script and updates in one command; several worlds on one server; optional login through an OpenID Connect account server, with one account for several worlds.
 
 The rules and all numbers are in `docs/plan/02-game-rules.md`. To run a world of your own, follow `docs/hosting.md`.
 
-Not affiliated with any existing game. Own name, own numbers, own graphics.
+Not affiliated with any existing game. Own name, own numbers, own village picture and map; the medieval icons are credited below.
 
 ## Repository layout
 
@@ -17,7 +76,7 @@ Not affiliated with any existing game. Own name, own numbers, own graphics.
 |---|---|
 | `server/` | Spring Boot app (Java 25, Gradle Kotlin DSL, PostgreSQL) |
 | `web/` | React + TypeScript app (Vite, pnpm) |
-| `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`), the hosting guide (`hosting.md`) and the README header images (`images/`) |
+| `docs/` | Game rules (`plan/02-game-rules.md`, banner art in `plan/banners/`), the hosting guide (`hosting.md`), the release notes (`releases/`) and the README images and clip (`images/`) |
 | `compose.yaml` | Local development database (PostgreSQL 18) |
 | `Dockerfile`, `compose.prod.yaml`, `Caddyfile`, `.env.example` | Production: the image, app + database + Caddy, settings template |
 | `edge/` | The shared Caddy for several worlds on one server (`docs/hosting.md`, section 12) |
@@ -122,17 +181,17 @@ chmod 600 .env
 
 `openssl rand -hex 24` makes a good password and a good token (the token needs at least 32 characters). Keep `.env` private; it is not in git. The host cheats stay off (`BANNERFALL_CHEATS_ENABLED` is not passed to the container).
 
-**Build and ship** (on your PC, in the repo root; replace `1.2.0` by the version):
+**Build and ship** (on your PC, in the repo root; replace `1.6.0` by the version):
 
 ```
-docker build -t ghcr.io/your-name/bannerfall:1.2.0 --build-arg VERSION=1.2.0 .
+docker build -t ghcr.io/your-name/bannerfall:1.6.0 --build-arg VERSION=1.6.0 .
 docker login ghcr.io          # once, with a GitHub token that may write packages
-docker push ghcr.io/your-name/bannerfall:1.2.0
+docker push ghcr.io/your-name/bannerfall:1.6.0
 ```
 
-(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.2.0 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.2.0 --build-arg VERSION=1.2.0 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.2.0` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
+(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.0 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.0 --build-arg VERSION=1.6.0 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.0` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
 
-**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.2.0` in `.env`, then
+**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.0` in `.env`, then
 
 ```
 docker compose -f compose.prod.yaml pull        # skip this when the image was loaded or built on the server itself
@@ -144,7 +203,7 @@ The database migrates itself at start (Flyway). Everybody is logged out by an up
 
 **Updating in one command** (since 1.4.1, in a git checkout on the server): `ops/bannerfall-update 1.4.1` does the steps of an update in order and stops at the first one that fails. It checks that the checkout has no local changes, fetches the tags, pulls the image for exactly that version (the image `BANNERFALL_IMAGE` names now, with the new tag; `--repo` names another, `--build` builds `bannerfall:<version>` on the server instead), checks the tag out, checks that its `compose.prod.yaml` works with your `.env`, takes a backup with `ops/bannerfall-backup`, warns the players in the chat, waits a minute (`--wait <seconds>`, `0` for no warning), sets `BANNERFALL_IMAGE` in `.env`, restarts the app, waits until it is healthy and reports the new version, and runs `bannerfall-admin check`. It shows the plan and asks once first (`--yes` skips the question). Nothing changes for the players before the backup is done, and stopping it before the restart (Ctrl+C, or a dropped connection) puts the old checkout back. If the new version doesn't come up and ran no database migration, the script puts the old image and checkout back by itself. If it already migrated the database, it stops and prints how to restore the backup it took. Read the release notes first, since some releases add settings or need a step of their own. `ops/bannerfall-update --help` lists the options.
 
-**Feature switches.** Some of the bigger features can be switched per world. A new world starts with banners and the paladin on and barbarian walls and unit levels off. What each release switches in a running world is in its release notes (`docs/releases/`, *Heads-up for running worlds*).
+**Feature switches.** Some of the bigger features can be switched per world. A new world starts with banners, the paladin, morale and the rising noble price on, and with barbarian walls, unit levels, archers and learning NPC lords off. The guided setup asks for the important ones. What each release switches in a running world is in its release notes (`docs/releases/`, *Heads-up for running worlds*).
 
 | Feature | Setting (`bannerfall-admin world set …`, or the admin page, tab World) | Default |
 |---|---|---|
@@ -152,14 +211,19 @@ The database migrates itself at start (Flyway). Everybody is logged out by an up
 | Unit levels in the Smithy (02 §5.4) | `unit-levels-enabled true` | off |
 | Paladin (02 §5.5; his numbers are placeholders until there is more play data) | `paladin-max-slots 0` turns him off; `paladin-villages-per-slot` | on (4 villages per slot, at most 5) |
 | Banners (02 §21) | `banners-enabled false` turns them off (existing banners are kept, asleep); `banner-drop-factor` (0–3, 0 = no drops) | on |
+| Archers (02 §5.6) | `archers-enabled true` | off |
+| Morale (02 §8.2) | `morale-enabled false` turns it off; `morale-floor` (30–100) | on (floor 30 %) |
+| Rising noble price (02 §5.7) | `noble-price-step` (0–1, 0 = the same price for every noble) | 0.25 |
+| Village automation (02 §25) | `automation-villages` (from a player's N-th village; 0 = none) | from the 3rd village |
+| NPC lords learning from players (02 §11b) | `npc-learning-enabled true` | off |
+| Friends start next to their guild (02 §2) | `guild-start-together false` turns it off | on |
 
-**First steps in a new world** (order matters: do 1 and 2 before telling anybody the address). A fresh production world starts in the **pre-game** (M14g): friends can register and chat, nobody has a village yet, and the map is created at the **opening time** you set in step 5 (or on the admin page, tab World). Until then you can still change everything, including map size, barbarians and NPC lords.
+**First steps in a new world** (order matters: do 1 and 2 before telling anybody the address). A fresh production world starts in the **pre-game** (M14g): friends can register and chat, nobody has a village yet, and the map is created at the **opening time** you set in the setup (or on the admin page, tab World). Until then you can still change everything, including the map spread (how far apart players start: Close, Normal, Wide or Vast), map size, barbarians and NPC lords.
 
-1. Change the invite code (the default is `change-me`): `docker compose -f compose.prod.yaml exec app bannerfall-admin world set invite-code <secret>`
-2. Set the world speed and the beginner protection (for a small group playing a week or two, speed 6 and 36 hours work well; the defaults are 1 and 72): `... bannerfall-admin world set speed 6`, `... bannerfall-admin world set beginner-protection-hours 36`. The table under *Feature switches* above has the switches for banners, the paladin, barbarian walls and unit levels.
-3. Register yourself in the browser, then make yourself admin: `... bannerfall-admin player YourName role admin --yes` (log in again; the `/admin` page works from then on).
-4. Tell your friends the address and the invite code. They can register right away.
-5. Set the opening time (Berlin time) and, if you like, check the settings once more on the admin page: `... bannerfall-admin world open --at "2026-10-17 18:00"` (`--clear` takes the time back, `--now` opens at once). At that moment every registered player gets a village and the game starts. The login page shows the opening time and a countdown.
+1. Register yourself in the browser, then ask for a one-time setup link: `docker compose -f compose.prod.yaml exec app bannerfall-admin setup`. It prints `https://<your domain>/setup?code=…` (the domain comes from `BANNERFALL_DOMAIN` in `.env`), valid for 30 minutes and only once.
+2. Open the link while logged in: it makes your account the admin and starts the **guided setup**, a wizard with a starting point (*Friends' round*, *Long-running world*, *Together against the lords* or *Custom*) and one step each for the basics (name, invite code, guilds), the pace, the map and opponents, the rules, the victory and the opening time. Every step is saved when you go on; you can skip it and use the admin page instead. Without the wizard: `... bannerfall-admin world set invite-code <secret>` (the default is `change-me`), `... bannerfall-admin player YourName role admin --yes` and the admin page.
+3. Tell your friends the address and the invite code. They can register right away.
+4. Change the opening time if you like (setup, admin page, or `... bannerfall-admin world open --at "2026-10-17 18:00"`; `--clear` takes the time back, `--now` opens at once). At that moment every registered player gets a village and the game starts. The login page shows the opening time and a countdown.
 
 How the world is won is set on the admin page (tab World, cards *Victory* and *End of the world*) or with `world set victory-mode`: by default a side (a guild, or a player without one) wins once it holds 60 % of all villages for 48 hours; `KEEPS` places banner keeps around the map centre instead, and `NONE` leaves the end to you. An end date (`world end --at …`) works in every mode: the most points win then. An ended world is frozen and stays readable; `world reopen` takes the end back. The rules are in `docs/plan/02-game-rules.md` §22.
 
@@ -236,3 +300,5 @@ Releases are published to <https://github.com/Remph/bannerfall>, one commit per 
 Bannerfall is free software under the [GNU Affero General Public License](LICENSE), version 3 or (at your option) any later version (`AGPL-3.0-or-later`). If you run a modified version of the server for other players, the AGPL requires you to offer them its source code.
 
 The name "Bannerfall" and the bannerfall.de domain are not covered by the license. Third-party dependencies and the bundled web fonts (OFL) keep their own licenses.
+
+The medieval icons in `web/src/components/medievalIcons.ts` are from [game-icons.net](https://game-icons.net), by Lorc, Delapouite, Skoll, HeavenlyDog, Cathelineau and DarkZaitzev, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). They are drawn unchanged except for their colour and a slightly cropped frame; each line of that file names the original icon and its artist. The game credits them on its About page.

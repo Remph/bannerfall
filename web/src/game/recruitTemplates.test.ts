@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  linePrice,
   ordersOf,
   planSeconds,
   planTemplate,
@@ -115,6 +116,32 @@ describe('planTemplate', () => {
     const plan = (freeSlots: number) => planTemplate(input({ goal: { PALADIN: 3 }, buildings: [hall], freeSlots }))[0];
     expect(plan(1)).toMatchObject({ missing: 1, now: 1, skip: null });
     expect(plan(0)).toMatchObject({ missing: 0, now: 0, skip: 'slots' });
+  });
+
+  it('prices the nobles of a line with the rising price (1.6)', () => {
+    const noble: PlanUnit = {
+      unit: 'NOBLE',
+      cost: { wood: 40_000, clay: 50_000, iron: 50_000 },
+      pop: 100,
+      secondsPerUnit: 1000,
+      available: true,
+    };
+    const academy: PlanBuilding = { building: 'ACADEMY', level: 1, units: [noble], queue: [] };
+    const pricing = {
+      villages: 5,
+      nobles: 0,
+      freeRanks: 4,
+      step: 0.25,
+      maxFactor: 7,
+      baseCost: noble.cost,
+    };
+    // four nobles at ranks 1 to 4 cost 62,500 + 75,000 + 87,500 + 100,000 = 325,000 clay; the flat
+    // price would pay for all four with 200,000
+    const stock = { wood: 300_000, clay: 300_000, iron: 300_000 };
+    const line = planTemplate(input({ goal: { NOBLE: 4 }, buildings: [academy], stock, noble: pricing }))[0];
+    expect(line?.now).toBe(3);
+    expect(linePrice({ noble: pricing }, noble, 2).clay).toBe(68_750);
+    expect(linePrice({}, noble, 2)).toEqual(noble.cost);
   });
 
   it('leaves out units the server does not list', () => {

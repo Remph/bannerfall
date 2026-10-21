@@ -12,6 +12,7 @@ const anna: Me = {
   protectedUntil: '2026-10-06T12:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [{ id: 2, name: "anna's village", x: 53, y: 59, points: 39, incomingAttacks: 0 }],
 };
 

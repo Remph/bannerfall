@@ -49,7 +49,12 @@ class BattleReportsTest {
             BuildingType catapultTarget,
             int catapultLevel) {
         BattleInput input =
-                new BattleInput(attacker, stacks, 2, catapultTarget, catapultLevel, 0.1);
+                BattleInput.attack(attacker)
+                        .defenders(stacks)
+                        .wall(2)
+                        .catapults(catapultTarget, catapultLevel)
+                        .luck(0.1)
+                        .build();
         BattleResult result = Combat.fight(DATA, input);
         List<VillageRefDto> homes =
                 stacks.size() == 1 ? List.of(DEFENDER) : List.of(DEFENDER, SUPPORTER);
@@ -328,7 +333,7 @@ class BattleReportsTest {
     @Test
     void everyStackNeedsItsHomeVillage() {
         BattleInput input =
-                new BattleInput(Map.of(UnitType.AXEMAN, 1), List.of(Map.of()), 0, null, 0, 0);
+                BattleInput.attack(Map.of(UnitType.AXEMAN, 1)).defenders(List.of(Map.of())).build();
         BattleResult result = Combat.fight(DATA, input);
 
         assertThatThrownBy(

@@ -19,7 +19,6 @@ import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.Production;
 import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Storage;
-import de.bannerfall.rules.UnitLevels;
 import de.bannerfall.world.WorldSettings;
 import java.time.Duration;
 import java.time.Instant;
@@ -72,6 +71,12 @@ public final class NpcTargeting {
     /** Intel older than this (game time, ÷ speed) is forgotten. */
     static final Duration INTEL_KEEP = Duration.ofDays(7);
 
+    /**
+     * The loyalty a lord plans per noble (09 §6.6): below the average of a real hit ({@link
+     * Loyalty#MIN_HIT} to {@link Loyalty#MAX_HIT}), so a train rarely falls one noble short.
+     */
+    static final int PLANNED_HIT = 25;
+
     private NpcTargeting() {}
 
     /**
@@ -85,150 +90,120 @@ public final class NpcTargeting {
     }
 
     /**
-     * {@link #estimate(GameData, Map, Map, int, BuildingType, int, double, double, double)} without
-     * a banner.
+     * What a lord expects at a target besides the units (§6.1): the wall and the catapult target as
+     * far as it knows them, the banners and paladin standards of both sides, the night bonus at the
+     * arrival and the morale. {@link #at} is a village with nothing of that; each {@code with} adds
+     * one part.
+     *
+     * @param catapultTarget null if the attack has no catapults
+     * @param catapultTargetLevel its level as far as the lord knows (the wall for {@code WALL})
+     * @param defenceBonus the Bulwark banner the lord knows of ({@link #bulwark}), 0 without
+     * @param defenderStandard the paladin standard the lord expects the defenders to carry ({@link
+     *     #standard}, 1.4)
+     * @param attackBonus the War banner of the sending village, 0 without; only with lord banners
+     *     on (09-npc-lords §14.7): the lord knows its own villages
+     * @param attackerStandard the standard the army takes along, {@link StandardEffect#NONE}
+     *     without a paladin in it
+     * @param nightFactor the night bonus at the arrival (1.4, 02-game-rules §8.1); 1 by day and at
+     *     barbarians
+     * @param morale the lord's morale against the target's owner (1.6, 02-game-rules §8.2); 1 at
+     *     full strength and at barbarians
      */
-    public static Estimate estimate(
-            GameData data,
-            Map<UnitType, Integer> attackers,
-            Map<UnitType, Integer> defenders,
+    public record Expected(
             int wall,
             BuildingType catapultTarget,
             int catapultTargetLevel,
-            double margin,
-            double maxLoss) {
-        return estimate(
-                data,
-                attackers,
-                defenders,
-                wall,
-                catapultTarget,
-                catapultTargetLevel,
-                margin,
-                maxLoss,
-                0);
+            double defenceBonus,
+            StandardEffect defenderStandard,
+            double attackBonus,
+            StandardEffect attackerStandard,
+            double nightFactor,
+            double morale) {
+
+        /** A target with this wall and nothing else the lord knows of. */
+        public static Expected at(int wall) {
+            return new Expected(
+                    wall, null, 0, 0, StandardEffect.NONE, 0, StandardEffect.NONE, 1, 1);
+        }
+
+        public Expected withCatapults(BuildingType target, int level) {
+            return new Expected(
+                    wall,
+                    target,
+                    level,
+                    defenceBonus,
+                    defenderStandard,
+                    attackBonus,
+                    attackerStandard,
+                    nightFactor,
+                    morale);
+        }
+
+        public Expected withDefence(double bulwark, StandardEffect standard) {
+            return new Expected(
+                    wall,
+                    catapultTarget,
+                    catapultTargetLevel,
+                    bulwark,
+                    standard,
+                    attackBonus,
+                    attackerStandard,
+                    nightFactor,
+                    morale);
+        }
+
+        public Expected withAttack(double war, StandardEffect standard) {
+            return new Expected(
+                    wall,
+                    catapultTarget,
+                    catapultTargetLevel,
+                    defenceBonus,
+                    defenderStandard,
+                    war,
+                    standard,
+                    nightFactor,
+                    morale);
+        }
+
+        public Expected withNight(double factor) {
+            return new Expected(
+                    wall,
+                    catapultTarget,
+                    catapultTargetLevel,
+                    defenceBonus,
+                    defenderStandard,
+                    attackBonus,
+                    attackerStandard,
+                    factor,
+                    morale);
+        }
+
+        public Expected withMorale(double factor) {
+            return new Expected(
+                    wall,
+                    catapultTarget,
+                    catapultTargetLevel,
+                    defenceBonus,
+                    defenderStandard,
+                    attackBonus,
+                    attackerStandard,
+                    nightFactor,
+                    factor);
+        }
     }
 
     /**
      * §6.1: the real battle formula with luck 0 against the defenders seen × {@code margin} (each
      * count rounded up) in one stack. A go only if the attacker wins and loses at most {@code
      * maxLoss} of his units. Banner thieves among the defenders count like any unit (defence 3).
-     *
-     * @param catapultTarget null if the attack has no catapults
-     * @param catapultTargetLevel its level as far as the lord knows (the wall for {@code WALL})
-     * @param defenceBonus the Bulwark banner the lord knows of ({@link #bulwark}), 0 without; the
-     *     lord's own War banner only counts with lord banners on (09-npc-lords §14.7)
      */
     public static Estimate estimate(
             GameData data,
             Map<UnitType, Integer> attackers,
             Map<UnitType, Integer> defenders,
-            int wall,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
+            Expected expected,
             double margin,
-            double maxLoss,
-            double defenceBonus) {
-        return estimate(
-                data,
-                attackers,
-                defenders,
-                wall,
-                catapultTarget,
-                catapultTargetLevel,
-                margin,
-                maxLoss,
-                defenceBonus,
-                StandardEffect.NONE);
-    }
-
-    /**
-     * Like the other {@code estimate}, with the paladin standard the lord expects the defenders to
-     * carry ({@link #standard}, 1.4), and no banner of the lord's own.
-     */
-    public static Estimate estimate(
-            GameData data,
-            Map<UnitType, Integer> attackers,
-            Map<UnitType, Integer> defenders,
-            int wall,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double margin,
-            double maxLoss,
-            double defenceBonus,
-            StandardEffect defenderStandard) {
-        return estimate(
-                data,
-                attackers,
-                defenders,
-                wall,
-                catapultTarget,
-                catapultTargetLevel,
-                margin,
-                maxLoss,
-                defenceBonus,
-                defenderStandard,
-                0,
-                StandardEffect.NONE);
-    }
-
-    /**
-     * Like the other {@code estimate}, with the lord's own War banner and the standard its paladin
-     * carries along (lord banners, 09-npc-lords §14.7): the lord knows its own villages.
-     *
-     * @param attackBonus the War banner of the sending village, 0 without
-     * @param attackerStandard the standard the army takes along, {@link StandardEffect#NONE}
-     *     without a paladin in it
-     */
-    public static Estimate estimate(
-            GameData data,
-            Map<UnitType, Integer> attackers,
-            Map<UnitType, Integer> defenders,
-            int wall,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double margin,
-            double maxLoss,
-            double defenceBonus,
-            StandardEffect defenderStandard,
-            double attackBonus,
-            StandardEffect attackerStandard) {
-        return estimate(
-                data,
-                attackers,
-                defenders,
-                wall,
-                catapultTarget,
-                catapultTargetLevel,
-                margin,
-                maxLoss,
-                defenceBonus,
-                defenderStandard,
-                attackBonus,
-                attackerStandard,
-                1);
-    }
-
-    /**
-     * Like the other {@code estimate}, with the night bonus the defenders get at the attack's
-     * arrival (1.4, 02-game-rules §8.1).
-     *
-     * @param nightFactor multiplies the defence; 1 by day and at barbarians
-     */
-    public static Estimate estimate(
-            GameData data,
-            Map<UnitType, Integer> attackers,
-            Map<UnitType, Integer> defenders,
-            int wall,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double margin,
-            double maxLoss,
-            double defenceBonus,
-            StandardEffect defenderStandard,
-            double attackBonus,
-            StandardEffect attackerStandard,
-            double nightFactor) {
+            double maxLoss) {
         if (attackers.values().stream().noneMatch(c -> c > 0)) {
             return Estimate.NO;
         }
@@ -239,27 +214,27 @@ public final class NpcTargeting {
                         scaled.put(type, (int) Math.ceil(count * margin));
                     }
                 });
+        int wall = expected.wall();
         BuildingType target =
-                attackers.getOrDefault(UnitType.CATAPULT, 0) > 0 ? catapultTarget : null;
+                attackers.getOrDefault(UnitType.CATAPULT, 0) > 0 ? expected.catapultTarget() : null;
         int targetLevel =
-                target == null ? 0 : target == BuildingType.WALL ? wall : catapultTargetLevel;
+                target == null
+                        ? 0
+                        : target == BuildingType.WALL ? wall : expected.catapultTargetLevel();
         BattleResult result =
                 Combat.fight(
                         data,
-                        new BattleInput(
-                                attackers,
-                                List.of(scaled),
-                                wall,
-                                target,
-                                targetLevel,
-                                0,
-                                UnitLevels.NONE,
-                                List.of(UnitLevels.NONE),
-                                attackBonus,
-                                defenceBonus,
-                                attackerStandard,
-                                List.of(defenderStandard),
-                                nightFactor));
+                        BattleInput.attack(attackers)
+                                .defender(scaled)
+                                .wall(wall)
+                                .catapults(target, targetLevel)
+                                .attackBonus(expected.attackBonus())
+                                .defenceBonus(expected.defenceBonus())
+                                .attackerStandard(expected.attackerStandard())
+                                .defenderStandards(List.of(expected.defenderStandard()))
+                                .nightFactor(expected.nightFactor())
+                                .morale(expected.morale())
+                                .build());
         if (!result.attackerWon()) {
             return new Estimate(false, 1, wall);
         }
@@ -283,8 +258,7 @@ public final class NpcTargeting {
                 intel.buildings() == null
                         ? 0
                         : intel.buildings().getOrDefault(BuildingType.BANNER_HALL, 0);
-        int tier = BannerRules.effectiveTier(intel.banner().tier(), hall);
-        return tier == 0 ? 0 : catalog.effect(BannerType.BULWARK, tier);
+        return catalog.flying(BannerType.BULWARK, intel.banner().tier(), hall).bonus();
     }
 
     /**
@@ -305,9 +279,8 @@ public final class NpcTargeting {
                         ? 0
                         : intel.buildings().getOrDefault(BuildingType.BANNER_HALL, 0);
         BattleReport.ScoutedBanner seen = intel.standard();
-        int tier = BannerRules.standardTier(seen.tier(), seen.tier(), hall);
-        return new StandardEffect(
-                seen.type(), seen.tier(), tier, tier == 0 ? 0 : catalog.effect(seen.type(), tier));
+        return catalog.standard(
+                seen.type(), seen.tier(), BannerRules.standardTier(seen.tier(), seen.tier(), hall));
     }
 
     // ---- who may be attacked (§6.4) ----
@@ -531,7 +504,7 @@ public final class NpcTargeting {
      * least 1. {@code oath} 0 is the plain rule.
      */
     public static int noblesNeeded(double loyalty, double oath) {
-        double perNoble = 25 * (1 - oath);
+        double perNoble = PLANNED_HIT * (1 - oath);
         // a hair below the next whole number counts as that number (100 / 25 is 4, not 5)
         return Math.max(1, (int) Math.ceil(loyalty / perNoble - 1e-9));
     }

@@ -99,4 +99,7 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
             where m.id = :id and m.kind = de.bannerfall.movement.MovementKind.ATTACK
             """)
     Optional<Integer> findAttackingNobles(long id);
+
+    /** The other movements of a {@link ReturnWatch}, still on the way. */
+    long countByReturnWatchIdAndIdNot(long returnWatchId, long id);
 }

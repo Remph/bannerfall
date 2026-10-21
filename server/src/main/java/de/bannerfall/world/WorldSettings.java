@@ -2,6 +2,7 @@ package de.bannerfall.world;
 
 import de.bannerfall.npc.NpcBalanceSettings;
 import de.bannerfall.npc.NpcDifficulty;
+import de.bannerfall.rules.Morale;
 import de.bannerfall.rules.NightBonus;
 import java.time.ZoneId;
 
@@ -19,15 +20,27 @@ import java.time.ZoneId;
  * won battle drops one (0 = no drops; the economy effects of a banner already in a village stay);
  * {@code standardTheftEnabled} (1.4, §21.18) lets the defenders' thieves take the paladin standard
  * of an attack they beat; {@code npcBannersEnabled} (1.4, 09-npc-lords §14) lets NPC lords find,
- * fly, fuse and lose banners and standards like players, only while banners are on. {@code
+ * fly, fuse and lose banners and standards like players, only while banners are on; {@code
+ * npcLearningEnabled} (1.6, 09 §15) lets NPC lords adapt their troop mix and wall to what attacks
+ * them and to what wins for human players. {@code npcShipmentsEnabled} (1.6, 09-npc-lords §5.5)
+ * lets them ship what would overflow to their own villages that still build. {@code
  * marketExchangeRatio} (v1.3, 02-game-rules §12.1) is what trading with the market costs: {@code
  * ratio} of one resource for 1 of another (0 = no trading with the market). {@code victoryMode},
  * {@code dominationPercent}, {@code victoryHoldHours}, {@code keepCount} and {@code keepPercent}
  * (v1.3, 02-game-rules §22) decide how the world is won. {@code villageNameLanguage} (v1.3,
- * 02-game-rules §2) is the language of the names the game gives villages. {@code
+ * 02-game-rules §2) is the language of the names the game gives villages. {@code mapSpread} (1.6,
+ * §2) is how far apart the sides start: every placement and NPC radius is scaled by it. {@code
  * nightBonusEnabled}, {@code nightBonusStartHour}, {@code nightBonusEndHour} and {@code
  * nightBonusFactor} (1.4, 02-game-rules §8.1) make owned villages defend more strongly against
- * attacks that arrive at night.
+ * attacks that arrive at night. {@code archersEnabled} (1.6, 02-game-rules §5.6) lets players and
+ * NPC lords recruit the archer and the mounted archer; archers that exist keep fighting when it is
+ * switched off. {@code moraleEnabled} and {@code moraleFloor} (1.6, 02-game-rules §8.2, the floor
+ * in percent) weaken attacks on much smaller players. {@code noblePriceStep} (1.6, 02-game-rules
+ * §5.7) makes every village and noble beyond the free rank raise a player's next noble price by
+ * that share of the base price (0 = the flat price). {@code automationVillages} (1.6, 02-game-rules
+ * §25) is the number of villages from which a player's villages can work through build plans by
+ * themselves (0 = off). {@code guildStartTogether} (1.6, 02-game-rules §2) places guild mates next
+ * to each other at the opening and on a respawn.
  *
  * <p>Built by name through {@link Builder} (1.3); the canonical constructor is called only by
  * {@link Builder#build()}. {@code WorldSettingsTest} checks by reflection that every setting has
@@ -39,6 +52,7 @@ public record WorldSettings(
         double speed,
         double unitSpeed,
         int mapSize,
+        MapSpread mapSpread,
         int startResources,
         double luckRange,
         int beginnerProtectionHours,
@@ -59,6 +73,7 @@ public record WorldSettings(
         NpcBalanceSettings.Difficulty npcCustom,
         boolean guildsEnabled,
         int guildMaxMembers,
+        boolean guildStartTogether,
         boolean npcGuildsEnabled,
         int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
@@ -72,6 +87,8 @@ public record WorldSettings(
         double bannerDropFactor,
         boolean standardTheftEnabled,
         boolean npcBannersEnabled,
+        boolean npcLearningEnabled,
+        boolean npcShipmentsEnabled,
         double marketExchangeRatio,
         VictoryMode victoryMode,
         int dominationPercent,
@@ -82,7 +99,12 @@ public record WorldSettings(
         boolean nightBonusEnabled,
         int nightBonusStartHour,
         int nightBonusEndHour,
-        double nightBonusFactor) {
+        double nightBonusFactor,
+        boolean archersEnabled,
+        boolean moraleEnabled,
+        int moraleFloor,
+        double noblePriceStep,
+        int automationVillages) {
 
     /**
      * The defaults of the table in 02-game-rules §1 (speed 1; the invite code is a placeholder):
@@ -104,6 +126,7 @@ public record WorldSettings(
                 .speed(speed)
                 .unitSpeed(unitSpeed)
                 .mapSize(mapSize)
+                .mapSpread(mapSpread)
                 .startResources(startResources)
                 .luckRange(luckRange)
                 .beginnerProtectionHours(beginnerProtectionHours)
@@ -124,6 +147,7 @@ public record WorldSettings(
                 .npcCustom(npcCustom)
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
+                .guildStartTogether(guildStartTogether)
                 .npcGuildsEnabled(npcGuildsEnabled)
                 .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
@@ -137,6 +161,8 @@ public record WorldSettings(
                 .bannerDropFactor(bannerDropFactor)
                 .standardTheftEnabled(standardTheftEnabled)
                 .npcBannersEnabled(npcBannersEnabled)
+                .npcLearningEnabled(npcLearningEnabled)
+                .npcShipmentsEnabled(npcShipmentsEnabled)
                 .marketExchangeRatio(marketExchangeRatio)
                 .victoryMode(victoryMode)
                 .dominationPercent(dominationPercent)
@@ -147,13 +173,28 @@ public record WorldSettings(
                 .nightBonusEnabled(nightBonusEnabled)
                 .nightBonusStartHour(nightBonusStartHour)
                 .nightBonusEndHour(nightBonusEndHour)
-                .nightBonusFactor(nightBonusFactor);
+                .nightBonusFactor(nightBonusFactor)
+                .archersEnabled(archersEnabled)
+                .moraleEnabled(moraleEnabled)
+                .moraleFloor(moraleFloor)
+                .noblePriceStep(noblePriceStep)
+                .automationVillages(automationVillages);
     }
 
     /** The night bonus of this world (1.4, 02-game-rules §8.1), its hours read in {@code zone}. */
     public NightBonus nightBonus(ZoneId zone) {
         return new NightBonus(
                 nightBonusEnabled, nightBonusStartHour, nightBonusEndHour, nightBonusFactor, zone);
+    }
+
+    /** The morale of this world (1.6, 02-game-rules §8.2). */
+    public Morale morale() {
+        return new Morale(moraleEnabled, moraleFloor / 100.0);
+    }
+
+    /** Same settings with morale switched on or off (1.6; tests, balancing). */
+    public WorldSettings withMorale(boolean enabled) {
+        return toBuilder().moraleEnabled(enabled).build();
     }
 
     /** Same settings with another unit speed (tests, balancing). */
@@ -222,6 +263,7 @@ public record WorldSettings(
         private double speed = 1.0;
         private double unitSpeed = 1.0;
         private int mapSize = 100;
+        private MapSpread mapSpread = MapSpread.NORMAL;
         private int startResources = 500;
         private double luckRange = 0.25;
         private int beginnerProtectionHours = 72;
@@ -242,6 +284,7 @@ public record WorldSettings(
         private NpcBalanceSettings.Difficulty npcCustom = null;
         private boolean guildsEnabled = false;
         private int guildMaxMembers = 10;
+        private boolean guildStartTogether = true;
         private boolean npcGuildsEnabled = false;
         private int npcGuildMaxMembers = 3;
         private boolean barbarianWallsEnabled = false;
@@ -255,6 +298,8 @@ public record WorldSettings(
         private double bannerDropFactor = 1.0;
         private boolean standardTheftEnabled = true;
         private boolean npcBannersEnabled = false;
+        private boolean npcLearningEnabled = false;
+        private boolean npcShipmentsEnabled = true;
         private double marketExchangeRatio = 1.5;
         private VictoryMode victoryMode = VictoryMode.DOMINATION;
         private int dominationPercent = 60;
@@ -266,6 +311,11 @@ public record WorldSettings(
         private int nightBonusStartHour = 23;
         private int nightBonusEndHour = 7;
         private double nightBonusFactor = 2.0;
+        private boolean archersEnabled = false;
+        private boolean moraleEnabled = true;
+        private int moraleFloor = 30;
+        private double noblePriceStep = 0.25;
+        private int automationVillages = 3;
 
         private Builder() {}
 
@@ -286,6 +336,11 @@ public record WorldSettings(
 
         public Builder mapSize(int value) {
             this.mapSize = value;
+            return this;
+        }
+
+        public Builder mapSpread(MapSpread value) {
+            this.mapSpread = value;
             return this;
         }
 
@@ -389,6 +444,11 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder guildStartTogether(boolean value) {
+            this.guildStartTogether = value;
+            return this;
+        }
+
         public Builder npcGuildsEnabled(boolean value) {
             this.npcGuildsEnabled = value;
             return this;
@@ -454,6 +514,16 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder npcLearningEnabled(boolean value) {
+            this.npcLearningEnabled = value;
+            return this;
+        }
+
+        public Builder npcShipmentsEnabled(boolean value) {
+            this.npcShipmentsEnabled = value;
+            return this;
+        }
+
         public Builder marketExchangeRatio(double value) {
             this.marketExchangeRatio = value;
             return this;
@@ -509,12 +579,38 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder archersEnabled(boolean value) {
+            this.archersEnabled = value;
+            return this;
+        }
+
+        public Builder moraleEnabled(boolean value) {
+            this.moraleEnabled = value;
+            return this;
+        }
+
+        public Builder moraleFloor(int value) {
+            this.moraleFloor = value;
+            return this;
+        }
+
+        public Builder noblePriceStep(double value) {
+            this.noblePriceStep = value;
+            return this;
+        }
+
+        public Builder automationVillages(int value) {
+            this.automationVillages = value;
+            return this;
+        }
+
         public WorldSettings build() {
             return new WorldSettings(
                     name,
                     speed,
                     unitSpeed,
                     mapSize,
+                    mapSpread,
                     startResources,
                     luckRange,
                     beginnerProtectionHours,
@@ -535,6 +631,7 @@ public record WorldSettings(
                     npcCustom,
                     guildsEnabled,
                     guildMaxMembers,
+                    guildStartTogether,
                     npcGuildsEnabled,
                     npcGuildMaxMembers,
                     barbarianWallsEnabled,
@@ -548,6 +645,8 @@ public record WorldSettings(
                     bannerDropFactor,
                     standardTheftEnabled,
                     npcBannersEnabled,
+                    npcLearningEnabled,
+                    npcShipmentsEnabled,
                     marketExchangeRatio,
                     victoryMode,
                     dominationPercent,
@@ -558,7 +657,12 @@ public record WorldSettings(
                     nightBonusEnabled,
                     nightBonusStartHour,
                     nightBonusEndHour,
-                    nightBonusFactor);
+                    nightBonusFactor,
+                    archersEnabled,
+                    moraleEnabled,
+                    moraleFloor,
+                    noblePriceStep,
+                    automationVillages);
         }
     }
 }

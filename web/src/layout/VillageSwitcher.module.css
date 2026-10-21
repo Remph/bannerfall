@@ -48,6 +48,14 @@
   }
 }
 
+/* Narrow desktop windows (1.6 UI review): the coordinates make room for the name, which got only three
+   letters at 1024 px next to the resources. The village page shows them under its title anyway. */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .coords {
+    display: none;
+  }
+}
+
 /* the list inside the sheet */
 .list {
   display: grid;

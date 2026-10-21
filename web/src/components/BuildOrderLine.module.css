@@ -43,10 +43,30 @@
   overflow-wrap: anywhere;
 }
 
+/* an order the village automation placed (1.6): a small cogwheel after the level */
+.automated {
+  width: 0.9em;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  color: var(--color-text-muted);
+}
+
 .level {
   color: var(--color-text-muted);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* a demolition (1.6): the same red chip as in the Town Hall's queue */
+.demolish {
+  margin-left: var(--space-2);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 

@@ -54,17 +54,14 @@ class CombatTest {
             var result =
                     Combat.fight(
                             data,
-                            new BattleInput(
-                                    axemen,
-                                    spearmen,
-                                    5,
-                                    null,
-                                    0,
-                                    0.2,
-                                    UnitLevels.NONE,
-                                    List.of(UnitLevels.NONE),
-                                    0.06,
-                                    0.03));
+                            BattleInput.attack(axemen)
+                                    .defenders(spearmen)
+                                    .wall(5)
+                                    .luck(0.2)
+                                    .defenderLevels(List.of(UnitLevels.NONE))
+                                    .attackBonus(0.06)
+                                    .defenceBonus(0.03)
+                                    .build());
             assertThat(result.mainBattle().attack()).isCloseTo(4000 * 1.2 * 1.06, FIVE_DECIMALS);
             assertThat(result.mainBattle().defense()).isCloseTo(2212.5 * 1.03, FIVE_DECIMALS);
         }
@@ -84,31 +81,19 @@ class CombatTest {
             var levels = List.of(UnitLevels.NONE);
             assertThatThrownBy(
                             () ->
-                                    new BattleInput(
-                                            axemen,
-                                            spearmen,
-                                            0,
-                                            null,
-                                            0,
-                                            0,
-                                            UnitLevels.NONE,
-                                            levels,
-                                            -0.1,
-                                            0))
+                                    BattleInput.attack(axemen)
+                                            .defenders(spearmen)
+                                            .defenderLevels(levels)
+                                            .attackBonus(-0.1)
+                                            .build())
                     .isInstanceOf(IllegalArgumentException.class);
             assertThatThrownBy(
                             () ->
-                                    new BattleInput(
-                                            axemen,
-                                            spearmen,
-                                            0,
-                                            null,
-                                            0,
-                                            0,
-                                            UnitLevels.NONE,
-                                            levels,
-                                            0,
-                                            1))
+                                    BattleInput.attack(axemen)
+                                            .defenders(spearmen)
+                                            .defenderLevels(levels)
+                                            .defenceBonus(1)
+                                            .build())
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -142,17 +127,12 @@ class CombatTest {
                 double bulwark) {
             return Combat.fight(
                     data,
-                    new BattleInput(
-                            attacker,
-                            stacks,
-                            wall,
-                            null,
-                            0,
-                            0,
-                            UnitLevels.NONE,
-                            stacks.stream().map(stack -> UnitLevels.NONE).toList(),
-                            war,
-                            bulwark));
+                    BattleInput.attack(attacker)
+                            .defenders(stacks)
+                            .wall(wall)
+                            .attackBonus(war)
+                            .defenceBonus(bulwark)
+                            .build());
         }
     }
 
@@ -202,20 +182,88 @@ class CombatTest {
                 double night) {
             return Combat.fight(
                     data,
-                    new BattleInput(
-                            attacker,
-                            stacks,
-                            wall,
-                            null,
-                            0,
-                            0,
-                            UnitLevels.NONE,
-                            stacks.stream().map(stack -> UnitLevels.NONE).toList(),
-                            0,
-                            bulwark,
-                            StandardEffect.NONE,
-                            stacks.stream().map(stack -> StandardEffect.NONE).toList(),
-                            night));
+                    BattleInput.attack(attacker)
+                            .defenders(stacks)
+                            .wall(wall)
+                            .defenceBonus(bulwark)
+                            .nightFactor(night)
+                            .build());
+        }
+    }
+
+    /** Morale (1.6, 02-game-rules §8.2): a multiplier on A after the War banner, D untouched. */
+    @Nested
+    class MoraleInBattle {
+
+        private final Map<UnitType, Integer> axemen = Map.of(AXEMAN, 100);
+        private final List<Map<UnitType, Integer>> spearmen = List.of(Map.of(SPEARMAN, 100));
+
+        @Test
+        void itWeakensOnlyTheAttack() {
+            // 100 axemen (A = 4000) against 100 spearmen behind wall 5 (D = 2212.5)
+            var full = fight(axemen, 0, 0, 1);
+            var half = fight(axemen, 0, 0, 0.5);
+            assertThat(full.attackerWon()).isTrue();
+            assertThat(half.mainBattle().attack()).isEqualTo(2000.0);
+            assertThat(half.mainBattle().defense()).isEqualTo(2212.5);
+            assertThat(half.mainBattle().effectiveWall())
+                    .isEqualTo(full.mainBattle().effectiveWall());
+            // the defender wins: (2000 / 2212.5)^1.5 = 0.8594 of the spearmen die
+            assertThat(half.attackerWon()).isFalse();
+            assertThat(half.defenderLosses()).containsExactly(Map.of(SPEARMAN, 86));
+        }
+
+        @Test
+        void itComesAfterLuckAndTheWarBanner() {
+            var result = fight(axemen, 0.1, 0.1, 0.48);
+            assertThat(result.mainBattle().attack())
+                    .isCloseTo(4000 * 1.1 * 1.1 * 0.48, FIVE_DECIMALS);
+            assertThat(result.mainBattle().defense()).isEqualTo(2212.5);
+        }
+
+        @Test
+        void ramsStillCountInFull() {
+            // the rams lower the wall during the battle whatever the morale
+            var attack = Map.of(AXEMAN, 1000, RAM, 20);
+            var full = fight(attack, 0, 0, 1);
+            var low = fight(attack, 0, 0, 0.3);
+            assertThat(low.mainBattle().effectiveWall())
+                    .isEqualTo(full.mainBattle().effectiveWall());
+        }
+
+        @Test
+        void itScalesTheArchersWithTheRestAndLeavesTheShares() {
+            // 1.6: 100 axemen + 50 mounted archers (A = 9500) against 100 spearmen, wall 0: the
+            // defence is weighted by the class shares, which morale doesn't change (D = 1809.47)
+            var mixed = Map.of(AXEMAN, 100, UnitType.MOUNTED_ARCHER, 50);
+            var stacks = List.of(Map.of(SPEARMAN, 100));
+            var full = Combat.fight(data, BattleInput.attack(mixed).defenders(stacks).build());
+            var low =
+                    Combat.fight(
+                            data, BattleInput.attack(mixed).defenders(stacks).morale(0.3).build());
+            assertThat(low.mainBattle().attack()).isCloseTo(9500 * 0.3, FIVE_DECIMALS);
+            assertThat(low.mainBattle().defense()).isEqualTo(full.mainBattle().defense());
+        }
+
+        @Test
+        void aMoraleOutsideZeroToOneIsRejected() {
+            assertThatThrownBy(() -> fight(axemen, 0, 0, 0))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> fight(axemen, 0, 0, 1.01))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        private BattleResult fight(
+                Map<UnitType, Integer> attacker, double luck, double war, double morale) {
+            return Combat.fight(
+                    data,
+                    BattleInput.attack(attacker)
+                            .defenders(spearmen)
+                            .wall(5)
+                            .luck(luck)
+                            .attackBonus(war)
+                            .morale(morale)
+                            .build());
         }
     }
 
@@ -296,19 +344,13 @@ class CombatTest {
             var siege =
                     Combat.fight(
                             data,
-                            new BattleInput(
-                                    attack,
-                                    stacks,
-                                    0,
-                                    BuildingType.BARRACKS,
-                                    3,
-                                    0,
-                                    UnitLevels.NONE,
-                                    List.of(UnitLevels.NONE),
-                                    0,
-                                    0,
-                                    standard(BannerType.SIEGE_STANDARD, 0.20),
-                                    List.of(StandardEffect.NONE)));
+                            BattleInput.attack(attack)
+                                    .defenders(stacks)
+                                    .catapults(BuildingType.BARRACKS, 3)
+                                    .defenderLevels(List.of(UnitLevels.NONE))
+                                    .attackerStandard(standard(BannerType.SIEGE_STANDARD, 0.20))
+                                    .defenderStandards(List.of(StandardEffect.NONE))
+                                    .build());
             int min = Siege.catapultMinLevel(BuildingType.BARRACKS);
             // 20 catapults count as 24: barracks 3 falls to 0 instead of 1
             assertThat(siege.catapultTargetLevelAfter())
@@ -320,19 +362,11 @@ class CombatTest {
         void oneStandardPerDefendingStack() {
             assertThatThrownBy(
                             () ->
-                                    new BattleInput(
-                                            Map.of(AXEMAN, 1),
-                                            List.of(Map.of(SPEARMAN, 1)),
-                                            0,
-                                            null,
-                                            0,
-                                            0,
-                                            UnitLevels.NONE,
-                                            List.of(UnitLevels.NONE),
-                                            0,
-                                            0,
-                                            StandardEffect.NONE,
-                                            List.of()))
+                                    BattleInput.attack(Map.of(AXEMAN, 1))
+                                            .defenders(List.of(Map.of(SPEARMAN, 1)))
+                                            .defenderLevels(List.of(UnitLevels.NONE))
+                                            .defenderStandards(List.of())
+                                            .build())
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -344,19 +378,12 @@ class CombatTest {
                 List<StandardEffect> defenderStandards) {
             return Combat.fight(
                     data,
-                    new BattleInput(
-                            attacker,
-                            stacks,
-                            wall,
-                            null,
-                            0,
-                            0,
-                            UnitLevels.NONE,
-                            stacks.stream().map(stack -> UnitLevels.NONE).toList(),
-                            0,
-                            0,
-                            attackerStandard,
-                            defenderStandards));
+                    BattleInput.attack(attacker)
+                            .defenders(stacks)
+                            .wall(wall)
+                            .attackerStandard(attackerStandard)
+                            .defenderStandards(defenderStandards)
+                            .build());
         }
     }
 
@@ -370,15 +397,10 @@ class CombatTest {
             var withNone =
                     Combat.fight(
                             data,
-                            new BattleInput(
-                                    Map.of(AXEMAN, 20),
-                                    List.of(Map.of(SPEARMAN, 50)),
-                                    0,
-                                    null,
-                                    0,
-                                    0,
-                                    UnitLevels.NONE,
-                                    List.of(new UnitLevels(Map.of(SPEARMAN, 1)))));
+                            BattleInput.attack(Map.of(AXEMAN, 20))
+                                    .defenders(List.of(Map.of(SPEARMAN, 50)))
+                                    .defenderLevels(List.of(new UnitLevels(Map.of(SPEARMAN, 1))))
+                                    .build());
 
             assertThat(withNone).isEqualTo(plain);
         }
@@ -428,15 +450,11 @@ class CombatTest {
             // two stacks of 50 spearmen: the first on level 3 (18), the second on level 1 (15):
             // 50 × 18 + 50 × 15 + 20 = 1670
             var input =
-                    new BattleInput(
-                            Map.of(AXEMAN, 100),
-                            List.of(Map.of(SPEARMAN, 50), Map.of(SPEARMAN, 50)),
-                            0,
-                            null,
-                            0,
-                            0,
-                            UnitLevels.NONE,
-                            List.of(new UnitLevels(Map.of(SPEARMAN, 3)), UnitLevels.NONE));
+                    BattleInput.attack(Map.of(AXEMAN, 100))
+                            .defenders(List.of(Map.of(SPEARMAN, 50), Map.of(SPEARMAN, 50)))
+                            .defenderLevels(
+                                    List.of(new UnitLevels(Map.of(SPEARMAN, 3)), UnitLevels.NONE))
+                            .build();
 
             assertThat(Combat.fight(data, input).mainBattle().defense()).isEqualTo(1670.0);
         }
@@ -469,15 +487,10 @@ class CombatTest {
         void oneSetOfLevelsPerStack() {
             assertThatThrownBy(
                             () ->
-                                    new BattleInput(
-                                            Map.of(AXEMAN, 1),
-                                            List.of(Map.of(SPEARMAN, 1)),
-                                            0,
-                                            null,
-                                            0,
-                                            0,
-                                            UnitLevels.NONE,
-                                            List.of()))
+                                    BattleInput.attack(Map.of(AXEMAN, 1))
+                                            .defenders(List.of(Map.of(SPEARMAN, 1)))
+                                            .defenderLevels(List.of())
+                                            .build())
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -506,15 +519,95 @@ class CombatTest {
                 UnitLevels defenderLevels) {
             return Combat.fight(
                     data,
-                    new BattleInput(
-                            attacker,
-                            List.of(defender),
-                            0,
-                            null,
-                            0,
-                            0,
-                            attackerLevels,
-                            List.of(defenderLevels)));
+                    BattleInput.attack(attacker)
+                            .defenders(List.of(defender))
+                            .attackerLevels(attackerLevels)
+                            .defenderLevels(List.of(defenderLevels))
+                            .build());
+        }
+    }
+
+    /**
+     * Archers (1.6, 02-game-rules §5.6, §8): a third attack class, met by the defenders' defence
+     * against archers. The test vectors of §8 (luck 0).
+     */
+    @Nested
+    class Archers {
+
+        @Test
+        void mountedArchersMeetTheSpearmensWeakArcherDefence() {
+            // A = 50 × 110 = 5500; D = 100 × 20 + 20 = 2020 (light cavalry would meet 40 each)
+            BattleResult result =
+                    fight(Map.of(UnitType.MOUNTED_ARCHER, 50), List.of(Map.of(SPEARMAN, 100)), 0);
+
+            var battle = result.mainBattle();
+            assertThat(battle.attack()).isEqualTo(5500.0);
+            assertThat(battle.defense()).isEqualTo(2020.0);
+            assertThat(battle.attackerLossRatio()).isCloseTo(0.22258, FIVE_DECIMALS);
+            assertThat(result.attackerLosses()).isEqualTo(Map.of(UnitType.MOUNTED_ARCHER, 11));
+            assertThat(result.defenderLosses()).containsExactly(Map.of(SPEARMAN, 100));
+        }
+
+        @Test
+        void swordsmenHoldBetterAgainstArchers() {
+            // D = 100 × 40 + 20 = 4020
+            BattleResult result =
+                    fight(Map.of(UnitType.MOUNTED_ARCHER, 50), List.of(Map.of(SWORDSMAN, 100)), 0);
+
+            assertThat(result.mainBattle().defense()).isEqualTo(4020.0);
+            assertThat(result.mainBattle().attackerLossRatio()).isCloseTo(0.62488, FIVE_DECIMALS);
+            assertThat(result.attackerLosses()).isEqualTo(Map.of(UnitType.MOUNTED_ARCHER, 31));
+        }
+
+        @Test
+        void footArchersAttackWeakly() {
+            // A = 100 × 15 = 1500 against D = 2020: the spearmen hold and lose (1500/2020)^1.5
+            BattleResult result =
+                    fight(Map.of(UnitType.ARCHER, 100), List.of(Map.of(SPEARMAN, 100)), 0);
+
+            assertThat(result.mainBattle().attackerWon()).isFalse();
+            assertThat(result.mainBattle().defenderLossRatio()).isCloseTo(0.63990, FIVE_DECIMALS);
+            assertThat(result.defenderLosses()).containsExactly(Map.of(SPEARMAN, 64));
+        }
+
+        @Test
+        void aMixedArmySplitsTheDefenceIntoThreeShares() {
+            // Infantry 4000, archers 5500 of 9500: a spearman defends
+            // (15 × 4000 + 20 × 5500) / 9500 = 17.8947…, so D = 1789.47… + 20
+            BattleResult result =
+                    fight(
+                            Map.of(AXEMAN, 100, UnitType.MOUNTED_ARCHER, 50),
+                            List.of(Map.of(SPEARMAN, 100)),
+                            0);
+
+            assertThat(result.mainBattle().attack()).isEqualTo(9500.0);
+            assertThat(result.mainBattle().defense())
+                    .isCloseTo(17_000_000.0 / 9500 + 20, FIVE_DECIMALS);
+            assertThat(result.attackerLosses())
+                    .isEqualTo(Map.of(AXEMAN, 8, UnitType.MOUNTED_ARCHER, 4));
+        }
+
+        @Test
+        void archersDefendWithTheirInfantryAndCavalryValues() {
+            // no archer attacks, so their weak 5 against archers doesn't count: D = 100 × 50 + 20
+            BattleResult result =
+                    fight(Map.of(AXEMAN, 100), List.of(Map.of(UnitType.ARCHER, 100)), 0);
+
+            assertThat(result.mainBattle().defense()).isEqualTo(5020.0);
+            assertThat(result.mainBattle().attackerWon()).isFalse();
+            assertThat(result.defenderLosses()).containsExactly(Map.of(UnitType.ARCHER, 71));
+        }
+
+        @Test
+        void withoutArchersInTheAttackTheBattleIsAsBefore() {
+            // the rulebook's mixed army (§8) fights exactly as before 1.6 against archers' values
+            BattleResult result =
+                    fight(
+                            Map.of(AXEMAN, 100, LIGHT_CAVALRY, 50),
+                            List.of(Map.of(SPEARMAN, 100, SWORDSMAN, 100)),
+                            0);
+
+            assertThat(result.mainBattle().defense()).isEqualTo(6220.0);
         }
     }
 
@@ -941,7 +1034,7 @@ class CombatTest {
             var attacker = new EnumMap<UnitType, Integer>(Map.of(AXEMAN, 5, RAM, 0));
             var stack = new EnumMap<UnitType, Integer>(Map.of(SPEARMAN, 0));
 
-            var input = new BattleInput(attacker, List.of(stack), 0, null, 0, 0);
+            var input = BattleInput.attack(attacker).defenders(List.of(stack)).build();
             attacker.put(AXEMAN, 99);
 
             assertThat(input.attacker()).isEqualTo(Map.of(AXEMAN, 5));
@@ -951,25 +1044,74 @@ class CombatTest {
         }
 
         @Test
+        void whatTheBuilderLeavesOutIsTheNeutralBattle() {
+            // the battle setup (1.6): nobody defending, wall 0, luck 0, no levels, banners,
+            // standards, night bonus or morale; levels and standards default to none for each stack
+            var stacks = List.of(Map.of(SPEARMAN, 10), Map.of(SWORDSMAN, 5));
+
+            assertThat(BattleInput.attack(Map.of(AXEMAN, 10)).defenders(stacks).build())
+                    .isEqualTo(
+                            new BattleInput(
+                                    Map.of(AXEMAN, 10),
+                                    stacks,
+                                    0,
+                                    null,
+                                    0,
+                                    0,
+                                    UnitLevels.NONE,
+                                    List.of(UnitLevels.NONE, UnitLevels.NONE),
+                                    0,
+                                    0,
+                                    StandardEffect.NONE,
+                                    List.of(StandardEffect.NONE, StandardEffect.NONE),
+                                    1,
+                                    1));
+            assertThat(BattleInput.attack(Map.of(AXEMAN, 10)).build().defenderStacks()).isEmpty();
+            assertThat(
+                            BattleInput.attack(Map.of(AXEMAN, 10))
+                                    .defender(Map.of(SPEARMAN, 10))
+                                    .build())
+                    .isEqualTo(
+                            BattleInput.attack(Map.of(AXEMAN, 10))
+                                    .defenders(List.of(Map.of(SPEARMAN, 10)))
+                                    .build());
+        }
+
+        @Test
         void invalidInputsAreRejected() {
             var axemen = Map.of(AXEMAN, 10);
             var catapults = Map.of(CATAPULT, 10);
             var noStacks = List.<Map<UnitType, Integer>>of();
 
-            assertInvalid(() -> new BattleInput(Map.of(), noStacks, 0, null, 0, 0));
-            assertInvalid(() -> new BattleInput(Map.of(AXEMAN, 0), noStacks, 0, null, 0, 0));
-            assertInvalid(() -> new BattleInput(Map.of(AXEMAN, -1), noStacks, 0, null, 0, 0));
-            assertInvalid(() -> new BattleInput(axemen, List.of(Map.of(SCOUT, -1)), 0, null, 0, 0));
-            assertInvalid(() -> new BattleInput(axemen, noStacks, -1, null, 0, 0));
-            assertInvalid(() -> new BattleInput(catapults, noStacks, 0, null, 0, 0));
-            assertInvalid(() -> new BattleInput(axemen, noStacks, 0, null, 3, 0));
-            assertInvalid(() -> new BattleInput(catapults, noStacks, 5, BuildingType.WALL, 4, 0));
+            assertInvalid(() -> BattleInput.attack(Map.of()).defenders(noStacks).build());
+            assertInvalid(() -> BattleInput.attack(Map.of(AXEMAN, 0)).defenders(noStacks).build());
+            assertInvalid(() -> BattleInput.attack(Map.of(AXEMAN, -1)).defenders(noStacks).build());
+            assertInvalid(
+                    () -> BattleInput.attack(axemen).defenders(List.of(Map.of(SCOUT, -1))).build());
+            assertInvalid(() -> BattleInput.attack(axemen).defenders(noStacks).wall(-1).build());
+            assertInvalid(() -> BattleInput.attack(catapults).defenders(noStacks).build());
             assertInvalid(
                     () ->
-                            new BattleInput(
-                                    catapults, noStacks, 0, BuildingType.HEADQUARTERS, -1, 0));
-            assertInvalid(() -> new BattleInput(axemen, noStacks, 0, null, 0, 1.01));
-            assertInvalid(() -> new BattleInput(axemen, noStacks, 0, null, 0, Double.NaN));
+                            BattleInput.attack(axemen)
+                                    .defenders(noStacks)
+                                    .catapults(null, 3)
+                                    .build());
+            assertInvalid(
+                    () ->
+                            BattleInput.attack(catapults)
+                                    .defenders(noStacks)
+                                    .wall(5)
+                                    .catapults(BuildingType.WALL, 4)
+                                    .build());
+            assertInvalid(
+                    () ->
+                            BattleInput.attack(catapults)
+                                    .defenders(noStacks)
+                                    .catapults(BuildingType.HEADQUARTERS, -1)
+                                    .build());
+            assertInvalid(() -> BattleInput.attack(axemen).defenders(noStacks).luck(1.01).build());
+            assertInvalid(
+                    () -> BattleInput.attack(axemen).defenders(noStacks).luck(Double.NaN).build());
         }
 
         private void assertInvalid(Runnable create) {
@@ -987,7 +1129,8 @@ class CombatTest {
             List<Map<UnitType, Integer>> stacks,
             int wall,
             double luck) {
-        return Combat.fight(data, new BattleInput(attacker, stacks, wall, null, 0, luck));
+        return Combat.fight(
+                data, BattleInput.attack(attacker).defenders(stacks).wall(wall).luck(luck).build());
     }
 
     private BattleResult fight(
@@ -998,6 +1141,10 @@ class CombatTest {
             int catapultTargetLevel) {
         return Combat.fight(
                 data,
-                new BattleInput(attacker, stacks, wall, catapultTarget, catapultTargetLevel, 0));
+                BattleInput.attack(attacker)
+                        .defenders(stacks)
+                        .wall(wall)
+                        .catapults(catapultTarget, catapultTargetLevel)
+                        .build());
     }
 }

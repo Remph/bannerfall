@@ -538,6 +538,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* the bell on an outgoing attack (1.6): accent while on, quiet while off */
+.bellOn {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.bellOff {
+  color: var(--color-text-muted);
+}
+
 .coordsLink {
   color: var(--color-accent);
   font-variant-numeric: tabular-nums;

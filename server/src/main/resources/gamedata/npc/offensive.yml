@@ -8,10 +8,11 @@ npc:
         - { name: LATE, troop-share: 0.60 }
       mix:                       # share of the army's population
         EARLY: { SPEARMAN: 30, AXEMAN: 70 }
-        MID: { SPEARMAN: 10, AXEMAN: 45, SCOUT: 5, LIGHT_CAVALRY: 35, RAM: 5 }
-        LATE: { SPEARMAN: 5, AXEMAN: 35, SCOUT: 3, LIGHT_CAVALRY: 35, HEAVY_CAVALRY: 7, RAM: 10, CATAPULT: 5 }
-      farm-units: [LIGHT_CAVALRY, AXEMAN]
-      attack-units: [AXEMAN, LIGHT_CAVALRY, HEAVY_CAVALRY, RAM, CATAPULT]   # conquest trains leave the catapults home (§6.6)
+        # MOUNTED_ARCHER counts only in a world with archers (1.6, 09 §5.3); without it the mix renormalizes to before
+        MID: { SPEARMAN: 10, AXEMAN: 45, SCOUT: 5, LIGHT_CAVALRY: 35, RAM: 5, MOUNTED_ARCHER: 10 }
+        LATE: { SPEARMAN: 5, AXEMAN: 35, SCOUT: 3, LIGHT_CAVALRY: 35, HEAVY_CAVALRY: 7, RAM: 10, CATAPULT: 5, MOUNTED_ARCHER: 12 }
+      farm-units: [LIGHT_CAVALRY, MOUNTED_ARCHER, AXEMAN]
+      attack-units: [AXEMAN, LIGHT_CAVALRY, MOUNTED_ARCHER, HEAVY_CAVALRY, RAM, CATAPULT]   # conquest trains leave the catapults home (§6.6)
       support-units: [SPEARMAN, SWORDSMAN, HEAVY_CAVALRY]
       home-guard: 0.15
       support-share: 0.0

@@ -4,12 +4,10 @@ import de.bannerfall.banner.VillageBanners;
 import de.bannerfall.building.BuildOrder;
 import de.bannerfall.building.BuildOrderDto;
 import de.bannerfall.building.BuildService;
-import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.ResourceType;
 import de.bannerfall.movement.MovementRepository;
 import de.bannerfall.recruit.RecruitOrder;
 import de.bannerfall.rules.BannerEffect;
-import de.bannerfall.rules.Population;
 import de.bannerfall.unit.UnitService;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
@@ -110,7 +108,7 @@ public class VillageService {
                 villageBanners.hidingCapacity(village),
                 new VillageDto.PopulationDto(
                         buildService.populationUsed(village, queue, units.all()),
-                        Population.farmCapacity(buildings.get(BuildingType.FARM))),
+                        BuildService.farmCapacity(village, queue)),
                 buildings.toMap(),
                 queue.stream().map(BuildOrderDto::of).toList(),
                 units.home().toMap(),

@@ -57,10 +57,18 @@ public final class Loyalty {
     public static double afterNobles(double loyalty, int nobles, RandomSource random, double oath) {
         double result = loyalty;
         for (int i = 0; i < nobles; i++) {
-            int hit = random.nextInt(MIN_HIT, MAX_HIT);
-            result -= oath == 0 ? hit : Math.round(hit * (1 - oath));
+            result -= hit(random.nextInt(MIN_HIT, MAX_HIT), oath);
         }
         return result;
+    }
+
+    /**
+     * One noble's hit after the Oath banner (02-game-rules §21.2): {@code round(hit × (1 − oath))},
+     * the plain hit without one. The simulator's loyalty outlook uses it for the weakest and the
+     * strongest hit.
+     */
+    public static long hit(int hit, double oath) {
+        return oath == 0 ? hit : Math.round(hit * (1 - oath));
     }
 
     /** At 0 or below the village changes owner. */

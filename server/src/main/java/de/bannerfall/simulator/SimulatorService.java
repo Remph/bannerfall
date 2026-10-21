@@ -93,12 +93,8 @@ public class SimulatorService {
         boolean bannersOn = worldService.settings().bannersEnabled();
         double attackBonus = bannersOn ? effect(BannerType.WAR, request.warTier()) : 0;
         double defenceBonus =
-                bannersOn
-                        ? effect(
-                                BannerType.BULWARK,
-                                BannerRules.effectiveTier(
-                                        request.bulwarkTier() == null ? 0 : request.bulwarkTier(),
-                                        hall))
+                bannersOn && positive(request.bulwarkTier())
+                        ? banners.flying(BannerType.BULWARK, request.bulwarkTier(), hall).bonus()
                         : 0;
         // a village flies one banner (§21.1): the attack brings War or Plunder, the target has
         // Bulwark or Oath
@@ -110,11 +106,8 @@ public class SimulatorService {
         }
         double plunderBonus = bannersOn ? effect(BannerType.PLUNDER, request.plunderTier()) : 0;
         double oathBonus =
-                bannersOn
-                        ? effect(
-                                BannerType.OATH,
-                                BannerRules.effectiveTier(
-                                        request.oathTier() == null ? 0 : request.oathTier(), hall))
+                bannersOn && positive(request.oathTier())
+                        ? banners.flying(BannerType.OATH, request.oathTier(), hall).bonus()
                         : 0;
         int thieves = attacker.getOrDefault(UnitType.BANNER_THIEF, 0);
         boolean theft = bannersOn && thieves > 0;
@@ -147,26 +140,32 @@ public class SimulatorService {
                 Boolean.TRUE.equals(request.night()) && worldService.settings().nightBonusEnabled()
                         ? worldService.settings().nightBonusFactor()
                         : 1;
+        // morale (1.6, §8.2) as the player enters it, in percent; never below the world's floor,
+        // which no real battle goes under
+        double morale =
+                request.morale() != null && worldService.settings().moraleEnabled()
+                        ? Math.max(request.morale(), worldService.settings().moraleFloor()) / 100.0
+                        : 1;
 
         double luckRange = worldService.settings().luckRange();
         List<Double> lucks = luckRange > 0 ? List.of(-luckRange, 0.0, luckRange) : List.of(0.0);
         List<SimulationDto.Scenario> scenarios = new ArrayList<>();
         for (double luck : lucks) {
             BattleInput input =
-                    new BattleInput(
-                            attacker,
-                            List.of(defender),
-                            wall,
-                            target,
-                            targetLevel,
-                            luck,
-                            attackerLevels,
-                            List.of(defenderLevels),
-                            attackBonus,
-                            defenceBonus,
-                            attackStandard,
-                            List.of(defenceStandard),
-                            nightFactor);
+                    BattleInput.attack(attacker)
+                            .defender(defender)
+                            .wall(wall)
+                            .catapults(target, targetLevel)
+                            .luck(luck)
+                            .attackerLevels(attackerLevels)
+                            .defenderLevels(List.of(defenderLevels))
+                            .attackBonus(attackBonus)
+                            .defenceBonus(defenceBonus)
+                            .attackerStandard(attackStandard)
+                            .defenderStandards(List.of(defenceStandard))
+                            .nightFactor(nightFactor)
+                            .morale(morale)
+                            .build();
             BattleResult result = Combat.fight(gameData, input);
             scenarios.add(
                     scenario(
@@ -186,7 +185,8 @@ public class SimulatorService {
                 oathBonus,
                 standardDto(attackStandard),
                 standardDto(defenceStandard),
-                nightFactor);
+                nightFactor,
+                morale);
     }
 
     /**
@@ -211,9 +211,10 @@ public class SimulatorService {
         if (units.getOrDefault(UnitType.PALADIN, 0) == 0) {
             return StandardEffect.NONE;
         }
-        int effective =
-                BannerRules.standardTier(tier, levels.get(UnitType.PALADIN), Math.max(0, hall));
-        return new StandardEffect(type, tier, effective, effect(type, effective));
+        return banners.standard(
+                type,
+                tier,
+                BannerRules.standardTier(tier, levels.get(UnitType.PALADIN), Math.max(0, hall)));
     }
 
     private static SimulationDto.Standard standardDto(StandardEffect standard) {
@@ -236,16 +237,13 @@ public class SimulatorService {
         }
         int sent = input.defenderStacks().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
         int survived = sent - result.defenderLosses().get(0).getOrDefault(UnitType.BANNER_THIEF, 0);
-        BannerCatalog.Theft rules = banners.theft();
         return new SimulationDto.Theft(
                 sent,
                 survived,
-                BannerRules.theftChance(
-                        survived,
-                        0,
-                        rules.perThief(input.defenderLevels().get(0).get(UnitType.BANNER_THIEF)),
-                        rules.maxChance(),
-                        0));
+                banners.theft()
+                        .standardChance(
+                                survived,
+                                input.defenderLevels().get(0).get(UnitType.BANNER_THIEF)));
     }
 
     private static boolean positive(Integer tier) {
@@ -278,16 +276,11 @@ public class SimulatorService {
                 input.catapultTarget() == BuildingType.BANNER_HALL
                         ? result.catapultTargetLevelAfter()
                         : hallBefore;
-        BannerCatalog.Theft rules = banners.theft();
         return new SimulationDto.Theft(
                 sent,
                 survived,
-                BannerRules.theftChance(
-                        survived,
-                        hall,
-                        rules.perThief(input.attackerLevels().get(UnitType.BANNER_THIEF)),
-                        rules.maxChance(),
-                        rules.hallReductionPerLevel()));
+                banners.theft()
+                        .chance(survived, hall, input.attackerLevels().get(UnitType.BANNER_THIEF)));
     }
 
     private SimulationDto.Scenario scenario(
@@ -356,8 +349,8 @@ public class SimulatorService {
         if (!result.attackerWon() || nobles == 0) {
             return null;
         }
-        long weakest = (long) nobles * hit(Loyalty.MIN_HIT, oath);
-        long strongest = (long) nobles * hit(Loyalty.MAX_HIT, oath);
+        long weakest = nobles * Loyalty.hit(Loyalty.MIN_HIT, oath);
+        long strongest = nobles * Loyalty.hit(Loyalty.MAX_HIT, oath);
         SimulationDto.Conquest conquered =
                 loyalty - weakest <= 0
                         ? SimulationDto.Conquest.YES
@@ -370,11 +363,6 @@ public class SimulatorService {
                 (int) Math.max(0, loyalty - weakest),
                 (int) Math.max(0, loyalty - strongest),
                 conquered);
-    }
-
-    /** One noble's hit after the Oath, rounded like a real one. */
-    private static long hit(int hit, double oath) {
-        return oath == 0 ? hit : Math.round(hit * (1 - oath));
     }
 
     /** A side's levels; with unit levels off only those of the Banner Hall's units (1.4). */

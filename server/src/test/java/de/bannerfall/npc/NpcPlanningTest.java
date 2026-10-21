@@ -13,6 +13,8 @@ import de.bannerfall.npc.NpcPlanning.Exchange;
 import de.bannerfall.npc.NpcPlanning.Kind;
 import de.bannerfall.npc.NpcPlanning.Next;
 import de.bannerfall.rules.BuildRules;
+import de.bannerfall.rules.NobleRules;
+import de.bannerfall.rules.Storage;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -330,6 +332,8 @@ class NpcPlanningTest {
 
     // ---- nobles (§5.1, 5) ----
 
+    private static final ResourceAmounts NOBLE = DATA.unit(UnitType.NOBLE).cost();
+
     @Test
     void aVillageThatWantsNoblesSavesForOneWithTheWarehouseAndFarmRules() {
         var levels = start();
@@ -338,23 +342,46 @@ class NpcPlanningTest {
         levels.put(BuildingType.FARM, 20);
 
         // a warehouse at 10 can't hold the 50,000 clay of a noble
-        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000))
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000, NOBLE))
                 .isEqualTo(Next.build(BuildingType.WAREHOUSE));
         // already queued: wait for it
         var queued = new EnumMap<>(levels);
         queued.put(BuildingType.WAREHOUSE, 11);
-        assertThat(NpcPlanning.nextNoble(queued, levels, DATA, 10_000).kind()).isEqualTo(Kind.WAIT);
+        assertThat(NpcPlanning.nextNoble(queued, levels, DATA, 10_000, NOBLE).kind())
+                .isEqualTo(Kind.WAIT);
 
         // a warehouse at 20 holds it; a full farm comes first
         levels.put(BuildingType.WAREHOUSE, 20);
-        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 50))
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 50, NOBLE))
                 .isEqualTo(Next.build(BuildingType.FARM));
         // room for its 100 population and 10 % of the farm: the noble
-        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000).kind())
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000, NOBLE).kind())
                 .isEqualTo(Kind.NOBLE);
         // a farm at its max level doesn't stop it
         levels.put(BuildingType.FARM, DATA.building(BuildingType.FARM).maxLevel());
-        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 50).kind()).isEqualTo(Kind.NOBLE);
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 50, NOBLE).kind())
+                .isEqualTo(Kind.NOBLE);
+    }
+
+    @Test
+    void aDearerNobleOfALordWithManyVillagesNeedsABiggerWarehouse() {
+        var levels = start();
+        levels.put(BuildingType.ACADEMY, 1);
+        levels.put(BuildingType.WAREHOUSE, 20);
+        levels.put(BuildingType.FARM, 20);
+        // rank 4 at step 0.25: twice the price, 100,000 clay don't fit a warehouse at 20
+        ResourceAmounts dearer = NobleRules.price(NOBLE, 0.25, 4);
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000, dearer))
+                .isEqualTo(Next.build(BuildingType.WAREHOUSE));
+        // the highest price (7×, 350,000 clay) fits a warehouse at its max level
+        levels.put(BuildingType.WAREHOUSE, DATA.building(BuildingType.WAREHOUSE).maxLevel());
+        ResourceAmounts highest = NobleRules.price(NOBLE, 1, 100);
+        assertThat(NpcPlanning.nextNoble(levels, levels, DATA, 10_000, highest).kind())
+                .isEqualTo(Kind.NOBLE);
+        assertThat(highest.clay())
+                .isLessThanOrEqualTo(
+                        Storage.warehouseCapacity(
+                                DATA.building(BuildingType.WAREHOUSE).maxLevel()));
     }
 
     // ---- the market exchange (v1.3, §5.4) ----

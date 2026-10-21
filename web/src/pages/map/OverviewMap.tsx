@@ -30,7 +30,7 @@ import {
 } from '../../game/mapView';
 import { guildColor, guildsInView, type MapLayer } from '../../game/politicalMap';
 import { useT } from '../../i18n';
-import { useEffectiveTheme } from '../../theme/useEffectiveTheme';
+import { useEffectiveTheme, usePalette } from '../../theme/useEffectiveTheme';
 import styles from './MapPage.module.css';
 import { readMapColors } from './mapDraw';
 import { loadMapLayer, saveMapLayer } from './mapLayerStorage';
@@ -81,6 +81,7 @@ export function OverviewMap(props: OverviewMapProps) {
   const { centre, onCentreChange, camera, cameraSize, mapSize, ownPlayerId, currentVillage, variant } = props;
   const t = useT();
   const theme = useEffectiveTheme();
+  const palette = usePalette(); // only a trigger for the redraw, like `theme`
   const pixelRatio = useDevicePixelRatio();
   const [size, setSize] = useState<Size | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -137,7 +138,7 @@ export function OverviewMap(props: OverviewMapProps) {
       layer,
       theme,
     });
-  }, [overview, size, pixelRatio, mapSize, map.villages, ownPlayerId, currentVillage, view, theme, layer]);
+  }, [overview, size, pixelRatio, mapSize, map.villages, ownPlayerId, currentVillage, view, theme, palette, layer]);
 
   // The detailed map went somewhere the overview doesn't show (go to, centre, panned far): follow
   // it. Only on changes of the camera – the player may move the overview away on purpose.

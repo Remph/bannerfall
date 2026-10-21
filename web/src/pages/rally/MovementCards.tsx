@@ -1,13 +1,20 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
-import { useCancelMovement, type IncomingMovement, type Movement, type VillageRef } from '../../api/queries/troops';
+import {
+  useCancelMovement,
+  useSetReturnPush,
+  type IncomingMovement,
+  type Movement,
+  type VillageRef,
+} from '../../api/queries/troops';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Countdown } from '../../components/Countdown';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon, type IconName } from '../../components/Icon';
+import { IconButton } from '../../components/IconButton';
 import { Sheet } from '../../components/Sheet';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatFactor, formatWhenExact } from '../../game/format';
@@ -15,6 +22,7 @@ import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { canCancel, travelProgress, type MovementKind, type UnitMap } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
+import { useOffersReturnPush } from '../../push/returnChoice';
 import styles from './RallyPage.module.css';
 import { mapPath } from './rallyPaths';
 import { villageLabel } from './villageLabel';
@@ -25,12 +33,14 @@ const movementIcons: Record<MovementKind, IconName> = { ATTACK: 'troops', SUPPOR
 /**
  * Attacks and supports this village has sent that are still on the way, next first. A command can
  * be cancelled for a short while after it left (the button shows how long), after a confirmation;
- * the troops then turn around.
+ * the troops then turn around. An attack has a bell (1.6) for "notify me when they're back".
  */
 export function OutgoingCard({ villageId, movements }: { villageId: number; movements: readonly Movement[] }) {
   const t = useT();
   const now = useGameNow();
   const cancel = useCancelMovement(villageId);
+  const returnPush = useSetReturnPush(villageId);
+  const offersReturnPush = useOffersReturnPush();
   const night = useWorld().data?.nightBonus;
   const [confirming, setConfirming] = useState<Movement | null>(null);
   // The error itself, not its text: the message is translated while rendering (language switch).
@@ -70,22 +80,37 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
                   : null
               }
               action={
-                // disappears on the second the window closes (cancellableUntil is exclusive)
-                movement.cancellableUntil !== null && canCancel(movement, now) ? (
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="small"
-                    disabled={cancel.isPending}
-                    onClick={() => setConfirming(movement)}
-                  >
-                    {t.rally.cancel}
-                    <span className="sr-only">
-                      {' '}
-                      ({t.rally.outgoing[movement.kind]} {villageLabel(t, movement.targetVillage)})
-                    </span>{' '}
-                    <Countdown until={movement.cancellableUntil} />
-                  </Button>
+                (movement.kind === 'ATTACK' && offersReturnPush) ||
+                (movement.cancellableUntil !== null && canCancel(movement, now)) ? (
+                  <>
+                    {movement.kind === 'ATTACK' && offersReturnPush && (
+                      <ReturnBell
+                        movement={movement}
+                        pending={returnPush.isPending && returnPush.variables.movementId === movement.id}
+                        onChange={(on) => {
+                          setError(null);
+                          returnPush.mutate({ movementId: movement.id, on }, { onError: setError });
+                        }}
+                      />
+                    )}
+                    {/* disappears on the second the window closes (cancellableUntil is exclusive) */}
+                    {movement.cancellableUntil !== null && canCancel(movement, now) && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="small"
+                        disabled={cancel.isPending}
+                        onClick={() => setConfirming(movement)}
+                      >
+                        {t.rally.cancel}
+                        <span className="sr-only">
+                          {' '}
+                          ({t.rally.outgoing[movement.kind]} {villageLabel(t, movement.targetVillage)})
+                        </span>{' '}
+                        <Countdown until={movement.cancellableUntil} />
+                      </Button>
+                    )}
+                  </>
                 ) : undefined
               }
             />
@@ -114,6 +139,32 @@ export function OutgoingCard({ villageId, movements }: { villageId: number; move
         )}
       </Sheet>
     </Card>
+  );
+}
+
+/**
+ * The bell on an outgoing attack (1.6): lit while the player gets told when the troops are home,
+ * quiet while not; a tap switches it.
+ */
+function ReturnBell({
+  movement,
+  pending,
+  onChange,
+}: {
+  movement: Movement;
+  pending: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  const t = useT();
+  return (
+    <IconButton
+      icon="bell"
+      label={t.rally.notifyReturnFor(`${t.rally.outgoing[movement.kind]} ${villageLabel(t, movement.targetVillage)}`)}
+      aria-pressed={movement.notifyReturn}
+      className={movement.notifyReturn ? styles.bellOn : styles.bellOff}
+      disabled={pending}
+      onClick={() => onChange(!movement.notifyReturn)}
+    />
   );
 }
 

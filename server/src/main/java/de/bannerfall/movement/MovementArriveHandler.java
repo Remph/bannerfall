@@ -35,7 +35,8 @@ import org.springframework.stereotype.Component;
  *   <li>SUPPORT: the units join (or create) the stack of their home village in the target, both
  *       owners get a SUPPORT_ARRIVED report and notification;
  *   <li>RETURN: the units join the home stack, the loot is received like incoming resources; the
- *       owner is notified (VILLAGE_UPDATED);
+ *       owner is notified (VILLAGE_UPDATED), and told if he asked to be ({@link
+ *       ReturnWatchService});
  *   <li>ATTACK: the battle ({@link BattleService#resolve}). An attack on a village that belongs to
  *       its sender by now (he conquered it meanwhile, e.g. with an earlier noble) doesn't fight his
  *       own units: it arrives like a support.
@@ -58,6 +59,7 @@ class MovementArriveHandler implements GameEventHandler {
     private final VillageBanners villageBanners;
     private final ReportService reportService;
     private final ApplicationEventPublisher events;
+    private final ReturnWatchService returnWatches;
 
     MovementArriveHandler(
             MovementRepository movements,
@@ -68,7 +70,8 @@ class MovementArriveHandler implements GameEventHandler {
             BattleService battleService,
             VillageBanners villageBanners,
             ReportService reportService,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            ReturnWatchService returnWatches) {
         this.movements = movements;
         this.stacks = stacks;
         this.locker = locker;
@@ -78,6 +81,7 @@ class MovementArriveHandler implements GameEventHandler {
         this.villageBanners = villageBanners;
         this.reportService = reportService;
         this.events = events;
+        this.returnWatches = returnWatches;
     }
 
     @Override
@@ -120,6 +124,8 @@ class MovementArriveHandler implements GameEventHandler {
             case RETURN -> returnArrived(movement);
             case ATTACK -> {
                 if (attacksOwnVillage(movement)) {
+                    // the units stay there as a support: nothing comes back
+                    returnWatches.dropped(movement);
                     supportArrived(movement, at);
                 } else {
                     battleService.resolve(movement, at);
@@ -172,6 +178,7 @@ class MovementArriveHandler implements GameEventHandler {
         UnitCounts homeUnits = unitService.homeUnits(home.getId());
         back.getUnits().forEach(homeUnits::add);
         home.receiveResources(back.getLoot(), villageBanners.warehouseCapacity(home));
+        returnWatches.arrived(back);
         PlayerNotification.toOwnerOf(
                 home, new GameNotification.VillageUpdated(home.getId()), events);
     }

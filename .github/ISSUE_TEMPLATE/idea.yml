@@ -1,0 +1,29 @@
+name: Idea
+description: A suggestion for the game or for hosting it
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for sharing it! Small ideas are just as welcome as big ones.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: A sketch or a screenshot of a similar game is welcome too.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it make the game better?
+      description: What would you do with it, or what bothers you today?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it belong?
+      options:
+        - The game
+        - Hosting my own server
+        - Something else

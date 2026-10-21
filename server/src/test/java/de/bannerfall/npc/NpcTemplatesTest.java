@@ -164,6 +164,17 @@ class NpcTemplatesTest {
     }
 
     @Test
+    void aStageOfOnlyArchersFails() {
+        // the archers count only in a world with archers (1.6): without them nothing would be left
+        NpcTemplates.Template base = base();
+        Map<String, Map<UnitType, Integer>> mix = new java.util.HashMap<>(base.mix());
+        mix.put("MID", Map.of(UnitType.ARCHER, 50, UnitType.MOUNTED_ARCHER, 50));
+
+        assertThat(problems(withMix(base, mix)))
+                .contains("BALANCED.mix.MID: needs a unit besides the archers");
+    }
+
+    @Test
     void bannerThievesAreNeverInTheMixOrAUnitList() {
         // lords keep thieves only through the template's `thieves` (09-npc-lords §14.4)
         NpcTemplates.Template base = base();

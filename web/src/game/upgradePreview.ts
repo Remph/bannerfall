@@ -11,6 +11,8 @@ import { whenAffordable, type ResourceSnapshot } from './resources';
 export type UpgradeBlocker =
   /** a Banner Hall while the world has banners switched off (the server says BANNERS_DISABLED, D11) */
   | { kind: 'bannersDisabled' }
+  /** a demolition of the building is queued (1.6): a building has upgrades or demolitions queued, not both */
+  | { kind: 'demolition' }
   /** the requirements of the next level are not met yet (queued levels count) */
   | { kind: 'requirements'; missing: BuildingInfo['missing'] }
   | { kind: 'queueFull' }
@@ -44,6 +46,9 @@ export function upgradeBlocker(
   // only the host switching banners or paladins on again.
   if (info.building === 'BANNER_HALL' && !hallAvailable) {
     return { kind: 'bannersDisabled' };
+  }
+  if (info.queuedLevel < info.level) {
+    return { kind: 'demolition' };
   }
   if (!info.requirementsMet) {
     return { kind: 'requirements', missing: info.missing };

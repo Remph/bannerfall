@@ -16,6 +16,7 @@ import de.bannerfall.MutableClock;
 import de.bannerfall.TestPlayer;
 import de.bannerfall.TestWorldConfiguration;
 import de.bannerfall.common.Coordinates;
+import de.bannerfall.event.EventProcessor;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.village.OwnerChange;
 import de.bannerfall.world.WorldService;
@@ -53,6 +54,7 @@ class FarmFlowTest {
     @Autowired OwnerChange ownerChange;
     @Autowired PlatformTransactionManager transactionManager;
     @Autowired WorldService worldService;
+    @Autowired EventProcessor processor;
 
     private TestPlayer farmer;
     private TestPlayer victim;
@@ -159,7 +161,112 @@ class FarmFlowTest {
                 .andExpect(jsonPath("$[0].protectedUntil").value(until.toString()));
     }
 
+    @Test
+    void aMuchSmallerTargetShowsTheMorale() throws Exception {
+        long id = addOk(victimAt, "{\"AXEMAN\":10}");
+        farmer.browser.get(path(farmer)).andExpect(jsonPath("$[0].morale").value(nullValue()));
+
+        // 0.3 + 3 × 0.1 = 60 % (1.6, 02-game-rules §8.2)
+        setPoints(farmer, 10_000);
+        setPoints(victim, 1_000);
+        farmer.browser
+                .get(path(farmer))
+                .andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(jsonPath("$[0].morale").value(0.6));
+    }
+
+    private void setPoints(TestPlayer player, int points) {
+        jdbc.sql("update player set points = ? where id = ?")
+                .params(points, player.playerId)
+                .update();
+    }
+
     // ---- rules of the list ----
+
+    // ---- the last raid (1.6) ----
+
+    @Test
+    void aLandedAttackShowsItsHaulNextToWhatTheUnitsCanCarry() throws Exception {
+        // nobody defends: the attackers win and take what they can carry
+        jdbc.sql(
+                        "update unit_stack set u_spearman = 0, u_swordsman = 0, u_axeman = 0,"
+                                + " u_scout = 0, u_light_cavalry = 0, u_heavy_cavalry = 0"
+                                + " where home_village_id = ?")
+                .params(victim.villageId)
+                .update();
+        setStock(victim.villageId, 5000);
+        long id = addOk(victimAt, "{\"AXEMAN\":10}");
+        // 10 axemen carry 15 each
+        farmer.browser
+                .get(path(farmer))
+                .andExpect(jsonPath("$[0].haulCapacity").value(150))
+                .andExpect(jsonPath("$[0].lastRaid").value(nullValue()));
+
+        Instant first = sendAndLand(id);
+        farmer.browser
+                .get(path(farmer))
+                .andExpect(jsonPath("$[0].lastRaid.at").value(first.toString()))
+                .andExpect(jsonPath("$[0].lastRaid.won").value(true))
+                .andExpect(jsonPath("$[0].lastRaid.loot").value(150))
+                // they carried all they could: the village had more
+                .andExpect(jsonPath("$[0].lastRaid.full").value(true));
+
+        // an empty village (all below the hiding place): the next raid brings nothing
+        Instant second = sendAndLand(id, 0);
+        farmer.browser
+                .get(path(farmer))
+                .andExpect(jsonPath("$[0].lastRaid.at").value(second.toString()))
+                .andExpect(jsonPath("$[0].lastRaid.won").value(true))
+                .andExpect(jsonPath("$[0].lastRaid.loot").value(0))
+                .andExpect(jsonPath("$[0].lastRaid.full").value(false));
+    }
+
+    @Test
+    void aLostRaidShowsAsLost() throws Exception {
+        jdbc.sql("update unit_stack set u_spearman = 1000 where home_village_id = ?")
+                .params(victim.villageId)
+                .update();
+        long id = addOk(victimAt, "{\"AXEMAN\":10}");
+
+        sendAndLand(id);
+
+        farmer.browser
+                .get(path(farmer))
+                .andExpect(jsonPath("$[0].lastRaid.won").value(false))
+                .andExpect(jsonPath("$[0].lastRaid.loot").value(0))
+                .andExpect(jsonPath("$[0].lastRaid.full").value(false));
+    }
+
+    /** Sends the entry and lets the attack land; when it landed. */
+    private Instant sendAndLand(long id) throws Exception {
+        return sendAndLand(id, null);
+    }
+
+    /** The same with the target's stock set to {@code stock} of each just before it lands. */
+    private Instant sendAndLand(long id, Integer stock) throws Exception {
+        String sent =
+                body(
+                        farmer.browser
+                                .post(path(farmer) + "/" + id + "/send", "")
+                                .andExpect(status().isCreated()));
+        Instant at = Instant.parse(JsonPath.read(sent, "$.arriveAt"));
+        clock.set(at);
+        if (stock != null) {
+            setStock(victim.villageId, stock);
+        }
+        processor.processDue(at);
+        return at;
+    }
+
+    private void setStock(long villageId, int each) {
+        jdbc.sql(
+                        "update village set wood = :each, clay = :each, iron = :each,"
+                                + " resources_updated_at = :now where id = :id")
+                .param("each", each)
+                .param("now", Timestamp.from(clock.instant()))
+                .param("id", villageId)
+                .update();
+    }
 
     @Test
     void theTemplateIsChecked() throws Exception {
@@ -569,8 +676,10 @@ class FarmFlowTest {
 
     private void removeBarbarians(Placed... placed) {
         for (Placed village : placed) {
-            jdbc.sql("delete from movement where target_village_id = ?")
-                    .param(village.id())
+            jdbc.sql(
+                            "delete from movement where target_village_id = :id"
+                                    + " or source_village_id = :id")
+                    .param("id", village.id())
                     .update();
             jdbc.sql("delete from village where id = ?").param(village.id()).update();
         }

@@ -147,8 +147,8 @@ public final class Combat {
 
     /** 02-game-rules §8; null if the attackers have no attack strength (only scouts). */
     private static BattleResult.MainBattle mainBattle(GameData data, BattleInput input) {
-        double infantry = 0;
-        double cavalry = 0;
+        // the attack strength per class (infantry, cavalry, archers since 1.6)
+        var byClass = new EnumMap<AttackType, Double>(AttackType.class);
         StandardEffect attackStandard = input.attackerStandard();
         for (var entry : input.attacker().entrySet()) {
             UnitDef unit = data.unit(entry.getKey());
@@ -160,37 +160,40 @@ public final class Combat {
             if (standard > 0) {
                 strength *= 1 + standard;
             }
-            if (unit.attackType() == AttackType.CAVALRY) {
-                cavalry += strength;
-            } else {
-                infantry += strength;
-            }
+            byClass.merge(unit.attackType(), strength, Double::sum);
         }
-        if (infantry + cavalry == 0) {
+        double total = 0;
+        for (double strength : byClass.values()) {
+            total += strength;
+        }
+        if (total == 0) {
             return null;
         }
 
-        double total = infantry + cavalry;
-        // 02-game-rules §21.2: the War banner on top of luck, A × (1 + luck) × (1 + b)
-        double attack = total * (1 + input.luck()) * (1 + input.attackBonus());
+        // 02-game-rules §21.2: the War banner on top of luck, A × (1 + luck) × (1 + b), then
+        // morale (§8.2), which only ever weakens the attack
+        double attack = total * (1 + input.luck()) * (1 + input.attackBonus()) * input.morale();
 
         int rams =
                 BannerRules.boosted(
                         input.attacker().getOrDefault(UnitType.RAM, 0), attackStandard.rams());
         int effectiveWall = Siege.wallAfterRams(input.wallLevel(), rams / 2);
-        // count × (defInf × shareInf + defCav × shareCav), summed over whole numbers and divided
-        // once at the end: the shares (e.g. 0.4) aren't exact doubles, this way D is exact
-        // whenever the rulebook's value is, so ties and x.5 losses come out as calculated by hand.
+        // count × (defInf × shareInf + defCav × shareCav + defArch × shareArch), summed over whole
+        // numbers and divided once at the end: the shares (e.g. 0.4) aren't exact doubles, this way
+        // D is exact whenever the rulebook's value is, so ties and x.5 losses come out as
+        // calculated by hand. Without archers in the attack there is no archer term and D is what
+        // it always was.
         double weighted = 0;
         for (int i = 0; i < input.defenderStacks().size(); i++) {
             UnitLevels levels = input.defenderLevels().get(i);
             StandardEffect standard = input.defenderStandards().get(i);
             for (var entry : input.defenderStacks().get(i).entrySet()) {
                 UnitStats stats = data.unit(entry.getKey()).stats(levels.get(entry.getKey()));
-                double defence =
-                        entry.getValue()
-                                * (stats.defenseInfantry() * infantry
-                                        + stats.defenseCavalry() * cavalry);
+                double perUnit = 0;
+                for (var attackClass : byClass.entrySet()) {
+                    perUnit += stats.defenseAgainst(attackClass.getKey()) * attackClass.getValue();
+                }
+                double defence = entry.getValue() * perUnit;
                 // the stack's own paladin standard for the units it covers (§21.18)
                 double bonus = standard.defence(entry.getKey());
                 weighted += bonus > 0 ? defence * (1 + bonus) : defence;

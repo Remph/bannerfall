@@ -26,6 +26,12 @@ import java.util.Map;
  *     can win one (not scouts alone, against barbarians at least {@code drops.minLoserPop}
  *     population). The entries "Send banner chances" sends.
  * @param note the player's own note on the target village (1.4, 02-game-rules §23), null without
+ * @param morale the attack's morale with today's points (1.6, 02-game-rules §8.2), like the command
+ *     preview's: null at full strength and at barbarians
+ * @param haulCapacity what the units can carry home at most, the list village's Plunder banner
+ *     included (1.6): the most one attack can bring
+ * @param lastRaid the latest attack from the village at the target that landed (1.6), null before
+ *     the first
  */
 public record FarmTargetDto(
         long id,
@@ -38,4 +44,7 @@ public record FarmTargetDto(
         @Schema(nullable = true) Instant lastSentAt,
         @Schema(nullable = true) Instant nextBannerRollAt,
         boolean bannerChance,
-        @Schema(nullable = true) String note) {}
+        @Schema(nullable = true) String note,
+        @Schema(nullable = true) Double morale,
+        int haulCapacity,
+        @Schema(nullable = true) FarmRaidDto lastRaid) {}

@@ -1,8 +1,12 @@
 import type { ReactNode, SVGProps } from 'react';
+import { useIconStyle } from './iconStyle';
+import { MEDIEVAL_FILLS, MEDIEVAL_ICONS } from './medievalIcons';
 
 /**
- * Hand-made icons (05-frontend §8). Line icons use `currentColor`, so they take the text colour of
- * their parent; the three resource icons have fixed colours. Each entry: viewBox size + drawing.
+ * The classic icons, hand-made for Bannerfall (05-frontend §8). Line icons use `currentColor`, so they
+ * take the text colour of their parent; the three resource icons have fixed colours. Each entry:
+ * viewBox size + drawing. Since 1.6 the medieval silhouettes in `medievalIcons.ts` replace most of
+ * them, unless the player picks the classic icons in the settings.
  */
 const stroke = {
   fill: 'none',
@@ -213,6 +217,31 @@ const icons = {
       <path d="M1 7 H4.5 M1.5 10 H4 M2 13 H3.5" {...stroke} strokeWidth={1.2} />
     </>,
   ],
+  // 1.6: a drawn bow with its arrow
+  ARCHER: [
+    16,
+    <>
+      <path d="M5 1.8 C11 4 11 12 5 14.2" {...stroke} />
+      <path d="M5 1.8 V14.2" {...stroke} strokeWidth={0.9} />
+      <path d="M2 8 H12" {...stroke} strokeWidth={1.3} />
+      <path d="M14.6 8 L11.4 6.2 V9.8 Z" fill="currentColor" />
+      <path d="M2 8 L1 6.6 M2 8 L1 9.4" {...stroke} strokeWidth={1} />
+    </>,
+  ],
+  // 1.6: the light cavalry's horse with a bow beside it
+  MOUNTED_ARCHER: [
+    16,
+    <>
+      <path
+        d="M9.9 14 C10.6 9 9.9 5 7.9 2 L6.9 3.6 C4.9 4.2 2.9 6.5 0.9 8.6 L2 10.6 C3.4 10.6 4.4 10 5.4 9.6 L5.4 14"
+        {...stroke}
+        strokeWidth={1.4}
+      />
+      <circle cx="6" cy="6" r="0.8" fill="currentColor" />
+      <path d="M12.4 3.2 C15.8 5.4 15.8 10.6 12.4 12.8" {...stroke} strokeWidth={1.3} />
+      <path d="M12.4 3.2 V12.8" {...stroke} strokeWidth={0.8} />
+    </>,
+  ],
   shield: [16, <path d="M8 2 L13 4 V8 C13 11 10.5 13 8 14 C5.5 13 3 11 3 8 V4 Z" {...stroke} />],
   pencil: [16, <path d="M3 13 L3.5 10.5 L10.5 3.5 L12.5 5.5 L5.5 12.5 Z" {...stroke} strokeWidth={1.5} />],
   clock: [
@@ -230,7 +259,7 @@ const icons = {
   ],
   troops: [24, <path d="M5 19 L19 5 M19 19 L5 5 M4 16 L8 20 M16 20 L20 16" {...stroke} strokeWidth={2} />],
   /** Troops walking home (a returning movement). */
-  returning: [24, <path d="M19 19 V12 A5 5 0 0 0 14 7 H5 M9 3 L5 7 L9 11" {...stroke} strokeWidth={2} />],
+  returning: [24, <path d="M19 19 V12 A5 5 0 0 0 14 7 H5 M9 3 L5 7 L9 11" {...stroke} strokeWidth={2.4} />],
   chat: [24, <path d="M4 5 H20 V16 H11 L6 20 V16 H4 Z" {...stroke} strokeWidth={2} />],
   /** A letter: private messages. */
   /** A medal on a ribbon: the achievements. */
@@ -348,6 +377,10 @@ const icons = {
       <path d="M8 11 V8 A4 4 0 0 1 16 8 V11" {...stroke} strokeWidth={2} />
     </>,
   ],
+  /** The source code (1.6): angle brackets. */
+  code: [24, <path d="M8 7 L3 12 L8 17 M16 7 L21 12 L16 17 M13.5 5 L10.5 19" {...stroke} strokeWidth={2} />],
+  /** A link that leaves the game (1.6): a box with an arrow pointing out of it. */
+  external: [24, <path d="M14 4 H20 V10 M20 4 L11 13 M18 14 V20 H4 V6 H10" {...stroke} strokeWidth={2} />],
   chevronLeft: [24, <path d="M15 6 L9 12 L15 18" {...stroke} strokeWidth={2} />],
   chevronRight: [24, <path d="M9 6 L15 12 L9 18" {...stroke} strokeWidth={2} />],
   chevronUp: [24, <path d="M6 15 L12 9 L18 15" {...stroke} strokeWidth={2} />],
@@ -360,6 +393,14 @@ const icons = {
   /** Sending a report to other players (M40): a paper plane. */
   send: [24, <path d="M3.5 11 L20.5 3.5 L13 20.5 L11 13 Z M11 13 L20.5 3.5" {...stroke} strokeWidth={1.8} />],
   /** The night bonus (1.4): a crescent. */
+  sack: [
+    16,
+    <path
+      d="M6.2 2.5 H9.8 L8.9 4.6 C11.6 5.6 13.5 8.4 13.5 10.8 C13.5 12.9 11.4 13.8 8 13.8 C4.6 13.8 2.5 12.9 2.5 10.8 C2.5 8.4 4.4 5.6 7.1 4.6 Z M6.6 4.6 H9.4"
+      {...stroke}
+      strokeWidth={1.4}
+    />,
+  ],
   moon: [16, <path d="M10.5 2.5 A5.75 5.75 0 1 0 13.5 11.5 A4.5 4.5 0 0 1 10.5 2.5 Z" {...stroke} strokeWidth={1.4} />],
   /** Push notifications (1.5): a bell. */
   bell: [
@@ -385,8 +426,30 @@ export type IconName = keyof typeof icons;
 
 type IconProps = SVGProps<SVGSVGElement> & { name: IconName };
 
+/** How much of each side of the 512 canvas the medieval icons leave out (1.6), so they fill the em like the classic ones. */
+const MEDIEVAL_CROP = 24;
+
 /** Decorative by default (aria-hidden): put the meaning into text next to it or into an aria-label. */
 export function Icon({ name, ...svgProps }: IconProps) {
+  const style = useIconStyle();
+  const medieval = style === 'medieval' ? MEDIEVAL_ICONS[name] : undefined;
+  if (medieval !== undefined) {
+    // cropped a little: the silhouettes keep a margin on their canvas, the classic icons hardly any
+    return (
+      <svg
+        viewBox={`${MEDIEVAL_CROP} ${MEDIEVAL_CROP} ${512 - 2 * MEDIEVAL_CROP} ${512 - 2 * MEDIEVAL_CROP}`}
+        width="1em"
+        height="1em"
+        overflow="visible"
+        aria-hidden="true"
+        focusable="false"
+        data-icon-style="medieval"
+        {...svgProps}
+      >
+        <path d={medieval} fill={MEDIEVAL_FILLS[name] ?? 'currentColor'} />
+      </svg>
+    );
+  }
   const [size, drawing] = icons[name];
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width="1em" height="1em" aria-hidden="true" focusable="false" {...svgProps}>

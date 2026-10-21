@@ -28,6 +28,7 @@ import de.bannerfall.unit.UnitStack;
 import de.bannerfall.unit.UnitStackRepository;
 import de.bannerfall.village.BuildingLevels;
 import de.bannerfall.village.Village;
+import de.bannerfall.village.VillageLocker;
 import de.bannerfall.village.VillageRefDto;
 import de.bannerfall.village.VillageRepository;
 import de.bannerfall.world.WorldInitializer;
@@ -78,6 +79,8 @@ class NpcLordFlowTest {
     @Autowired ReportService reportService;
     @Autowired GameData gameData;
     @Autowired NpcTemplates templates;
+    @Autowired NpcEconomy economy;
+    @Autowired VillageLocker locker;
     @Autowired PlatformTransactionManager transactionManager;
 
     private TransactionTemplate transaction;
@@ -475,6 +478,42 @@ class NpcLordFlowTest {
         assertThat(recruitOrders(villageId, null)).isPositive(); // the template's units it does
     }
 
+    // ---- archers (1.6, 09 §5.3) ----
+
+    @Test
+    void aDefensiveLordRecruitsArchersOnlyInAWorldWithThem() {
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+        jdbc.sql(
+                        "update npc_brain set personality = 'DEFENSIVE', template = 'DEFENSIVE'"
+                                + " where player_id = ?")
+                .param(lordId)
+                .update();
+        // the archer needs Smithy 5 next to the Barracks 5 of the round
+        jdbc.sql("update village set b_smithy = 5 where id = ?").param(villageId).update();
+
+        // without archers the mix is the one before 1.6: spearmen and swordsmen
+        midStageRound(lordId, villageId, 1000);
+        assertThat(recruitOrders(villageId, UnitType.ARCHER)).isZero();
+        assertThat(recruitOrders(villageId, UnitType.SPEARMAN)).isPositive();
+
+        setArchers(true);
+        try {
+            jdbc.sql("delete from recruit_order where village_id = ?").param(villageId).update();
+            clock.advance(Duration.ofMinutes(30));
+            midStageRound(lordId, villageId, 1000);
+            assertThat(recruitOrders(villageId, UnitType.ARCHER)).isEqualTo(1);
+        } finally {
+            setArchers(false);
+        }
+    }
+
+    private void setArchers(boolean enabled) {
+        jdbc.sql("update world_settings set archers_enabled = ?").param(enabled).update();
+        worldService.reload();
+    }
+
     /**
      * One round of a rich lord with Barracks 5 and a Banner Hall (where the paladin trains since
      * 1.4), the given village points and a ledger far behind on troops, so the round recruits.
@@ -510,6 +549,51 @@ class NpcLordFlowTest {
                         unit == null ? null : unit.name())
                 .query(Integer.class)
                 .single();
+    }
+
+    // ---- the rising noble price (02-game-rules §5.7) ----
+
+    @Test
+    void aLordWithManyVillagesPaysTheRisingNoblePrice() {
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+        for (int i = 0; i < 5; i++) {
+            addVillage(lordId);
+        }
+        jdbc.sql("delete from build_order where village_id = ?").param(villageId).update();
+        jdbc.sql(
+                        "update village set b_headquarters = 20, b_smithy = 20, b_market = 10,"
+                                + " b_academy = 1, b_warehouse = 30, b_farm = 30, wood = 300000,"
+                                + " clay = 300000, iron = 300000, resources_updated_at = ?"
+                                + " where id = ?")
+                .params(java.sql.Timestamp.from(clock.instant()), villageId)
+                .update();
+
+        transaction.executeWithoutResult(
+                status -> {
+                    Village village = locker.lock(villageId).getFirst();
+                    economy.run(
+                            village,
+                            lordId,
+                            clock.instant(),
+                            templates.of(NpcPersonality.BALANCED),
+                            NpcMemory.Ledger.ZERO,
+                            true,
+                            0,
+                            NpcLearning.Lesson.NONE,
+                            null);
+                });
+
+        // six villages and no noble: rank 2, one and a half times the price
+        assertThat(
+                        jdbc.sql(
+                                        "select unit_cost_clay from recruit_order where village_id"
+                                                + " = ? and unit = 'NOBLE'")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single())
+                .isEqualTo(75_000);
     }
 
     // ---- build quiet hours (09 §5.1) ----

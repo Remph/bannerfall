@@ -1,5 +1,6 @@
 package de.bannerfall.building;
 
+import de.bannerfall.common.ErrorCode;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitType;
@@ -18,6 +19,8 @@ import java.util.List;
  *     maximum level
  * @param requirementsMet whether the requirements of {@code next} are met, queued levels counted
  * @param missing the requirements that are not met yet, in building order
+ * @param demolish the next demolition (1.6, for level {@code queuedLevel − 1}); null at the lowest
+ *     level the building can be demolished to
  */
 public record BuildingInfoDto(
         BuildingType building,
@@ -26,7 +29,8 @@ public record BuildingInfoDto(
         int maxLevel,
         @Schema(nullable = true) NextLevelDto next,
         boolean requirementsMet,
-        List<Requirement> missing) {
+        List<Requirement> missing,
+        @Schema(nullable = true) DemolishDto demolish) {
 
     /**
      * @param cost the price at the next free position of the queue, a paid slot's surcharge
@@ -50,4 +54,29 @@ public record BuildingInfoDto(
             List<BuildingEffect> effects,
             List<BuildingType> unlocksBuildings,
             List<UnitType> unlocksUnits) {}
+
+    /**
+     * The next demolition of a building (1.6, 02-game-rules §4.5). It costs nothing and gives
+     * nothing back.
+     *
+     * @param level the level the building has after it
+     * @param durationSeconds a fifth of the build time of the level it removes, with the Town Hall
+     *     level and world speed of right now
+     * @param pop the population it frees once it is done
+     * @param points the village points it costs once it is done
+     * @param locksBuildings the built buildings whose requirements are no longer met after it (they
+     *     keep their level but can't be upgraded), in building order
+     * @param locksUnits the units that can no longer be recruited after it, in unit order
+     * @param blocker why it can't be queued right now, or null: {@code BUILD_ORDER_CONFLICT} (an
+     *     upgrade of this building is queued) or {@code NOT_ENOUGH_POPULATION} (the smaller farm
+     *     can't feed the population). A full queue is not named here, the queue says so.
+     */
+    public record DemolishDto(
+            int level,
+            long durationSeconds,
+            int pop,
+            int points,
+            List<BuildingType> locksBuildings,
+            List<UnitType> locksUnits,
+            @Schema(nullable = true) ErrorCode blocker) {}
 }

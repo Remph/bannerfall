@@ -272,7 +272,12 @@
   cursor: grabbing;
 }
 
+/* The focus ring goes with the crosshair, not :focus-visible: a tap that focuses the map shows neither (1.6). */
 .canvas:focus-visible {
+  outline: none;
+}
+
+.canvas[data-crosshair] {
   outline: 3px solid var(--color-highlight);
   outline-offset: -3px;
 }

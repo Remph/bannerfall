@@ -1,4 +1,5 @@
 import type { components } from '../api/schema';
+import type { FarmTarget } from '../api/queries/farm';
 import { unitTypes, type UnitType } from './gameData';
 import type { UnitMap } from './troops';
 
@@ -97,4 +98,54 @@ export function sendAllNotes(result: SendAllResult): Map<number, SendAllNote> {
     notes.set(targetId, { kind: 'skipped', reason });
   }
   return notes;
+}
+
+/** What a run would do now (1.6): the attacks that would go out and what they can carry home at most. */
+export interface RunPreview {
+  attacks: number;
+  haul: number;
+}
+
+/**
+ * "Send all" or "Send banner chances" (1.2.3) as the server would run it now (02-game-rules §18),
+ * for the first tap's line: top to bottom, each entry's units taken from what is left at home;
+ * skipped are the entries the units don't cover, the player's own villages (conquered since they
+ * were added), targets under beginner protection at the arrival and, while the sender's own
+ * protection lasts, players' villages; the banner chance run takes
+ * only the entries with `bannerChance`. The haul adds up `haulCapacity`, the most each attack can
+ * bring. A hint: the server decides (a pair's banner chance that a skipped entry leaves to the next
+ * one isn't counted, so that run can send one more).
+ */
+export function runPreview(
+  targets: readonly FarmTarget[],
+  home: UnitMap,
+  options: { bannerChanceOnly: boolean; playerId: number; senderProtectedUntilMs: number; nowMs: number },
+): RunPreview {
+  const left: UnitMap = { ...home };
+  let attacks = 0;
+  let haul = 0;
+  for (const target of targets) {
+    if (options.bannerChanceOnly && !target.bannerChance) {
+      continue;
+    }
+    if (target.target.playerId === options.playerId) {
+      continue;
+    }
+    if (farmSendEndsProtection(options.senderProtectedUntilMs, target.target.playerId, options.nowMs)) {
+      continue;
+    }
+    const arrival = options.nowMs + target.travelSeconds * 1000;
+    if (target.protectedUntil != null && Date.parse(target.protectedUntil) > arrival) {
+      continue;
+    }
+    if (!fitsHome(target.units, left)) {
+      continue;
+    }
+    for (const [type, count] of Object.entries(target.units)) {
+      left[type as UnitType] = (left[type as UnitType] ?? 0) - (count ?? 0);
+    }
+    attacks += 1;
+    haul += target.haulCapacity;
+  }
+  return { attacks, haul };
 }

@@ -43,6 +43,17 @@ class BuildController {
         return buildService.enqueue(villageId, playerService.idOf(me.accountId()), body.building());
     }
 
+    /** A demolition of one level (1.6, 02-game-rules §4.5): the same queue as the upgrades. */
+    @PostMapping("/demolitions")
+    @ResponseStatus(HttpStatus.CREATED)
+    BuildOrderDto demolish(
+            @PathVariable long villageId,
+            @Valid @RequestBody BuildOrderRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return buildService.demolish(
+                villageId, playerService.idOf(me.accountId()), body.building());
+    }
+
     @DeleteMapping("/build-orders/{orderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void cancel(

@@ -84,6 +84,43 @@ public final class BuildRules {
     }
 
     /**
+     * A demolition takes this share of the build time of the level it removes (1.6, decided
+     * 2026-10-20: the same ratio as dismissing units, 02-game-rules §4.5).
+     */
+    static final int DEMOLISH_TIME_DIVISOR = 5;
+
+    /**
+     * Time in seconds to demolish {@code level ≥ 1} (down to {@code level − 1}): {@code max(1,
+     * round(baseTime × 1.18^(L−1) × 0.952^hq / speed / 5))}, a fifth of what building that level
+     * takes with the Town Hall of the moment (02-game-rules §4.5).
+     */
+    public static long demolishSeconds(BuildingDef def, int level, int hqLevel, double speed) {
+        requireTargetLevel(level);
+        double seconds =
+                def.baseSeconds()
+                        * Math.pow(1.18, level - 1)
+                        * Math.pow(HQ_FACTOR, hqLevel)
+                        / speed
+                        / DEMOLISH_TIME_DIVISOR;
+        return Math.max(1, Math.round(seconds));
+    }
+
+    /** Convenience: demolition time with the speed of the world. */
+    public static long demolishSeconds(
+            BuildingDef def, int level, int hqLevel, WorldSettings world) {
+        return demolishSeconds(def, level, hqLevel, world.speed());
+    }
+
+    /**
+     * The lowest level a player can demolish a building down to: the catapults' minimum
+     * (02-game-rules §9.2), so the Town Hall, farm and warehouse keep level 1 and the rally point
+     * (level 1 at most) can't be demolished at all.
+     */
+    public static int demolishMinLevel(BuildingType type) {
+        return Siege.catapultMinLevel(type);
+    }
+
+    /**
      * Extra population needed for an upgrade to {@code toLevel}: {@code popTotal(L) −
      * popTotal(L−1)}.
      */
@@ -116,20 +153,37 @@ public final class BuildRules {
     }
 
     /**
-     * The levels of a village with its queued orders counted in: the current level plus one per
-     * queued order of that building (02-game-rules §4.3, §5.3). Every building has an entry.
+     * The levels of a village with its queued upgrades counted in: the current level plus one per
+     * queued upgrade of that building (02-game-rules §4.3, §5.3). Every building has an entry.
      *
      * @param current the current levels (a missing entry counts as level 0)
-     * @param queued the building of every queued order, in any order
+     * @param queued the building of every queued upgrade, in any order
      */
     public static Map<BuildingType, Integer> levelsWithQueued(
             Map<BuildingType, Integer> current, Collection<BuildingType> queued) {
+        return levelsWithQueued(current, queued, List.of());
+    }
+
+    /**
+     * Like {@link #levelsWithQueued(Map, Collection)}, with one level less per queued demolition
+     * (1.6, 02-game-rules §4.5).
+     *
+     * @param upgrades the building of every queued upgrade, in any order
+     * @param demolitions the building of every queued demolition, in any order
+     */
+    public static Map<BuildingType, Integer> levelsWithQueued(
+            Map<BuildingType, Integer> current,
+            Collection<BuildingType> upgrades,
+            Collection<BuildingType> demolitions) {
         var levels = new EnumMap<BuildingType, Integer>(BuildingType.class);
         for (BuildingType type : BuildingType.values()) {
             levels.put(type, current.getOrDefault(type, 0));
         }
-        for (BuildingType type : queued) {
+        for (BuildingType type : upgrades) {
             levels.merge(type, 1, Integer::sum);
+        }
+        for (BuildingType type : demolitions) {
+            levels.merge(type, -1, Integer::sum);
         }
         return levels;
     }

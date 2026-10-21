@@ -43,6 +43,8 @@ services:
       BANNERFALL_PUSH_PUBLIC_KEY: ${BANNERFALL_PUSH_PUBLIC_KEY:-}
       BANNERFALL_PUSH_PRIVATE_KEY: ${BANNERFALL_PUSH_PRIVATE_KEY:-}
       BANNERFALL_PUSH_SUBJECT: ${BANNERFALL_PUSH_SUBJECT:-}
+      # The world's address: `bannerfall-admin setup` prints the setup link with it (1.6).
+      BANNERFALL_DOMAIN: ${BANNERFALL_DOMAIN:-}
       # BANNERFALL_CHEATS_ENABLED is deliberately not passed on: no host cheats in production.
       TZ: ${TZ:-Europe/Berlin}
     depends_on:

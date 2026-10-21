@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../api/client';
 import type { BuildOrder } from '../../api/queries/buildings';
 import { useVillage, villageQueryKey, type Village } from '../../api/queries/villages';
@@ -15,6 +15,8 @@ const running: BuildOrder = {
   targetLevel: 3,
   startAt: '2026-10-16T11:50:00Z',
   endAt: '2026-10-16T12:10:00Z',
+  demolish: false,
+  automated: false,
 };
 const farm: BuildOrder = {
   id: 2,
@@ -22,6 +24,8 @@ const farm: BuildOrder = {
   targetLevel: 5,
   startAt: '2026-10-16T12:10:00Z',
   endAt: '2026-10-16T12:30:00Z',
+  demolish: false,
+  automated: false,
 };
 const market: BuildOrder = {
   id: 3,
@@ -29,6 +33,8 @@ const market: BuildOrder = {
   targetLevel: 2,
   startAt: '2026-10-16T12:30:00Z',
   endAt: '2026-10-16T12:45:00Z',
+  demolish: false,
+  automated: false,
 };
 
 function open(buildQueue: BuildOrder[]) {
@@ -46,6 +52,13 @@ function CachedCard() {
   const village = useVillage(47).data;
   return village === undefined ? null : <BuildQueueCard village={village} queueSize={5} queueMax={5} />;
 }
+
+beforeAll(() => {
+  // jsdom has no modal dialogs
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+});
 
 describe('BuildQueueCard', () => {
   beforeEach(() => {
@@ -77,6 +90,15 @@ describe('BuildQueueCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('button', { name: /^Move / })).toBeNull();
+  });
+
+  it('marks a demolition and says nothing comes back when it is cancelled (1.6)', async () => {
+    open([running, { ...market, building: 'WALL', targetLevel: 2, demolish: true }]);
+
+    expect(screen.getByText('demolition')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Wall Lv 2' }));
+    expect(await screen.findByText('Wall Lv 2 will not be demolished.')).toBeTruthy();
+    expect(screen.getByText(/nothing comes back/)).toBeTruthy();
   });
 
   it('offers no "Change order" while nothing can move', () => {

@@ -193,6 +193,12 @@ public record GameData(Map<BuildingType, BuildingDef> buildings, Map<UnitType, U
                     type.name(),
                     def.defenseCavalry() >= 0,
                     "defenseCavalry must be >= 0");
+            check(
+                    problems,
+                    prefixUnits,
+                    type.name(),
+                    def.defenseArcher() >= 0,
+                    "defenseArcher must be >= 0");
             check(problems, prefixUnits, type.name(), def.carry() >= 0, "carry must be >= 0");
             check(
                     problems,
@@ -240,7 +246,12 @@ public record GameData(Map<BuildingType, BuildingDef> buildings, Map<UnitType, U
             UnitType type,
             UnitDef def,
             Map<BuildingType, BuildingDef> buildings) {
-        UnitStats before = new UnitStats(def.attack(), def.defenseInfantry(), def.defenseCavalry());
+        UnitStats before =
+                new UnitStats(
+                        def.attack(),
+                        def.defenseInfantry(),
+                        def.defenseCavalry(),
+                        def.defenseArcher());
         for (int i = 0; i < def.levels().size(); i++) {
             UnitLevelDef level = def.levels().get(i);
             String name = type.name() + ".levels[" + (i + 2) + "]";
@@ -250,7 +261,8 @@ public record GameData(Map<BuildingType, BuildingDef> buildings, Map<UnitType, U
                     name,
                     level.attack() >= before.attack()
                             && level.defenseInfantry() >= before.defenseInfantry()
-                            && level.defenseCavalry() >= before.defenseCavalry(),
+                            && level.defenseCavalry() >= before.defenseCavalry()
+                            && level.defenseArcher() >= before.defenseArcher(),
                     "attack and defence must not be below the level before");
             check(problems, prefix, name, level.baseSeconds() > 0, "baseSeconds must be > 0");
             if (level.cost() == null) {

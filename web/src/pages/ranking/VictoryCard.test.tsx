@@ -17,6 +17,7 @@ const me: Me = {
   protectedUntil: '2026-10-12T00:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [],
 };
 
@@ -25,6 +26,7 @@ const world: World = {
   speed: 6,
   unitSpeed: 1,
   mapSize: 100,
+  mapSpread: 'NORMAL',
   buildQueueSize: 5,
   buildQueueMax: 10,
   recruitQueueSize: 5,
@@ -41,6 +43,7 @@ const world: World = {
   npcDifficulty: 'NORMAL',
   guildsEnabled: true,
   guildMaxMembers: 10,
+  guildStartTogether: true,
   npcGuildMaxMembers: 3,
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
@@ -49,6 +52,7 @@ const world: World = {
   unitLevelsEnabled: true,
   paladinVillagesPerSlot: 4,
   paladinMaxSlots: 5,
+  noblePriceStep: 0.25,
   bannersEnabled: true,
   bannerDropFactor: 1,
   marketExchangeRatio: 1.5,
@@ -64,6 +68,8 @@ const world: World = {
   registeredPlayers: 6,
   version: '1.3.0',
   nightBonus: null,
+  archersEnabled: false,
+  moraleFloor: null,
 };
 
 const wolves: VictorySide = {

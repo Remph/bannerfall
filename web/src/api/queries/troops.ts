@@ -163,6 +163,21 @@ export function useCancelMovement(villageId: number) {
 }
 
 /**
+ * PUT /api/movements/{id}/return-push (1.6): the bell on an outgoing attack, "notify me when they're
+ * back" on or off.
+ */
+export function useSetReturnPush(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ movementId, on }: { movementId: number; on: boolean }) =>
+      expectData(
+        api.PUT('/api/movements/{movementId}/return-push', { params: { path: { movementId } }, body: { on } }),
+      ),
+    onSettled: () => refreshTroops(queryClient, villageId),
+  });
+}
+
+/**
  * POST /api/stacks/{id}/return: some or all units of a stack walk home – withdrawing own units from
  * another village, or sending a support in this village back.
  */

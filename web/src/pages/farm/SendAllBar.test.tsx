@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SendAllResult } from '../../game/farm';
 import { renderPage } from '../../testing/renderPage';
@@ -30,6 +30,7 @@ function open({ bannerChances = OPEN_CHANCES as number | null, result = undefine
         result={result}
         error={null}
         onSend={onSend}
+        preview={{ all: { attacks: 30, haul: 22_200 }, bannerChances: { attacks: 1, haul: 800 } }}
       />
     ),
     data: [],
@@ -48,6 +49,34 @@ describe('SendAllBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Really send all?' }));
 
     expect(onSend).toHaveBeenCalledWith(false);
+  });
+
+  it('says on the first tap what the run would do, in place of the hint (1.6)', () => {
+    open();
+    expect(screen.queryByText('30 attacks, loot up to 22,200')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send all' }));
+    expect(screen.getByText('30 attacks, loot up to 22,200')).toBeTruthy();
+    expect(screen.queryByText(/Top to bottom/)).toBeNull();
+
+    // the other run's first tap: its own numbers, the first button turns back
+    fireEvent.click(screen.getByRole('button', { name: 'Send banner chances (3)' }));
+    expect(screen.getByText('1 attack, loot up to 800')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Send all' })).toBeTruthy();
+  });
+
+  it('turns back after a few seconds without the second tap', () => {
+    vi.useFakeTimers();
+    try {
+      open();
+      fireEvent.click(screen.getByRole('button', { name: 'Send all' }));
+      act(() => vi.advanceTimersByTime(4000));
+
+      expect(screen.getByRole('button', { name: 'Send all' })).toBeTruthy();
+      expect(screen.getByText(/Top to bottom/)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('says no banner chance is open instead of a button with 0', () => {
@@ -88,5 +117,32 @@ describe('SendAllBar', () => {
 
     expect(chip.textContent).toBe('No attack sent. 1 not sent: not enough troops at home.');
     expect(chip.querySelector('svg')).toBeNull();
+  });
+
+  it('offers "notify me when this run is back" only when asked to (1.6)', () => {
+    open();
+    expect(screen.queryByRole('switch')).toBeNull();
+    cleanup();
+
+    const onChange = vi.fn<(on: boolean) => void>();
+    renderPage({
+      path: '/',
+      url: '/',
+      element: (
+        <SendAllBar
+          leavesPlayersOut={false}
+          bannerChances={undefined}
+          pending={false}
+          result={undefined}
+          error={null}
+          notifyRun={{ on: false, onChange }}
+          onSend={vi.fn()}
+          preview={{ all: { attacks: 2, haul: 800 }, bannerChances: { attacks: 0, haul: 0 } }}
+        />
+      ),
+      data: [],
+    });
+    fireEvent.click(screen.getByRole('switch', { name: 'Notify me when this run is back' }));
+    expect(onChange).toHaveBeenCalledWith(true);
   });
 });

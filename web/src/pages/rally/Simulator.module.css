@@ -62,6 +62,34 @@
   border-top: 0;
 }
 
+/* After a fill-in, a phone lists only the units it got (1.6 UI review); the button brings the rest.
+   Wider screens have room for every row, so the button is not needed there. */
+.showAll {
+  justify-self: start;
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+@media (max-width: 639.98px) {
+  .unitRowFolded {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .showAll {
+    display: none;
+  }
+}
+
 .unitName {
   flex: 1 1 8rem;
   min-width: 0;

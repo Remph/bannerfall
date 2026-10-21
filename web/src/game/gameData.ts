@@ -1,9 +1,11 @@
 /**
  * The orders UI lists follow: 02-game-rules §4.1 and §5.1, the same as the server enums BuildingType
  * and UnitType, except that the Banner Hall shows between the Workshop and the Academy (1.2.2; the
- * server keeps it last, so nothing stored or computed there changes). Lists the server sends in its
- * own order are sorted with `byBuildingOrder`. (The API sends buildings and units as maps keyed by
- * these names.)
+ * server keeps it last, so nothing stored or computed there changes) and the archers (1.6) show next
+ * to their building's other units: the archer after the axeman, the mounted archer after the light
+ * cavalry (the server appends them). Lists the server sends in its own order are sorted with
+ * `byBuildingOrder` and `byUnitOrder`. (The API sends buildings and units as maps keyed by these
+ * names.)
  */
 export const buildingTypes = [
   'HEADQUARTERS',
@@ -36,8 +38,10 @@ export const unitTypes = [
   'SPEARMAN',
   'SWORDSMAN',
   'AXEMAN',
+  'ARCHER',
   'SCOUT',
   'LIGHT_CAVALRY',
+  'MOUNTED_ARCHER',
   'HEAVY_CAVALRY',
   'RAM',
   'CATAPULT',
@@ -47,6 +51,24 @@ export const unitTypes = [
 ] as const;
 
 export type UnitType = (typeof unitTypes)[number];
+
+/** Compares two units by the UI order above, for `sort`. */
+export function byUnitOrder(a: UnitType, b: UnitType): number {
+  return unitTypes.indexOf(a) - unitTypes.indexOf(b);
+}
+
+/** The two archers (1.6, 02-game-rules §5.6): only in a world with `archersEnabled`. */
+export function isArcher(type: UnitType): boolean {
+  return type === 'ARCHER' || type === 'MOUNTED_ARCHER';
+}
+
+/**
+ * The unit types a form offers in this world: without archers (the default) the two archers are left
+ * out, unless `keep` holds some of them (archers that exist when the host switched them off).
+ */
+export function unitTypesFor(world: { archersEnabled: boolean } | undefined, keep?: Partial<Record<UnitType, number>>) {
+  return unitTypes.filter((type) => !isArcher(type) || world?.archersEnabled === true || (keep?.[type] ?? 0) > 0);
+}
 
 /** The buildings that train units, in the UI's building order (server: GameData.RECRUITING_BUILDINGS). */
 export const recruitingBuildings = [

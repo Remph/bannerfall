@@ -8,6 +8,7 @@ import de.bannerfall.building.BuildService;
 import de.bannerfall.common.RandomSource;
 import de.bannerfall.event.EventScheduler;
 import de.bannerfall.event.GameEventKind;
+import de.bannerfall.farm.FarmTargetRepository;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
@@ -16,6 +17,7 @@ import de.bannerfall.movement.CommandBanner;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementKind;
 import de.bannerfall.movement.MovementRepository;
+import de.bannerfall.movement.ReturnWatchService;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.player.Player;
@@ -90,6 +92,8 @@ public class BattleService {
     private final BannerBattleService bannerBattles;
     private final NightBonusService nightBonus;
     private final StatisticsService statistics;
+    private final ReturnWatchService returnWatches;
+    private final FarmTargetRepository farmTargets;
 
     BattleService(
             UnitStackRepository stacks,
@@ -110,7 +114,9 @@ public class BattleService {
             VillageBanners villageBanners,
             BannerBattleService bannerBattles,
             NightBonusService nightBonus,
-            StatisticsService statistics) {
+            StatisticsService statistics,
+            ReturnWatchService returnWatches,
+            FarmTargetRepository farmTargets) {
         this.stacks = stacks;
         this.movements = movements;
         this.scheduler = scheduler;
@@ -130,6 +136,8 @@ public class BattleService {
         this.bannerBattles = bannerBattles;
         this.nightBonus = nightBonus;
         this.statistics = statistics;
+        this.returnWatches = returnWatches;
+        this.farmTargets = farmTargets;
     }
 
     /**
@@ -210,28 +218,31 @@ public class BattleService {
                         .toList();
 
         BattleInput input =
-                new BattleInput(
-                        attack.getUnits().toMap(),
-                        defendingUnits,
-                        wallBefore,
-                        catapultTarget,
-                        catapultLevelBefore,
-                        Combat.drawLuck(random, world.luckRange()),
+                BattleInput.attack(attack.getUnits().toMap())
+                        .defenders(defendingUnits)
+                        .wall(wallBefore)
+                        .catapults(catapultTarget, catapultLevelBefore)
+                        .luck(Combat.drawLuck(random, world.luckRange()))
                         // unit levels (M30): each side fights with its owners' levels as they are
                         // at the arrival; a support stack brings its own owner's
-                        unitLevels.levelsOf(home.getPlayer(), at),
-                        defenders.stream()
-                                .map(
-                                        stack ->
-                                                unitLevels.levelsOf(
-                                                        stack.getHomeVillage().getPlayer(), at))
-                                .toList(),
-                        trip.attack(),
-                        targetBanner.bulwark(),
-                        attackStandard,
-                        defenderStandards,
+                        .attackerLevels(unitLevels.levelsOf(home.getPlayer(), at))
+                        .defenderLevels(
+                                defenders.stream()
+                                        .map(
+                                                stack ->
+                                                        unitLevels.levelsOf(
+                                                                stack.getHomeVillage().getPlayer(),
+                                                                at))
+                                        .toList())
+                        .attackBonus(trip.attack())
+                        .defenceBonus(targetBanner.bulwark())
+                        .attackerStandard(attackStandard)
+                        .defenderStandards(defenderStandards)
                         // the night bonus (1.4, §8.1) at the arrival, for an owned village
-                        nightBonus.current().factorAt(at, target.getPlayer() != null));
+                        .nightFactor(nightBonus.current().factorAt(at, target.getPlayer() != null))
+                        // morale (1.6, §8.2) from both players' points at the arrival
+                        .morale(morale(world, home.getPlayer(), target.getPlayer()))
+                        .build();
         BattleResult result = Combat.fight(gameData, input);
         // what good scouts see outside the village (§7.1), as it was when they arrived
         Map<UnitType, Integer> away =
@@ -295,6 +306,17 @@ public class BattleService {
                 stealStandard(attack, target, trip, defenders, input, result, at);
         if (!conquered) {
             sendSurvivorsHome(attack, result.attackerSurvivors(), loot, trip, at, world);
+            // the farm list entry of this pair shows the haul (1.6, §18); the home is locked
+            farmTargets.markRaid(
+                    home.getId(),
+                    target.getId(),
+                    at,
+                    result.attackerWon(),
+                    loot.total(),
+                    haulCapacity == null ? 0 : haulCapacity);
+        } else {
+            // the survivors stay in the conquered village: nothing comes back
+            returnWatches.dropped(attack);
         }
 
         writeReports(
@@ -335,6 +357,17 @@ public class BattleService {
             PlayerNotification.toOwnerOf(
                     village, new GameNotification.VillageUpdated(village.getId()), events);
         }
+    }
+
+    /**
+     * The attacker's morale (1.6, 02-game-rules §8.2) from both players' points now: full strength
+     * against a barbarian village, and for an army whose home village has no owner any more.
+     */
+    private static double morale(WorldSettings world, Player attacker, Player defender) {
+        if (attacker == null || defender == null) {
+            return 1;
+        }
+        return world.morale().factor(attacker.getPoints(), defender.getPoints());
     }
 
     /**
@@ -577,7 +610,7 @@ public class BattleService {
             return false;
         }
         village.getBuildings().set(building, levelAfter);
-        buildService.levelsLost(village.getId(), building, before - levelAfter);
+        buildService.levelsLost(village, building, before - levelAfter);
         if (building == BuildingType.WALL && village.getPlayer() == null) {
             village.markWallRazed(); // barbarians rebuild it only if the world says so (M29)
         }
@@ -586,8 +619,8 @@ public class BattleService {
 
     /**
      * The survivors walk home at the speed of the slowest survivor and carry the loot; the Haste
-     * banner of the trip shortens the way back too (02-game-rules §21.2). Nobody survived: nothing
-     * walks.
+     * banner of the trip shortens the way back too (02-game-rules §21.2), and they keep the
+     * attack's "notify me when they're back" (1.6). Nobody survived: nothing walks.
      */
     private void sendSurvivorsHome(
             Movement attack,
@@ -597,6 +630,7 @@ public class BattleService {
             Instant at,
             WorldSettings world) {
         if (survivors.isEmpty()) {
+            returnWatches.nobodyBack(attack);
             return;
         }
         Village home = attack.getHomeVillage();
@@ -623,6 +657,7 @@ public class BattleService {
                                 at.plusSeconds(seconds),
                                 // only the row's creation time; the game time is `at`
                                 clock.instant()));
+        back.watchReturn(attack.getReturnWatchId());
         scheduler.schedule(GameEventKind.MOVEMENT_ARRIVE, back.getId(), back.getArriveAt());
     }
 

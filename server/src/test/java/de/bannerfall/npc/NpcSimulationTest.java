@@ -55,7 +55,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * walls with the default settings), {@code -PsimFarmShare=…} and {@code -PsimFarmRest=…} (a CUSTOM
  * difficulty: NORMAL with these farm values), {@code -PsimFarmCooldown=…} (minutes, overrides
  * {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file name). Lord
- * guilds: {@code -PsimLordGuilds=true}; lord banners (1.4, 09 §14): {@code -PsimLordBanners=true}.
+ * guilds: {@code -PsimLordGuilds=true}; lord banners (1.4, 09 §14): {@code -PsimLordBanners=true};
+ * archers (1.6, 02-game-rules §5.6): {@code -PsimArchers=true}; morale (1.6, 02 §8.2, on by
+ * default): {@code -PsimMorale=false}; learning lords (1.6, 09 §15): {@code
+ * -PsimLordLearning=true}; lord shipments (1.6, 09 §5.5) are on unless {@code
+ * -PsimShipments=false}.
  */
 @Tag("simulation")
 @IntegrationTest
@@ -76,6 +80,7 @@ class NpcSimulationTest {
     @Autowired TestRandomSource dice;
     @Autowired GameData gameData;
     @Autowired NpcBalance balance;
+    @Autowired NpcBrainRepository brains;
 
     private final int days = Integer.getInteger("simulation.days", 50);
     private final int thinkMinutes = Integer.getInteger("simulation.thinkMinutes", 60);
@@ -86,6 +91,11 @@ class NpcSimulationTest {
     private final String label = System.getProperty("simulation.label", "");
     private final boolean lordGuilds = Boolean.getBoolean("simulation.lordGuilds");
     private final boolean lordBanners = Boolean.getBoolean("simulation.lordBanners");
+    private final boolean archers = Boolean.getBoolean("simulation.archers");
+    private final boolean morale =
+            Boolean.parseBoolean(System.getProperty("simulation.morale", "true"));
+    private final boolean lordLearning = Boolean.getBoolean("simulation.lordLearning");
+    private final boolean shipments = !"false".equals(System.getProperty("simulation.shipments"));
 
     /** The days (at speed 3) at which the lords' points are noted. */
     private static final int[] CHECKPOINTS = {5, 10, 20, 30, 40};
@@ -109,13 +119,47 @@ class NpcSimulationTest {
         dice.reset();
         jdbc.sql(
                         "update world_settings set speed = 1.0, npc_lord_count = 0,"
-                                + " npc_think_minutes = 20, npc_difficulty = 'NORMAL',"
-                                + " npc_custom = null, initialized_at = null,"
-                                + " barbarians_per_new_player = 0, barbarian_walls_enabled = false,"
-                                + " guilds_enabled = false, npc_guilds_enabled = false,"
-                                + " npc_banners_enabled = false")
+                                + " npc_think_minutes = 20, npc_difficulty = 'NORMAL', npc_custom ="
+                                + " null, initialized_at = null, barbarians_per_new_player = 0,"
+                                + " barbarian_walls_enabled = false, guilds_enabled = false,"
+                                + " npc_guilds_enabled = false, npc_banners_enabled = false,"
+                                + " npc_learning_enabled = false, npc_shipments_enabled = true")
                 .update();
         worldService.reload();
+    }
+
+    /**
+     * Learning lords (09 §15), with {@code -PsimLordLearning=true}: per lord the attacks it saw
+     * (faded to the end) and its wall goals, and the human wins of the last days.
+     */
+    private String learningLines() {
+        if (!lordLearning) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder("\nLearning lords (faded at the end):\n");
+        Instant now = clock.instant();
+        double halfLife = balance.general().learning().halfLifeHours();
+        for (NpcBrain brain : brains.findAll()) {
+            NpcMemory.Lessons lessons = brain.getMemory().lessons();
+            NpcMemory.Tally seen = NpcLearning.fadedTo(lessons.seen(), now, halfLife);
+            out.append(
+                    String.format(
+                            Locale.ROOT,
+                            "  lord %d %-9s attacks %.1f scoutings %.1f cavalry share %s,"
+                                    + " wall goals %d%n",
+                            brain.getPlayerId(),
+                            brain.getPersonality(),
+                            seen.attacks(),
+                            seen.scoutings(),
+                            seen.infantry() + seen.cavalry() == 0
+                                    ? "-"
+                                    : String.format(
+                                            Locale.ROOT,
+                                            "%.2f",
+                                            seen.cavalry() / (seen.infantry() + seen.cavalry())),
+                            lessons.walls().size()));
+        }
+        return out.toString();
     }
 
     @Test
@@ -198,7 +242,7 @@ class NpcSimulationTest {
                         (int) orders[1],
                         sends,
                         pointsByDay);
-        String text = result.render() + lordGuildLines();
+        String text = result.render() + shipmentLine() + lordGuildLines() + learningLines();
         System.out.println(text);
         Path dir = Path.of("build", "simulation");
         Files.createDirectories(dir);
@@ -1076,6 +1120,14 @@ class NpcSimulationTest {
                 .update();
         // lord banners (09 §14): -PsimLordBanners=true
         jdbc.sql("update world_settings set npc_banners_enabled = ?").param(lordBanners).update();
+        // archers (1.6, 02 §5.6): -PsimArchers=true
+        jdbc.sql("update world_settings set archers_enabled = ?").param(archers).update();
+        // morale (1.6, 02 §8.2): on like in a new world unless -PsimMorale=false
+        jdbc.sql("update world_settings set morale_enabled = ?").param(morale).update();
+        // learning lords (09 §15): -PsimLordLearning=true
+        jdbc.sql("update world_settings set npc_learning_enabled = ?").param(lordLearning).update();
+        // lord shipments (09 §5.5): on unless -PsimShipments=false
+        jdbc.sql("update world_settings set npc_shipments_enabled = ?").param(shipments).update();
         if (farmShare != null || farmRest != null) {
             NpcBalanceSettings.Difficulty normal =
                     balance.general().difficulties().get(NpcDifficulty.NORMAL);
@@ -1104,10 +1156,11 @@ class NpcSimulationTest {
         worldService.reload();
         System.out.printf(
                 Locale.ROOT,
-                "variant: walls %s, lord guilds %s, difficulty %s (farm share %s, farm rest %s),"
-                        + " farm cooldown %s min%n",
+                "variant: walls %s, lord guilds %s, morale %s, difficulty %s (farm share %s, farm"
+                        + " rest %s), farm cooldown %s min%n",
                 walls,
                 lordGuilds,
+                morale,
                 worldService.settings().npcDifficulty(),
                 balance.difficulty().farmLootShare(),
                 balance.difficulty().farmRest(),
@@ -1130,6 +1183,22 @@ class NpcSimulationTest {
                 .param(thinkMinutes)
                 .update();
         worldService.reload();
+    }
+
+    /** The lords' shipments of the run (09 §5.5): trips and resources moved. */
+    private String shipmentLine() {
+        Map<String, Object> row =
+                jdbc.sql(
+                                "select count(*) as trips, coalesce(sum(wood + clay + iron), 0) as"
+                                        + " moved from trade_transport")
+                        .query()
+                        .singleRow();
+        return String.format(
+                Locale.ROOT,
+                "lord shipments (%s): %d trips, %d k resources moved%n",
+                shipments ? "on" : "off",
+                ((Number) row.get("trips")).longValue(),
+                ((Number) row.get("moved")).longValue() / 1000);
     }
 
     /**

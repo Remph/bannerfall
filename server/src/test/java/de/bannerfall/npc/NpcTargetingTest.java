@@ -12,6 +12,7 @@ import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.npc.NpcTargeting.Estimate;
+import de.bannerfall.npc.NpcTargeting.Expected;
 import de.bannerfall.npc.NpcWorld.MapVillage;
 import de.bannerfall.report.BattleOutcome;
 import de.bannerfall.report.BattleReport;
@@ -56,21 +57,50 @@ class NpcTargetingTest {
     }
 
     @Test
+    void anExpectedTargetIsTheWallAloneUntilAPartIsAdded() {
+        // the battle setup (1.6): no catapult target, banners, standards, night bonus or morale
+        assertThat(Expected.at(5))
+                .isEqualTo(
+                        new Expected(
+                                5, null, 0, 0, StandardEffect.NONE, 0, StandardEffect.NONE, 1, 1));
+        var standard = new StandardEffect(BannerType.SPEAR_STANDARD, 1, 1, 0.05);
+        assertThat(
+                        Expected.at(5)
+                                .withCatapults(BuildingType.WALL, 5)
+                                .withDefence(0.1, standard)
+                                .withAttack(0.06, StandardEffect.NONE)
+                                .withNight(2)
+                                .withMorale(0.5))
+                .isEqualTo(
+                        new Expected(
+                                5,
+                                BuildingType.WALL,
+                                5,
+                                0.1,
+                                standard,
+                                0.06,
+                                StandardEffect.NONE,
+                                2,
+                                0.5));
+    }
+
+    @Test
     void theEstimateFightsAgainstTheDefendersSeenTimesTheMargin() {
         var axemen = Map.of(UnitType.AXEMAN, 100);
         var spearmen = Map.of(UnitType.SPEARMAN, 100);
 
         // 160 spearmen: D = 2420, A = 4000, loss (2420/4000)^1.5 = 0.4706 → a go at 0.5
-        Estimate balanced = NpcTargeting.estimate(DATA, axemen, spearmen, 0, null, 0, 1.6, 0.5);
+        Estimate balanced = NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(0), 1.6, 0.5);
         assertThat(balanced.go()).isTrue();
         assertThat(balanced.lossRatio()).isCloseTo(0.4706, within(1e-4));
 
         // 200 spearmen: still a win, but losing 66 % is too much
-        Estimate defensive = NpcTargeting.estimate(DATA, axemen, spearmen, 0, null, 0, 2.0, 0.5);
+        Estimate defensive =
+                NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(0), 2.0, 0.5);
         assertThat(defensive.go()).isFalse();
 
         // 300 spearmen: D = 4520 > 4000, the attack would be lost
-        Estimate lost = NpcTargeting.estimate(DATA, axemen, spearmen, 0, null, 0, 3.0, 0.5);
+        Estimate lost = NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(0), 3.0, 0.5);
         assertThat(lost.go()).isFalse();
         assertThat(lost.lossRatio()).isEqualTo(1);
     }
@@ -80,8 +110,15 @@ class NpcTargetingTest {
         var axemen = Map.of(UnitType.AXEMAN, 100);
         var spearmen = Map.of(UnitType.SPEARMAN, 100);
 
-        Estimate plain = NpcTargeting.estimate(DATA, axemen, spearmen, 5, null, 0, 1, 1, 0);
-        Estimate bulwark = NpcTargeting.estimate(DATA, axemen, spearmen, 5, null, 0, 1, 1, 0.10);
+        Estimate plain = NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(5), 1, 1);
+        Estimate bulwark =
+                NpcTargeting.estimate(
+                        DATA,
+                        axemen,
+                        spearmen,
+                        Expected.at(5).withDefence(0.10, StandardEffect.NONE),
+                        1,
+                        1);
 
         // 02 §21.2: the attacker loses 41 instead of 47 of his 100 axemen
         assertThat(plain.lossRatio()).isCloseTo(0.41, within(0.01));
@@ -94,39 +131,26 @@ class NpcTargetingTest {
         var spearmen = Map.of(UnitType.SPEARMAN, 100);
 
         // 1.4, 02 §8.1: D = 2212.5 by day, 4425 at night against A = 4000
-        Estimate day =
-                NpcTargeting.estimate(
-                        DATA,
-                        axemen,
-                        spearmen,
-                        5,
-                        null,
-                        0,
-                        1,
-                        1,
-                        0,
-                        StandardEffect.NONE,
-                        0,
-                        StandardEffect.NONE,
-                        1);
+        Estimate day = NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(5), 1, 1);
         Estimate night =
-                NpcTargeting.estimate(
-                        DATA,
-                        axemen,
-                        spearmen,
-                        5,
-                        null,
-                        0,
-                        1,
-                        1,
-                        0,
-                        StandardEffect.NONE,
-                        0,
-                        StandardEffect.NONE,
-                        2);
+                NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(5).withNight(2), 1, 1);
 
         assertThat(day.go()).isTrue();
         assertThat(night.go()).isFalse();
+    }
+
+    @Test
+    void moraleAgainstASmallPlayerCanTurnTheEstimate() {
+        var axemen = Map.of(UnitType.AXEMAN, 100);
+        var spearmen = Map.of(UnitType.SPEARMAN, 100);
+
+        // 1.6, 02 §8.2: A = 4000 at full strength, 2000 at 50 % against D = 2212.5
+        Estimate full = NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(5), 1, 1);
+        Estimate half =
+                NpcTargeting.estimate(DATA, axemen, spearmen, Expected.at(5).withMorale(0.5), 1, 1);
+
+        assertThat(full.go()).isTrue();
+        assertThat(half.go()).isFalse();
     }
 
     @Test
@@ -158,9 +182,7 @@ class NpcTargetingTest {
                                         DATA,
                                         army,
                                         Map.of(UnitType.BANNER_THIEF, 100),
-                                        0,
-                                        null,
-                                        0,
+                                        Expected.at(0),
                                         1.0,
                                         1)
                                 .go())
@@ -170,9 +192,7 @@ class NpcTargetingTest {
                                         DATA,
                                         army,
                                         Map.of(UnitType.BANNER_THIEF, 200),
-                                        0,
-                                        null,
-                                        0,
+                                        Expected.at(0),
                                         1.0,
                                         1)
                                 .go())
@@ -184,9 +204,9 @@ class NpcTargetingTest {
         var army = Map.of(UnitType.AXEMAN, 10); // A = 400
         var three = Map.of(UnitType.SPEARMAN, 3);
         // wall 5: 3 spearmen → D = (45 + 20 + 250) × 1.25 = 393.75 < 400
-        assertThat(NpcTargeting.estimate(DATA, army, three, 5, null, 0, 1.0, 1).go()).isTrue();
+        assertThat(NpcTargeting.estimate(DATA, army, three, Expected.at(5), 1.0, 1).go()).isTrue();
         // × 1.1 = 3.3, rounded up to 4 → D = 412.5: lost
-        assertThat(NpcTargeting.estimate(DATA, army, three, 5, null, 0, 1.1, 1).go()).isFalse();
+        assertThat(NpcTargeting.estimate(DATA, army, three, Expected.at(5), 1.1, 1).go()).isFalse();
     }
 
     @Test
@@ -196,9 +216,7 @@ class NpcTargetingTest {
                                         DATA,
                                         Map.of(UnitType.SCOUT, 50),
                                         Map.of(),
-                                        0,
-                                        null,
-                                        0,
+                                        Expected.at(0),
                                         1,
                                         1)
                                 .go())
@@ -208,9 +226,7 @@ class NpcTargetingTest {
                         DATA,
                         Map.of(UnitType.AXEMAN, 200, UnitType.RAM, 10),
                         Map.of(),
-                        3,
-                        null,
-                        0,
+                        Expected.at(3),
                         1.3,
                         0.5);
         assertThat(rams.go()).isTrue();
@@ -483,8 +499,10 @@ class NpcTargetingTest {
 
         // and the estimate fights against it: 100 axemen lose more against the standard
         var axemen = Map.of(UnitType.AXEMAN, 100);
-        Estimate plain = NpcTargeting.estimate(DATA, axemen, paladin, 0, null, 0, 1, 1, 0);
-        Estimate held = NpcTargeting.estimate(DATA, axemen, paladin, 0, null, 0, 1, 1, 0, expected);
+        Estimate plain = NpcTargeting.estimate(DATA, axemen, paladin, Expected.at(0), 1, 1);
+        Estimate held =
+                NpcTargeting.estimate(
+                        DATA, axemen, paladin, Expected.at(0).withDefence(0, expected), 1, 1);
         assertThat(held.lossRatio()).isGreaterThan(plain.lossRatio());
     }
 

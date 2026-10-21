@@ -69,14 +69,31 @@
   white-space: nowrap;
 }
 
-/* five tabs on a phone: a long name breaks onto a second line instead of being cut ("Banner-halle"
-   at its soft hyphen, t.recruit.bannerHallTab) */
+/* Five tabs on a phone: the names a little smaller, so "Bannerhalle" fits on one line at 390 px (1.6 UI
+   review); on narrower phones a long name still breaks onto a second line instead of being cut
+   ("Banner-halle" at its soft hyphen, t.recruit.bannerHallTab). The name takes the free height, so
+   the level lines stay level at the bottom. */
 @media (max-width: 639px) {
+  .tabs:has(> :nth-child(5)) .tab {
+    font-size: 0.78rem;
+    letter-spacing: -0.01em;
+  }
+
   .tabName {
+    flex: 1;
+    display: flex;
+    align-items: center;
     white-space: normal;
     hyphens: manual;
     text-align: center;
     line-height: 1.15;
+  }
+}
+
+/* the narrowest phones (320 px): "Workshop" is one word and can't break, so smaller still */
+@media (max-width: 359.98px) {
+  .tabs:has(> :nth-child(5)) .tab {
+    font-size: 0.7rem;
   }
 }
 
@@ -196,6 +213,33 @@
   min-width: 0;
   display: grid;
   gap: var(--space-2);
+}
+
+/* the noble's raised price (1.6 UI review): a small neutral chip after his costs, opens the price sheet */
+.factorChip {
+  position: relative;
+  min-height: 1.6rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-title);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/* the chip stays small, the tap area is a thumb high */
+.factorChip::after {
+  content: '';
+  position: absolute;
+  inset: calc((1.6rem - var(--touch-target)) / 2) 0;
+}
+
+.factorChip:hover {
+  border-color: var(--color-accent);
 }
 
 /* icon | name over the count | Dismiss, in the same columns on every row (1.3) */

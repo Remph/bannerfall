@@ -39,8 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * checked the lord and scheduled the next round. Every step is a short transaction of its own
  * ({@code REQUIRES_NEW}), loading what it needs fresh: reading the reports into memory, then one
  * transaction per village (so a village that fails is rolled back and logged, and the round goes on
- * with the next) – defend, fly the best banners, build and recruit, attack – then the finish step
- * and fusing banners (lord banners, 09 §14.3).
+ * with the next) – defend, fly the best banners, build and recruit, ship, attack – then the finish
+ * step and fusing banners (lord banners, 09 §14.3).
  */
 @Component
 public class NpcRound {
@@ -67,6 +67,8 @@ public class NpcRound {
     private final GameData gameData;
     private final NpcGuilds guilds;
     private final NpcBanners banners;
+    private final NpcLessons lessons;
+    private final NpcShipments shipments;
 
     NpcRound(
             PlatformTransactionManager transactionManager,
@@ -88,7 +90,9 @@ public class NpcRound {
             MovementRepository movements,
             GameData gameData,
             NpcGuilds guilds,
-            NpcBanners banners) {
+            NpcBanners banners,
+            NpcLessons lessons,
+            NpcShipments shipments) {
         this.tx = new TransactionTemplate(transactionManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.brains = brains;
@@ -110,6 +114,8 @@ public class NpcRound {
         this.gameData = gameData;
         this.guilds = guilds;
         this.banners = banners;
+        this.lessons = lessons;
+        this.shipments = shipments;
     }
 
     /**
@@ -156,7 +162,8 @@ public class NpcRound {
      */
     private void readReports(long playerId, Instant now) {
         NpcBrain brain = brains.findById(playerId).orElseThrow();
-        double speed = worldService.settings().speed();
+        WorldSettings settings = worldService.settings();
+        double speed = settings.speed();
         NpcMemory.Draft memory = brain.getMemory().draft();
         intel.read(playerId, memory, speed, balance.general());
         Map<Long, NpcWorld.MapVillage> map = world.villages(now);
@@ -176,7 +183,8 @@ public class NpcRound {
                     mateGrudges,
                     own,
                     map,
-                    templates.of(brain.getPersonality()).conquestRadius(),
+                    settings.mapSpread()
+                            .scale(templates.of(brain.getPersonality()).conquestRadius()),
                     now);
         }
         Set<Long> answered =
@@ -230,7 +238,10 @@ public class NpcRound {
                 brain.getMemory().stance().braked(),
                 farmBudgetSpent,
                 Set.copyOf(mates),
-                mates.isEmpty() ? Set.of() : world.trainTargets(mates));
+                mates.isEmpty() ? Set.of() : world.trainTargets(mates),
+                settings.npcLearningEnabled()
+                        ? lessons.of(brain, mates, lessons.wins(now), now)
+                        : NpcLearning.Lesson.NONE);
     }
 
     /**
@@ -270,7 +281,7 @@ public class NpcRound {
      * §3 step 2: lock the village together with the home villages of the lord's own support stacks
      * in it (the withdraw step sends those home, and {@code returnStack} locks both villages of a
      * stack), bring it forward, then defend, fly the best banners (09 §14.3), build and recruit,
-     * attack.
+     * ship what would overflow (§5.5), attack.
      */
     private void villageTurn(NpcTurn.View view, long villageId, Instant now) {
         long playerId = view.lordId();
@@ -308,6 +319,10 @@ public class NpcRound {
         banners.fly(turn);
         turn.wantsNobles = warfare.wantsNobles(turn);
         double bonus = memory.build().anyGrudgeAt(now) ? view.template().grudgeTroopBonus() : 0;
+        Integer wallGoal =
+                view.world().npcLearningEnabled()
+                        ? NpcLearning.wallGoal(memory.lessons, villageId, now)
+                        : null;
         NpcMemory.Ledger ledger =
                 economy.run(
                         village,
@@ -316,8 +331,11 @@ public class NpcRound {
                         view.template(),
                         memory.ledger.getOrDefault(villageId, NpcMemory.Ledger.ZERO),
                         turn.wantsNobles,
-                        bonus);
+                        bonus,
+                        view.lesson(),
+                        wallGoal);
         memory.ledger.put(villageId, ledger);
+        shipments.ship(turn, wallGoal);
         warfare.attack(turn);
         brain.setMemory(memory.build());
     }
@@ -341,7 +359,7 @@ public class NpcRound {
         NpcMemory.Stance stance =
                 NpcBalance.stance(
                         player.getPoints(),
-                        guilds.guildPoints(playerId).orElse(null),
+                        guilds.guildAverage(playerId).orElse(null),
                         guilds.strongestHumanSide(),
                         humanPoints,
                         difficulty);

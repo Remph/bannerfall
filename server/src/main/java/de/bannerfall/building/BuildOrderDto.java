@@ -8,12 +8,20 @@ import java.time.Instant;
  * {@code VillageDto.buildQueue}.
  *
  * @param targetLevel the level the building has when the order is done
+ * @param demolish a demolition (1.6): the level goes down to {@code targetLevel}
  * @param startAt when it starts (in the past for the running order, in the future for the next
  *     ones)
  * @param endAt when it is done
+ * @param automated placed by the village automation (1.6), not by a tap
  */
 public record BuildOrderDto(
-        long id, BuildingType building, int targetLevel, Instant startAt, Instant endAt) {
+        long id,
+        BuildingType building,
+        int targetLevel,
+        Instant startAt,
+        Instant endAt,
+        boolean demolish,
+        boolean automated) {
 
     public static BuildOrderDto of(BuildOrder order) {
         return new BuildOrderDto(
@@ -21,6 +29,8 @@ public record BuildOrderDto(
                 order.getBuilding(),
                 order.getTargetLevel(),
                 order.getStartAt(),
-                order.getEndAt());
+                order.getEndAt(),
+                order.isDemolish(),
+                order.isAutomated());
     }
 }

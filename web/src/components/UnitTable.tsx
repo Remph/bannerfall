@@ -51,10 +51,17 @@ export function UnitTable({ rows, caption, countLabel, showLosses = true, levels
                   <span className={styles.icon}>
                     <Icon name={row.type} />
                   </span>
-                  {t.units[row.type]}
-                  {levelOf(levels, row.type) > 1 && (
-                    <span className={styles.level}>{t.smithy.level(levelOf(levels, row.type))}</span>
-                  )}
+                  {/* name and badge flow as text beside the icon: a long German name wraps there, and the
+                      badge follows its last word (a flex-wrap row broke the icon and the badge off) */}
+                  <span className={styles.name}>
+                    {t.units[row.type]}
+                    {levelOf(levels, row.type) > 1 && (
+                      <>
+                        {' '}
+                        <span className={styles.level}>{t.smithy.level(levelOf(levels, row.type))}</span>
+                      </>
+                    )}
+                  </span>
                 </span>
               </th>
               <td>{formatNumber(row.count, language)}</td>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, errorMessage } from '../../api/errors';
 import { useCancelBuild, useMoveBuild, type BuildOrder } from '../../api/queries/buildings';
 import type { Village } from '../../api/queries/villages';
-import { BuildOrderLine, BuildOrderList } from '../../components/BuildOrderLine';
+import { AutomatedMark, BuildOrderLine, BuildOrderList } from '../../components/BuildOrderLine';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -122,7 +122,9 @@ export function BuildQueueCard({ village, queueSize, queueMax }: BuildQueueCardP
                   <span className={styles.waitingName}>
                     {t.buildings[order.building]}{' '}
                     <span className={styles.waitingLevel}>{t.village.level(order.targetLevel)}</span>
+                    {order.automated && <AutomatedMark />}
                   </span>
+                  {order.demolish && <span className={styles.demolishChip}>{t.buildQueue.demolition}</span>}
                   {paid && <span className={styles.paidSlot}>{t.buildQueue.paidSlot}</span>}
                   <span className={styles.waitingTime}>
                     <span className="sr-only">{t.buildQueue.readyAt('')}</span>
@@ -205,7 +207,16 @@ export function BuildQueueCard({ village, queueSize, queueMax }: BuildQueueCardP
         {confirming !== null && (
           <div className={styles.confirm}>
             <p>
-              <strong>{t.buildQueue.cancelText(orderName(t, confirming))}</strong> {t.buildQueue.cancelRefund}
+              {confirming.demolish ? (
+                <>
+                  <strong>{t.buildQueue.cancelDemolitionText(orderName(t, confirming))}</strong>{' '}
+                  {t.buildQueue.cancelDemolitionNote}
+                </>
+              ) : (
+                <>
+                  <strong>{t.buildQueue.cancelText(orderName(t, confirming))}</strong> {t.buildQueue.cancelRefund}
+                </>
+              )}
             </p>
             <div className={styles.confirmActions}>
               <Button type="button" variant="secondary" onClick={() => setConfirming(null)}>

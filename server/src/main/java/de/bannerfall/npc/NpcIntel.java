@@ -68,20 +68,15 @@ class NpcIntel {
                     report.getPayload() instanceof BattleReport b ? b : null,
                     gameData,
                     speed,
-                    general.grudgeHours());
+                    general.grudgeHours(),
+                    general.learning());
             memory.lastReportId = Math.max(memory.lastReportId, report.getId());
         }
         memory.lastReportId = Math.max(memory.lastReportId, newest);
         reports.markAllRead(playerId);
     }
 
-    /**
-     * One report into memory. ATTACK and SCOUT: intel about the attacked village; DEFENSE about an
-     * attack on one of the lord's own villages: a grudge against the attacker (scouts included).
-     * Other reports teach nothing.
-     *
-     * @param battle the payload of a battle report, else null
-     */
+    /** One report into memory, without the lessons of learning lords (09 §15). */
     static void learn(
             NpcMemory.Draft memory,
             long lordId,
@@ -91,6 +86,27 @@ class NpcIntel {
             GameData data,
             double speed,
             double grudgeHours) {
+        learn(memory, lordId, kind, at, battle, data, speed, grudgeHours, null);
+    }
+
+    /**
+     * One report into memory. ATTACK and SCOUT: intel about the attacked village; DEFENSE about an
+     * attack on one of the lord's own villages: a grudge against the attacker (scouts included)
+     * and, with {@code learning}, the lessons (09 §15.1, §15.4). Other reports teach nothing.
+     *
+     * @param battle the payload of a battle report, else null
+     * @param learning the numbers of learning lords; null = no lessons
+     */
+    static void learn(
+            NpcMemory.Draft memory,
+            long lordId,
+            ReportKind kind,
+            Instant at,
+            BattleReport battle,
+            GameData data,
+            double speed,
+            double grudgeHours,
+            NpcBalanceSettings.Learning learning) {
         if (battle == null) {
             return;
         }
@@ -129,6 +145,9 @@ class NpcIntel {
                 }
                 // a new attack renews the grudge, and with it the wish to retaliate
                 memory.grudges.put(attacker, new Grudge(until, source, false, Math.max(0, scouts)));
+                if (learning != null) {
+                    memory.lessons = NpcLearning.learn(memory.lessons, at, battle, data, learning);
+                }
             }
             default -> {}
         }
@@ -381,6 +400,7 @@ class NpcIntel {
                                     || (intel.at().isBefore(intelFrom) && !leftAlone);
                         });
         memory.grudges.values().removeIf(g -> !g.until().isAfter(now));
+        memory.lessons = NpcLearning.prune(memory.lessons, now);
         Instant capFrom = now.minus(NpcBalance.CAP_WINDOW);
         memory.attacksSent.removeIf(a -> !a.at().isAfter(capFrom));
         Instant farmedFrom = now.minus(NpcTargeting.scaled(FARMED_KEEP, speed));

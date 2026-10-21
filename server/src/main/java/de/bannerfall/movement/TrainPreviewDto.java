@@ -15,13 +15,16 @@ import java.util.List;
  * @param travelSeconds null if no attack has units
  * @param arriveAt null like {@code travelSeconds}
  * @param attacks one entry per attack of the request, in its order
+ * @param morale the attacks' morale with today's points (1.6, 02-game-rules §8.2), like {@link
+ *     CommandPreviewDto#morale()}
  */
 public record TrainPreviewDto(
         VillageRefDto targetVillage,
         double distance,
         @Schema(nullable = true) Long travelSeconds,
         @Schema(nullable = true) Instant arriveAt,
-        List<TrainAttackPreviewDto> attacks) {
+        List<TrainAttackPreviewDto> attacks,
+        @Schema(nullable = true) Double morale) {
 
     /**
      * @param errors every rule this attack breaks, like {@link CommandPreviewDto#errors()}; its

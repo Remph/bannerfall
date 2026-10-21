@@ -124,23 +124,26 @@ public final class NpcPlanning {
 
     /**
      * The nobles rule (§5.1, 5): while the village wants nobles, the candidate is one NOBLE, and
-     * the warehouse and farm rules apply to it (its 50,000 clay need a warehouse of level 20, its
-     * 100 population room in the farm). A warehouse or farm upgrade that replaces it goes through
+     * the warehouse and farm rules apply to it (its price must fit the warehouse: 50,000 clay at
+     * rank 0 need level 20, a lord with many villages pays more, 02-game-rules §5.7; its 100
+     * population need room in the farm). A warehouse or farm upgrade that replaces it goes through
      * the rules like any candidate.
      *
      * @param levels current levels plus queued orders
      * @param current the current levels
+     * @param price the price of the lord's next noble
      */
     public static Next nextNoble(
             Map<BuildingType, Integer> levels,
             Map<BuildingType, Integer> current,
             GameData data,
-            int freePop) {
+            int freePop,
+            ResourceAmounts price) {
         UnitDef noble = data.unit(UnitType.NOBLE);
         int capacity = Storage.warehouseCapacity(current.get(BuildingType.WAREHOUSE));
         int farm = Population.farmCapacity(current.get(BuildingType.FARM));
         Next next;
-        if (largest(noble.cost()) > capacity) {
+        if (largest(price) > capacity) {
             next = upgradeOf(BuildingType.WAREHOUSE, levels, current, data, null);
         } else if (freePop < noble.pop() + BUILD_POP_RESERVE * farm) {
             next = upgradeOf(BuildingType.FARM, levels, current, data, null);

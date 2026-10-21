@@ -2,7 +2,8 @@
 .page {
   display: grid;
   gap: var(--space-3);
-  max-width: 60rem;
+  /* the game's 72 rem frame: the World tab puts its sections and two columns of cards side by side */
+  max-width: var(--content-width);
 }
 
 .stack {
@@ -30,6 +31,49 @@
 
 .meta {
   font-variant-numeric: tabular-nums;
+}
+
+/* a learning lord's troop shifts with the (i) for the lesson weights (1.6 UI review) */
+.learnedLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.learnedInfo {
+  position: relative;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* the visible button is small, the tap area is a thumb */
+.learnedInfo::after {
+  content: '';
+  position: absolute;
+  inset: calc((1.75rem - var(--touch-target)) / 2);
+}
+
+.learnedInfo:hover {
+  background: var(--color-well);
+  color: var(--color-title);
+}
+
+.learnedSheet {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.learnedSheet p {
+  margin: 0;
 }
 
 .spawn {

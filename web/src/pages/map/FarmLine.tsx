@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
@@ -15,6 +15,7 @@ import { Sheet } from '../../components/Sheet';
 import { farmSendEndsProtection, fitsHome, hasUnits } from '../../game/farm';
 import { unitsOfChoice, type FarmTemplate, type TemplateLetter } from '../../game/farmTemplates';
 import { formatCoords, formatFactor, formatWhenExact } from '../../game/format';
+import { formatMorale } from '../../game/morale';
 import { nightBonusAt } from '../../game/nightBonus';
 import { serverNow } from '../../game/serverTime';
 import type { UnitMap } from '../../game/troops';
@@ -26,6 +27,11 @@ import styles from './MapPage.module.css';
 
 /** How long a template button waits for the second tap (like the farm list's Send). */
 const ARMED_MS = 4000;
+/**
+ * A template tap this soon after the panel opened is the second tap of a double tap on the village,
+ * not a pick (1.6): the first one opened the panel with a button under the finger.
+ */
+const OPENING_GUARD_MS = 500;
 
 /**
  * The panel's farm line (1.4) for a village that isn't the player's: one button per template sends
@@ -41,19 +47,24 @@ export function FarmLine({ village, currentVillage }: { village: MapVillage; cur
   const send = useSendCommand(currentVillage.id);
   const [armed, setArmed] = useState<TemplateLetter>();
   const [adding, setAdding] = useState(false);
+  // keyed by the village: mounted when the panel opens for it
+  const openedAt = useRef<number>(undefined);
   const listed = targets?.find((target) => target.target.id === village.id);
   const endsProtection = farmSendEndsProtection(Date.parse(me.protectedUntil), village.playerId, serverNow());
   const home = currentVillage.unitsHome;
   const short = templates.filter((template) => !fitsHome(template.units, home));
   // the night bonus (1.4, 02 §8.1): which templates would arrive in it, sent now; the server's travel
   // times (Haste included). Only asked for at an owned village in a world with the bonus.
-  const night = useWorld().data?.nightBonus;
+  // Morale (1.6, 02 §8.2) comes with the same previews: one for all templates (it depends on the points only).
+  const world = useWorld().data;
+  const night = world?.nightBonus;
   const sendable = templates.filter((template) => fitsHome(template.units, home));
   const previews = useCommandPreviews(
     currentVillage.id,
     sendable.map((template) => attackOf(village, template)),
-    night != null && village.playerId !== null,
+    (night != null || world?.moraleFloor != null) && village.playerId !== null,
   );
+  const morale = previews.find((preview) => preview.data?.morale != null)?.data?.morale;
   const nightLetters = sendable
     .filter((_, index) => {
       const travelSeconds = previews[index]?.data?.travelSeconds;
@@ -69,7 +80,14 @@ export function FarmLine({ village, currentVillage }: { village: MapVillage; cur
     return () => clearTimeout(timer);
   }, [armed]);
 
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, []);
+
   function onPick(template: FarmTemplate) {
+    if (openedAt.current === undefined || performance.now() - openedAt.current < OPENING_GUARD_MS) {
+      return;
+    }
     if (endsProtection && armed !== template.letter) {
       setArmed(template.letter);
       return;
@@ -103,6 +121,7 @@ export function FarmLine({ village, currentVillage }: { village: MapVillage; cur
           <Icon name="moon" /> {t.farm.nightBonusWith(nightLetters.join(', '), formatFactor(night.factor, language))}
         </p>
       )}
+      {morale != null && <p className={styles.farmLineNote}>{t.rally.morale(formatMorale(morale, language))}</p>}
       {short.length > 0 && !send.isSuccess && <p className={styles.farmLineNote}>{t.farm.templatesShort}</p>}
       {send.isSuccess && (
         <p className={styles.farmLineSent} role="status">
@@ -144,6 +163,7 @@ function attackOf(village: MapVillage, template: FarmTemplate): CommandRequest {
     target: { x: village.x, y: village.y },
     units: template.units as Record<string, number>,
     catapultTarget: null,
+    notifyReturn: null,
   };
 }
 

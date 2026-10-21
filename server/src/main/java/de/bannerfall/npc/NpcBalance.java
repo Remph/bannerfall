@@ -96,16 +96,18 @@ public class NpcBalance {
 
     /**
      * The rubber band with the brake per guild (09 §13.5): a lord in a lord guild is braked also
-     * while its guild's points are above {@code leadMargin} × the strongest human side.
+     * while its guild's points per member are above {@code leadMargin} × those of the strongest
+     * human side. Per member since 1.6: compared as sums, a guild of ten lords against two friends
+     * in one guild started five times ahead and never conquered.
      *
-     * @param guildPoints the points of the lord's guild, null without one
-     * @param strongestHumanSide the points of the strongest human side (a guild of humans or a
-     *     human without one)
+     * @param guildAverage the points of the lord's guild per member, null without one
+     * @param strongestHumanSide the points per member of the strongest human side (a guild of
+     *     humans or a human without one), the side with the most per member
      */
     public static NpcMemory.Stance stance(
             int lordPoints,
-            Long guildPoints,
-            long strongestHumanSide,
+            Double guildAverage,
+            double strongestHumanSide,
             List<Integer> humanPoints,
             Difficulty d) {
         if (humanPoints.isEmpty()) {
@@ -115,8 +117,8 @@ public class NpcBalance {
         double average = humanPoints.stream().mapToInt(Integer::intValue).average().orElse(0);
         boolean braked =
                 lordPoints > d.leadMargin() * strongest
-                        || (guildPoints != null
-                                && guildPoints > d.leadMargin() * strongestHumanSide);
+                        || (guildAverage != null
+                                && guildAverage > d.leadMargin() * strongestHumanSide);
         boolean boosted = d.boostBelow() > 0 && lordPoints < d.boostBelow() * average;
         return new NpcMemory.Stance(boosted, braked);
     }

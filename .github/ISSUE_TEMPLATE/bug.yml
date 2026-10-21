@@ -1,0 +1,59 @@
+name: Bug report
+description: Something in the game or on your own server does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it! A few details make it much easier to find.
+        Please leave out passwords, tokens, invite codes and other players' data. Found a way to see or change what you should not? Then only write that you found one, without the steps, and we will find a private way to talk.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: And what did you expect instead? A screenshot helps a lot; paste or drag it in here.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we make it happen again?
+      placeholder: |
+        1. Open the map
+        2. Tap a barbarian village
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Bannerfall version
+      description: "In the game: Settings, Version. On your own server: `bfa status` (or `docker compose exec app bannerfall-admin status`)."
+      placeholder: "1.6.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - In the game
+        - Hosting my own server (install, update, backup, login)
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: For anything in the game. Installed on the home screen? Please say so.
+      placeholder: "Android phone with Chrome, iPhone with Safari, Windows PC with Firefox, ..."
+  - type: textarea
+    id: world
+    attributes:
+      label: World settings
+      description: For battles, loot, speed, NPC lords and other rules. Settings, World settings shows them; the ones that differ from the defaults are enough. Leave it empty if you are not sure.
+  - type: textarea
+    id: log
+    attributes:
+      label: Server log
+      description: "Only for your own server: the last lines of `bf logs app --tail 80` (or `docker compose logs app --tail 80`)."
+      render: text

@@ -192,7 +192,7 @@ public class VillageStateService {
      * production factor (1.0 for humans and barbarian villages, an NPC lord's own, 09 §8), and the
      * village's Harvest banner.
      */
-    static double productionPerHour(
+    public static double productionPerHour(
             Village village, ResourceType resource, WorldSettings world, BannerEffect banner) {
         Player owner = village.getPlayer();
         double factor = owner == null ? 1.0 : owner.getProductionFactor();

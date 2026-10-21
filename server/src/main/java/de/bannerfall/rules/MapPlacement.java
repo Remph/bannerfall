@@ -10,6 +10,9 @@ import java.util.function.Predicate;
  * the injected {@link RandomSource}, the map from an occupancy check ("is there a village on this
  * field?"), so the class needs neither Spring nor a database.
  *
+ * <p>Every radius is multiplied by the world's spread ({@code MapSpread}, 1.6): 1.0 is the spread
+ * of every world before, 1.6 puts the sides 60 % further apart.
+ *
  * <p>An empty result means "no free spot found" (the service turns it into {@code WORLD_FULL}).
  */
 public final class MapPlacement {
@@ -21,32 +24,51 @@ public final class MapPlacement {
 
     /**
      * Spot for a new player: around the map center, further out with every player village ({@code r
-     * = 8 + 2.5 × sqrt(n) + random(−2, 2)}).
+     * = (8 + 2.5 × sqrt(n) + random(−2, 2)) × spread}).
      *
      * @param playerVillageCount number of player-owned villages so far
      */
     public static Optional<Coordinates> findPlayerSpot(
             int mapSize,
+            double spread,
             int playerVillageCount,
             Predicate<Coordinates> occupied,
             RandomSource random) {
-        double radius = 8 + 2.5 * Math.sqrt(playerVillageCount) + random.nextDouble(-2.0, 2.0);
+        double radius =
+                (8 + 2.5 * Math.sqrt(playerVillageCount) + random.nextDouble(-2.0, 2.0)) * spread;
         return spiral(center(mapSize), radius, mapSize, occupied, random);
     }
 
-    /** Spot for a barbarian village near {@code around} ({@code r = random(3, 8)}). */
+    /**
+     * Spot for a player who starts next to a guild mate (1.6): around the mate's village, {@code r
+     * = random(4, 6)} and further out from there like every search. Close enough for support to
+     * arrive in about two hours at speed 1, far enough that both have room to grow; not multiplied
+     * by the spread, so a wide map doesn't pull them apart.
+     */
+    public static Optional<Coordinates> findSpotNearGuildMate(
+            Coordinates mate, int mapSize, Predicate<Coordinates> occupied, RandomSource random) {
+        double radius = random.nextDouble(4, 6);
+        return spiral(mate, radius, mapSize, occupied, random);
+    }
+
+    /** Spot for a barbarian village near {@code around} ({@code r = random(3, 8) × spread}). */
     public static Optional<Coordinates> findBarbarianSpotNear(
-            Coordinates around, int mapSize, Predicate<Coordinates> occupied, RandomSource random) {
-        double radius = random.nextDouble(3, 8);
+            Coordinates around,
+            int mapSize,
+            double spread,
+            Predicate<Coordinates> occupied,
+            RandomSource random) {
+        double radius = random.nextDouble(3, 8) * spread;
         return spiral(around, radius, mapSize, occupied, random);
     }
 
     /**
-     * Spot for one of the initial barbarian villages around the center ({@code r = random(4, 30)}).
+     * Spot for one of the initial barbarian villages around the center ({@code r = random(4, 30) ×
+     * spread}).
      */
     public static Optional<Coordinates> findInitialBarbarianSpot(
-            int mapSize, Predicate<Coordinates> occupied, RandomSource random) {
-        double radius = random.nextDouble(4, 30);
+            int mapSize, double spread, Predicate<Coordinates> occupied, RandomSource random) {
+        double radius = random.nextDouble(4, 30) * spread;
         return spiral(center(mapSize), radius, mapSize, occupied, random);
     }
 

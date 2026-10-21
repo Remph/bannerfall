@@ -42,6 +42,13 @@ export function changelogUrl(version: string, language: Language): string {
 }
 
 /**
+ * The public repository with the game's source code (1.6), linked as "GitHub" next to the server
+ * time and in the settings menu. Not configurable either: a host running a modified version
+ * changes it here, so the link points at the code that actually runs.
+ */
+export const SOURCE_URL = 'https://github.com/Remph/bannerfall';
+
+/**
  * Watches the `X-Server-Version` header of the API answers. The first one is the version this page
  * was loaded with; a different one later means the host deployed an update while the page was
  * open. The old code would then run against the new server's data (unit, building or report types

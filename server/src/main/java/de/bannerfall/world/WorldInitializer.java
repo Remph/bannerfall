@@ -46,6 +46,9 @@ public class WorldInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(WorldInitializer.class);
 
+    /** The first "storage full" check after a start (then the handler goes on by itself). */
+    static final Duration STORAGE_CHECK_DELAY = Duration.ofMinutes(2);
+
     private final WorldService worldService;
     private final BarbarianService barbarians;
     private final NpcLordService npcLords;
@@ -138,6 +141,10 @@ public class WorldInitializer {
             placeWaitingPlayers(world, now);
         }
         npcLords.ensureRounds();
+        // "storage full" pushes (1.6): its handler checks whether push is on at all
+        if (!scheduler.hasPending(GameEventKind.STORAGE_CHECK)) {
+            scheduler.schedule(GameEventKind.STORAGE_CHECK, null, now.plus(STORAGE_CHECK_DELAY));
+        }
         if (!scheduler.hasPending(GameEventKind.BARBARIAN_GROWTH)) {
             Instant first = now.plus(Barbarians.growthInterval(world));
             scheduler.schedule(GameEventKind.BARBARIAN_GROWTH, null, first);
@@ -150,7 +157,7 @@ public class WorldInitializer {
         int placed = 0;
         for (Player player : players.findWaitingForVillage(Account.PERMANENT_BAN)) {
             player.protectUntil(now.plus(protection));
-            Optional<Village> village = spawns.tryCreateStartingVillage(player);
+            Optional<Village> village = spawns.tryCreateStartingVillage(player, true);
             if (village.isEmpty()) {
                 log.warn(
                         "No room on the map for {}; they can try again on the respawn screen",

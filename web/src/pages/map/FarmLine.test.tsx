@@ -23,6 +23,7 @@ const me: Me = {
   protectedUntil: '2026-10-12T00:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [],
 };
 
@@ -71,6 +72,11 @@ function open({
   });
 }
 
+/** A moment after the panel opened: a template tap counts (taps sooner are a double tap on the village). */
+function aMomentLater() {
+  vi.advanceTimersByTime(1000);
+}
+
 function mockSend() {
   return vi.spyOn(api, 'POST').mockResolvedValue({
     data: { kind: 'ATTACK', arriveAt: '2026-10-18T12:20:00Z' },
@@ -80,7 +86,7 @@ function mockSend() {
 
 describe('FarmLine', () => {
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
     vi.setSystemTime(new Date(NOW));
   });
 
@@ -101,6 +107,7 @@ describe('FarmLine', () => {
   it("sends a template's units as an attack with one tap", async () => {
     const post = mockSend();
     open();
+    aMomentLater();
 
     fireEvent.click(screen.getByRole('button', { name: 'Send template A now' }));
 
@@ -117,10 +124,25 @@ describe('FarmLine', () => {
     expect(await screen.findByRole('status')).toBeTruthy();
   });
 
+  it('ignores a tap right after the panel opened: the second tap of a double tap on the village (1.6)', async () => {
+    const post = mockSend();
+    open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send template A now' }));
+    vi.advanceTimersByTime(300);
+    fireEvent.click(screen.getByRole('button', { name: 'Send template A now' }));
+    expect(post).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(300);
+    fireEvent.click(screen.getByRole('button', { name: 'Send template A now' }));
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  });
+
   it('asks for a second tap when the attack would end the beginner protection', async () => {
     const post = mockSend();
     const player = { ...barbarian, playerId: 12, playerName: 'Bo', name: "Bo's village" };
     open({ target: player, account: { ...me, protectedUntil: '2026-10-20T00:00:00Z' } });
+    aMomentLater();
 
     fireEvent.click(screen.getByRole('button', { name: 'Send template A now' }));
     expect(post).not.toHaveBeenCalled();
@@ -171,6 +193,21 @@ describe('FarmLine', () => {
     });
   });
 
+  it('shows the morale of the previews at a much smaller player (1.6)', async () => {
+    const small = { ...barbarian, playerId: 31, playerName: 'Kai', name: 'Kai' };
+    vi.spyOn(api, 'POST').mockResolvedValue({
+      data: { errors: [], travelSeconds: 600, morale: 0.48 },
+      response: new Response(),
+    } as never);
+    open({ target: small, world: { nightBonus: null, moraleFloor: 30 } });
+
+    expect(
+      await screen.findByText(
+        'Morale 48%: the owner has far fewer points than you, so your attack hits with 48% of its strength.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('links to the templates when there are none', () => {
     open({ list: [] });
 
@@ -193,6 +230,9 @@ describe('FarmLine', () => {
       nextBannerRollAt: null,
       bannerChance: false,
       note: null,
+      morale: null,
+      haulCapacity: 400,
+      lastRaid: null,
     };
     open({ targets: [listed] });
 

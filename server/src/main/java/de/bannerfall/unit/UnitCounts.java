@@ -9,7 +9,7 @@ import java.util.function.ObjIntConsumer;
 
 /**
  * A number of units per {@link UnitType}: one {@code int} column per type ({@code u_spearman} ...
- * {@code u_banner_thief}). Counts are never negative.
+ * {@code u_mounted_archer}). Counts are never negative.
  */
 @Embeddable
 public class UnitCounts {
@@ -47,6 +47,12 @@ public class UnitCounts {
     @Column(name = "u_banner_thief")
     private int bannerThief;
 
+    @Column(name = "u_archer")
+    private int archer;
+
+    @Column(name = "u_mounted_archer")
+    private int mountedArcher;
+
     /** No units. */
     public UnitCounts() {}
 
@@ -70,6 +76,8 @@ public class UnitCounts {
             case NOBLE -> noble;
             case PALADIN -> paladin;
             case BANNER_THIEF -> bannerThief;
+            case ARCHER -> archer;
+            case MOUNTED_ARCHER -> mountedArcher;
         };
     }
 
@@ -89,6 +97,8 @@ public class UnitCounts {
             case NOBLE -> noble = count;
             case PALADIN -> paladin = count;
             case BANNER_THIEF -> bannerThief = count;
+            case ARCHER -> archer = count;
+            case MOUNTED_ARCHER -> mountedArcher = count;
         }
     }
 

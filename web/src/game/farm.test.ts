@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { FarmTarget } from '../api/queries/farm';
 import {
   bannerRollBackAt,
   nextBannerRollBackIn,
@@ -6,6 +7,7 @@ import {
   farmUnitTypes,
   fitsHome,
   hasUnits,
+  runPreview,
   sendAllNotes,
   templateOf,
 } from './farm';
@@ -16,8 +18,10 @@ describe('farmUnitTypes', () => {
       'SPEARMAN',
       'SWORDSMAN',
       'AXEMAN',
+      'ARCHER',
       'SCOUT',
       'LIGHT_CAVALRY',
+      'MOUNTED_ARCHER',
       'HEAVY_CAVALRY',
       'RAM',
       'CATAPULT',
@@ -127,5 +131,74 @@ describe('sendAllNotes', () => {
   it('leaves the entries the run passed by without a note', () => {
     const notes = sendAllNotes({ sent: [7], skipped: [] });
     expect([...notes.keys()]).toEqual([7]);
+  });
+});
+
+describe('runPreview (1.6)', () => {
+  const now = Date.parse('2026-10-21T08:00:00Z');
+  let nextId = 1;
+  function entry(units: FarmTarget['units'], haulCapacity: number, extra: Partial<FarmTarget> = {}): FarmTarget {
+    return {
+      id: nextId++,
+      target: { id: 100 + nextId, name: null, x: 1, y: 1, playerId: null, playerName: null },
+      units,
+      template: null,
+      distance: 2,
+      travelSeconds: 600,
+      protectedUntil: null,
+      lastSentAt: null,
+      nextBannerRollAt: null,
+      bannerChance: false,
+      note: null,
+      morale: null,
+      haulCapacity,
+      lastRaid: null,
+      ...extra,
+    };
+  }
+  const options = { bannerChanceOnly: false, playerId: 3, senderProtectedUntilMs: 0, nowMs: now };
+
+  it('goes down the list with what is left at home and adds up what the attacks can carry', () => {
+    // axemen for two of the three axe entries; the cavalry entry after them still goes
+    const targets = [
+      entry({ AXEMAN: 10 }, 150),
+      entry({ AXEMAN: 10 }, 150),
+      entry({ AXEMAN: 10 }, 150),
+      entry({ LIGHT_CAVALRY: 5 }, 400),
+    ];
+
+    expect(runPreview(targets, { AXEMAN: 25, LIGHT_CAVALRY: 5 }, options)).toEqual({ attacks: 3, haul: 700 });
+  });
+
+  it('leaves out targets protected at the arrival, and players while the sender is protected', () => {
+    const player = { id: 7, name: 'Hof', x: 2, y: 2, playerId: 9, playerName: 'Ada' };
+    const targets = [
+      entry({ AXEMAN: 1 }, 15, { target: player, protectedUntil: '2026-10-21T08:20:00Z' }),
+      // protection ends before the attack arrives (10 minutes)
+      entry({ AXEMAN: 1 }, 15, { target: player, protectedUntil: '2026-10-21T08:05:00Z' }),
+      entry({ AXEMAN: 1 }, 15),
+    ];
+
+    expect(runPreview(targets, { AXEMAN: 10 }, options)).toEqual({ attacks: 2, haul: 30 });
+    expect(runPreview(targets, { AXEMAN: 10 }, { ...options, senderProtectedUntilMs: now + 1 })).toEqual({
+      attacks: 1,
+      haul: 15,
+    });
+  });
+
+  it('leaves out the own villages, conquered since they were added', () => {
+    const own = { id: 8, name: 'Burg', x: 3, y: 3, playerId: 3, playerName: 'Jonas' };
+    const targets = [entry({ AXEMAN: 1 }, 15, { target: own }), entry({ AXEMAN: 1 }, 15)];
+
+    expect(runPreview(targets, { AXEMAN: 10 }, options)).toEqual({ attacks: 1, haul: 15 });
+  });
+
+  it('takes only the entries with a banner chance for the banner chance run', () => {
+    const targets = [entry({ AXEMAN: 1 }, 15), entry({ AXEMAN: 2 }, 30, { bannerChance: true })];
+
+    expect(runPreview(targets, { AXEMAN: 10 }, { ...options, bannerChanceOnly: true })).toEqual({
+      attacks: 1,
+      haul: 30,
+    });
   });
 });

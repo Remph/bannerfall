@@ -1,6 +1,7 @@
 package de.bannerfall.cli;
 
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.world.MapSpread;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.IOException;
@@ -93,6 +94,7 @@ public class AdminCli implements Callable<Integer> {
                     "npcThinkMinutes",
                     "guildsEnabled",
                     "guildMaxMembers",
+                    "guildStartTogether",
                     "npcGuildsEnabled",
                     "npcGuildMaxMembers",
                     "barbarianWallsEnabled",
@@ -106,6 +108,8 @@ public class AdminCli implements Callable<Integer> {
                     "bannerDropFactor",
                     "standardTheftEnabled",
                     "npcBannersEnabled",
+                    "npcLearningEnabled",
+                    "npcShipmentsEnabled",
                     "marketExchangeRatio",
                     "victoryMode",
                     "dominationPercent",
@@ -116,11 +120,16 @@ public class AdminCli implements Callable<Integer> {
                     "nightBonusEnabled",
                     "nightBonusStartHour",
                     "nightBonusEndHour",
-                    "nightBonusFactor");
+                    "nightBonusFactor",
+                    "archersEnabled",
+                    "moraleEnabled",
+                    "moraleFloor",
+                    "noblePriceStep",
+                    "automationVillages");
 
     /** Only in the pre-game (M14g): fixed once the world's content exists. */
     static final List<String> PREGAME_SETTINGS =
-            List.of("mapSize", "barbarianInitialCount", "npcLordCount");
+            List.of("mapSize", "mapSpread", "barbarianInitialCount", "npcLordCount");
 
     /** The time zone of `world open --at`: where the host and his players live. */
     static final java.time.ZoneId HOST_ZONE = java.time.ZoneId.of("Europe/Berlin");
@@ -413,6 +422,31 @@ public class AdminCli implements Callable<Integer> {
                     Json.show(p, "kind"), p.path("count").asLong(), p.path("examples"));
         }
         return EXIT_REFUSED;
+    }
+
+    @Command(
+            name = "setup",
+            description =
+                    "A one-time link that makes your account the admin and opens the setup wizard"
+                            + " (pre-game only)")
+    int setup() {
+        JsonNode code = client().post("/api/admin/setup-code", null);
+        if (printedJson(code)) {
+            return EXIT_OK;
+        }
+        String domain = env.getOrDefault("BANNERFALL_DOMAIN", "").strip();
+        String path = "/setup?code=" + Json.show(code, "code");
+        out.println("Register or log in on your world, then open:");
+        out.println(
+                domain.isEmpty()
+                        ? "  " + path + "  (after your world's address)"
+                        : "  https://" + domain + path);
+        out.println(
+                "Your account becomes the admin and the setup wizard starts. The link works once,"
+                        + " until "
+                        + Json.time(code, "expiresAt")
+                        + "; `setup` again makes a new one.");
+        return EXIT_OK;
     }
 
     @Command(name = "broadcast", description = "A message from the host to everybody's chat")
@@ -1059,12 +1093,43 @@ public class AdminCli implements Callable<Integer> {
                 for (String name : WORLD_SETTINGS) {
                     body.set(name, current.get(name));
                 }
-                body.set(key, parseValue(current.get(key), value));
+                boolean newSpread =
+                        key.equals("mapSpread")
+                                && "PREGAME".equals(current.path("phase").asString());
+                if (key.equals("mapSpread")) {
+                    MapSpread spread = parseSpread(value);
+                    body.put("mapSpread", spread.name());
+                    if (newSpread) {
+                        // it brings its map size and noble range, like on the admin page
+                        body.put("mapSize", spread.defaultMapSize());
+                        body.put("nobleMaxDistance", spread.defaultNobleMaxDistance());
+                    }
+                } else {
+                    body.set(key, parseValue(current.get(key), value));
+                }
                 JsonNode answer = client.put("/api/admin/world-settings", body);
                 if (!cli.printedJson(answer)) {
                     cli.out().println(setting + " = " + answer.get(key).asString());
+                    if (newSpread) {
+                        cli.out()
+                                .println(
+                                        "map-size = "
+                                                + answer.get("mapSize").asString()
+                                                + ", noble-max-distance = "
+                                                + answer.get("nobleMaxDistance").asString()
+                                                + " (change them with `world set` if you like)");
+                    }
                 }
                 return EXIT_OK;
+            }
+
+            private static MapSpread parseSpread(String text) {
+                try {
+                    return MapSpread.valueOf(text.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    throw new UsageException(
+                            "Expected CLOSE, NORMAL, WIDE or VAST, got '" + text + "'");
+                }
             }
 
             /** The value in the type the setting has now (number, true/false or text). */
@@ -1226,6 +1291,7 @@ public class AdminCli implements Callable<Integer> {
                                 "Villages",
                                 "Guild",
                                 "Banners",
+                                "Learned",
                                 "Next round");
                 for (JsonNode lord : lords) {
                     String guild =
@@ -1242,6 +1308,7 @@ public class AdminCli implements Callable<Integer> {
                             lord.path("villageCount").asInt(),
                             guild,
                             banners(lord),
+                            learned(lord),
                             Json.time(lord, "nextThinkAt"));
                 }
                 table.print(cli.out());
@@ -1269,6 +1336,26 @@ public class AdminCli implements Callable<Integer> {
                     + stash
                     + " in stash, paladin "
                     + lord.path("paladinLevel").asInt(1);
+        }
+
+        /**
+         * Learning lords in short (09-npc-lords §15.5): how much each lesson moved the mix and how
+         * many wall goals stand, e.g. "attacks 30 %, wins 5 %, 1 wall"; "-" while nothing is
+         * learned or learning is off.
+         */
+        static String learned(JsonNode lord) {
+            JsonNode learning = lord.path("learning");
+            if (!learning.isObject()) {
+                return "-";
+            }
+            String text =
+                    "attacks "
+                            + Math.round(learning.path("defenceWeight").asDouble() * 100)
+                            + " %, wins "
+                            + Math.round(learning.path("attackWeight").asDouble() * 100)
+                            + " %";
+            int walls = learning.path("walls").size();
+            return walls == 0 ? text : text + ", " + walls + (walls == 1 ? " wall" : " walls");
         }
 
         @Command(name = "spawn", description = "A new NPC lord")

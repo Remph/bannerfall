@@ -15,10 +15,14 @@ import java.util.List;
  * @param arriveAt null like {@code travelSeconds}
  * @param errors in the order {@code send} checks them (it answers with the first); empty = the
  *     command can be sent
+ * @param morale the attacker's morale if the attack arrived with today's points (1.6, 02-game-rules
+ *     §8.2), e.g. {@code 0.48}; null at full strength, for a support and against a barbarian
+ *     village. The battle reads the points at the arrival.
  */
 public record CommandPreviewDto(
         VillageRefDto targetVillage,
         double distance,
         @Schema(nullable = true) Long travelSeconds,
         @Schema(nullable = true) Instant arriveAt,
-        List<ErrorCode> errors) {}
+        List<ErrorCode> errors,
+        @Schema(nullable = true) Double morale) {}

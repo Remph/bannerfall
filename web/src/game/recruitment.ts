@@ -68,12 +68,63 @@ export function maxAffordable(stock: ResourceAmounts, cost: ResourceAmounts, fre
   return Math.max(0, max);
 }
 
+/**
+ * How many units the stock (rounded down) and the free population pay for when the price of each one
+ * depends on how many are ordered together (the noble, 1.6): `priceFor(count)` is what each of
+ * `count` units costs. Never negative, at most MAX_RECRUIT_COUNT.
+ */
+export function maxAffordableRising(
+  stock: ResourceAmounts,
+  priceFor: (count: number) => ResourceAmounts,
+  freePop: number,
+  pop: number,
+): number {
+  const max = Math.min(MAX_RECRUIT_COUNT, Math.floor(Math.max(0, freePop) / pop));
+  let count = 0;
+  while (count < max) {
+    const price = priceFor(count + 1);
+    if (resourceTypes.some((type) => price[type] * (count + 1) > Math.floor(stock[type]))) {
+      break;
+    }
+    count++;
+  }
+  return count;
+}
+
+/**
+ * A unit as the recruit screen prices it: what one costs and needs, and for a unit whose price
+ * rises with every one the player holds (the noble, 1.6, 02-game-rules §5.7) what each of `count`
+ * costs in one order. Without `priceFor` every unit costs `cost`.
+ */
+export interface PricedUnit {
+  cost: ResourceAmounts;
+  pop: number;
+  priceFor?: (count: number) => ResourceAmounts;
+}
+
+/** What each unit of an order of `count` costs. */
+export function unitPriceFor(unit: PricedUnit, count: number): ResourceAmounts {
+  return unit.priceFor === undefined ? unit.cost : unit.priceFor(count);
+}
+
+/** What an order of `count` units costs. */
+export function orderCost(unit: PricedUnit, count: number): ResourceAmounts {
+  return timesCount(unitPriceFor(unit, count), count);
+}
+
+/** Like `maxAffordable`, with the rising price of a unit that has one. */
+export function maxAffordableOf(stock: ResourceAmounts, unit: PricedUnit, freePop: number): number {
+  return unit.priceFor === undefined
+    ? maxAffordable(stock, unit.cost, freePop, unit.pop)
+    : maxAffordableRising(stock, unit.priceFor, freePop, unit.pop);
+}
+
 /** Cost or population of `count` units: every value of the per-unit amounts times `count`. */
 export function timesCount(cost: ResourceAmounts, count: number): ResourceAmounts {
   return { wood: cost.wood * count, clay: cost.clay * count, iron: cost.iron * count };
 }
 
-/** A count typed into one unit row of the recruit screen, with what one unit of it costs. */
+/** A count typed into one unit row of the recruit screen, with what each unit of that order costs. */
 export interface TypedRow {
   cost: ResourceAmounts;
   pop: number;
@@ -102,7 +153,7 @@ export function totalOf(rows: readonly TypedRow[]): { cost: ResourceAmounts; pop
 export function sharedMax(
   stock: ResourceAmounts,
   freePop: number,
-  unit: { cost: ResourceAmounts; pop: number },
+  unit: PricedUnit,
   others: readonly TypedRow[],
 ): number {
   const taken = totalOf(others);
@@ -111,5 +162,5 @@ export function sharedMax(
     clay: stock.clay - taken.cost.clay,
     iron: stock.iron - taken.cost.iron,
   };
-  return maxAffordable(left, unit.cost, freePop - taken.pop, unit.pop);
+  return maxAffordableOf(left, unit, freePop - taken.pop);
 }

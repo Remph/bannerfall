@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { AdminWorldSettings } from '../../api/queries/admin';
-import { worldFromForm, worldToForm } from './worldForm';
+import { withSpread, worldFromForm, worldToForm } from './worldForm';
 
 const settings: AdminWorldSettings = {
   name: 'Bannerfall 1',
   speed: 3,
   unitSpeed: 1,
   mapSize: 100,
+  mapSpread: 'NORMAL',
   startResources: 500,
   luckRange: 0.25,
   beginnerProtectionHours: 72,
@@ -26,21 +27,29 @@ const settings: AdminWorldSettings = {
   npcThinkMinutes: 20,
   guildsEnabled: false,
   guildMaxMembers: 10,
+  guildStartTogether: true,
   npcGuildsEnabled: false,
   npcGuildMaxMembers: 3,
   unitLevelsEnabled: false,
   paladinVillagesPerSlot: 4,
   paladinMaxSlots: 5,
+  noblePriceStep: 0.25,
   bannersEnabled: true,
   bannerDropFactor: 1,
   standardTheftEnabled: true,
   npcBannersEnabled: false,
+  npcLearningEnabled: false,
+  npcShipmentsEnabled: true,
   marketExchangeRatio: 1.5,
   villageNameLanguage: 'EN',
   nightBonusEnabled: false,
   nightBonusStartHour: 23,
   nightBonusEndHour: 7,
   nightBonusFactor: 2,
+  archersEnabled: false,
+  moraleEnabled: true,
+  moraleFloor: 30,
+  automationVillages: 3,
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,
   barbarianWallMaxLevel: 5,
@@ -51,6 +60,7 @@ const settings: AdminWorldSettings = {
   keepCount: 5,
   keepPercent: 51,
   phase: 'OPEN',
+  setupDone: false,
   opensAt: null,
   endsAt: null,
   endedAt: null,
@@ -79,21 +89,29 @@ describe('worldFromForm', () => {
       barbarianGrowthEnabled: true,
       guildsEnabled: false,
       guildMaxMembers: 10,
+      guildStartTogether: true,
       npcGuildsEnabled: false,
       npcGuildMaxMembers: 3,
       unitLevelsEnabled: false,
+      archersEnabled: false,
       paladinVillagesPerSlot: 4,
       paladinMaxSlots: 5,
+      noblePriceStep: 0.25,
       bannersEnabled: true,
       bannerDropFactor: 1,
       standardTheftEnabled: true,
       npcBannersEnabled: false,
+      npcLearningEnabled: false,
+      npcShipmentsEnabled: true,
       marketExchangeRatio: 1.5,
       villageNameLanguage: 'EN',
       nightBonusEnabled: false,
       nightBonusStartHour: 23,
       nightBonusEndHour: 7,
       nightBonusFactor: 2,
+      moraleEnabled: true,
+      moraleFloor: 30,
+      automationVillages: 3,
       barbarianWallsEnabled: null,
       barbarianWallStartDays: null,
       barbarianWallMaxLevel: null,
@@ -104,9 +122,17 @@ describe('worldFromForm', () => {
       keepCount: null,
       keepPercent: null,
       mapSize: null,
+      mapSpread: null,
       barbarianInitialCount: null,
       npcLordCount: null,
     });
+  });
+
+  it('sends the lord shipments switch both ways', () => {
+    const form = worldToForm(settings);
+    expect(form.npcShipmentsEnabled).toBe(true);
+    expect(worldFromForm({ ...form, npcShipmentsEnabled: false })?.npcShipmentsEnabled).toBe(false);
+    expect(worldFromForm(form)?.npcShipmentsEnabled).toBe(true);
   });
 
   it('sends the lord guild switch and the most lords per guild (2–50)', () => {
@@ -151,6 +177,16 @@ describe('worldFromForm', () => {
     expect(worldFromForm({ ...form, bannerDropFactor: '' })).toBeNull();
   });
 
+  it('sends the noble price step and checks its range (0–1)', () => {
+    const form = worldToForm({ ...settings, noblePriceStep: 0.5 });
+    expect(form.noblePriceStep).toBe('0.5');
+    expect(worldFromForm(form)?.noblePriceStep).toBe(0.5);
+    expect(worldFromForm({ ...form, noblePriceStep: '0' })?.noblePriceStep).toBe(0);
+    expect(worldFromForm({ ...form, noblePriceStep: '1.1' })).toBeNull();
+    expect(worldFromForm({ ...form, noblePriceStep: '-0.1' })).toBeNull();
+    expect(worldFromForm({ ...form, noblePriceStep: '' })).toBeNull();
+  });
+
   it('sends the market exchange ratio: 0 turns it off, otherwise 1 to 10', () => {
     const form = worldToForm(settings);
     expect(form.marketExchangeRatio).toBe('1.5');
@@ -170,12 +206,33 @@ describe('worldFromForm', () => {
       nightBonusStartHour: 0,
       nightBonusEndHour: 8,
       nightBonusFactor: 2,
+      moraleEnabled: true,
+      moraleFloor: 30,
     });
     expect(worldFromForm({ ...form, nightBonusStartHour: '7' })).toBeNull();
     expect(worldFromForm({ ...form, nightBonusEndHour: '24' })).toBeNull();
     expect(worldFromForm({ ...form, nightBonusStartHour: '22.5' })).toBeNull();
     expect(worldFromForm({ ...form, nightBonusFactor: '1' })).toBeNull();
     expect(worldFromForm({ ...form, nightBonusFactor: '3' })?.nightBonusFactor).toBe(3);
+  });
+
+  it('sends morale and refuses a floor out of range', () => {
+    const form = worldToForm(settings);
+    expect(worldFromForm({ ...form, moraleEnabled: false, moraleFloor: '50' })).toMatchObject({
+      moraleEnabled: false,
+      moraleFloor: 50,
+    });
+    expect(worldFromForm({ ...form, moraleFloor: '29' })).toBeNull();
+    expect(worldFromForm({ ...form, moraleFloor: '101' })).toBeNull();
+    expect(worldFromForm({ ...form, moraleFloor: '40.5' })).toBeNull();
+    expect(worldFromForm({ ...form, moraleFloor: '100' })?.moraleFloor).toBe(100);
+  });
+
+  it('sends from which village on the automation unlocks, 0 for off', () => {
+    const form = worldToForm(settings);
+    expect(worldFromForm({ ...form, automationVillages: '0' })?.automationVillages).toBe(0);
+    expect(worldFromForm({ ...form, automationVillages: '101' })).toBeNull();
+    expect(worldFromForm({ ...form, automationVillages: '2.5' })).toBeNull();
   });
 
   it('sends the language of default village names', () => {
@@ -192,6 +249,23 @@ describe('worldFromForm', () => {
     expect(worldFromForm({ ...form, npcLordCount: '51' }, true)).toBeNull();
     // fixed in an open world: a stale value in the form does not block saving the rest
     expect(worldFromForm({ ...form, mapSize: '10' })).not.toBeNull();
+  });
+
+  it('sends the map spread only in the pre-game', () => {
+    const form = worldToForm(settings);
+    expect(form.mapSpread).toBe('NORMAL');
+    expect(worldFromForm(form, true)).toMatchObject({ mapSpread: 'NORMAL' });
+    expect(worldFromForm(form)).toMatchObject({ mapSpread: null });
+  });
+
+  it('gives a new spread its map size and noble range, which the host can still change', () => {
+    const form = worldToForm(settings);
+    expect(withSpread(form, 'VAST')).toMatchObject({ mapSpread: 'VAST', mapSize: '160', nobleMaxDistance: '112' });
+    expect(withSpread(form, 'WIDE')).toMatchObject({ mapSize: '130', nobleMaxDistance: '91' });
+    expect(withSpread(form, 'CLOSE')).toMatchObject({ mapSize: '80', nobleMaxDistance: '56' });
+    expect(withSpread(withSpread(form, 'VAST'), 'NORMAL')).toMatchObject({ mapSize: '100', nobleMaxDistance: '70' });
+    const typed = { ...withSpread(form, 'WIDE'), mapSize: '150' };
+    expect(worldFromForm(typed, true)).toMatchObject({ mapSpread: 'WIDE', mapSize: 150, nobleMaxDistance: 91 });
   });
 
   it('trims the name and the invite code and refuses blank or too long ones', () => {

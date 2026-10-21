@@ -30,4 +30,20 @@ public interface FarmTargetRepository extends JpaRepository<FarmTarget, Long> {
             "update FarmTarget t set t.lastSentAt = :now"
                     + " where t.villageId = :villageId and t.targetVillageId = :targetVillageId")
     int markSent(long villageId, long targetVillageId, Instant now);
+
+    /**
+     * An attack from the village at the target landed (1.6): the entry keeps its result, unless a
+     * later one is there already. The number of rows changed (0 or 1).
+     *
+     * @param loot all resources together
+     * @param capacity what the survivors could carry, Plunder banner included
+     */
+    @Modifying
+    @Query(
+            "update FarmTarget t set t.lastRaidAt = :at, t.lastRaidWon = :won,"
+                    + " t.lastRaidLoot = :loot, t.lastRaidCapacity = :capacity"
+                    + " where t.villageId = :villageId and t.targetVillageId = :targetVillageId"
+                    + " and (t.lastRaidAt is null or t.lastRaidAt <= :at)")
+    int markRaid(
+            long villageId, long targetVillageId, Instant at, boolean won, int loot, int capacity);
 }

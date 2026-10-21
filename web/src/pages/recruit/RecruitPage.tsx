@@ -9,6 +9,7 @@ import {
   type RecruitBuilding,
   type RecruitUnit,
 } from '../../api/queries/recruitment';
+import { useNoble, type Noble } from '../../api/queries/noble';
 import { usePaladin } from '../../api/queries/paladin';
 import { useRefreshWhenMovementsArrive, useTroops } from '../../api/queries/troops';
 import { useVillage, type Village } from '../../api/queries/villages';
@@ -19,15 +20,19 @@ import { CostList } from '../../components/CostList';
 import { DevCheats } from '../../components/DevCheats';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { InfoRow } from '../../components/InfoRow';
 import { UnitCountInput } from '../../components/UnitCountInput';
-import { formatNumber, formatUpcoming } from '../../game/format';
+import { formatFactor, formatNumber, formatUpcoming } from '../../game/format';
 import { recruitingBuildings, type RecruitingBuilding, type UnitType } from '../../game/gameData';
+import { nobleUnitPrice } from '../../game/noblePrice';
 import {
   MAX_RECRUIT_COUNT,
-  maxAffordable,
+  maxAffordableOf,
+  orderCost,
   sharedMax,
-  timesCount,
   totalOf,
+  unitPriceFor,
+  type PricedUnit,
   type TypedRow,
 } from '../../game/recruitment';
 import { freePaladinSlots, cappedBySlots } from '../../game/paladin';
@@ -40,6 +45,7 @@ import { VillageError } from '../village/VillageError';
 import { DismissQueueCard } from './DismissQueueCard';
 import { DismissUnit } from './DismissUnit';
 import { HallTrainingCard } from './HallTrainingCard';
+import { NoblePriceBody } from './NoblePrice';
 import { PaladinSlots } from './PaladinSlots';
 import { RecruitQueueCard } from './RecruitQueueCard';
 import { RecruitTemplates } from './RecruitTemplates';
@@ -212,6 +218,13 @@ function UnitList({ village, info, queueSize, away }: UnitListProps) {
   // M31: a paladin needs a free slot, on top of resources and population
   const paladin = usePaladin(info.units.some((unit) => unit.unit === 'PALADIN'));
   const freeSlots = paladin.data === undefined ? undefined : freePaladinSlots(paladin.data);
+  // 1.6: a noble's price rises with every one the player holds, also within one order (§5.7)
+  const noble = useNoble(info.units.some((unit) => unit.unit === 'NOBLE'));
+  const pricing = noble.data;
+  const priced = (unit: RecruitUnit): PricedUnit =>
+    unit.unit === 'NOBLE' && pricing !== undefined
+      ? { cost: unit.cost, pop: unit.pop, priceFor: (count) => nobleUnitPrice(pricing, count) }
+      : unit;
   const [counts, setCounts] = useState<Partial<Record<UnitType, number>>>({});
   const queueFull = queueSize !== undefined && info.queue.length >= queueSize;
   const dismissQueueFull = queueSize !== undefined && info.dismissQueue.length >= queueSize;
@@ -225,11 +238,13 @@ function UnitList({ village, info, queueSize, away }: UnitListProps) {
     enqueueAll.error instanceof ApiError && enqueueAll.error.unit !== null ? enqueueAll.error.unit : undefined;
 
   const available = info.units.filter((unit) => unit.available);
-  const filled = available.map((unit) => ({ unit, count: counts[unit.unit] ?? 0 })).filter((row) => row.count > 0);
+  const filled = available
+    .map((unit) => ({ unit, priced: priced(unit), count: counts[unit.unit] ?? 0 }))
+    .filter((row) => row.count > 0);
   const typed = (except: UnitType): TypedRow[] =>
     filled
       .filter((row) => row.unit.unit !== except)
-      .map((row) => ({ cost: row.unit.cost, pop: row.unit.pop, count: row.count }));
+      .map((row) => ({ cost: unitPriceFor(row.priced, row.count), pop: row.unit.pop, count: row.count }));
   const setCount = (unit: UnitType, count: number) => setCounts((current) => ({ ...current, [unit]: count }));
   // at home plus away; unknown until the troops are loaded
   const ownTotal = (unit: UnitType) =>
@@ -244,6 +259,8 @@ function UnitList({ village, info, queueSize, away }: UnitListProps) {
             <UnitRow
               key={unit.unit}
               unit={unit}
+              priced={priced(unit)}
+              noble={unit.unit === 'NOBLE' ? pricing : undefined}
               village={village}
               stock={stock}
               freePop={freePop}
@@ -270,6 +287,7 @@ function UnitList({ village, info, queueSize, away }: UnitListProps) {
               key={unit.unit}
               villageId={village.id}
               unit={unit}
+              noble={unit.unit === 'NOBLE' ? pricing : undefined}
               atHome={village.unitsHome[unit.unit] ?? 0}
               total={ownTotal(unit.unit)}
               dismissQueueFull={dismissQueueFull}
@@ -302,7 +320,7 @@ function UnitList({ village, info, queueSize, away }: UnitListProps) {
 
 interface RecruitAllProps {
   /** The filled-in rows, in unit order (the order the server queues them in). */
-  rows: readonly { unit: RecruitUnit; count: number }[];
+  rows: readonly { unit: RecruitUnit; priced: PricedUnit; count: number }[];
   stock: ResourceAmounts;
   freePop: number;
   /** Free places in the building's queue; undefined while the world settings load. */
@@ -323,14 +341,17 @@ interface RecruitAllProps {
 function RecruitAll(props: RecruitAllProps) {
   const { rows, stock, freePop, freePlaces, freeSlots, pending, recruiting, error, onRecruit } = props;
   const { t, language } = useI18n();
-  const total = totalOf(rows.map((row) => ({ cost: row.unit.cost, pop: row.unit.pop, count: row.count })));
+  const typedRow = (row: (typeof rows)[number]): TypedRow => ({
+    cost: unitPriceFor(row.priced, row.count),
+    pop: row.unit.pop,
+    count: row.count,
+  });
+  const total = totalOf(rows.map(typedRow));
   const seconds = rows.reduce((sum, row) => sum + row.unit.secondsPerUnit * row.count, 0);
   const fits = rows.every((row) => {
-    const others = rows
-      .filter((other) => other !== row)
-      .map((other) => ({ cost: other.unit.cost, pop: other.unit.pop, count: other.count }));
+    const others = rows.filter((other) => other !== row).map(typedRow);
     const slotLimit = row.unit.unit === 'PALADIN' ? freeSlots : undefined;
-    return row.count <= cappedBySlots(sharedMax(stock, freePop, row.unit, others), slotLimit);
+    return row.count <= cappedBySlots(sharedMax(stock, freePop, row.priced, others), slotLimit);
   });
   const tooFewPlaces = freePlaces !== undefined && rows.length > freePlaces;
   return (
@@ -365,6 +386,10 @@ function RecruitAll(props: RecruitAllProps) {
 
 interface UnitRowProps {
   unit: RecruitUnit;
+  /** What an order of this unit costs (the noble's price rises with the count, 1.6). */
+  priced: PricedUnit;
+  /** The noble's price and rank (1.6): the row gets its info button; undefined for other units. */
+  noble: Noble | undefined;
   village: Village;
   stock: ResourceAmounts;
   freePop: number;
@@ -392,6 +417,8 @@ interface UnitRowProps {
 function UnitRow(props: UnitRowProps) {
   const {
     unit,
+    priced,
+    noble,
     village,
     stock,
     freePop,
@@ -411,8 +438,8 @@ function UnitRow(props: UnitRowProps) {
   const { t, language } = useI18n();
   // + and "max" stop at what the other filled-in rows leave (M27). The button sends this row
   // alone, so it only needs what this row costs by itself (the server checks the same).
-  const max = cappedBySlots(sharedMax(stock, freePop, unit, others), slotLimit);
-  const aloneMax = cappedBySlots(maxAffordable(stock, unit.cost, freePop, unit.pop), slotLimit);
+  const max = cappedBySlots(sharedMax(stock, freePop, priced, others), slotLimit);
+  const aloneMax = cappedBySlots(maxAffordableOf(stock, priced, freePop), slotLimit);
   const canRecruit = !queueFull && count >= 1 && count <= aloneMax;
 
   // Why it can't be recruited (for the typed count, or for one unit while the field is empty): the
@@ -424,7 +451,7 @@ function UnitRow(props: UnitRowProps) {
   if (!queueFull && slotLimit !== undefined && wanted > slotLimit) {
     hint = t.paladin.freeSlots(slotLimit);
   } else if (!queueFull && wanted > aloneMax) {
-    const affordable = whenAffordable(village, timesCount(unit.cost, wanted), now);
+    const affordable = whenAffordable(village, orderCost(priced, wanted), now);
     if (affordable.kind === 'warehouse') {
       hint = t.townHall.warehouseTooSmall;
     } else if (affordable.kind === 'never') {
@@ -440,66 +467,112 @@ function UnitRow(props: UnitRowProps) {
   }
 
   return (
-    <li className={styles.row}>
-      <div className={styles.info}>
-        <UnitHead
-          unit={unit}
-          atHome={village.unitsHome[unit.unit] ?? 0}
-          total={total}
-          dismiss={
-            <DismissUnit
-              villageId={village.id}
+    <UnitRowItem className={styles.row} noble={noble} stock={stock}>
+      {(infoButton, openPrice) => (
+        <>
+          <div className={styles.info}>
+            <UnitHead
               unit={unit}
               atHome={village.unitsHome[unit.unit] ?? 0}
-              queueFull={dismissQueueFull}
+              total={total}
+              info={infoButton}
+              dismiss={
+                <DismissUnit
+                  villageId={village.id}
+                  unit={unit}
+                  atHome={village.unitsHome[unit.unit] ?? 0}
+                  queueFull={dismissQueueFull}
+                />
+              }
             />
-          }
-        />
-        {unit.unit === 'PALADIN' && <PaladinSlots />}
-        <CostList
-          label={t.recruit.perUnit}
-          timeLabel={t.recruit.time}
-          cost={unit.cost}
-          pop={unit.pop}
-          seconds={unit.secondsPerUnit}
-          stock={stock}
-          freePop={freePop}
-        />
-        {count >= 1 && (
-          <CostList
-            label={t.recruit.total(formatNumber(count, language))}
-            timeLabel={t.recruit.time}
-            showLabel
-            cost={timesCount(unit.cost, count)}
-            pop={unit.pop * count}
-            seconds={unit.secondsPerUnit * count}
-            stock={stock}
-            freePop={freePop}
-          />
-        )}
-      </div>
-      <div className={styles.controls}>
-        <UnitCountInput
-          value={count}
-          onChange={onCount}
-          max={max}
-          limit={MAX_RECRUIT_COUNT}
-          label={t.recruit.countLabel(t.units[unit.unit])}
-          disabled={queueFull}
-        />
-        <div className={styles.action}>
-          {hint !== null && <p className={styles.hint}>{hint}</p>}
-          <Button type="button" size="small" disabled={!canRecruit || pending} onClick={() => onRecruit(count)}>
-            {recruiting ? t.recruit.recruiting : t.recruit.recruit}
-          </Button>
-        </div>
-      </div>
-      {error !== null && (
-        <div className={styles.rowError}>
-          <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>
-        </div>
+            {unit.unit === 'PALADIN' && <PaladinSlots />}
+            <CostList
+              label={t.recruit.perUnit}
+              timeLabel={t.recruit.time}
+              cost={unit.cost}
+              pop={unit.pop}
+              seconds={unit.secondsPerUnit}
+              stock={stock}
+              freePop={freePop}
+              extra={
+                // 1.6 UI review: the raised noble price says so where it is shown; opens the price sheet
+                noble !== undefined && noble.step > 0 && noble.factor > 1 ? (
+                  <button
+                    type="button"
+                    className={styles.factorChip}
+                    aria-haspopup="dialog"
+                    aria-label={t.noble.factorChip(formatFactor(noble.factor, language))}
+                    onClick={openPrice}
+                  >
+                    {t.noble.factor(formatFactor(noble.factor, language))}
+                  </button>
+                ) : undefined
+              }
+            />
+            {count >= 1 && (
+              <CostList
+                label={t.recruit.total(formatNumber(count, language))}
+                timeLabel={t.recruit.time}
+                showLabel
+                cost={orderCost(priced, count)}
+                pop={unit.pop * count}
+                seconds={unit.secondsPerUnit * count}
+                stock={stock}
+                freePop={freePop}
+              />
+            )}
+          </div>
+          <div className={styles.controls}>
+            <UnitCountInput
+              value={count}
+              onChange={onCount}
+              max={max}
+              limit={MAX_RECRUIT_COUNT}
+              label={t.recruit.countLabel(t.units[unit.unit])}
+              disabled={queueFull}
+            />
+            <div className={styles.action}>
+              {hint !== null && <p className={styles.hint}>{hint}</p>}
+              <Button type="button" size="small" disabled={!canRecruit || pending} onClick={() => onRecruit(count)}>
+                {recruiting ? t.recruit.recruiting : t.recruit.recruit}
+              </Button>
+            </div>
+          </div>
+          {error !== null && (
+            <div className={styles.rowError}>
+              <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>
+            </div>
+          )}
+        </>
       )}
-    </li>
+    </UnitRowItem>
+  );
+}
+
+/**
+ * The list item of a unit row: the noble's (1.6) carries the info button with his price and rank,
+ * like a building's row in the Town Hall; every other unit is a plain item.
+ */
+function UnitRowItem(props: {
+  className: string | undefined;
+  noble: Noble | undefined;
+  stock?: ResourceAmounts;
+  children: (infoButton: ReactNode, openPrice: () => void) => ReactNode;
+}) {
+  const { className, noble, stock, children } = props;
+  const t = useT();
+  if (noble === undefined) {
+    return <li className={className}>{children(null, () => undefined)}</li>;
+  }
+  return (
+    <InfoRow
+      title={t.noble.title}
+      label={t.noble.button}
+      className={className}
+      body={<NoblePriceBody noble={noble} stock={stock} />}
+    >
+      {children}
+    </InfoRow>
   );
 }
 
@@ -507,44 +580,57 @@ function UnitRow(props: UnitRowProps) {
 function LockedUnitRow(props: {
   villageId: number;
   unit: RecruitUnit;
+  noble: Noble | undefined;
   atHome: number;
   total: number | undefined;
   dismissQueueFull: boolean;
 }) {
-  const { villageId, unit, atHome, total, dismissQueueFull } = props;
+  const { villageId, unit, noble, atHome, total, dismissQueueFull } = props;
   const t = useT();
   return (
-    <li className={`${styles.row} ${styles.locked}`}>
-      <div className={styles.info}>
-        <UnitHead
-          unit={unit}
-          atHome={atHome}
-          total={total}
-          dismiss={<DismissUnit villageId={villageId} unit={unit} atHome={atHome} queueFull={dismissQueueFull} />}
-        />
-        {unit.unit === 'PALADIN' && <PaladinSlots />}
-        <CostList
-          label={t.recruit.perUnit}
-          timeLabel={t.recruit.time}
-          cost={unit.cost}
-          pop={unit.pop}
-          seconds={unit.secondsPerUnit}
-        />
-        <p className={styles.needs}>
-          {t.townHall.needs(
-            unit.missing
-              .map((requirement) => t.townHall.requirement(t.buildings[requirement.building], requirement.level))
-              .join(', '),
-          )}
-        </p>
-      </div>
-    </li>
+    <UnitRowItem className={`${styles.row} ${styles.locked}`} noble={noble}>
+      {(infoButton) => (
+        <div className={styles.info}>
+          <UnitHead
+            unit={unit}
+            atHome={atHome}
+            total={total}
+            info={infoButton}
+            dismiss={<DismissUnit villageId={villageId} unit={unit} atHome={atHome} queueFull={dismissQueueFull} />}
+          />
+          {unit.unit === 'PALADIN' && <PaladinSlots />}
+          <CostList
+            label={t.recruit.perUnit}
+            timeLabel={t.recruit.time}
+            cost={unit.cost}
+            pop={unit.pop}
+            seconds={unit.secondsPerUnit}
+          />
+          <p className={styles.needs}>
+            {t.townHall.needs(
+              unit.missing
+                .map((requirement) => t.townHall.requirement(t.buildings[requirement.building], requirement.level))
+                .join(', '),
+            )}
+          </p>
+        </div>
+      )}
+    </UnitRowItem>
   );
 }
 
-/** Icon, name and how many of them are at home, with the village's total once the troops are loaded. */
-function UnitHead(props: { unit: RecruitUnit; atHome: number; total: number | undefined; dismiss: ReactNode }) {
-  const { unit, atHome, total, dismiss } = props;
+/**
+ * Icon, name and how many of them are at home, with the village's total once the troops are loaded;
+ * the noble's info button (1.6) and the dismiss button at the end.
+ */
+function UnitHead(props: {
+  unit: RecruitUnit;
+  atHome: number;
+  total: number | undefined;
+  info?: ReactNode;
+  dismiss: ReactNode;
+}) {
+  const { unit, atHome, total, info, dismiss } = props;
   const { t, language } = useI18n();
   return (
     <div className={styles.unitHead}>
@@ -565,7 +651,10 @@ function UnitHead(props: { unit: RecruitUnit; atHome: number; total: number | un
         </span>
       </span>
       {/* the same place in every row, empty while no unit is home (1.3) */}
-      <span className={styles.dismissSlot}>{dismiss}</span>
+      <span className={styles.dismissSlot}>
+        {info}
+        {dismiss}
+      </span>
     </div>
   );
 }

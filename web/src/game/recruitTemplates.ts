@@ -1,5 +1,6 @@
 import type { TemplateLetter } from './farmTemplates';
 import type { BuildingType, UnitType } from './gameData';
+import { nobleUnitPrice, type NoblePricing } from './noblePrice';
 import { MAX_RECRUIT_COUNT, totalOf } from './recruitment';
 import { resourceTypes, type ResourceAmounts } from './resources';
 import type { UnitMap } from './troops';
@@ -60,6 +61,16 @@ export interface PlanInput {
   readonly queueSize: number;
   /** Free paladin slots; undefined where the paladin isn't listed. */
   readonly freeSlots: number | undefined;
+  /** The noble's rising price (1.6, 02-game-rules §5.7); undefined where he isn't listed. */
+  readonly noble?: NoblePricing;
+}
+
+/**
+ * What each unit of a line of `count` costs: the noble's price rises with every one (1.6), the
+ * others cost what the server lists.
+ */
+export function linePrice(input: Pick<PlanInput, 'noble'>, unit: PlanUnit, count: number): ResourceAmounts {
+  return unit.unit === 'NOBLE' && input.noble !== undefined ? nobleUnitPrice(input.noble, count) : unit.cost;
 }
 
 type Draft = Omit<PlanLine, 'now'>;
@@ -102,8 +113,10 @@ export function planTemplate(input: PlanInput): PlanLine[] {
   const need = totalOf(
     drafts
       .filter((line) => line.skip === null)
-      .map((line) => ({ cost: line.unit.cost, pop: line.unit.pop, count: line.missing })),
+      .map((line) => ({ cost: linePrice(input, line.unit, line.missing), pop: line.unit.pop, count: line.missing })),
   );
+  // Fewer nobles than the line asks for cost each at most what each of the whole line would, so the
+  // share below never plans more than the stock pays for.
   const shares = [
     ...resourceTypes
       .filter((type) => need.cost[type] > 0)

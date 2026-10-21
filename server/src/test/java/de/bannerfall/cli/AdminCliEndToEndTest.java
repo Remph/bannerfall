@@ -6,14 +6,17 @@ import de.bannerfall.Browser;
 import de.bannerfall.IntegrationTest;
 import de.bannerfall.TestPlayer;
 import de.bannerfall.world.AdminWorldSettingsDto;
+import de.bannerfall.world.MapSpread;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettingsUpdateRequest;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -53,6 +56,29 @@ class AdminCliEndToEndTest {
 
     private int cli(String... args) {
         return cli("", false, args);
+    }
+
+    @Test
+    void setupPrintsAOneTimeLinkOnlyInThePregame() {
+        assertThat(cli("setup")).isEqualTo(AdminCli.EXIT_REFUSED);
+        assertThat(err.toString()).contains("WORLD_ALREADY_OPEN");
+
+        Timestamp initialized =
+                jdbc.sql("select initialized_at from world_settings")
+                        .query((rs, row) -> Optional.ofNullable(rs.getTimestamp(1)))
+                        .single()
+                        .orElse(null);
+        jdbc.sql("update world_settings set pregame = true, initialized_at = null").update();
+        worldService.reload();
+        try {
+            assertThat(cli("setup")).isZero();
+            assertThat(out.toString()).containsPattern("/setup\\?code=[a-z2-9]{10}");
+        } finally {
+            jdbc.sql("update world_settings set pregame = false, initialized_at = ?")
+                    .param(initialized)
+                    .update();
+            worldService.reload();
+        }
     }
 
     @Test
@@ -269,6 +295,46 @@ class AdminCliEndToEndTest {
     }
 
     @Test
+    void aNewMapSpreadBringsItsMapSizeAndNobleRangeInThePregameOnly() {
+        AdminWorldSettingsDto before = worldService.adminSettings();
+        assertThat(cli("world", "set", "map-spread", "huge")).isEqualTo(AdminCli.EXIT_USAGE);
+        assertThat(err.toString()).contains("Expected CLOSE, NORMAL, WIDE or VAST, got 'huge'");
+        // the shared test world is open: another spread is refused, the same one changes nothing
+        assertThat(cli("world", "set", "map-spread", "wide")).isEqualTo(AdminCli.EXIT_REFUSED);
+        assertThat(err.toString()).contains("WORLD_ALREADY_OPEN");
+        assertThat(cli("world", "set", "map-spread", "normal")).isZero();
+        assertThat(out.toString()).contains("map-spread = NORMAL").doesNotContain("map-size");
+        assertThat(worldService.settings().nobleMaxDistance()).isEqualTo(before.nobleMaxDistance());
+
+        Timestamp initializedAt =
+                jdbc.sql("select initialized_at from world_settings")
+                        .query((rs, row) -> Optional.ofNullable(rs.getTimestamp(1)))
+                        .single()
+                        .orElse(null);
+        jdbc.sql("update world_settings set pregame = true, initialized_at = null").update();
+        worldService.reload();
+        try {
+            assertThat(cli("world", "set", "map-spread", "wide")).isZero();
+            assertThat(out.toString())
+                    .contains("map-spread = WIDE")
+                    .contains("map-size = 130, noble-max-distance = 91");
+            var world = worldService.settings();
+            assertThat(world.mapSpread()).isEqualTo(MapSpread.WIDE);
+            assertThat(world.mapSize()).isEqualTo(130);
+            assertThat(world.nobleMaxDistance()).isEqualTo(91);
+        } finally {
+            jdbc.sql(
+                            "update world_settings set pregame = false, initialized_at = ?,"
+                                    + " map_spread = 'NORMAL', map_size = ?")
+                    .param(initializedAt)
+                    .param(before.mapSize())
+                    .update();
+            worldService.reload();
+            worldService.updateSettings(request(before));
+        }
+    }
+
+    @Test
     void aRefusalPrintsTheServersCodeAndIsExitCode1() {
         assertThat(cli("world", "set", "luck-range", "2")).isEqualTo(AdminCli.EXIT_REFUSED);
         assertThat(err.toString())
@@ -383,6 +449,7 @@ class AdminCliEndToEndTest {
                 null,
                 null,
                 null,
+                null,
                 s.barbarianWallsEnabled(),
                 s.barbarianWallStartDays(),
                 s.barbarianWallMaxLevel(),
@@ -394,6 +461,8 @@ class AdminCliEndToEndTest {
                 s.bannerDropFactor(),
                 s.standardTheftEnabled(),
                 s.npcBannersEnabled(),
+                s.npcLearningEnabled(),
+                s.npcShipmentsEnabled(),
                 s.marketExchangeRatio(),
                 s.victoryMode(),
                 s.dominationPercent(),
@@ -404,6 +473,12 @@ class AdminCliEndToEndTest {
                 s.nightBonusEnabled(),
                 s.nightBonusStartHour(),
                 s.nightBonusEndHour(),
-                s.nightBonusFactor());
+                s.nightBonusFactor(),
+                s.archersEnabled(),
+                s.moraleEnabled(),
+                s.moraleFloor(),
+                s.noblePriceStep(),
+                s.automationVillages(),
+                null);
     }
 }

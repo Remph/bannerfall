@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { refetchDelayMs } from '../../game/buildQueue';
-import type { UnitType } from '../../game/gameData';
+import { byUnitOrder, type UnitType } from '../../game/gameData';
 import { nextUnitDueMs } from '../../game/recruitment';
 import { serverNow } from '../../game/serverTime';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
+import { nobleQueryKey } from './noble';
 import { paladinQueryKey } from './paladin';
 import { villageQueryKey } from './villages';
 
@@ -24,6 +25,12 @@ export function useRecruitment(villageId: number) {
   return useQuery({
     queryKey: recruitmentQueryKey(villageId),
     queryFn: () => expectData(api.GET('/api/villages/{villageId}/recruitment', { params: { path: { villageId } } })),
+    // the server appends the archers (1.6): the UI shows them next to their building's units
+    select: (buildings): RecruitBuilding[] =>
+      buildings.map((building) => ({
+        ...building,
+        units: [...building.units].sort((a, b) => byUnitOrder(a.unit, b.unit)),
+      })),
   });
 }
 
@@ -37,6 +44,8 @@ function refreshRecruitState(queryClient: QueryClient, villageId: number): Promi
     queryClient.invalidateQueries({ queryKey: recruitmentQueryKey(villageId) }),
     // the paladin's slots follow his orders (M31)
     queryClient.invalidateQueries({ queryKey: paladinQueryKey }),
+    // and the next noble's price his orders (1.6)
+    queryClient.invalidateQueries({ queryKey: nobleQueryKey }),
   ]);
 }
 

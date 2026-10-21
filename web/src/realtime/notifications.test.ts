@@ -23,6 +23,7 @@ function me(villages: { id: number; name: string; incomingAttacks: number }[]): 
     protectedUntil: '2026-10-06T12:00:00Z',
     needsRespawn: false,
     linked: false,
+    respawnNearGuild: false,
     villages: villages.map((village) => ({ ...village, x: 50, y: 50, points: 100 })),
   };
 }
@@ -66,7 +67,9 @@ describe('staleQueries', () => {
       ['banners'],
       ['smithy', 4],
       ['paladin'],
+      ['noble'],
       ['hallTraining', 4],
+      ['automation', 4],
     ]);
   });
 
@@ -105,7 +108,9 @@ describe('staleQueries', () => {
   });
 
   it('refreshes buildings and recruitment when a building is done', () => {
-    expect(staleQueries({ type: 'BUILD_COMPLETE', villageId: 1, building: 'BARRACKS', level: 3 })).toEqual([
+    expect(
+      staleQueries({ type: 'BUILD_COMPLETE', villageId: 1, building: 'BARRACKS', level: 3, demolished: false }),
+    ).toEqual([
       ['village', 1],
       ['buildings', 1],
       ['recruitment', 1],
@@ -114,6 +119,7 @@ describe('staleQueries', () => {
       ['smithy', 1],
       ['hallTraining', 1],
       ['market', 1],
+      ['automation', 1],
     ]);
   });
 
@@ -170,6 +176,7 @@ describe('staleQueries', () => {
       ['mapMovements'],
       ['banners'],
       ['paladin'],
+      ['noble'],
       ['hallTraining', 4],
       ['mapChunk'],
       ['player'],
@@ -347,8 +354,23 @@ describe('notificationToast', () => {
       notificationToast({ type: 'REPORT_CREATED', reportId: 6, kind: 'ATTACK', sharedBy: 'Anna' }, en, ben, now, 'en'),
     ).toEqual({ text: 'Anna sent you a report: Attack', tone: 'info', to: { pathname: '/reports/6' } });
     expect(
-      notificationToast({ type: 'BUILD_COMPLETE', villageId: 1, building: 'BARRACKS', level: 3 }, en, ben, now, 'en'),
+      notificationToast(
+        { type: 'BUILD_COMPLETE', villageId: 1, building: 'BARRACKS', level: 3, demolished: false },
+        en,
+        ben,
+        now,
+        'en',
+      ),
     ).toEqual({ text: 'Benhausen: Barracks reached level 3', tone: 'success', to: { pathname: '/v/1/hq' } });
+    expect(
+      notificationToast(
+        { type: 'BUILD_COMPLETE', villageId: 1, building: 'WALL', level: 2, demolished: true },
+        en,
+        ben,
+        now,
+        'en',
+      ),
+    ).toEqual({ text: 'Benhausen: Wall demolished to level 2', tone: 'success', to: { pathname: '/v/1/hq' } });
   });
 
   it('toasts an invitation to a guild and links to the guild page', () => {
@@ -414,7 +436,7 @@ describe('every query key and the events', () => {
     { type: 'VILLAGE_UPDATED', villageId: 1 },
     { type: 'INCOMING_ATTACK', targetVillageId: 1, sourceVillage: tomburg, sourcePlayerName: 'Tom', arriveAt: '' },
     { type: 'REPORT_CREATED', reportId: 5, kind: 'ATTACK', sharedBy: null },
-    { type: 'BUILD_COMPLETE', villageId: 1, building: 'MARKET', level: 3 },
+    { type: 'BUILD_COMPLETE', villageId: 1, building: 'MARKET', level: 3, demolished: false },
     { type: 'SUPPORT_ARRIVED', villageId: 1 },
     { type: 'VILLAGE_LOST', villageId: 1 },
     { type: 'VILLAGE_CONQUERED', villageId: 1 },
@@ -439,6 +461,7 @@ describe('every query key and the events', () => {
     pushQueryKey: 'this device’s own push setting',
     worldStatisticsQueryKey: 'world totals, no event for them; loaded when the page opens',
     recruitTemplatesQueryKey: 'only the player changes them, on this page',
+    buildPlansQueryKey: 'only the player changes them, on the automation page',
     farmTemplatesQueryKey: 'only the player changes them, on this page',
     recentRecipientsQueryKey: 'only the player changes them, by sharing',
     blocksQueryKey: 'only the player changes them, on this page',
@@ -483,5 +506,67 @@ describe('every query key and the events', () => {
     expect(forgotten).toEqual([]);
     expect(listedButRefreshed).toEqual([]);
     expect(Object.keys(noEvents).filter((name) => !seen.has(name))).toEqual([]);
+  });
+});
+
+describe('returning attacks and full warehouses (1.6)', () => {
+  const barbarians = { id: 9, name: null, x: 40, y: 41, playerId: null, playerName: null };
+  const back: GameNotification = {
+    type: 'ATTACKS_RETURNED',
+    villageId: 1,
+    target: barbarians,
+    attacks: 1,
+    lost: 0,
+    loot: { wood: 600, clay: 400, iron: 240 },
+    farmRun: false,
+  };
+
+  it('are known and only bring words', () => {
+    expect(parseNotification(back)).toEqual(back);
+    expect(parseNotification({ type: 'STORAGE_FULL', villageId: 1, full: ['WOOD'] })).toBeDefined();
+    expect(staleQueries(back)).toEqual([]);
+  });
+
+  it('say where the troops came back from, with the loot, and lead to the reports', () => {
+    expect(notificationToast(back, en, ben, now, 'en')).toEqual({
+      text: 'Your troops from Barbarian village (40|41) are back in Benhausen with 1,240 resources.',
+      tone: 'success',
+      to: { pathname: '/reports' },
+    });
+    expect(notificationToast({ ...back, loot: { wood: 0, clay: 0, iron: 0 } }, de, ben, now, 'de')?.text).toBe(
+      'Deine Truppen aus Barbarendorf (40|41) sind zurück in Benhausen.',
+    );
+  });
+
+  it('warn when nobody came back', () => {
+    expect(notificationToast({ ...back, lost: 1 }, en, ben, now, 'en')).toEqual({
+      text: 'Nobody came back from Barbarian village (40|41).',
+      tone: 'danger',
+      to: { pathname: '/reports' },
+    });
+  });
+
+  it('count the attacks of a train and of a farm list run', () => {
+    expect(notificationToast({ ...back, attacks: 3, lost: 1 }, en, ben, now, 'en')?.text).toBe(
+      '3 attacks on Barbarian village (40|41) back in Benhausen, 1,240 resources, 1 lost.',
+    );
+    expect(
+      notificationToast({ ...back, target: null, farmRun: true, attacks: 12, lost: 0 }, de, ben, now, 'de')?.text,
+    ).toBe('Farmlisten-Runde zurück in Benhausen: 12 Angriffe, 1.240 Rohstoffe.');
+    expect(
+      notificationToast(
+        { ...back, target: null, farmRun: true, attacks: 2, lost: 2, loot: { wood: 0, clay: 0, iron: 0 } },
+        en,
+        ben,
+        now,
+        'en',
+      )?.text,
+    ).toBe('Farm run from Benhausen: nobody came back from the 2 attacks.');
+  });
+
+  it('name the full resources and lead to the warehouse', () => {
+    expect(
+      notificationToast({ type: 'STORAGE_FULL', villageId: 2, full: ['WOOD', 'IRON'] }, en, ben, now, 'en'),
+    ).toEqual({ text: 'Warehouse full in Hilltop: Wood, Iron.', tone: 'danger', to: { pathname: '/v/2/warehouse' } });
   });
 });

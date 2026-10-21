@@ -15,6 +15,7 @@ const me: Me = {
   protectedUntil: '2026-10-12T00:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [],
 };
 

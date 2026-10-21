@@ -46,6 +46,7 @@ class WorldController {
                 settings.speed(),
                 settings.unitSpeed(),
                 settings.mapSize(),
+                settings.mapSpread(),
                 settings.buildQueueSize(),
                 settings.buildQueueMax(),
                 settings.recruitQueueSize(),
@@ -62,6 +63,7 @@ class WorldController {
                 settings.npcDifficulty(),
                 settings.guildsEnabled(),
                 settings.guildMaxMembers(),
+                settings.guildStartTogether(),
                 Math.min(settings.npcGuildMaxMembers(), settings.guildMaxMembers()),
                 settings.barbarianWallsEnabled(),
                 settings.barbarianWallStartDays(),
@@ -84,7 +86,10 @@ class WorldController {
                 worldService.opensAt(),
                 players.countRegisteredHumans(),
                 appVersion.get(),
-                WorldDto.NightBonusDto.of(nightBonus.current()));
+                WorldDto.NightBonusDto.of(nightBonus.current()),
+                settings.archersEnabled(),
+                settings.moraleEnabled() ? settings.moraleFloor() : null,
+                settings.noblePriceStep());
     }
 
     /**

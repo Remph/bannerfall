@@ -6,12 +6,15 @@ import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { SwitchRow } from '../../components/SwitchRow';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatDecimal, formatDuration, formatFactor, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
+import { formatMorale } from '../../game/morale';
 import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
+import { useOffersReturnPush, useRememberedChoice } from '../../push/returnChoice';
 import styles from './RallyPage.module.css';
 import { VillageRefText } from './VillageRefText';
 
@@ -37,6 +40,9 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
   const preview = useCommandPreview(villageId, command);
   const world = useWorld();
   const send = useSendCommand(villageId);
+  // 1.6: "Notify me when they're back", as the player left it last time on this device
+  const offersReturnPush = useOffersReturnPush();
+  const [notifyReturn, setNotifyReturn] = useRememberedChoice('attack');
   const attack = command.kind === 'ATTACK';
   const withCatapults = attack && (command.units.CATAPULT ?? 0) > 0;
 
@@ -121,12 +127,19 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
           <Icon name="moon" /> {t.rally.nightBonus(formatFactor(night, language))}
         </p>
       )}
+      {/* 1.6: morale with today's points, only below full strength (the battle reads them at the arrival) */}
+      {preview.data.morale != null && (
+        <p className={styles.notice}>{t.rally.morale(formatMorale(preview.data.morale, language))}</p>
+      )}
       {errors.length > 0 && (
         <ul className={styles.errors} role="alert">
           {errors.map((code) => (
             <li key={code}>{t.errors[code]}</li>
           ))}
         </ul>
+      )}
+      {attack && offersReturnPush && (
+        <SwitchRow label={t.rally.notifyReturn} checked={notifyReturn} onChange={setNotifyReturn} />
       )}
       {/* a failed send reloads the preview; its errors say why, so the send error only shows without them */}
       {send.isError && errors.length === 0 && <ErrorMessage>{errorMessage(t, send.error)}</ErrorMessage>}
@@ -139,7 +152,14 @@ export function CommandConfirm({ villageId, command, onSent, onBack }: CommandCo
           variant={attack ? 'attack' : 'primary'}
           disabled={errors.length > 0 || send.isPending || preview.isFetching}
           onClick={() =>
-            send.mutate({ ...command, catapultTarget: withCatapults ? catapultTarget : null }, { onSuccess: onSent })
+            send.mutate(
+              {
+                ...command,
+                catapultTarget: withCatapults ? catapultTarget : null,
+                notifyReturn: attack && offersReturnPush && notifyReturn,
+              },
+              { onSuccess: onSent },
+            )
           }
         >
           {send.isPending ? t.rally.sending : t.rally.confirm[command.kind]}

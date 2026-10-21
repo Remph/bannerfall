@@ -72,6 +72,7 @@ public class CommandService {
     private final Clock clock;
     private final VillageBanners villageBanners;
     private final FarmTargetRepository farmTargets;
+    private final ReturnWatchService returnWatches;
 
     CommandService(
             MovementRepository movements,
@@ -88,7 +89,8 @@ public class CommandService {
             ApplicationEventPublisher events,
             Clock clock,
             VillageBanners villageBanners,
-            FarmTargetRepository farmTargets) {
+            FarmTargetRepository farmTargets,
+            ReturnWatchService returnWatches) {
         this.movements = movements;
         this.stacks = stacks;
         this.villages = villages;
@@ -104,6 +106,7 @@ public class CommandService {
         this.clock = clock;
         this.villageBanners = villageBanners;
         this.farmTargets = farmTargets;
+        this.returnWatches = returnWatches;
     }
 
     /**
@@ -142,7 +145,8 @@ public class CommandService {
                 plan.distance(),
                 plan.travelSeconds(),
                 plan.arriveAt(),
-                plan.errors());
+                plan.errors(),
+                request.kind() == CommandKind.ATTACK ? morale(source, plan.target()) : null);
     }
 
     /**
@@ -205,6 +209,9 @@ public class CommandService {
                         plan.arriveAt());
         if (kind == MovementKind.ATTACK) {
             attacked(source, plan.target(), playerId, units.get(UnitType.NOBLE) > 0, movement, now);
+            if (request.wantsReturnPush()) {
+                returnWatches.watch(playerId, source, plan.target(), false, List.of(movement), now);
+            }
         }
         return new SendAttempt(
                 MovementDto.of(movement, worldService.settings().cancelWindowSeconds()), List.of());
@@ -227,7 +234,24 @@ public class CommandService {
                 plan.distance(),
                 plan.travelSeconds(),
                 plan.arriveAt(),
-                plan.errors().stream().map(TrainPreviewDto.TrainAttackPreviewDto::new).toList());
+                plan.errors().stream().map(TrainPreviewDto.TrainAttackPreviewDto::new).toList(),
+                morale(source, plan.target()));
+    }
+
+    /**
+     * The morale an attack from {@code source} would have at {@code target} with today's points
+     * (1.6, 02-game-rules §8.2); null at full strength and against a barbarian village.
+     */
+    private Double morale(Village source, Village target) {
+        if (source.getPlayer() == null || target.getPlayer() == null) {
+            return null;
+        }
+        double morale =
+                worldService
+                        .settings()
+                        .morale()
+                        .factor(source.getPlayer().getPoints(), target.getPlayer().getPoints());
+        return morale < 1 ? morale : null;
     }
 
     /**
@@ -280,6 +304,9 @@ public class CommandService {
         }
         // one notification for the whole train: they all arrive at the same moment
         attacked(source, plan.target(), playerId, nobles, sent.getFirst(), now);
+        if (Boolean.TRUE.equals(request.notifyReturn())) {
+            returnWatches.watch(playerId, source, plan.target(), false, sent, now);
+        }
         int window = worldService.settings().cancelWindowSeconds();
         return sent.stream().map(movement -> MovementDto.of(movement, window)).toList();
     }

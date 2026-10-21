@@ -68,7 +68,7 @@ class GameNotificationFlowTest {
 
         assertThat(sent.toPlayer(attacker.playerId))
                 .containsExactly(
-                        "{\"type\":\"BUILD_COMPLETE\",\"villageId\":%d,\"building\":\"IRON_MINE\",\"level\":2}"
+                        "{\"type\":\"BUILD_COMPLETE\",\"villageId\":%d,\"building\":\"IRON_MINE\",\"level\":2,\"demolished\":false}"
                                 .formatted(attacker.villageId));
         assertThat(sent.toPlayer(defender.playerId)).isEmpty();
     }

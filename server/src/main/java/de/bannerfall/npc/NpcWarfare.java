@@ -14,6 +14,7 @@ import de.bannerfall.npc.NpcMemory.ConquestTarget;
 import de.bannerfall.npc.NpcMemory.Grudge;
 import de.bannerfall.npc.NpcMemory.Intel;
 import de.bannerfall.npc.NpcTargeting.Estimate;
+import de.bannerfall.npc.NpcTargeting.Expected;
 import de.bannerfall.npc.NpcWorld.MapVillage;
 import de.bannerfall.rules.Loyalty;
 import de.bannerfall.rules.NightBonus;
@@ -21,6 +22,7 @@ import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.unit.UnitService;
 import de.bannerfall.world.NightBonusService;
+import de.bannerfall.world.WorldSettings;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -113,12 +115,21 @@ class NpcWarfare {
     }
 
     private boolean conquestEligible(NpcTurn turn, MapVillage target) {
+        return withinConquestRules(turn, target) && mayBeat(turn, target);
+    }
+
+    /** Everything about a conquest target except the lord's view of its defence (§6.6). */
+    private boolean withinConquestRules(NpcTurn turn, MapVillage target) {
         if (turn.ownOrMate(target.playerId())
                 || turn.view.mateTrainTargets().contains(target.id())) {
             return false; // a guild mate's train is on the way there (09 §13.2)
         }
+        // the template's radius is for a NORMAL spread; a wider map stretches it (1.6)
+        WorldSettings world = turn.view.world();
         int radius =
-                Math.min(turn.template().conquestRadius(), turn.view.world().nobleMaxDistance());
+                Math.min(
+                        world.mapSpread().scale(turn.template().conquestRadius()),
+                        world.nobleMaxDistance());
         if (turn.distanceTo(target) > radius) {
             return false;
         }
@@ -129,14 +140,18 @@ class NpcWarfare {
                         && allowed(turn, target))) {
             return false;
         }
-        return mayBeat(turn, target);
+        return true;
     }
 
     /**
      * Whether the village could clear the target as far as the lord knows: a target it gave up
      * scouting, or whose intel shows defenders or a wall its attack units (no catapults) can't beat
      * (§6.1), is no conquest target for now, so the academy goes for the next best instead of
-     * waiting for one it can't take. A target without usable intel stays one: it gets scouted.
+     * waiting for one it can't take. A barbarian village without usable intel stays one: it gets
+     * scouted. A player's or lord's village counts only once the lord has seen its defenders, at
+     * any age its memory keeps (balancing round 3): without that the academy village saved for
+     * nobles at the noble troop share, building nothing, for a village it could never take, and the
+     * scouting step looks at such a village first ({@link #unscoutedConquestCandidate}).
      */
     private boolean mayBeat(NpcTurn turn, MapVillage target) {
         Intel known = turn.memory.intel.get(target.id());
@@ -145,9 +160,19 @@ class NpcWarfare {
                 && known.leftAloneUntil().isAfter(turn.now)) {
             return false;
         }
-        Intel intel = usableIntel(turn, target);
-        if (intel == null
-                || (!intel.showedDefenders() && (intel.wall() == null || intel.wall() == 0))) {
+        Intel intel;
+        if (target.barbarian()) {
+            intel = usableIntel(turn, target);
+            if (intel == null) {
+                return true;
+            }
+        } else {
+            if (known == null || known.units() == null) {
+                return false;
+            }
+            intel = known;
+        }
+        if (!intel.showedDefenders() && (intel.wall() == null || intel.wall() == 0)) {
             return true;
         }
         return estimateAttack(
@@ -403,9 +428,10 @@ class NpcWarfare {
     }
 
     /**
-     * §6.3: scouts-only attacks where an attack needs intel first: the conquest target, retaliation
-     * targets, then farm and raid targets nearest first. At most {@code farms-per-round} scoutings
-     * per village and round.
+     * §6.3: scouts-only attacks where an attack needs intel first: the conquest target, the best
+     * player's or lord's village the academy has never seen (§6.6), retaliation targets, then farm
+     * and raid targets nearest first. At most {@code farms-per-round} scoutings per village and
+     * round.
      */
     private void scout(NpcTurn turn) {
         int limit = turn.view.general().farmsPerRound();
@@ -455,6 +481,47 @@ class NpcWarfare {
         return grudge.sourceVillageId() == target.id() ? grudge.scouts() : 0;
     }
 
+    /**
+     * The player's or lord's village an academy village would rather conquer than its current
+     * choice, but has never seen the defenders of (§6.6, balancing round 3): the best one by the
+     * conquest score that isn't left alone. Scouting it is what makes it a conquest target.
+     */
+    private MapVillage unscoutedConquestCandidate(NpcTurn turn) {
+        if (turn.village.getBuildings().get(BuildingType.ACADEMY) < 1
+                || turn.view.braked()
+                || !turn.template().conquersPlayers()) {
+            return null;
+        }
+        ConquestTarget chosen = turn.memory.conquest.get(turn.villageId());
+        MapVillage current =
+                chosen == null || !turn.wantsNobles
+                        ? null
+                        : turn.view.villages().get(chosen.villageId());
+        return turn.view.villages().values().stream()
+                .filter(v -> !v.barbarian())
+                .filter(
+                        v -> {
+                            Intel intel = turn.memory.intel.get(v.id());
+                            return intel == null
+                                    || (intel.units() == null
+                                            && (intel.leftAloneUntil() == null
+                                                    || !intel.leftAloneUntil().isAfter(turn.now)));
+                        })
+                .filter(v -> withinConquestRules(turn, v))
+                .filter(
+                        v ->
+                                current == null
+                                        || conquestScore(turn, v) > conquestScore(turn, current))
+                .max(
+                        Comparator.comparingDouble((MapVillage v) -> conquestScore(turn, v))
+                                .thenComparing(MapVillage::id, Comparator.reverseOrder()))
+                .orElse(null);
+    }
+
+    private static double conquestScore(NpcTurn turn, MapVillage v) {
+        return NpcTargeting.conquestScore(v.points(), turn.distanceTo(v));
+    }
+
     /** The villages an attack of this turn would need intel about, most important first. */
     private List<MapVillage> scoutWishes(NpcTurn turn) {
         Map<Long, MapVillage> wishes = new LinkedHashMap<>();
@@ -465,6 +532,10 @@ class NpcWarfare {
             if (target != null && usableIntel(turn, target) == null) {
                 wishes.put(target.id(), target);
             }
+        }
+        MapVillage candidate = unscoutedConquestCandidate(turn);
+        if (candidate != null) {
+            wishes.putIfAbsent(candidate.id(), candidate);
         }
         if (turn.template().grudgeOpens()) {
             turn.memory.grudges.entrySet().stream()
@@ -589,16 +660,13 @@ class NpcWarfare {
                                                     gameData,
                                                     a,
                                                     Map.of(),
-                                                    targetWall,
-                                                    null,
-                                                    0,
+                                                    Expected.at(targetWall)
+                                                            .withDefence(
+                                                                    bulwark, StandardEffect.NONE)
+                                                            .withNight(nightOf(turn, target, a))
+                                                            .withMorale(moraleOf(turn, target)),
                                                     general.farmMargin(),
-                                                    general.farmMaxLoss(),
-                                                    bulwark,
-                                                    StandardEffect.NONE,
-                                                    0,
-                                                    StandardEffect.NONE,
-                                                    nightOf(turn, target, a))
+                                                    general.farmMaxLoss())
                                             .go());
             if (army == null) {
                 continue;
@@ -627,11 +695,12 @@ class NpcWarfare {
     }
 
     /**
-     * Villages within {@code farm-radius} that are neither the lord's nor a guild mate's (§13.2),
-     * nearest first; for OFFENSIVE the grudge holders' villages come first (§6.7).
+     * Villages within {@code farm-radius} (scaled by the world's spread) that are neither the
+     * lord's nor a guild mate's (§13.2), nearest first; for OFFENSIVE the grudge holders' villages
+     * come first (§6.7).
      */
     private List<MapVillage> farmCandidates(NpcTurn turn) {
-        int radius = turn.template().farmRadius();
+        int radius = turn.view.world().mapSpread().scale(turn.template().farmRadius());
         boolean grudgeFirst = turn.view.personality() == NpcPersonality.OFFENSIVE;
         return turn.view.villages().values().stream()
                 .filter(v -> !turn.ownOrMate(v.playerId()))
@@ -690,17 +759,30 @@ class NpcWarfare {
                 gameData,
                 army,
                 intel.units() == null ? Map.of() : intel.units(),
-                intel.wall() == null ? 0 : intel.wall(),
-                catapultTarget,
-                catapultTargetLevel,
+                Expected.at(intel.wall() == null ? 0 : intel.wall())
+                        .withCatapults(catapultTarget, catapultTargetLevel)
+                        .withDefence(bulwarkOf(turn, intel), standardOf(turn, intel))
+                        .withAttack(
+                                villageBanners.effectOf(turn.village).war(),
+                                villageBanners.standardEffectOf(
+                                        turn.village,
+                                        army.getOrDefault(UnitType.PALADIN, 0) > 0,
+                                        turn.now))
+                        .withNight(nightOf(turn, target, army))
+                        .withMorale(moraleOf(turn, target)),
                 turn.template().margin(),
-                turn.view.general().attackMaxLoss(),
-                bulwarkOf(turn, intel),
-                standardOf(turn, intel),
-                villageBanners.effectOf(turn.village).war(),
-                villageBanners.standardEffectOf(
-                        turn.village, army.getOrDefault(UnitType.PALADIN, 0) > 0, turn.now),
-                nightOf(turn, target, army));
+                turn.view.general().attackMaxLoss());
+    }
+
+    /**
+     * The lord's morale against the target's owner (1.6, 02-game-rules §8.2), from both players'
+     * points now: lords count it like players, both ways (09-npc-lords §6.1).
+     */
+    private static double moraleOf(NpcTurn turn, MapVillage target) {
+        return turn.view
+                .world()
+                .morale()
+                .factor(turn.view.lordPoints(), target.ownerPoints(), !target.barbarian());
     }
 
     /**

@@ -1,6 +1,9 @@
 package de.bannerfall.banner;
 
 import de.bannerfall.gamedata.BannerType;
+import de.bannerfall.rules.BannerEffect;
+import de.bannerfall.rules.BannerRules;
+import de.bannerfall.rules.StandardEffect;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -66,6 +69,24 @@ public record BannerCatalog(
             }
             return chancePerThief.get(Math.min(thiefLevel, chancePerThief.size()) - 1);
         }
+
+        /**
+         * The chance of {@code survivors} thieves of one level to steal a village's banner
+         * (02-game-rules §21.6.2): {@link BannerRules#theftChance} with this catalog's numbers and
+         * the Banner Hall's reduction. The real theft and the simulator both ask here.
+         */
+        public double chance(int survivors, int hallLevel, int thiefLevel) {
+            return BannerRules.theftChance(
+                    survivors, hallLevel, perThief(thiefLevel), maxChance, hallReductionPerLevel);
+        }
+
+        /**
+         * The chance of the defenders' surviving thieves to take an attack's paladin standard
+         * (§21.18): like {@link #chance}, without a hall's reduction.
+         */
+        public double standardChance(int survivors, int thiefLevel) {
+            return BannerRules.theftChance(survivors, 0, perThief(thiefLevel), maxChance, 0);
+        }
     }
 
     /**
@@ -88,6 +109,27 @@ public record BannerCatalog(
             throw new IllegalArgumentException("tier must be 1.." + TIERS + ": " + tier);
         }
         return effects.get(type).get(tier - 1);
+    }
+
+    /**
+     * A banner of {@code tier} flying in a village whose Banner Hall has {@code hallLevel}
+     * (02-game-rules §21.3): the tier it works at ({@link BannerRules#effectiveTier}) and its
+     * effect, 0 while it sleeps. The battle, the simulator and the NPC estimate all take a
+     * village's banner from here.
+     */
+    public BannerEffect flying(BannerType type, int tier, int hallLevel) {
+        int effective = BannerRules.effectiveTier(tier, hallLevel);
+        return new BannerEffect(
+                type, tier, effective, effective == 0 ? 0 : effect(type, effective));
+    }
+
+    /**
+     * A paladin standard of {@code tier} that works at {@code effectiveTier} ({@link
+     * BannerRules#standardTier}, §21.18) and its effect, 0 while it sleeps.
+     */
+    public StandardEffect standard(BannerType type, int tier, int effectiveTier) {
+        return new StandardEffect(
+                type, tier, effectiveTier, effectiveTier == 0 ? 0 : effect(type, effectiveTier));
     }
 
     private static void validate(

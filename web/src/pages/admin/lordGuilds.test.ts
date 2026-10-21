@@ -22,6 +22,7 @@ function lord(playerId: number, points: number, guild: [number, string, string] 
     paladinLevel: 1,
     bannerVillages: [],
     stash: [],
+    learning: null,
   };
 }
 

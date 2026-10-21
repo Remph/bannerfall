@@ -375,7 +375,7 @@ class NpcAdminTest {
                 .andExpect(jsonPath("$.spareLastVillage").value(true))
                 .andExpect(jsonPath("$.buildQuietFrom").value("23:00"))
                 .andExpect(jsonPath("$.buildQuietTo").value("07:00"))
-                .andExpect(jsonPath("$.farmLootShare").value(0.5))
+                .andExpect(jsonPath("$.farmLootShare").value(0.75))
                 .andExpect(jsonPath("$.farmRest").value(true));
         admin.put("/api/admin/npc-settings", "{\"difficulty\":\"CUSTOM\"}");
 

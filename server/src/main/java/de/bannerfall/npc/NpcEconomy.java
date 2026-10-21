@@ -10,6 +10,7 @@ import de.bannerfall.gamedata.UnitDef;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.market.ExchangeRequest;
 import de.bannerfall.market.MarketExchangeService;
+import de.bannerfall.noble.NobleService;
 import de.bannerfall.npc.NpcPlanning.Kind;
 import de.bannerfall.npc.NpcPlanning.Next;
 import de.bannerfall.paladin.PaladinService;
@@ -56,6 +57,7 @@ class NpcEconomy {
     private final NpcBalance balance;
     private final MarketExchangeService exchanges;
     private final PaladinService paladins;
+    private final NobleService nobleService;
     private final NpcBanners npcBanners;
     private final ResearchService researchService;
     private final ResearchOrderRepository researches;
@@ -70,6 +72,7 @@ class NpcEconomy {
             NpcBalance balance,
             MarketExchangeService exchanges,
             PaladinService paladins,
+            NobleService nobleService,
             NpcBanners npcBanners,
             ResearchService researchService,
             ResearchOrderRepository researches) {
@@ -82,6 +85,7 @@ class NpcEconomy {
         this.balance = balance;
         this.exchanges = exchanges;
         this.paladins = paladins;
+        this.nobleService = nobleService;
         this.npcBanners = npcBanners;
         this.researchService = researchService;
         this.researches = researches;
@@ -95,6 +99,8 @@ class NpcEconomy {
      * @param wantsNobles the village wants nobles (09 §6.6): with an academy and fewer than the
      *     template's nobles, it saves for them instead of building (§5.1, 5)
      * @param troopShareBonus added to the troop share (a DEFENSIVE lord's grudge, §6.7)
+     * @param lesson what the lord learned (09 §15.3): blended into the template's mix
+     * @param wallGoal the village's wall goal (09 §15.4), null if none
      * @return the ledger after the round
      */
     NpcMemory.Ledger run(
@@ -104,9 +110,20 @@ class NpcEconomy {
             NpcTemplates.Template template,
             NpcMemory.Ledger ledger,
             boolean wantsNobles,
-            double troopShareBonus) {
+            double troopShareBonus,
+            NpcLearning.Lesson lesson,
+            Integer wallGoal) {
         NpcBalanceSettings.Balance general = balance.general();
-        Turn turn = new Turn(village, playerId, now, template, wantsNobles, troopShareBonus);
+        Turn turn =
+                new Turn(
+                        village,
+                        playerId,
+                        now,
+                        template,
+                        wantsNobles,
+                        troopShareBonus,
+                        lesson,
+                        wallGoal);
         turn.build = ledger.build() * general.ledgerDecay();
         turn.troops = ledger.troops() * general.ledgerDecay();
 
@@ -123,6 +140,32 @@ class NpcEconomy {
             turn.troops = Math.max(turn.troops, turn.share / (1 - turn.share) * turn.build);
         }
         return new NpcMemory.Ledger(turn.build, turn.troops);
+    }
+
+    /**
+     * What the village's next build step or noble costs (§5.1), the part of its stock a shipment
+     * (§5.5) never sends away; zero when the village is fully built or waits for an upgrade. With
+     * the lesson and wall goal of {@link #run} (§15.3, §15.4) the next step is the one the turn
+     * plans. The caller holds the village's lock.
+     */
+    ResourceAmounts nextCost(
+            Village village,
+            long playerId,
+            Instant now,
+            NpcTemplates.Template template,
+            boolean wantsNobles,
+            NpcLearning.Lesson lesson,
+            Integer wallGoal) {
+        Turn turn = new Turn(village, playerId, now, template, wantsNobles, 0, lesson, wallGoal);
+        Snap s = turn.snap();
+        Next next = turn.next(s);
+        return switch (next.kind()) {
+            case BUILD ->
+                    turn.buildCost(
+                            s, gameData.building(next.type()), s.levels.get(next.type()) + 1);
+            case NOBLE -> turn.noblePrice();
+            case WAIT, DONE -> ResourceAmounts.ZERO;
+        };
     }
 
     /**
@@ -149,6 +192,11 @@ class NpcEconomy {
         /** The village saves for nobles (§5.1, 5). */
         final boolean nobles;
 
+        /** What the lord learned (09 §15.3) and the village's wall goal (§15.4, null if none). */
+        final NpcLearning.Lesson lesson;
+
+        final Integer wallGoal;
+
         double build;
         double troops;
         boolean stalled;
@@ -162,8 +210,12 @@ class NpcEconomy {
                 Instant now,
                 NpcTemplates.Template template,
                 boolean wantsNobles,
-                double troopShareBonus) {
+                double troopShareBonus,
+                NpcLearning.Lesson lesson,
+                Integer wallGoal) {
             this.village = village;
+            this.lesson = lesson;
+            this.wallGoal = wallGoal;
             this.playerId = playerId;
             this.now = now;
             this.template = template;
@@ -200,9 +252,20 @@ class NpcEconomy {
             return cached;
         }
 
+        private ResourceAmounts noblePrice;
+
         /** Call after every enqueue: the next {@link #snap()} reloads. */
         void changed() {
             cached = null;
+            noblePrice = null;
+        }
+
+        /** The price of the lord's next noble (02-game-rules §5.7): its rank, like a human's. */
+        ResourceAmounts noblePrice() {
+            if (noblePrice == null) {
+                noblePrice = nobleService.nextPrice(playerId);
+            }
+            return noblePrice;
         }
 
         private Snap load() {
@@ -210,9 +273,7 @@ class NpcEconomy {
             List<BuildOrder> queue = buildService.queueOf(village.getId());
             UnitCounts all = unitService.unitsOf(village.getId(), orders).all();
             Map<BuildingType, Integer> current = village.getBuildings().toMap();
-            Map<BuildingType, Integer> levels =
-                    BuildRules.levelsWithQueued(
-                            current, queue.stream().map(BuildOrder::getBuilding).toList());
+            Map<BuildingType, Integer> levels = BuildService.levelsWithQueued(current, queue);
             int used = buildService.populationUsed(village, queue, all);
             int freePop = Population.free(current.get(BuildingType.FARM), used);
             return new Snap(orders, queue, all, current, levels, freePop, village.floorResources());
@@ -220,10 +281,15 @@ class NpcEconomy {
 
         Next next(Snap s) {
             if (nobles) {
-                return NpcPlanning.nextNoble(s.levels, s.current, gameData, s.freePop);
+                return NpcPlanning.nextNoble(
+                        s.levels, s.current, gameData, s.freePop, noblePrice());
             }
             return NpcPlanning.nextBuild(
-                    template.buildSteps(world.bannerHallAvailable()),
+                    NpcLearning.withWallGoal(
+                            template.buildSteps(world.bannerHallAvailable()),
+                            wallGoal,
+                            s.levels,
+                            gameData.building(BuildingType.WALL)),
                     s.levels,
                     s.current,
                     gameData,
@@ -287,8 +353,9 @@ class NpcEconomy {
                     || s.freePop < def.pop()) {
                 return;
             }
-            if (!def.cost().fitsInto(s.stock)) {
-                if (!exchangeFor(s, def.cost())) {
+            ResourceAmounts price = noblePrice();
+            if (!price.fitsInto(s.stock)) {
+                if (!exchangeFor(s, price)) {
                     return;
                 }
                 s = snap();
@@ -296,7 +363,7 @@ class NpcEconomy {
             recruitService.enqueue(village.getId(), playerId, UnitType.NOBLE, 1);
             changed();
             ordered.add(UnitType.NOBLE);
-            build += def.cost().total();
+            build += price.total();
         }
 
         /**
@@ -348,7 +415,7 @@ class NpcEconomy {
                 nextPop = BuildRules.popDelta(def, level);
             } else if (next.kind() == Kind.NOBLE) {
                 UnitDef noble = gameData.unit(UnitType.NOBLE);
-                reserve = surplus ? noble.cost() : ResourceAmounts.ZERO;
+                reserve = surplus ? noblePrice() : ResourceAmounts.ZERO;
                 nextPop = noble.pop();
             }
             if (surplus && next.kind() != Kind.DONE) {
@@ -524,10 +591,17 @@ class NpcEconomy {
             return (double) unitCost * count;
         }
 
-        /** The stage's mix limited to the units the village can recruit now, requirements met. */
+        /**
+         * The stage's mix, with the lord's lessons blended in (09 §15.3), limited to the units the
+         * village can recruit now, requirements met. The archers' shares count only in a world with
+         * archers (1.6, 09 §5.3): without them the mix is what it was before 1.6.
+         */
         Map<UnitType, Integer> recruitableMix(Map<BuildingType, Integer> current) {
             Map<UnitType, Integer> result = new EnumMap<>(UnitType.class);
-            for (var entry : template.mixOf(stage).entrySet()) {
+            for (var entry : NpcLearning.learnedMix(template.mixOf(stage), lesson).entrySet()) {
+                if (entry.getKey().isArcher() && !world.archersEnabled()) {
+                    continue;
+                }
                 UnitDef def = gameData.unit(entry.getKey());
                 if (BuildRules.missingRequirements(def.requires(), current).isEmpty()) {
                     result.put(entry.getKey(), entry.getValue());

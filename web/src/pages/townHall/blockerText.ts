@@ -9,6 +9,8 @@ export function blockerText(t: Dictionary, language: Language, nowMs: number, bl
     case 'bannersDisabled':
       // the server's refusal says the same
       return t.errors.BANNERS_DISABLED;
+    case 'demolition':
+      return t.townHall.demolitionQueued;
     case 'requirements':
       return t.townHall.needs(
         blocker.missing.map((need) => t.townHall.requirement(t.buildings[need.building], need.level)).join(', '),

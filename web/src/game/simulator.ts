@@ -10,6 +10,7 @@ import {
 } from './gameData';
 import { withoutZeros, type UnitMap } from './troops';
 import { highestLevels, levelsForRequest, toLevelMap, type UnitLevelMap } from './unitLevels';
+import { MIN_MORALE } from './morale';
 
 /**
  * The attack simulator's form (02-game-rules §20, M23) – pure. Everything is typed in or taken from
@@ -50,6 +51,8 @@ export interface SimulatorForm {
   defenderStandardTier: number;
   /** 1.4 (02-game-rules §8.1): the attack arrives during the night bonus; counts only in a world that has it. */
   night: boolean;
+  /** 1.6 (02-game-rules §8.2): the attacker's morale in percent, 30 to 100; counts only in a world that has it. */
+  morale: number;
 }
 
 export const emptyForm: SimulatorForm = {
@@ -71,6 +74,7 @@ export const emptyForm: SimulatorForm = {
   defenderStandard: null,
   defenderStandardTier: 0,
   night: false,
+  morale: 100,
 };
 
 /** The banner fields of the form; a village flies one banner, so each side has two that exclude each other. */
@@ -141,10 +145,21 @@ export interface SimulatorBody {
   defenderStandard: StandardType | null;
   defenderStandardTier: number | null;
   night: boolean | null;
+  morale: number | null;
 }
 
 export function hasUnit(units: UnitMap, type: UnitType): boolean {
   return (units[type] ?? 0) > 0;
+}
+
+/**
+ * The units a fill-in gave a side (own troops, this village, a report): a phone lists only these, the
+ * rest behind "show all units" (1.6 UI review). Null when there are none: an empty side keeps every
+ * field.
+ */
+export function filledTypes(units: UnitMap | undefined): UnitType[] | null {
+  const types = (Object.keys(units ?? {}) as UnitType[]).filter((type) => hasUnit(units ?? {}, type));
+  return types.length === 0 ? null : types;
 }
 
 /** The request for a form: only what the battle uses is sent, the rest stays null. */
@@ -172,6 +187,9 @@ export function toRequest(form: SimulatorForm): SimulatorBody {
     ...standardOf('defender', form.defenderStandard, form.defenderStandardTier, form.defender),
     // the server ignores it in a world without the night bonus
     night: form.night ? true : null,
+    // full strength is the default; the server ignores it in a world without morale
+    // an empty field (0) is full strength too; below the lowest the server takes counts as the lowest
+    morale: form.morale > 0 && form.morale < 100 ? Math.max(MIN_MORALE, form.morale) : null,
   };
 }
 
@@ -241,7 +259,8 @@ export function simulatableReports<T extends Pick<ReportItem, 'kind'>>(items: re
  *   it names clears the Plunder field (one banner per village),
  * - the paladin standards (1.4): the one the attack carried, and the defenders' from a successful
  *   scouting or from the home stack of the defenders' copy, each at its own tier,
- * - whether the battle had the night bonus (1.4), from a real attack only.
+ * - whether the battle had the night bonus (1.4), from a real attack only,
+ * - the attacker's morale (1.6), likewise.
  */
 export function reportToForm(
   battle: BattleReport,
@@ -252,6 +271,7 @@ export function reportToForm(
     form.attacker = toUnitMap(battle.attackerUnits);
     form.attackerLevels = toLevelMap(battle.attackerLevels);
     form.night = battle.nightBonus != null;
+    form.morale = battle.morale != null ? Math.round(battle.morale * 100) : 100;
   }
   const side = battle.defenderSide;
   if (side !== null) {

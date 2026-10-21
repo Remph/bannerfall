@@ -22,7 +22,7 @@ import {
   buildingTypes,
   isStandard,
   standardTypes,
-  unitTypes,
+  unitTypesFor,
   type BuildingType,
   type StandardType,
   type UnitType,
@@ -37,6 +37,7 @@ import {
   buildingMaxLevels,
   canSimulate,
   emptyForm,
+  filledTypes,
   hasUnit,
   reportToForm,
   SIMULATOR_REPORT_LOOKBACK,
@@ -133,6 +134,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   const standardsOn = bannersOn && (world?.paladinMaxSlots ?? 0) > 0;
   // 1.4: the switch only where the world has the night bonus (null = off)
   const night = world?.nightBonus;
+  // 1.6: the morale field only where the world has morale (null = off)
+  const moraleFloor = world?.moraleFloor;
   const ownStd = ownStandard(banners.data, villageId);
   const smithy = useSmithy(villageId);
   const maxLevels = maxLevelsOf(smithy.data?.units);
@@ -142,6 +145,13 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   const buildingMax = buildingMaxLevels(useBuildings(villageId).data);
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SimulatorForm>(() => ({ ...emptyForm, ...initial }));
+  // 1.6 UI review: once a side is filled in (own troops, this village, a report), a phone lists only
+  // the units it got, the rest behind "show all units"; null shows every unit
+  const [shown, setShown] = useState<FoldedSides>(() =>
+    initialNote === null
+      ? { attacker: null, defender: null }
+      : { attacker: filledTypes(initial.attacker), defender: filledTypes(initial.defender) },
+  );
   const [note, setNote] = useState<ReportNote | null>(initialNote);
   const [missingUnits, setMissingUnits] = useState(false);
   const [reportError, setReportError] = useState<Error | null>(null);
@@ -166,7 +176,9 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
     fetchReport(queryClient, reportId).then(
       (report) => {
         if (report.payload?.type === 'BATTLE') {
-          patch(reportToForm(report.payload, banners.data?.effects));
+          const filled = reportToForm(report.payload, banners.data?.effects);
+          patch(filled);
+          setShown({ attacker: filledTypes(filled.attacker), defender: filledTypes(filled.defender) });
           setNote(noteFor(report.payload));
           setMissingUnits(false);
         }
@@ -184,11 +196,13 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
     if (village.data === undefined || troops.data === undefined) {
       return;
     }
+    const defender = sumUnits(
+      toUnitMap(troops.data.home),
+      ...troops.data.supportsHere.map((stack) => toUnitMap(stack.units)),
+    );
+    setShown((previous) => ({ ...previous, defender: filledTypes(defender) }));
     patch({
-      defender: sumUnits(
-        toUnitMap(troops.data.home),
-        ...troops.data.supportsHere.map((stack) => toUnitMap(stack.units)),
-      ),
+      defender,
       // the supporters' own levels are not known here: the player's own stand in for them
       defenderLevels: myLevels,
       wall: village.data.buildings.WALL ?? 0,
@@ -247,10 +261,14 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 variant="secondary"
                 size="small"
                 disabled={troops.data === undefined}
-                onClick={() =>
-                  troops.data !== undefined &&
+                onClick={() => {
+                  if (troops.data === undefined) {
+                    return;
+                  }
+                  const attacker = toUnitMap(troops.data.home);
+                  setShown((previous) => ({ ...previous, attacker: filledTypes(attacker) }));
                   patch({
-                    attacker: toUnitMap(troops.data.home),
+                    attacker,
                     attackerLevels: myLevels,
                     // the War or Plunder banner flying here, at the tier its hall lets it work
                     warTier: own?.type === 'WAR' ? own.effectiveTier : 0,
@@ -258,8 +276,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                     // the village's standard at its own tier: the paladin's level caps it
                     attackerStandard: ownStd?.type ?? null,
                     attackerStandardTier: ownStd?.tier ?? 0,
-                  })
-                }
+                  });
+                }}
               >
                 {s.myUnits}
               </Button>
@@ -267,7 +285,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 type="button"
                 variant="secondary"
                 size="small"
-                onClick={() =>
+                onClick={() => {
+                  setShown((previous) => ({ ...previous, attacker: null }));
                   patch({
                     attacker: {},
                     attackerLevels: {},
@@ -275,8 +294,9 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                     plunderTier: 0,
                     attackerStandard: null,
                     attackerStandardTier: 0,
-                  })
-                }
+                    morale: 100,
+                  });
+                }}
               >
                 {s.clear}
               </Button>
@@ -288,6 +308,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
               levels={form.attackerLevels}
               maxLevels={maxLevels}
               onLevel={(type, level) => setLevel('attacker', type, level)}
+              shown={shown.attacker}
+              onShowAll={() => setShown((previous) => ({ ...previous, attacker: null }))}
             />
             {catapults && (
               <BuildingSelect
@@ -323,6 +345,16 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 onChange={(attackerStandard, attackerStandardTier) => patch({ attackerStandard, attackerStandardTier })}
               />
             )}
+            {moraleFloor != null && (
+              <LevelField
+                label={s.morale}
+                hint={s.moraleHint(formatShare(moraleFloor, language))}
+                max={100}
+                placeholder="100"
+                value={form.morale}
+                onChange={(morale) => patch({ morale })}
+              />
+            )}
           </div>
         </Card>
         <Card title={s.defenderTitle}>
@@ -341,7 +373,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                 type="button"
                 variant="secondary"
                 size="small"
-                onClick={() =>
+                onClick={() => {
+                  setShown((previous) => ({ ...previous, defender: null }));
                   patch({
                     defender: {},
                     defenderLevels: {},
@@ -350,8 +383,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                     bannerHall: 0,
                     defenderStandard: null,
                     defenderStandardTier: 0,
-                  })
-                }
+                  });
+                }}
               >
                 {s.clear}
               </Button>
@@ -363,6 +396,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
               levels={form.defenderLevels}
               maxLevels={maxLevels}
               onLevel={(type, level) => setLevel('defender', type, level)}
+              shown={shown.defender}
+              onShowAll={() => setShown((previous) => ({ ...previous, defender: null }))}
             />
             <div className={styles.fields}>
               <LevelField
@@ -465,7 +500,17 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   );
 }
 
-/** One row per unit type: icon, name and a count field. */
+/** Per side the units a fill-in gave (shown on phones, the rest folded); null for all of them. */
+interface FoldedSides {
+  attacker: readonly UnitType[] | null;
+  defender: readonly UnitType[] | null;
+}
+
+/**
+ * One row per unit type: icon, name and a count field. With `shown`, a phone lists only those units
+ * and a button for the rest (1.6 UI review: 13 units a side with archers made the page very long);
+ * wider screens show every row anyway.
+ */
 function UnitFields({
   counts,
   label,
@@ -473,6 +518,8 @@ function UnitFields({
   levels,
   maxLevels,
   onLevel,
+  shown,
+  onShowAll,
 }: {
   counts: UnitMap;
   label: (unit: string) => string;
@@ -481,48 +528,65 @@ function UnitFields({
   /** The top level of every unit that has levels; empty without unit levels (no level fields). */
   maxLevels: UnitLevelMap;
   onLevel: (type: UnitType, level: number) => void;
+  shown: readonly UnitType[] | null;
+  onShowAll: () => void;
 }) {
   const t = useI18n().t;
+  // the archers only in a world with them (1.6), or when the numbers (say from a report) hold some
+  const types = unitTypesFor(useWorld().data, counts);
+  const folded = shown === null ? 0 : types.filter((type) => !shown.includes(type)).length;
   return (
-    <ul className={styles.unitList}>
-      {unitTypes.map((type) => (
-        <li key={type} className={styles.unitRow}>
-          <span className={styles.unitName}>
-            <span className={styles.unitIcon}>
-              <Icon name={type} />
+    <>
+      <ul className={styles.unitList}>
+        {types.map((type) => (
+          <li
+            key={type}
+            className={
+              shown !== null && !shown.includes(type) ? `${styles.unitRow} ${styles.unitRowFolded}` : styles.unitRow
+            }
+          >
+            <span className={styles.unitName}>
+              <span className={styles.unitIcon}>
+                <Icon name={type} />
+              </span>
+              {t.units[type]}
             </span>
-            {t.units[type]}
-          </span>
-          <span className={styles.unitControls}>
-            {(maxLevels[type] ?? 1) > 1 && (
-              <select
-                className={styles.level}
-                aria-label={t.simulator.levelLabel(t.units[type])}
-                value={levels[type] ?? 1}
-                onChange={(event) => onLevel(type, Number(event.target.value))}
-              >
-                {levelChoices(maxLevels[type] ?? 1).map((level) => (
-                  <option key={level} value={level}>
-                    {t.smithy.level(level)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <input
-              className={styles.count}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              placeholder="0"
-              aria-label={label(t.units[type])}
-              value={(counts[type] ?? 0) === 0 ? '' : String(counts[type])}
-              onChange={(event) => onChange(type, parseCount(event.target.value, MAX_SIMULATED_UNITS))}
-            />
-          </span>
-        </li>
-      ))}
-    </ul>
+            <span className={styles.unitControls}>
+              {(maxLevels[type] ?? 1) > 1 && (
+                <select
+                  className={styles.level}
+                  aria-label={t.simulator.levelLabel(t.units[type])}
+                  value={levels[type] ?? 1}
+                  onChange={(event) => onLevel(type, Number(event.target.value))}
+                >
+                  {levelChoices(maxLevels[type] ?? 1).map((level) => (
+                    <option key={level} value={level}>
+                      {t.smithy.level(level)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <input
+                className={styles.count}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                placeholder="0"
+                aria-label={label(t.units[type])}
+                value={(counts[type] ?? 0) === 0 ? '' : String(counts[type])}
+                onChange={(event) => onChange(type, parseCount(event.target.value, MAX_SIMULATED_UNITS))}
+              />
+            </span>
+          </li>
+        ))}
+      </ul>
+      {folded > 0 && (
+        <button type="button" className={styles.showAll} onClick={onShowAll}>
+          {t.simulator.showAllUnits(folded)}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -531,12 +595,15 @@ function LevelField({
   hint,
   value,
   max = MAX_SIMULATED_LEVEL,
+  placeholder = '0',
   onChange,
 }: {
   label: string;
   hint?: string;
   value: number;
   max?: number;
+  /** What an empty field means. */
+  placeholder?: string;
   onChange: (value: number) => void;
 }) {
   return (
@@ -546,7 +613,7 @@ function LevelField({
       inputMode="numeric"
       pattern="[0-9]*"
       autoComplete="off"
-      placeholder="0"
+      placeholder={placeholder}
       value={value === 0 ? '' : String(value)}
       onChange={(event) => onChange(parseCount(event.target.value, max))}
     />

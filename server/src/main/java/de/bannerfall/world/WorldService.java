@@ -182,6 +182,16 @@ public class WorldService {
         reloadAfterCommit();
     }
 
+    /**
+     * The host finished or skipped the guided setup (1.6): the pre-game page stops offering it.
+     *
+     * @throws ApiException {@code 409 WORLD_ALREADY_OPEN} once the world is open
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void markSetupDone() {
+        lockedPregameRow().markSetupDone();
+    }
+
     /** The victory state as stored, under the row lock (v1.3, 02-game-rules §22). */
     @Transactional(propagation = Propagation.MANDATORY)
     public VictoryState lockedVictoryState() {
@@ -360,10 +370,12 @@ public class WorldService {
         }
         WorldSettingsEntity row =
                 repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
-        // Map size, barbarians and lords are fixed once the content exists (M14g): the same value
-        // is fine (a client sends the whole form), a different one is refused.
+        // Map size, spread, barbarians and lords are fixed once the content exists (M14g): the same
+        // value is fine (a client sends the whole form), a different one is refused.
         if (phaseOf(row) != WorldPhase.PREGAME
                 && (changes(update.mapSize(), row.toSettings().mapSize())
+                        || (update.mapSpread() != null
+                                && update.mapSpread() != row.toSettings().mapSpread())
                         || changes(
                                 update.barbarianInitialCount(),
                                 row.toSettings().barbarianInitialCount())
@@ -385,7 +397,11 @@ public class WorldService {
             renameDefaultNames(namesBefore, names);
         }
         if (phaseOf(row) == WorldPhase.PREGAME) {
-            row.applySetup(update.mapSize(), update.barbarianInitialCount(), update.npcLordCount());
+            row.applySetup(
+                    update.mapSize(),
+                    update.mapSpread(),
+                    update.barbarianInitialCount(),
+                    update.npcLordCount());
         }
         reloadAfterCommit();
         return adminDto(row);
@@ -416,6 +432,7 @@ public class WorldService {
         return AdminWorldSettingsDto.of(
                 row.toSettings(),
                 phaseOf(row),
+                row.isSetupDone(),
                 row.getOpensAt(),
                 row.getEndsAt(),
                 row.getEndedAt());

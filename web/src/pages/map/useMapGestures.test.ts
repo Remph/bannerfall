@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { renderHook } from '@testing-library/react';
-import type { PointerEvent } from 'react';
+import type { PointerEvent, TouchEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { useMapGestures, type MapGestureCallbacks } from './useMapGestures';
 
@@ -63,5 +63,32 @@ describe('useMapGestures', () => {
     }
     held.gestures.onPointerUp(pointer(0, 50, 200));
     expect(held.callbacks.onFling).not.toHaveBeenCalled();
+  });
+
+  it("cancels the finger's lift, so the browser sends no click to the panel that tap opened (1.6)", () => {
+    const { callbacks, gestures } = setup(() => false);
+    const focus = vi.fn();
+    const touchEnd = { cancelable: true, preventDefault: vi.fn(), currentTarget: { focus } };
+    gestures.onPointerDown(pointer(50, 50));
+    gestures.onPointerUp(pointer(50, 50));
+    gestures.onTouchEnd(touchEnd as unknown as TouchEvent<HTMLElement>);
+
+    expect(callbacks.onTap).toHaveBeenCalledOnce();
+    expect(touchEnd.preventDefault).toHaveBeenCalledOnce();
+    // the focus the cancelled mousedown would have given the map
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true, focusVisible: false });
+  });
+
+  it('leaves the focus where it is after a drag, e.g. in the go-to field (1.6)', () => {
+    const { gestures } = setup(() => false);
+    const focus = vi.fn();
+    const touchEnd = { cancelable: true, preventDefault: vi.fn(), currentTarget: { focus } };
+    gestures.onPointerDown(pointer(50, 50));
+    gestures.onPointerMove(pointer(50, 90));
+    gestures.onPointerUp(pointer(50, 90));
+    gestures.onTouchEnd(touchEnd as unknown as TouchEvent<HTMLElement>);
+
+    expect(touchEnd.preventDefault).toHaveBeenCalledOnce();
+    expect(focus).not.toHaveBeenCalled();
   });
 });

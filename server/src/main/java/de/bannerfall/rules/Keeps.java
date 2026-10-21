@@ -53,16 +53,16 @@ public final class Keeps {
     /**
      * The ideal fields of {@code count} keeps: evenly on a ring around the centre, the first one
      * straight north; a single keep sits on the centre itself. The ring grows with the count so
-     * neighbours keep their distance.
+     * neighbours keep their distance, and with the world's spread (1.6).
      */
-    public static List<Coordinates> ring(int mapSize, int count) {
+    public static List<Coordinates> ring(int mapSize, double spread, int count) {
         int c = mapSize / 2;
         List<Coordinates> spots = new ArrayList<>();
         if (count == 1) {
             spots.add(new Coordinates(c, c));
             return spots;
         }
-        double radius = Math.max(MIN_RADIUS, count * SPACING / (2 * Math.PI));
+        double radius = Math.max(MIN_RADIUS, count * SPACING / (2 * Math.PI)) * spread;
         for (int i = 0; i < count; i++) {
             double angle = -Math.PI / 2 + 2 * Math.PI * i / count;
             spots.add(

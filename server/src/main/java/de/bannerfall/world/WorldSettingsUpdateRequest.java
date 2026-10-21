@@ -13,6 +13,10 @@ import jakarta.validation.constraints.Size;
  * the ranges that keep the game working (02-game-rules §1). {@code buildQueueMax} must not be below
  * {@code buildQueueSize}, {@code marketExchangeRatio} is 0 (off) or at least 1, and the night bonus
  * must not start and end at the same hour (all checked in {@link WorldService#updateSettings}).
+ *
+ * <p>{@code mapSpread} (1.6) is pre-game only, like {@code mapSize}. It is stored as sent: the
+ * clients fill in the map size and noble range that go with a new spread ({@link
+ * MapSpread#defaultMapSize()}), so a value the host types afterwards is never overwritten.
  */
 public record WorldSettingsUpdateRequest(
         @NotBlank @Size(max = 64) String name,
@@ -37,6 +41,7 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @Min(0) @Max(50) Integer npcLordCount,
         @Schema(nullable = true) Boolean guildsEnabled,
         @Schema(nullable = true) @Min(2) @Max(50) Integer guildMaxMembers,
+        @Schema(nullable = true) Boolean guildStartTogether,
         @Schema(nullable = true) Boolean npcGuildsEnabled,
         @Schema(nullable = true) @Min(2) @Max(50) Integer npcGuildMaxMembers,
         @Schema(nullable = true) Boolean barbarianWallsEnabled,
@@ -50,6 +55,8 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @DecimalMin("0") @DecimalMax("3") Double bannerDropFactor,
         @Schema(nullable = true) Boolean standardTheftEnabled,
         @Schema(nullable = true) Boolean npcBannersEnabled,
+        @Schema(nullable = true) Boolean npcLearningEnabled,
+        @Schema(nullable = true) Boolean npcShipmentsEnabled,
         @Schema(nullable = true) @DecimalMin("0") @DecimalMax("10") Double marketExchangeRatio,
         @Schema(nullable = true) VictoryMode victoryMode,
         @Schema(nullable = true) @Min(10) @Max(100) Integer dominationPercent,
@@ -60,4 +67,10 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) Boolean nightBonusEnabled,
         @Schema(nullable = true) @Min(0) @Max(23) Integer nightBonusStartHour,
         @Schema(nullable = true) @Min(0) @Max(23) Integer nightBonusEndHour,
-        @Schema(nullable = true) @DecimalMin("1.1") @DecimalMax("3") Double nightBonusFactor) {}
+        @Schema(nullable = true) @DecimalMin("1.1") @DecimalMax("3") Double nightBonusFactor,
+        @Schema(nullable = true) Boolean archersEnabled,
+        @Schema(nullable = true) Boolean moraleEnabled,
+        @Schema(nullable = true) @Min(30) @Max(100) Integer moraleFloor,
+        @Schema(nullable = true) @DecimalMin("0") @DecimalMax("1") Double noblePriceStep,
+        @Schema(nullable = true) @Min(0) @Max(100) Integer automationVillages,
+        @Schema(nullable = true) MapSpread mapSpread) {}

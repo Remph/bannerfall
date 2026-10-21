@@ -16,6 +16,7 @@ const me: Me = {
   protectedUntil: '2026-10-10T00:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [{ id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 300, incomingAttacks: 0 }],
 };
 

@@ -84,42 +84,51 @@ class NpcGuilds {
         return new HashSet<>(jdbc.sql(MATES).param("playerId", lordId).query(Long.class).list());
     }
 
-    /** The points of the lord's guild (all members), empty without one or while off (§13.5). */
-    Optional<Long> guildPoints(long lordId) {
+    /**
+     * The points per member of the lord's guild (all members), empty without one or while off
+     * (§13.5).
+     */
+    Optional<Double> guildAverage(long lordId) {
         if (!active()) {
             return Optional.empty();
         }
         return jdbc.sql(
                         """
-                        select sum(p.points) from guild_member me
+                        select avg(p.points)::float8 from guild_member me
                         join guild_member o on o.guild_id = me.guild_id
                         join player p on p.id = o.player_id
                         where me.player_id = :playerId
                         """)
                 .param("playerId", lordId)
-                .query(Long.class)
+                .query(Double.class)
                 .optional();
     }
 
     /**
-     * The points of the strongest human side (§13.5, 02 §22.1): a guild of humans (the sum of its
-     * members' points) or a human without one; with guilds off every human is a side. Only humans
-     * who own a village count, like the rubber band (§8); 0 when there are none.
+     * The points per member of the strongest human side (§13.5, 02 §22.1): a guild of humans or a
+     * human without one, whichever has the most per member; with guilds off every human is a side.
+     * Only humans who own a village count, as members too, like the rubber band (§8); 0 when there
+     * are none.
      */
-    long strongestHumanSide() {
+    double strongestHumanSide() {
         boolean guilds = worldService.settings().guildsEnabled();
-        Map<String, Long> sides = new HashMap<>();
+        Map<String, Long> points = new HashMap<>();
+        Map<String, Integer> members = new HashMap<>();
         jdbc.sql(HUMANS)
                 .query(
                         (rs, n) -> {
                             long id = rs.getLong("id");
                             Long guild = rs.getObject("guild_id", Long.class);
                             String side = guilds && guild != null ? "G" + guild : "P" + id;
-                            sides.merge(side, rs.getLong("points"), Long::sum);
+                            points.merge(side, rs.getLong("points"), Long::sum);
+                            members.merge(side, 1, Integer::sum);
                             return id;
                         })
                 .list();
-        return sides.values().stream().mapToLong(Long::longValue).max().orElse(0);
+        return points.entrySet().stream()
+                .mapToDouble(e -> (double) e.getValue() / members.get(e.getKey()))
+                .max()
+                .orElse(0);
     }
 
     /**
@@ -138,7 +147,11 @@ class NpcGuilds {
         }
         NpcGuildForming.Choice choice =
                 NpcGuildForming.choose(
-                        me, lords, balance.general().guildRadius(), guildService.lordGuildMax());
+                        me,
+                        lords,
+                        balance.general().guildRadius()
+                                * worldService.settings().mapSpread().factor(),
+                        guildService.lordGuildMax());
         switch (choice) {
             case NpcGuildForming.Join join -> {
                 guildService.addLord(join.guildId(), lordId);

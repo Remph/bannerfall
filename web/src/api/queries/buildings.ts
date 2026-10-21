@@ -5,12 +5,15 @@ import type { BuildingType } from '../../game/gameData';
 import { serverNow } from '../../game/serverTime';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
+import { automationQueryKey } from './automation';
 import { recruitmentQueryKey } from './recruitment';
 import { villageQueryKey, type Village } from './villages';
 
 export type BuildOrder = components['schemas']['BuildOrderDto'];
 export type NextLevel = components['schemas']['NextLevelDto'];
 export type BuildingEffect = components['schemas']['BuildingEffect'];
+/** The next demolition of a building (1.6); null at its lowest level. */
+export type Demolition = components['schemas']['DemolishDto'];
 
 /** One building of GET …/buildings; `next` is null at the maximum level. */
 export type BuildingInfo = components['schemas']['BuildingInfoDto'];
@@ -29,14 +32,15 @@ export function useBuildings(villageId: number) {
 }
 
 /**
- * A change of the build queue touches the village (resources, queue, population) and the building
- * list. Returning the promise keeps a mutation "pending" until the fresh data is there, so buttons
+ * A change of the build queue touches the village (resources, queue, population), the building
+ * list and the automation's status (cancelling one of its orders pauses it, 1.6). Returning the promise keeps a mutation "pending" until the fresh data is there, so buttons
  * don't flash enabled in between.
  */
 function refreshBuildState(queryClient: QueryClient, villageId: number): Promise<unknown> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: villageQueryKey(villageId) }),
     queryClient.invalidateQueries({ queryKey: buildingsQueryKey(villageId) }),
+    queryClient.invalidateQueries({ queryKey: automationQueryKey(villageId) }),
   ]);
 }
 
@@ -49,6 +53,18 @@ export function useEnqueueBuild(villageId: number) {
         api.POST('/api/villages/{villageId}/build-orders', { params: { path: { villageId } }, body: { building } }),
       ),
     // also after an error: the screen was probably out of date (e.g. resources spent elsewhere)
+    onSettled: () => refreshBuildState(queryClient, villageId),
+  });
+}
+
+/** POST …/demolitions: queue a demolition of one level (1.6, 02-game-rules §4.5). */
+export function useDemolish(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (building: BuildingType) =>
+      expectData(
+        api.POST('/api/villages/{villageId}/demolitions', { params: { path: { villageId } }, body: { building } }),
+      ),
     onSettled: () => refreshBuildState(queryClient, villageId),
   });
 }

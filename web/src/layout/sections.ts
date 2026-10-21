@@ -127,7 +127,9 @@ export function navEntry(pathname: string, ownPlayerId: number, bannersOn: boole
       case 'warehouse':
       case 'smithy':
         return 'village';
+      // the automation page belongs to the Town Hall (1.6)
       case 'hq':
+      case 'automation':
         return 'townHall';
       case 'recruit':
         return !bannersOn && sub === 'banner_hall' ? 'bannerHall' : 'recruit';

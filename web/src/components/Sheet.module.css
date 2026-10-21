@@ -38,6 +38,9 @@
 .header {
   position: sticky;
   top: 0;
+  /* over the scrolled content: positioned parts of it (the More menu's round icons and their badges)
+     would paint over the title otherwise */
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -69,6 +72,8 @@
 }
 
 .body {
+  /* its own stacking layer, so no z-index inside a sheet (a "…" menu, a badge) climbs over the title */
+  isolation: isolate;
   padding: var(--space-3);
 }
 

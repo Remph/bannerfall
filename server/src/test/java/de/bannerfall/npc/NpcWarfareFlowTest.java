@@ -74,6 +74,7 @@ class NpcWarfareFlowTest {
     @Autowired TestRandomSource random;
     @Autowired PlatformTransactionManager transactionManager;
     @Autowired GuildService guildService;
+    @Autowired NpcGuilds npcGuilds;
 
     private TransactionTemplate transaction;
     private int baseX;
@@ -103,6 +104,10 @@ class NpcWarfareFlowTest {
         random.reset();
         jdbc.sql("delete from game_event").update();
         String scene = "select id from village where x >= 2000";
+        jdbc.sql(
+                        "delete from trade_transport where source_village_id in (%1$s) or target_village_id in (%1$s)"
+                                .formatted(scene))
+                .update();
         jdbc.sql(
                         ("delete from movement where home_village_id in (%1$s)"
                                         + " or source_village_id in (%1$s)"
@@ -151,6 +156,7 @@ class NpcWarfareFlowTest {
                                 + " barbarians_per_new_player = 0, npc_guilds_enabled = false,"
                                 + " night_bonus_enabled = false, night_bonus_start_hour = 23,"
                                 + " night_bonus_end_hour = 7, npc_banners_enabled = false,"
+                                + " npc_shipments_enabled = true,"
                                 + " guilds_enabled = ?")
                 .param(guildsWereOn)
                 .update();
@@ -714,6 +720,95 @@ class NpcWarfareFlowTest {
     }
 
     @Test
+    void anAcademyScoutsAPlayerVillageBeforeItSavesForNoblesForIt() {
+        // balancing round 3 (Realm 1, 2026-10-20): a lord picked the biggest human village it
+        // had never seen as its target and saved for nobles at the noble troop share, its army gone
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        buildings(village, Map.of(BuildingType.ACADEMY, 1, BuildingType.STABLE, 1));
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.SCOUT, 10));
+        TestPlayer human = human(3, 0, true);
+        addVillage(human.playerId, 60, 60); // not his last village
+        points(human.villageId, 5000);
+
+        round(lord);
+
+        // no target yet, so the village keeps building and recruiting at its stage's share
+        assertThat(memory(lord).conquest()).doesNotContainKey(village);
+        assertThat(movementsTo(lord, human.villageId))
+                .singleElement()
+                .satisfies(m -> assertThat(m).containsEntry("u_scout", 5));
+    }
+
+    @Test
+    void aPlayerVillageSeenTooStrongStaysNoTargetUntilTheLordForgetsIt() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        buildings(village, Map.of(BuildingType.ACADEMY, 1));
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 4, UnitType.SCOUT, 10));
+        TestPlayer human = human(3, 0, true);
+        addVillage(human.playerId, 60, 60); // not his last village
+        points(human.villageId, 5000);
+        // seen long ago (no longer fresh), but still the latest the lord knows
+        knows(
+                lord,
+                human.villageId,
+                strongIntel(clock.instant().minus(Duration.ofHours(12)), human.playerId));
+
+        round(lord);
+
+        // no target, and not scouted again either: every scouting counts against the caps
+        assertThat(memory(lord).conquest()).doesNotContainKey(village);
+        assertThat(movementsTo(lord, human.villageId)).isEmpty();
+
+        // once the lord has forgotten that look (7 days ÷ speed), its scouts go to look again
+        clock.advance(Duration.ofMinutes(1));
+        knows(
+                lord,
+                human.villageId,
+                strongIntel(
+                        clock.instant().minus(Duration.ofDays(7)).minusSeconds(60),
+                        human.playerId));
+
+        round(lord);
+
+        assertThat(memory(lord).conquest()).doesNotContainKey(village);
+        assertThat(movementsTo(lord, human.villageId))
+                .singleElement()
+                .satisfies(
+                        m -> {
+                            assertThat(((Number) m.get("u_scout")).intValue()).isPositive();
+                            assertThat(m).containsEntry("u_noble", 0);
+                        });
+
+        // seen empty, just as long ago: a target again, and the scouts go to look once more
+        deleteMovementsOf(lord);
+        clock.advance(Duration.ofMinutes(1));
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.intel.put(
+                            human.villageId,
+                            emptyIntel(
+                                    clock.instant().minus(Duration.ofHours(12)), human.playerId));
+                });
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.NOBLE, 4, UnitType.SCOUT, 10));
+
+        round(lord);
+
+        assertThat(memory(lord).conquest().get(village).villageId()).isEqualTo(human.villageId);
+        // scouts only (the intel is too old to send the train on): the train waits for their look
+        assertThat(movementsTo(lord, human.villageId))
+                .singleElement()
+                .satisfies(
+                        m -> {
+                            assertThat(((Number) m.get("u_scout")).intValue()).isPositive();
+                            assertThat(m).containsEntry("u_noble", 0);
+                        });
+    }
+
+    @Test
     void aHumansLastVillageGetsNoNoblesOnNormalButOnHard() {
         long lord = lord(NpcPersonality.OFFENSIVE);
         long village = villageOf(lord);
@@ -1195,6 +1290,57 @@ class NpcWarfareFlowTest {
     }
 
     @Test
+    void theGuildBrakeComparesPointsPerMember() {
+        // §13.5, per member since 1.6: two lords of 900 and 1500 are 1200 a member
+        List<Long> lords = lords(2, NpcPersonality.BALANCED);
+        lordPoints(lords.get(0), 900);
+        lordPoints(lords.get(1), 1500);
+        lordGuildsOn();
+        guildService.foundForLords(lords.get(0), lords.get(1), "Ordo Testium", "TEST");
+        assertThat(npcGuilds.guildAverage(lords.get(0))).contains(1200.0);
+
+        // far above every other human in the test world: a guild of 9 and 1 million is 5 million
+        // a member, so a lone human with 6 million is the strongest side (as sums the guild was)
+        TestPlayer strong = human(30, 0, false);
+        TestPlayer weak = human(33, 0, false);
+        TestPlayer loner = human(36, 0, false);
+        String unique = Long.toString(System.nanoTime(), 36);
+        long guild =
+                jdbc.sql(
+                                "insert into guild (name, tag, created_at) values (?, ?, now())"
+                                        + " returning id")
+                        .params("Humans " + unique, unique.substring(unique.length() - 4))
+                        .query(Long.class)
+                        .single();
+        jdbc.sql(
+                        "insert into guild_member (player_id, guild_id, role, joined_at)"
+                                + " values (?, ?, 'LEADER', now()), (?, ?, 'MEMBER', now())")
+                .params(strong.playerId, guild, weak.playerId, guild)
+                .update();
+        try {
+            humanPoints(strong, 9_000_000);
+            humanPoints(weak, 1_000_000);
+            humanPoints(loner, 6_000_000);
+            assertThat(npcGuilds.strongestHumanSide()).isEqualTo(6_000_000.0);
+
+            humanPoints(loner, 0);
+            assertThat(npcGuilds.strongestHumanSide()).isEqualTo(5_000_000.0);
+        } finally {
+            jdbc.sql("delete from guild where id = ?").param(guild).update();
+            for (TestPlayer human : List.of(strong, weak, loner)) {
+                humanPoints(human, 0);
+            }
+        }
+    }
+
+    private void humanPoints(TestPlayer human, int points) {
+        jdbc.sql("update player set points = ? where id = ?")
+                .param(points)
+                .param(human.playerId)
+                .update();
+    }
+
+    @Test
     void aLordSendsNoTrainWhereAGuildMatesNoblesAreOnTheWay() {
         List<Long> lords = lords(2, NpcPersonality.OFFENSIVE);
         long a = lords.get(0);
@@ -1229,6 +1375,175 @@ class NpcWarfareFlowTest {
         round(a);
         assertThat(movementsTo(a, barbarian))
                 .anySatisfy(m -> assertThat(m).containsEntry("u_noble", 2));
+    }
+
+    // ---- shipments (§5.5, 1.6) ----
+
+    @Test
+    void aVillageThatWouldOverflowShipsToTheLordsVillageThatStillBuilds() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long receiver = addVillage(lord, 5, 0);
+        int capacity = shipmentScene(donor, receiver);
+
+        round(lord);
+
+        List<Map<String, Object>> sent = transportsFrom(donor);
+        assertThat(sent).hasSize(1);
+        Map<String, Object> transport = sent.getFirst();
+        assertThat(transport.get("target_village_id")).isEqualTo(receiver);
+        int wood = (Integer) transport.get("wood");
+        int clay = (Integer) transport.get("clay");
+        int iron = (Integer) transport.get("iron");
+        // the market's 10 merchants are full, evenly from each resource
+        assertThat(transport.get("merchants")).isEqualTo(10);
+        assertThat(wood + clay + iron).isBetween(9_990, 10_000);
+        assertThat(List.of(wood, clay, iron))
+                .allSatisfy(n -> assertThat(n).isBetween(3_300, 3_334));
+        // the donor keeps at least 70 % of its warehouse of each
+        Village after = villages.findById(donor).orElseThrow();
+        assertThat(after.getWood()).isGreaterThanOrEqualTo(0.7 * capacity);
+        assertThat(after.getClay()).isGreaterThanOrEqualTo(0.7 * capacity);
+        assertThat(after.getIron()).isGreaterThanOrEqualTo(0.7 * capacity);
+
+        // the merchants arrive and fill the receiver's warehouse
+        clock.set(((Timestamp) transport.get("arrive_at")).toInstant());
+        processor.processDue(clock.instant());
+        assertThat(villages.findById(receiver).orElseThrow().getWood()).isGreaterThan(3_300);
+    }
+
+    @Test
+    void whatIsOnTheWayCountsSoTheNextRoundDoesNotOverfillTheReceiver() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long receiver = addVillage(lord, 5, 0);
+        int capacity = shipmentScene(donor, receiver);
+        buildings(donor, Map.of(BuildingType.MARKET, 15)); // 35 merchants: enough for two trips
+        buildings(receiver, Map.of(BuildingType.WAREHOUSE, 10));
+        int fill = (int) (0.8 * de.bannerfall.rules.Storage.warehouseCapacity(10));
+
+        round(lord);
+        assertThat(transportsFrom(donor)).hasSize(1);
+        // the donor is full again, the merchants are still on the way
+        jdbc.sql("update village set wood = ?, clay = ?, iron = ? where id = ?")
+                .params(capacity, capacity, capacity, donor)
+                .update();
+        round(lord);
+
+        List<Map<String, Object>> sent = transportsFrom(donor);
+        for (String resource : List.of("wood", "clay", "iron")) {
+            assertThat(sent.stream().mapToInt(t -> (Integer) t.get(resource)).sum())
+                    .isLessThanOrEqualTo(fill);
+        }
+    }
+
+    @Test
+    void aStockBelowNinetyPercentIsNotShipped() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long receiver = addVillage(lord, 5, 0);
+        int capacity = shipmentScene(donor, receiver);
+        int below = (int) (0.89 * capacity);
+        jdbc.sql("update village set wood = ?, clay = ?, iron = ? where id = ?")
+                .params(below, below, below, donor)
+                .update();
+
+        round(lord);
+
+        assertThat(transportsFrom(donor)).isEmpty();
+    }
+
+    @Test
+    void aVillageWithAnAcademyGetsNoShipment() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long receiver = addVillage(lord, 5, 0);
+        shipmentScene(donor, receiver);
+        buildings(receiver, Map.of(BuildingType.ACADEMY, 1));
+
+        round(lord);
+
+        assertThat(transportsFrom(donor)).isEmpty();
+    }
+
+    @Test
+    void aVillageUnderAttackGetsNoShipmentButTheNextVillageDoes() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long attacked = addVillage(lord, 3, 0);
+        long other = addVillage(lord, 8, 0);
+        shipmentScene(donor, attacked);
+        buildings(other, Map.of(BuildingType.WAREHOUSE, 15));
+        jdbc.sql("update village set wood = 0, clay = 0, iron = 0 where id = ?")
+                .param(other)
+                .update();
+        TestPlayer human = human(13, 0, true);
+        incomingAttack(
+                human,
+                attacked,
+                clock.instant().minus(Duration.ofHours(1)),
+                clock.instant().plus(Duration.ofHours(1)));
+
+        round(lord);
+
+        assertThat(transportsFrom(donor))
+                .extracting(t -> t.get("target_village_id"))
+                .containsExactly(other);
+    }
+
+    @Test
+    void noShipmentsWithTheSwitchOffOrInTheBuildQuietHours() {
+        long lord = lord(NpcPersonality.BALANCED);
+        long donor = villageOf(lord);
+        long receiver = addVillage(lord, 5, 0);
+        shipmentScene(donor, receiver);
+        jdbc.sql("update world_settings set npc_shipments_enabled = false").update();
+        worldService.reload();
+
+        round(lord);
+        assertThat(transportsFrom(donor)).isEmpty();
+
+        jdbc.sql("update world_settings set npc_shipments_enabled = true").update();
+        worldService.reload();
+        clock.set(nextBerlin(LocalTime.of(1, 0))); // NORMAL: no new build orders 23:00-07:00
+        shipmentScene(donor, receiver);
+
+        round(lord);
+        assertThat(transportsFrom(donor)).isEmpty();
+    }
+
+    /**
+     * The donor: warehouse 15 full of each resource, market 10, a farm full of spearmen (so its own
+     * step can neither recruit nor afford much); the receiver: start levels with warehouse 15,
+     * empty.
+     *
+     * @return the warehouse capacity of both
+     */
+    private int shipmentScene(long donor, long receiver) {
+        buildings(
+                donor,
+                Map.of(BuildingType.WAREHOUSE, 15, BuildingType.MARKET, 10, BuildingType.FARM, 1));
+        units(donor, Map.of(UnitType.SPEARMAN, 1000));
+        buildings(receiver, Map.of(BuildingType.WAREHOUSE, 15));
+        int capacity = de.bannerfall.rules.Storage.warehouseCapacity(15);
+        jdbc.sql(
+                        "update village set wood = ?, clay = ?, iron = ?, resources_updated_at = ?"
+                                + " where id = ?")
+                .params(capacity, capacity, capacity, Timestamp.from(clock.instant()), donor)
+                .update();
+        jdbc.sql(
+                        "update village set wood = 0, clay = 0, iron = 0, resources_updated_at = ?"
+                                + " where id = ?")
+                .params(Timestamp.from(clock.instant()), receiver)
+                .update();
+        return capacity;
+    }
+
+    private List<Map<String, Object>> transportsFrom(long villageId) {
+        return jdbc.sql("select * from trade_transport where source_village_id = ? order by id")
+                .param(villageId)
+                .query()
+                .listOfRows();
     }
 
     // ---- helpers: the scene ----
@@ -1465,6 +1780,23 @@ class NpcWarfareFlowTest {
                     m.farmed.clear();
                     m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
                 });
+    }
+
+    /** Intel of a village with 1,000 spearmen behind a level 10 wall. */
+    private static Intel strongIntel(Instant at, long ownerId) {
+        return new Intel(
+                at,
+                ownerId,
+                Map.of(UnitType.SPEARMAN, 1000),
+                10,
+                null,
+                null,
+                null,
+                false,
+                BattleOutcome.DEFENDER_WON,
+                0,
+                null,
+                null);
     }
 
     private static Intel emptyIntel(Instant at, long ownerId) {

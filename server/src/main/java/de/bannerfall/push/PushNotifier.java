@@ -17,6 +17,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,9 @@ class PushNotifier {
     static final int QUEUE = 1000;
 
     static final Duration DAY = Duration.ofDays(1);
+
+    /** Numbers the waiting returned-attacks pushes apart. */
+    private static final AtomicLong RETURNS = new AtomicLong();
 
     /**
      * An attack's push is worth nothing once the last attack on the village landed; at least a
@@ -170,6 +174,10 @@ class PushNotifier {
             case GameNotification.MessageReceived received -> "message-" + received.fromPlayerId();
             case GameNotification.GuildInvited invited -> "guild-" + invited.guildId();
             case GameNotification.BuildComplete built -> "builds-" + built.villageId();
+            // each carries its own numbers (not read when sent): none replaces another
+            case GameNotification.AttacksReturned ignored ->
+                    "returned-" + RETURNS.incrementAndGet();
+            case GameNotification.StorageFull full -> "storage-" + full.villageId();
             default -> "world";
         };
     }
@@ -186,6 +194,8 @@ class PushNotifier {
             case GameNotification.VictoryClock clock ->
                     clock.leader() == null && clock.previous() == null ? null : PushKind.WORLD_END;
             case GameNotification.BuildComplete ignored -> PushKind.BUILDS_DONE;
+            case GameNotification.AttacksReturned ignored -> PushKind.ATTACK_RETURNED;
+            case GameNotification.StorageFull ignored -> PushKind.STORAGE_FULL;
             default -> null;
         };
     }
@@ -233,6 +243,23 @@ class PushNotifier {
                     }
                     message = message.about(village);
                     delivery = new PushSender.Delivery(DAY, "normal", "builds-" + village.id());
+                }
+                case GameNotification.AttacksReturned back -> {
+                    VillageRefDto village = village(back.villageId());
+                    if (village == null) {
+                        return;
+                    }
+                    message = message.about(village);
+                    // no topic: a phone that was offline gets every run, not only the last one
+                    delivery = new PushSender.Delivery(DAY, "normal", null);
+                }
+                case GameNotification.StorageFull full -> {
+                    VillageRefDto village = village(full.villageId());
+                    if (village == null) {
+                        return;
+                    }
+                    message = message.about(village);
+                    delivery = new PushSender.Delivery(DAY, "normal", "storage-" + village.id());
                 }
                 case GameNotification.WorldEnded ignored ->
                         delivery = new PushSender.Delivery(DAY, "normal", "world");

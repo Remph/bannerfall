@@ -18,6 +18,7 @@ const me: Me = {
   needsRespawn: false,
   villages: [],
   linked: false,
+  respawnNearGuild: false,
 };
 
 function open(mode: components['schemas']['AuthOptionsDto']['mode']) {

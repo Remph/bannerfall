@@ -16,6 +16,8 @@ import java.time.Instant;
  * @param tradeMaxRatio the widest ratio of a market offer (the market form checks it, M13b)
  * @param guildsEnabled whether guilds can be created and joined (M15a)
  * @param guildMaxMembers the most members a guild may have
+ * @param guildStartTogether guild mates start next to each other at the opening and on a respawn
+ *     (1.6, 02-game-rules §2); the pre-game world info says so
  * @param npcGuildMaxMembers the most lords a guild of NPC lords may have (09-npc-lords §13), never
  *     above {@code guildMaxMembers}
  * @param barbarianWallsEnabled whether barbarian villages build walls (M29)
@@ -44,12 +46,20 @@ import java.time.Instant;
  * @param version the release this server runs, e.g. {@code 1.1.0} (M28; the tag next to the server
  *     time and the changelog banner)
  * @param nightBonus the night bonus (1.4, 02-game-rules §8.1); null while it is off
+ * @param archersEnabled whether the archer and the mounted archer can be recruited (1.6,
+ *     02-game-rules §5.6)
+ * @param moraleFloor the lowest morale in percent (1.6, 02-game-rules §8.2), e.g. {@code 30}; null
+ *     while morale is off
+ * @param noblePriceStep how much dearer each village and noble beyond the free rank makes the next
+ *     noble, as a share of the base price; 0 = the flat price (1.6, 02-game-rules §5.7)
+ * @param mapSpread how far apart the sides start (1.6, 02-game-rules §2)
  */
 public record WorldDto(
         String name,
         double speed,
         double unitSpeed,
         int mapSize,
+        MapSpread mapSpread,
         int buildQueueSize,
         int buildQueueMax,
         int recruitQueueSize,
@@ -66,6 +76,7 @@ public record WorldDto(
         NpcDifficulty npcDifficulty,
         boolean guildsEnabled,
         int guildMaxMembers,
+        boolean guildStartTogether,
         int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
         int barbarianWallStartDays,
@@ -88,7 +99,10 @@ public record WorldDto(
         @Schema(nullable = true) Instant opensAt,
         long registeredPlayers,
         String version,
-        @Schema(nullable = true) NightBonusDto nightBonus) {
+        @Schema(nullable = true) NightBonusDto nightBonus,
+        boolean archersEnabled,
+        @Schema(nullable = true) Integer moraleFloor,
+        double noblePriceStep) {
 
     /**
      * The night bonus of a world that has it on: owned villages defend {@code factor} times as

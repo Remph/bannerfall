@@ -31,6 +31,10 @@ function WorldInfoList({ world }: { world: World }) {
     [labels.speed, `× ${formatDecimal(world.speed, language)}`],
     [labels.unitSpeed, `× ${formatDecimal(world.unitSpeed, language)}`],
     [labels.mapSize, labels.mapSizeValue(world.mapSize)],
+    [
+      labels.mapSpread,
+      labels.mapSpreadValue(labels.mapSpreads[world.mapSpread], labels.mapSpreadDistances[world.mapSpread]),
+    ],
     [labels.startResources, labels.startResourcesValue(formatNumber(world.startResources, language))],
     [labels.beginnerProtection, labels.beginnerProtectionValue(world.beginnerProtectionHours)],
     [labels.nobleMaxDistance, labels.nobleMaxDistanceValue(world.nobleMaxDistance)],
@@ -58,18 +62,32 @@ function WorldInfoList({ world }: { world: World }) {
         ? labels.marketExchangeValue(formatRatio(world.marketExchangeRatio, language))
         : labels.no,
     ],
-    [labels.guilds, world.guildsEnabled ? labels.guildsValue(world.guildMaxMembers) : labels.no],
+    [
+      labels.guilds,
+      world.guildsEnabled ? labels.guildsValue(world.guildMaxMembers, world.guildStartTogether) : labels.no,
+    ],
     [labels.unitLevels, world.unitLevelsEnabled ? labels.unitLevelsValue : labels.no],
+    [labels.archers, world.archersEnabled ? labels.archersValue : labels.no],
     [
       labels.paladin,
       world.paladinMaxSlots > 0 ? labels.paladinValue(world.paladinVillagesPerSlot, world.paladinMaxSlots) : labels.no,
     ],
     [labels.banners, world.bannersEnabled ? labels.bannersValue : labels.no],
     [
+      labels.noblePrice,
+      world.noblePriceStep > 0
+        ? labels.noblePriceValue(formatFactor(world.noblePriceStep * 100, language))
+        : labels.noblePriceFlat,
+    ],
+    [
       labels.nightBonus,
       world.nightBonus == null
         ? labels.no
         : labels.nightBonusValue(formatNightHours(world.nightBonus), formatFactor(world.nightBonus.factor, language)),
+    ],
+    [
+      labels.morale,
+      world.moraleFloor == null ? labels.no : labels.moraleValue(formatShare(world.moraleFloor, language)),
     ],
   ];
   return (

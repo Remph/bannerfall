@@ -35,6 +35,7 @@ function info(
     },
     requirementsMet: true,
     missing: [],
+    demolish: null,
     ...overrides,
   };
 }
@@ -46,6 +47,11 @@ describe('upgradeBlocker', () => {
 
   it('is null at the maximum level: there is nothing to block', () => {
     expect(upgradeBlocker(info({ next: null }), village, 10, false, nowMs, true)).toBeNull();
+  });
+
+  it('names a queued demolition of the building before anything else (1.6)', () => {
+    const demolishing = info({ level: 3, queuedLevel: 2, requirementsMet: false });
+    expect(upgradeBlocker(demolishing, village, 0, true, nowMs, true)).toEqual({ kind: 'demolition' });
   });
 
   it('names the missing requirements first, whatever else is wrong', () => {

@@ -37,6 +37,21 @@ public class FarmTarget {
     /** When the helper last sent this template; null if never. */
     private Instant lastSentAt;
 
+    /**
+     * The latest attack from the village at the target that landed (1.6), when it landed; null
+     * before the first. The three below belong to it.
+     */
+    private Instant lastRaidAt;
+
+    /** Whether the attackers won that battle. */
+    private Boolean lastRaidWon;
+
+    /** What they took home, all resources together (0 when they lost). */
+    private Integer lastRaidLoot;
+
+    /** What the survivors could carry, Plunder banner included (0 when they lost). */
+    private Integer lastRaidCapacity;
+
     protected FarmTarget() {}
 
     FarmTarget(
@@ -89,5 +104,21 @@ public class FarmTarget {
 
     public Instant getLastSentAt() {
         return lastSentAt;
+    }
+
+    public Instant getLastRaidAt() {
+        return lastRaidAt;
+    }
+
+    public Boolean getLastRaidWon() {
+        return lastRaidWon;
+    }
+
+    public Integer getLastRaidLoot() {
+        return lastRaidLoot;
+    }
+
+    public Integer getLastRaidCapacity() {
+        return lastRaidCapacity;
     }
 }

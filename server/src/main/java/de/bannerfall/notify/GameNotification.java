@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
+import de.bannerfall.gamedata.ResourceAmounts;
+import de.bannerfall.gamedata.ResourceType;
 import de.bannerfall.report.ReportKind;
 import de.bannerfall.victory.VictorySide;
 import de.bannerfall.village.VillageRefDto;
@@ -11,6 +13,7 @@ import de.bannerfall.world.EndReason;
 import io.swagger.v3.oas.annotations.media.DiscriminatorMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * What the server tells one player live over {@code /user/queue/events} (04-api <i>WebSocket</i>).
@@ -40,7 +43,9 @@ import java.time.Instant;
             value = GameNotification.AchievementEarned.class,
             name = "ACHIEVEMENT_EARNED"),
     @JsonSubTypes.Type(value = GameNotification.BannerFound.class, name = "BANNER_FOUND"),
-    @JsonSubTypes.Type(value = GameNotification.BannerStolen.class, name = "BANNER_STOLEN")
+    @JsonSubTypes.Type(value = GameNotification.BannerStolen.class, name = "BANNER_STOLEN"),
+    @JsonSubTypes.Type(value = GameNotification.AttacksReturned.class, name = "ATTACKS_RETURNED"),
+    @JsonSubTypes.Type(value = GameNotification.StorageFull.class, name = "STORAGE_FULL")
 })
 // The same names for the OpenAPI description (added by OpenApiConfig: no REST endpoint returns
 // it), so the generated TS types say type: "VILLAGE_UPDATED".
@@ -94,7 +99,13 @@ import java.time.Instant;
                     schema = GameNotification.BannerFound.class),
             @DiscriminatorMapping(
                     value = "BANNER_STOLEN",
-                    schema = GameNotification.BannerStolen.class)
+                    schema = GameNotification.BannerStolen.class),
+            @DiscriminatorMapping(
+                    value = "ATTACKS_RETURNED",
+                    schema = GameNotification.AttacksReturned.class),
+            @DiscriminatorMapping(
+                    value = "STORAGE_FULL",
+                    schema = GameNotification.StorageFull.class)
         })
 public sealed interface GameNotification {
 
@@ -126,8 +137,11 @@ public sealed interface GameNotification {
     record ReportCreated(long reportId, ReportKind kind, @Schema(nullable = true) String sharedBy)
             implements GameNotification {}
 
-    /** A building of the player's village reached {@code level}. */
-    record BuildComplete(long villageId, BuildingType building, int level)
+    /**
+     * A building of the player's village reached {@code level}: one more, or one less after a
+     * demolition (1.6, {@code demolished}).
+     */
+    record BuildComplete(long villageId, BuildingType building, int level, boolean demolished)
             implements GameNotification {}
 
     /**
@@ -221,4 +235,31 @@ public sealed interface GameNotification {
      */
     record BannerStolen(BannerType bannerType, int tier, VillageRefDto village, boolean lost)
             implements GameNotification {}
+
+    /**
+     * Attacks the player asked to hear about are all home or dead (1.6): one manual attack, a train
+     * or a farm list run ({@code ReturnWatch}). The client shows a toast; also pushed.
+     *
+     * @param villageId the home village of the attacks
+     * @param target the one target of a single attack or a train; null for a farm list run
+     * @param attacks how many attacks it was
+     * @param lost attacks nobody came back from
+     * @param loot what the survivors carried home, all together
+     */
+    record AttacksReturned(
+            long villageId,
+            @Schema(nullable = true) VillageRefDto target,
+            int attacks,
+            int lost,
+            ResourceAmounts loot,
+            boolean farmRun)
+            implements GameNotification {}
+
+    /**
+     * A resource reached the warehouse limit in one of the player's villages (1.6), once until it
+     * drops below again. Only for players who switched it on for push; the client shows a toast.
+     *
+     * @param full the resources at the limit
+     */
+    record StorageFull(long villageId, List<ResourceType> full) implements GameNotification {}
 }

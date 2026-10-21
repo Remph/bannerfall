@@ -1,1 +1,8 @@
 blank_issues_enabled: true
+contact_links:
+  - name: Hosting guide
+    url: https://github.com/Remph/bannerfall/blob/main/docs/hosting.md
+    about: Setting up, updating and backing up your own server, with a list of common problems.
+  - name: Game rules
+    url: https://github.com/Remph/bannerfall/blob/main/docs/plan/02-game-rules.md
+    about: How battles, loot, conquest and the other rules work.

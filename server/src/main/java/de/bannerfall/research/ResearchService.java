@@ -83,9 +83,10 @@ public class ResearchService {
      *
      * @throws GameRuleException {@code UNIT_LEVELS_DISABLED} (a Smithy unit with unit levels off),
      *     {@code PALADIN_DISABLED} / {@code BANNERS_DISABLED} (the paladin or the banner thief in a
-     *     world without him), {@code MAX_LEVEL_REACHED} (also for a unit without levels), {@code
-     *     RESEARCH_BUSY} (this village's smithy or hall, or this unit, is busy), {@code
-     *     REQUIREMENTS_NOT_MET} (current levels of this village), {@code NOT_ENOUGH_RESOURCES}
+     *     world without him), {@code ARCHERS_DISABLED} (an archer in a world without archers),
+     *     {@code MAX_LEVEL_REACHED} (also for a unit without levels), {@code RESEARCH_BUSY} (this
+     *     village's smithy or hall, or this unit, is busy), {@code REQUIREMENTS_NOT_MET} (current
+     *     levels of this village), {@code NOT_ENOUGH_RESOURCES}
      */
     @Transactional
     public ResearchOrderDto start(long villageId, long playerId, UnitType type) {
@@ -245,6 +246,10 @@ public class ResearchService {
             if (type == UnitType.BANNER_THIEF && !world.bannersEnabled()) {
                 continue;
             }
+            // nor the archers a world without them (1.6, 02-game-rules §5.6)
+            if (type.isArcher() && !world.archersEnabled()) {
+                continue;
+            }
             UnitDef def = gameData.unit(type);
             BuildingType building = ResearchRules.building(def);
             if (page == BuildingType.BANNER_HALL && building != page) {
@@ -318,6 +323,10 @@ public class ResearchService {
         if (type == UnitType.BANNER_THIEF && !world.bannersEnabled()) {
             throw new GameRuleException(
                     ErrorCode.BANNERS_DISABLED, "Banners are switched off in this world");
+        }
+        if (type.isArcher() && !world.archersEnabled()) {
+            throw new GameRuleException(
+                    ErrorCode.ARCHERS_DISABLED, "There are no archers in this world");
         }
     }
 

@@ -13,7 +13,7 @@ class KeepsTest {
 
     @Test
     void fiveKeepsGoOnARingOfThreeAroundTheCentreTheFirstNorth() {
-        List<Coordinates> ring = Keeps.ring(100, 5);
+        List<Coordinates> ring = Keeps.ring(100, 1.0, 5);
         assertThat(ring).hasSize(5).first().isEqualTo(new Coordinates(50, 47));
         for (Coordinates spot : ring) {
             double distance = Math.hypot(spot.x() - 50, spot.y() - 50);
@@ -24,15 +24,25 @@ class KeepsTest {
 
     @Test
     void aSingleKeepSitsOnTheCentre() {
-        assertThat(Keeps.ring(100, 1)).containsExactly(new Coordinates(50, 50));
-        assertThat(Keeps.ring(41, 1)).containsExactly(new Coordinates(20, 20));
+        assertThat(Keeps.ring(100, 1.0, 1)).containsExactly(new Coordinates(50, 50));
+        assertThat(Keeps.ring(41, 1.0, 1)).containsExactly(new Coordinates(20, 20));
     }
 
     @Test
     void manyKeepsGetAWiderRing() {
-        List<Coordinates> ring = Keeps.ring(100, 12);
+        List<Coordinates> ring = Keeps.ring(100, 1.0, 12);
         for (Coordinates spot : ring) {
             assertThat(Math.hypot(spot.x() - 50, spot.y() - 50)).isGreaterThan(4.2);
+        }
+    }
+
+    @Test
+    void aWiderSpreadWidensTheRing() {
+        // radius 3 × 1.6 = 4.8: the first keep straight north, 5 fields up after rounding
+        List<Coordinates> ring = Keeps.ring(160, 1.6, 5);
+        assertThat(ring.getFirst()).isEqualTo(new Coordinates(80, 75));
+        for (Coordinates spot : ring) {
+            assertThat(Math.hypot(spot.x() - 80, spot.y() - 80)).isBetween(4.2, 5.4);
         }
     }
 

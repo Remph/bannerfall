@@ -70,9 +70,7 @@ public class VillageBanners {
 
     /** The effect of {@code banner} in a village whose hall has {@code hallLevel}. */
     BannerEffect effectOf(Banner banner, int hallLevel) {
-        int effective = BannerRules.effectiveTier(banner.getTier(), hallLevel);
-        double bonus = effective == 0 ? 0 : catalog.effect(banner.getType(), effective);
-        return new BannerEffect(banner.getType(), banner.getTier(), effective, bonus);
+        return catalog.flying(banner.getType(), banner.getTier(), hallLevel);
     }
 
     /**
@@ -153,12 +151,7 @@ public class VillageBanners {
         if (standard == null) {
             return StandardEffect.NONE;
         }
-        int effective = standard.effectiveTier();
-        return new StandardEffect(
-                standard.type(),
-                standard.tier(),
-                effective,
-                effective == 0 ? 0 : catalog.effect(standard.type(), effective));
+        return catalog.standard(standard.type(), standard.tier(), standard.effectiveTier());
     }
 
     /** Warehouse capacity per resource with the Treasury bonus (02-game-rules §3, §21.2). */

@@ -5,7 +5,9 @@ import { RouterProvider } from 'react-router/dom';
 import { queryClient } from './api/queryClient';
 import { reloadOnStaleChunks } from './game/staleChunks';
 import { I18nProvider } from './i18n/I18nProvider';
+import { rememberSetupCode } from './pages/setup/setupCode';
 import { router } from './router';
+import { followThemeColor } from './theme/theme';
 // Self-hosted fonts (05-frontend §8): only the weights we use. The browser downloads a file only
 // when a character on the page needs it.
 import '@fontsource/alegreya-sans/400.css';
@@ -16,6 +18,8 @@ import '@fontsource/uncial-antiqua/400.css';
 import './styles/global.css';
 
 reloadOnStaleChunks();
+followThemeColor();
+rememberSetupCode(window.location);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

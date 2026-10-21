@@ -14,6 +14,7 @@ import java.util.Map;
  * @param pop population per unit
  * @param defenseInfantry defence value against infantry
  * @param defenseCavalry defence value against cavalry
+ * @param defenseArcher defence value against archers (1.6)
  * @param attackType decides which defence value of the defender counts against this unit
  * @param minutesPerField walking speed
  * @param carry loot capacity per unit
@@ -29,6 +30,7 @@ public record UnitDef(
         int attack,
         int defenseInfantry,
         int defenseCavalry,
+        int defenseArcher,
         AttackType attackType,
         double minutesPerField,
         int carry,
@@ -60,7 +62,7 @@ public record UnitDef(
             throw new IllegalArgumentException("level must be at least 1: " + level);
         }
         if (level == 1 || levels.isEmpty()) {
-            return new UnitStats(attack, defenseInfantry, defenseCavalry);
+            return new UnitStats(attack, defenseInfantry, defenseCavalry, defenseArcher);
         }
         return levels.get(Math.min(level, maxLevel()) - 2).stats();
     }

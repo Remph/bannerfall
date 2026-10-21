@@ -305,14 +305,7 @@ public class BannerBattleService {
         if (banner == null) {
             return theft(sent, survived, null, TheftResult.NO_BANNER, null);
         }
-        BannerCatalog.Theft rules = catalog.theft();
-        double chance =
-                BannerRules.theftChance(
-                        survived,
-                        hallLevel,
-                        rules.perThief(thiefLevel),
-                        rules.maxChance(),
-                        rules.hallReductionPerLevel());
+        double chance = catalog.theft().chance(survived, hallLevel, thiefLevel);
         var seen = new BattleReport.ScoutedBanner(banner.getType(), banner.getTier());
         if (random.nextDouble() >= chance) {
             return theft(sent, survived, chance, TheftResult.FAILED, seen);
@@ -402,10 +395,7 @@ public class BannerBattleService {
         if (standard == null) {
             return null;
         }
-        BannerCatalog.Theft rules = catalog.theft();
-        double chance =
-                BannerRules.theftChance(
-                        survivors, 0, rules.perThief(thiefLevel), rules.maxChance(), 0);
+        double chance = catalog.theft().standardChance(survivors, thiefLevel);
         var seen = new BattleReport.ScoutedBanner(standard.getType(), standard.getTier());
         if (random.nextDouble() >= chance) {
             return new BattleReport.StandardTheftReport(survivors, chance, false, seen);

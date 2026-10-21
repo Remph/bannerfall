@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,14 +26,17 @@ class CommandController {
     private final CommandService commandService;
     private final TroopsService troopsService;
     private final PlayerService playerService;
+    private final ReturnWatchService returnWatches;
 
     CommandController(
             CommandService commandService,
             TroopsService troopsService,
-            PlayerService playerService) {
+            PlayerService playerService,
+            ReturnWatchService returnWatches) {
         this.commandService = commandService;
         this.troopsService = troopsService;
         this.playerService = playerService;
+        this.returnWatches = returnWatches;
     }
 
     @GetMapping("/villages/{villageId}/troops")
@@ -78,6 +82,15 @@ class CommandController {
     MovementDto cancel(
             @PathVariable long movementId, @AuthenticationPrincipal AccountPrincipal me) {
         return commandService.cancel(movementId, playerService.idOf(me.accountId()));
+    }
+
+    /** The bell (1.6): tell the player when the units of the attack or return are home. */
+    @PutMapping("/movements/{movementId}/return-push")
+    MovementDto returnPush(
+            @PathVariable long movementId,
+            @Valid @RequestBody ReturnPushRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return returnWatches.setWatched(movementId, playerService.idOf(me.accountId()), body.on());
     }
 
     @PostMapping("/stacks/{stackId}/return")

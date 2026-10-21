@@ -90,11 +90,15 @@ public class BarbarianService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<Village> spawnInitial(int count) {
-        int mapSize = worldService.settings().mapSize();
+        WorldSettings world = worldService.settings();
         return spawn(
                 count,
                 occupied ->
-                        MapPlacement.findInitialBarbarianSpot(mapSize, occupied::contains, random));
+                        MapPlacement.findInitialBarbarianSpot(
+                                world.mapSize(),
+                                world.mapSpread().factor(),
+                                occupied::contains,
+                                random));
     }
 
     /**
@@ -105,12 +109,16 @@ public class BarbarianService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<Village> spawnAround(Coordinates center, int count) {
-        int mapSize = worldService.settings().mapSize();
+        WorldSettings world = worldService.settings();
         return spawn(
                 count,
                 occupied ->
                         MapPlacement.findBarbarianSpotNear(
-                                center, mapSize, occupied::contains, random));
+                                center,
+                                world.mapSize(),
+                                world.mapSpread().factor(),
+                                occupied::contains,
+                                random));
     }
 
     /**
@@ -146,10 +154,12 @@ public class BarbarianService {
         if (existing >= count) {
             return List.of();
         }
-        int mapSize = worldService.settings().mapSize();
+        WorldSettings world = worldService.settings();
+        int mapSize = world.mapSize();
         Set<Coordinates> occupied = new HashSet<>(villages.findAllCoordinates());
         List<Village> created = new ArrayList<>();
-        for (Coordinates ideal : Keeps.ring(mapSize, count).subList(existing, count)) {
+        for (Coordinates ideal :
+                Keeps.ring(mapSize, world.mapSpread().factor(), count).subList(existing, count)) {
             Optional<Coordinates> spot = Keeps.spotNear(ideal, mapSize, occupied::contains);
             if (spot.isEmpty()) {
                 log.warn("No free spot for a banner keep near {}", ideal);

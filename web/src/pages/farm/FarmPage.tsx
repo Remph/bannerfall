@@ -13,11 +13,13 @@ import {
   bannerRollBackAt,
   farmSendEndsProtection,
   nextBannerRollBackIn,
+  runPreview,
   sendAllNotes,
 } from '../../game/farm';
 import { serverNow } from '../../game/serverTime';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
+import { useOffersReturnPush, useRememberedChoice } from '../../push/returnChoice';
 import { VillageError } from '../village/VillageError';
 import { targetFromSearch } from '../rally/rallyPaths';
 import { AddTargetCard } from './AddTargetCard';
@@ -46,6 +48,9 @@ function Farm({ villageId }: { villageId: number }) {
   const village = useVillage(villageId);
   const targets = useFarmTargets(villageId);
   const sendAll = useSendAllFarm(villageId);
+  // 1.6: "Notify me when this run is back", as the player left it last time on this device
+  const offersReturnPush = useOffersReturnPush();
+  const [notifyRun, setNotifyRun] = useRememberedChoice('farmRun');
   const world = useWorld().data;
   // the banner button only where banners can drop (02-game-rules §21.7)
   const bannerDrops = world !== undefined && world.bannersEnabled && world.bannerDropFactor > 0;
@@ -84,6 +89,12 @@ function Farm({ villageId }: { villageId: number }) {
     return <p>{t.common.loading}</p>;
   }
   const home = village.data.unitsHome;
+  // serverNow(), not ticking: like the rows, the line is read on a tap
+  const previewOptions = {
+    playerId: me.playerId,
+    senderProtectedUntilMs: Date.parse(me.protectedUntil),
+    nowMs: serverNow(),
+  };
   const add = (
     <AddTargetCard villageId={villageId} home={home} initialTarget={initialTarget} initialUnits={initialUnits} />
   );
@@ -134,7 +145,14 @@ function Farm({ villageId }: { villageId: number }) {
                   pending={sendAll.isPending}
                   result={sendAll.data}
                   error={sendAll.error}
-                  onSend={(bannerChanceOnly) => sendAll.mutate(bannerChanceOnly)}
+                  notifyRun={offersReturnPush ? { on: notifyRun, onChange: setNotifyRun } : undefined}
+                  onSend={(bannerChanceOnly) =>
+                    sendAll.mutate({ bannerChanceOnly, notifyReturn: offersReturnPush && notifyRun })
+                  }
+                  preview={{
+                    all: runPreview(targets.data, home, { ...previewOptions, bannerChanceOnly: false }),
+                    bannerChances: runPreview(targets.data, home, { ...previewOptions, bannerChanceOnly: true }),
+                  }}
                 />
                 <ul className={styles.list}>
                   {targets.data.map((target) => (
@@ -150,7 +168,9 @@ function Farm({ villageId }: { villageId: number }) {
                   ))}
                 </ul>
                 <div className={styles.body}>
-                  <p className={styles.hint}>{t.farm.count(targets.data.length, FARM_LIST_MAX)}</p>
+                  <p className={styles.hint}>
+                    {t.farm.count(targets.data.length, FARM_LIST_MAX)} · {t.farm.rowsHint}
+                  </p>
                   {targets.data.some(
                     (target) => bannerRollBackAt(target.nextBannerRollAt, serverNow()) !== undefined,
                   ) && <p className={styles.hint}>{t.farm.bannerRollHint}</p>}

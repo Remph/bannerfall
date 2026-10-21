@@ -28,6 +28,11 @@ public class WorldSettingsEntity {
     private double speed;
     private double unitSpeed;
     private int mapSize;
+
+    /** How far apart the sides start (1.6, 02-game-rules §2); pre-game only like the map size. */
+    @Enumerated(EnumType.STRING)
+    private MapSpread mapSpread;
+
     private int startResources;
     private double luckRange;
     private int beginnerProtectionHours;
@@ -53,6 +58,9 @@ public class WorldSettingsEntity {
     private boolean guildsEnabled;
 
     private int guildMaxMembers;
+
+    /** Guild mates start next to each other at the opening and on a respawn (1.6). */
+    private boolean guildStartTogether;
 
     /** NPC lords form guilds (09-npc-lords §13). */
     private boolean npcGuildsEnabled;
@@ -85,6 +93,12 @@ public class WorldSettingsEntity {
     /** NPC lords use banners and standards (1.4, 09-npc-lords §14). */
     private boolean npcBannersEnabled;
 
+    /** NPC lords learn from the attacks on them and human wins (1.6, 09-npc-lords §15). */
+    private boolean npcLearningEnabled;
+
+    /** NPC lords ship what would overflow to their own villages (1.6, 09-npc-lords §5.5). */
+    private boolean npcShipmentsEnabled;
+
     /** Trading with the market (v1.3, 02-game-rules §12.1); 0 = off. */
     private double marketExchangeRatio;
 
@@ -108,6 +122,20 @@ public class WorldSettingsEntity {
     private int nightBonusEndHour;
     private double nightBonusFactor;
 
+    /** Archers (1.6, 02-game-rules §5.6). */
+    private boolean archersEnabled;
+
+    /** Morale (1.6, 02-game-rules §8.2); the floor in percent. */
+    private boolean moraleEnabled;
+
+    private int moraleFloor;
+
+    /** 1.6, 02-game-rules §5.7: 0 = the flat noble price. */
+    private double noblePriceStep;
+
+    /** Village automation from this many villages on, 0 = off (1.6, 02-game-rules §25). */
+    private int automationVillages;
+
     /** The CUSTOM difficulty's values; null until the admin first picks CUSTOM. */
     @Convert(converter = NpcDifficultyConverter.class)
     @JdbcTypeCode(SqlTypes.JSON)
@@ -120,6 +148,9 @@ public class WorldSettingsEntity {
 
     /** True from the first start of a fresh production world until it opens (M14g). */
     private boolean pregame;
+
+    /** The host finished or skipped the guided setup (1.6): the pre-game page stops offering it. */
+    private boolean setupDone;
 
     /** When the pre-game ends; null = the host has not set a time (M14g). */
     private Instant opensAt;
@@ -146,6 +177,7 @@ public class WorldSettingsEntity {
                 .speed(speed)
                 .unitSpeed(unitSpeed)
                 .mapSize(mapSize)
+                .mapSpread(mapSpread)
                 .startResources(startResources)
                 .luckRange(luckRange)
                 .beginnerProtectionHours(beginnerProtectionHours)
@@ -166,6 +198,7 @@ public class WorldSettingsEntity {
                 .npcCustom(npcCustom)
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
+                .guildStartTogether(guildStartTogether)
                 .npcGuildsEnabled(npcGuildsEnabled)
                 .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
@@ -179,6 +212,8 @@ public class WorldSettingsEntity {
                 .bannerDropFactor(bannerDropFactor)
                 .standardTheftEnabled(standardTheftEnabled)
                 .npcBannersEnabled(npcBannersEnabled)
+                .npcLearningEnabled(npcLearningEnabled)
+                .npcShipmentsEnabled(npcShipmentsEnabled)
                 .marketExchangeRatio(marketExchangeRatio)
                 .victoryMode(victoryMode)
                 .dominationPercent(dominationPercent)
@@ -190,6 +225,11 @@ public class WorldSettingsEntity {
                 .nightBonusStartHour(nightBonusStartHour)
                 .nightBonusEndHour(nightBonusEndHour)
                 .nightBonusFactor(nightBonusFactor)
+                .archersEnabled(archersEnabled)
+                .moraleEnabled(moraleEnabled)
+                .moraleFloor(moraleFloor)
+                .noblePriceStep(noblePriceStep)
+                .automationVillages(automationVillages)
                 .build();
     }
 
@@ -236,6 +276,14 @@ public class WorldSettingsEntity {
         return endedAt;
     }
 
+    public boolean isSetupDone() {
+        return setupDone;
+    }
+
+    public void markSetupDone() {
+        this.setupDone = true;
+    }
+
     public void setEndedAt(Instant endedAt) {
         this.endedAt = endedAt;
     }
@@ -254,10 +302,17 @@ public class WorldSettingsEntity {
         this.victoryLeaderSince = since;
     }
 
-    /** Pre-game only: what is fixed once the content is created (M14g). */
-    void applySetup(Integer newMapSize, Integer newBarbarianInitialCount, Integer newNpcLordCount) {
+    /** Pre-game only: what is fixed once the content is created (M14g; the spread since 1.6). */
+    void applySetup(
+            Integer newMapSize,
+            MapSpread newMapSpread,
+            Integer newBarbarianInitialCount,
+            Integer newNpcLordCount) {
         if (newMapSize != null) {
             mapSize = newMapSize;
+        }
+        if (newMapSpread != null) {
+            mapSpread = newMapSpread;
         }
         if (newBarbarianInitialCount != null) {
             barbarianInitialCount = newBarbarianInitialCount;
@@ -294,6 +349,9 @@ public class WorldSettingsEntity {
         }
         if (u.guildMaxMembers() != null) {
             guildMaxMembers = u.guildMaxMembers();
+        }
+        if (u.guildStartTogether() != null) {
+            guildStartTogether = u.guildStartTogether();
         }
         if (u.npcGuildsEnabled() != null) {
             npcGuildsEnabled = u.npcGuildsEnabled();
@@ -334,6 +392,12 @@ public class WorldSettingsEntity {
         if (u.npcBannersEnabled() != null) {
             npcBannersEnabled = u.npcBannersEnabled();
         }
+        if (u.npcLearningEnabled() != null) {
+            npcLearningEnabled = u.npcLearningEnabled();
+        }
+        if (u.npcShipmentsEnabled() != null) {
+            npcShipmentsEnabled = u.npcShipmentsEnabled();
+        }
         if (u.marketExchangeRatio() != null) {
             marketExchangeRatio = u.marketExchangeRatio();
         }
@@ -366,6 +430,21 @@ public class WorldSettingsEntity {
         }
         if (u.nightBonusFactor() != null) {
             nightBonusFactor = u.nightBonusFactor();
+        }
+        if (u.archersEnabled() != null) {
+            archersEnabled = u.archersEnabled();
+        }
+        if (u.moraleEnabled() != null) {
+            moraleEnabled = u.moraleEnabled();
+        }
+        if (u.moraleFloor() != null) {
+            moraleFloor = u.moraleFloor();
+        }
+        if (u.noblePriceStep() != null) {
+            noblePriceStep = u.noblePriceStep();
+        }
+        if (u.automationVillages() != null) {
+            automationVillages = u.automationVillages();
         }
     }
 

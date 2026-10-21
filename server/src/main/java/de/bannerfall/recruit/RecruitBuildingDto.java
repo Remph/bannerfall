@@ -24,14 +24,16 @@ public record RecruitBuildingDto(
         List<DismissOrderDto> dismissQueue) {
 
     /**
-     * @param cost per unit
+     * @param cost per unit; for the noble the price of the player's next one (1.6, 02-game-rules
+     *     §5.7)
      * @param pop per unit
      * @param secondsPerUnit with the building level and world speed of right now; for a building
      *     that isn't built yet the time at level 1
      * @param available whether the requirements are met (current levels, queued ones don't count)
      * @param missing the requirements that are not met yet, in building order
      * @param maxAffordable how many units the stock and the free population pay for right now (at
-     *     most {@code RecruitRules.MAX_COUNT}); requirements and the queue are not looked at
+     *     most {@code RecruitRules.MAX_COUNT}); requirements and the queue are not looked at; for
+     *     the noble with the price rising from one to the next
      * @param atHome how many of this unit stand in the home stack (what can be dismissed)
      * @param dismissSecondsPerUnit seconds per unit when dismissing: a fifth of {@code
      *     secondsPerUnit}

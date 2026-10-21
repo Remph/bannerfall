@@ -184,6 +184,16 @@
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
   }
+
+  /* the source code link (1.6): underlined, so it reads as a link without hovering */
+  .footerLink {
+    color: inherit;
+    text-underline-offset: 0.15em;
+  }
+
+  .footerLink:hover {
+    color: var(--color-on-bar);
+  }
 }
 
 /* The chat column (1.3, ChatDock from 1600 px, not on the map): fixed at the right edge below the

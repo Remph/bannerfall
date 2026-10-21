@@ -51,6 +51,8 @@ public class NpcAdminService {
     private final BannerRepository banners;
     private final VillageRepository villages;
     private final UnitLevelService unitLevels;
+    private final NpcLessons lessons;
+    private final NpcTemplates templates;
     private final Clock clock;
 
     NpcAdminService(
@@ -66,6 +68,8 @@ public class NpcAdminService {
             BannerRepository banners,
             VillageRepository villages,
             UnitLevelService unitLevels,
+            NpcLessons lessons,
+            NpcTemplates templates,
             Clock clock) {
         this.players = players;
         this.brains = brains;
@@ -79,6 +83,8 @@ public class NpcAdminService {
         this.banners = banners;
         this.villages = villages;
         this.unitLevels = unitLevels;
+        this.lessons = lessons;
+        this.templates = templates;
         this.clock = clock;
     }
 
@@ -97,9 +103,12 @@ public class NpcAdminService {
                 .list();
         Map<Long, NpcBrain> brainById = new HashMap<>();
         brains.findAll().forEach(b -> brainById.put(b.getPlayerId(), b));
+        Instant now = clock.instant();
+        NpcLearning.Wins wins =
+                worldService.settings().npcLearningEnabled() ? lessons.wins(now) : null;
         return players.findNpcLords().stream()
                 .filter(p -> brainById.containsKey(p.getId()))
-                .map(p -> dto(p, brainById.get(p.getId()), next.get(p.getId())))
+                .map(p -> dto(p, brainById.get(p.getId()), next.get(p.getId()), wins))
                 .toList();
     }
 
@@ -239,6 +248,17 @@ public class NpcAdminService {
     }
 
     private NpcLordDto dto(Player lord, NpcBrain brain, Instant nextThinkAt) {
+        NpcLearning.Wins wins =
+                worldService.settings().npcLearningEnabled() ? lessons.wins(clock.instant()) : null;
+        return dto(lord, brain, nextThinkAt, wins);
+    }
+
+    /**
+     * @param wins the human wins of the world (09 §15.2), read once for the whole list; null while
+     *     learning is off
+     */
+    private NpcLordDto dto(
+            Player lord, NpcBrain brain, Instant nextThinkAt, NpcLearning.Wins wins) {
         NpcMemory.Stance stance = brain.getMemory().stance();
         int paladinLevel = unitLevels.levelsOf(lord, clock.instant()).get(UnitType.PALADIN);
         GuildRefDto guild = guilds.findRefOf(lord.getId()).orElse(null);
@@ -260,7 +280,39 @@ public class NpcAdminService {
                 brain.isGuildByAdmin(),
                 paladinLevel,
                 bannerVillages(lord, paladinLevel),
-                stash(lord.getId()));
+                stash(lord.getId()),
+                wins == null ? null : learning(lord, brain, wins));
+    }
+
+    /** What the lord learned (09 §15.5); null if nothing (no lesson, no wall goal). */
+    private NpcLordDto.Learning learning(Player lord, NpcBrain brain, NpcLearning.Wins wins) {
+        Instant now = clock.instant();
+        NpcLearning.Lesson lesson = lessons.of(brain, npcGuilds.mates(lord.getId()), wins, now);
+        List<Village> own = villages.findByPlayerIdOrderByIdAsc(lord.getId());
+        List<NpcLordDto.WallGoal> walls = new ArrayList<>();
+        for (Village village : own) {
+            Integer goal = NpcLearning.wallGoal(brain.getMemory().lessons(), village.getId(), now);
+            if (goal != null) {
+                walls.add(
+                        new NpcLordDto.WallGoal(
+                                village.getId(),
+                                village.getName(),
+                                goal,
+                                brain.getMemory().lessons().walls().get(village.getId()).until()));
+            }
+        }
+        if (!lesson.active() && walls.isEmpty()) {
+            return null;
+        }
+        List<NpcLordDto.MixChange> changes = List.of();
+        if (lesson.active() && !own.isEmpty()) {
+            Village biggest = own.stream().max(Comparator.comparingInt(Village::getPoints)).get();
+            NpcTemplates.Template template = templates.of(brain.getPersonality());
+            Map<UnitType, Integer> mix = template.mixOf(template.stageFor(biggest.getPoints()));
+            changes = NpcLearning.changes(mix, NpcLearning.learnedMix(mix, lesson));
+        }
+        return new NpcLordDto.Learning(
+                lesson.defenceWeight(), lesson.attackWeight(), changes, walls);
     }
 
     /** The lord's villages with something equipped (09 §14.8). */

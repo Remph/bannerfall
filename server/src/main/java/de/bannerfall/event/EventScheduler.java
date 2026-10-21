@@ -51,6 +51,33 @@ public class EventScheduler {
     }
 
     /**
+     * Makes sure an event of this kind and subject is due at {@code dueAt} or earlier: a pending
+     * one that is due later moves to {@code dueAt}, one due earlier stays, and without one (or
+     * while the worker holds it) a new one is scheduled. For a subject that needs one look at a
+     * time, however many reasons ask for it (the village automation, 1.6).
+     *
+     * @param handling the event being handled right now (its handler schedules the next one): it is
+     *     still PENDING and locked by this transaction, but done once the handler returns; null
+     *     outside a handler
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void scheduleNoLaterThan(GameEventKind kind, long refId, Instant dueAt, Long handling) {
+        List<GameEvent> pending =
+                events.lockPendingSkippingLocked(kind.name(), refId).stream()
+                        .filter(event -> !event.getId().equals(handling))
+                        .toList();
+        if (pending.isEmpty()) {
+            schedule(kind, refId, dueAt);
+            return;
+        }
+        for (GameEvent event : pending) {
+            if (event.getDueAt().isAfter(dueAt)) {
+                event.reschedule(dueAt);
+            }
+        }
+    }
+
+    /**
      * Removes the pending events of this kind and subject.
      *
      * @return false if there was nothing to remove (see {@link #reschedule})

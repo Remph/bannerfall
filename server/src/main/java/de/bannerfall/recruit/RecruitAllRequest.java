@@ -23,7 +23,7 @@ public record RecruitAllRequest(
      * Every unit at most once, so there are never more entries than unit types ({@code
      * UnitType.values().length}, which isn't a constant an annotation can use; a test checks it).
      */
-    static final int MAX_ORDERS = 11;
+    static final int MAX_ORDERS = 13;
 
     /**
      * Two entries for the same unit would be two orders the screen never sends (it has one field

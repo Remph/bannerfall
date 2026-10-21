@@ -47,7 +47,7 @@ import { gameTime, serverNow } from '../../game/serverTime';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { DESKTOP_QUERY, PANEL_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
-import { useEffectiveTheme } from '../../theme/useEffectiveTheme';
+import { useEffectiveTheme, usePalette } from '../../theme/useEffectiveTheme';
 import { VillageError } from '../village/VillageError';
 import { DevBarbarianSpawn } from './DevBarbarianSpawn';
 import { LineBubble } from './LineBubble';
@@ -118,6 +118,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const t = useT();
   const me = useCurrentAccount();
   const theme = useEffectiveTheme();
+  const palette = usePalette();
   const pixelRatio = useDevicePixelRatio();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -227,7 +228,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   }, []);
 
   // Draw after every change, before the browser paints (useLayoutEffect), so a drag never flickers.
-  // `theme` is only a trigger: drawMap reads the colours of the current theme from the CSS.
+  // `theme` and `palette` are only triggers: drawMap reads the colours of the current theme from the CSS.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d') ?? null;
@@ -272,6 +273,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     marked,
     crosshair,
     theme,
+    palette,
     bannerTick,
     lineTick,
   ]);
@@ -574,10 +576,18 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
           aria-label={t.map.canvasLabel}
           // a pointer over a village or a line: both can be clicked
           data-over-village={hovered !== undefined || hoveredLine !== undefined ? '' : undefined}
+          // the keyboard's focus ring comes with the crosshair (CSS)
+          data-crosshair={crosshair ? '' : undefined}
           {...gestures}
           onPointerDown={(event) => {
             setCrosshair(false);
             gestures.onPointerDown(event);
+          }}
+          onTouchEnd={(event) => {
+            gestures.onTouchEnd(event);
+            // A tap focuses the map from script, and Chrome then counts the focus as a keyboard one when
+            // the last key went into e.g. the go-to field ("focusVisible: false" isn't supported there).
+            setCrosshair(false);
           }}
           onKeyDown={onKeyDown}
           onFocus={(event) => setCrosshair(event.currentTarget.matches(':focus-visible'))}

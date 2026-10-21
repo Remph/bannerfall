@@ -6,9 +6,15 @@ import type { Language } from '../i18n/language';
  * browser's subscription and the server's copy of it. "On for this device" is remembered in
  * localStorage, so a later start can sign the device up again (a new password ends all devices on
  * the server) and a logout can tell the next player on this browser apart.
+ *
+ * The browser's push address (the endpoint) can change: turned off and on again, a new world key,
+ * or the push service handing out a new one. The server keeps one device per address, so the last
+ * address it was told (and the world key it was made with) is remembered too, and the server
+ * forgets that address when a new one comes (1.5.2; Firefox on Android had made ten).
  */
 
 const STORAGE_KEY = 'bannerfall.push';
+const DEVICE_KEY = 'bannerfall.push.device';
 const WORKER_URL = '/sw.js';
 
 /** Whether this browser can get push: `ios-install` is an iPhone or iPad outside the home screen. */
@@ -48,7 +54,7 @@ export async function turnOnPush(publicKey: string, language: Language): Promise
     throw new PushBlockedError();
   }
   const subscription = await subscribe(publicKey);
-  await save(subscription, language);
+  await save(subscription, language, publicKey);
   setWanted(true);
 }
 
@@ -59,6 +65,10 @@ export async function turnOffPush(): Promise<void> {
   if (subscription !== null) {
     try {
       await api.POST('/api/push/subscription/remove', { body: { endpoint: subscription.endpoint } });
+      // only once the server forgot it: else the next sign-up asks again
+      if (savedDevice()?.endpoint === subscription.endpoint) {
+        setSavedDevice(null);
+      }
     } finally {
       await subscription.unsubscribe();
     }
@@ -78,7 +88,7 @@ export async function refreshPush(language: Language): Promise<void> {
     if (!settings.available || settings.publicKey === null) {
       return;
     }
-    await save(await subscribe(settings.publicKey), language);
+    await save(await subscribe(settings.publicKey), language, settings.publicKey);
   } catch {
     // offline, or the push service is down: the next start tries again
   }
@@ -111,7 +121,15 @@ async function subscribe(publicKey: string): Promise<PushSubscription> {
   const key = base64UrlToBytes(publicKey);
   const existing = await registration.pushManager.getSubscription();
   if (existing !== null) {
-    if (sameKey(existing.options.applicationServerKey, key)) {
+    // Firefox on Android doesn't say which key a subscription was made with (null, or nothing at
+    // all): then the key it was saved with decides, and one saved before 1.5.2 is kept (a new one
+    // at every start was a new device on the server each time)
+    const current = existing.options.applicationServerKey;
+    const same =
+      current != null && current.byteLength > 0
+        ? sameKey(current, key)
+        : (savedDevice()?.key ?? publicKey) === publicKey;
+    if (same) {
       return existing;
     }
     await existing.unsubscribe();
@@ -119,14 +137,23 @@ async function subscribe(publicKey: string): Promise<PushSubscription> {
   return registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
 }
 
-async function save(subscription: PushSubscription, language: Language): Promise<void> {
+async function save(subscription: PushSubscription, language: Language, publicKey: string): Promise<void> {
   const json = subscription.toJSON();
   const p256dh = json.keys?.p256dh;
   const auth = json.keys?.auth;
   if (json.endpoint === undefined || p256dh === undefined || auth === undefined) {
     throw new Error('The browser gave no push keys');
   }
+  const previous = savedDevice()?.endpoint;
+  if (previous !== undefined && previous !== json.endpoint) {
+    try {
+      await api.POST('/api/push/subscription/remove', { body: { endpoint: previous } });
+    } catch {
+      // offline or refused: the server drops it when its push service says it is gone
+    }
+  }
   await api.PUT('/api/push/subscription', { body: { endpoint: json.endpoint, keys: { p256dh, auth }, language } });
+  setSavedDevice({ endpoint: json.endpoint, key: publicKey });
 }
 
 export function base64UrlToBytes(text: string): Uint8Array<ArrayBuffer> {
@@ -139,10 +166,7 @@ export function base64UrlToBytes(text: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-function sameKey(current: ArrayBuffer | null, key: Uint8Array): boolean {
-  if (current === null) {
-    return false;
-  }
+function sameKey(current: ArrayBuffer, key: Uint8Array): boolean {
   const bytes = new Uint8Array(current);
   return bytes.length === key.length && bytes.every((byte, i) => byte === key[i]);
 }
@@ -164,5 +188,42 @@ function setWanted(on: boolean): void {
     }
   } catch {
     // private mode: the device stays signed up on the server until it logs out
+  }
+}
+
+/** The address the server was last told for this browser, and the world key it was made with. */
+interface SavedDevice {
+  endpoint: string;
+  key: string;
+}
+
+function savedDevice(): SavedDevice | null {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(DEVICE_KEY) ?? 'null');
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'endpoint' in parsed &&
+      typeof parsed.endpoint === 'string' &&
+      'key' in parsed &&
+      typeof parsed.key === 'string'
+    ) {
+      return { endpoint: parsed.endpoint, key: parsed.key };
+    }
+  } catch {
+    // no storage, or not ours
+  }
+  return null;
+}
+
+function setSavedDevice(device: SavedDevice | null): void {
+  try {
+    if (device === null) {
+      localStorage.removeItem(DEVICE_KEY);
+    } else {
+      localStorage.setItem(DEVICE_KEY, JSON.stringify(device));
+    }
+  } catch {
+    // private mode: the old device stays on the server until its push service says it is gone
   }
 }

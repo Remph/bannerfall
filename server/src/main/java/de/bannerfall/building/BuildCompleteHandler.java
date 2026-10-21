@@ -25,7 +25,9 @@ import org.springframework.stereotype.Component;
  * An upgrade is done (01-architecture §4.6): the village is brought up to the moment the order
  * ended (so production up to then still uses the old level), the building gets one level more, the
  * order is deleted, the points are recalculated and the owner is notified (BUILD_COMPLETE).
- * Population needs no booking: queued levels were already counted.
+ * Population needs no booking: queued levels were already counted. A demolition (1.6) takes one
+ * level away the same way; its population is free from then on, and stock above a smaller warehouse
+ * stays like after catapults (02-game-rules §3).
  *
  * <p>Runs in the event worker's transaction: first the event row is locked (by the processor), then
  * the village (here), like in every handler.
@@ -88,16 +90,20 @@ class BuildCompleteHandler implements GameEventHandler {
         // counts.
         Instant completedAt = earlier(event.getDueAt(), order.getEndAt());
         stateService.catchUp(village, completedAt);
-        village.getBuildings().add(order.getBuilding(), 1);
+        boolean demolished = order.isDemolish();
+        village.getBuildings().add(order.getBuilding(), demolished ? -1 : 1);
         orders.delete(order);
         pointsService.recalculate(village);
-        building(village, order.getBuilding());
+        if (!demolished) {
+            building(village, order.getBuilding());
+        }
         PlayerNotification.toOwnerOf(
                 village,
                 new GameNotification.BuildComplete(
                         village.getId(),
                         order.getBuilding(),
-                        village.getBuildings().get(order.getBuilding())),
+                        village.getBuildings().get(order.getBuilding()),
+                        demolished),
                 events);
     }
 

@@ -1,11 +1,15 @@
 package de.bannerfall.npc;
 
 import de.bannerfall.common.Coordinates;
+import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.rules.Loyalty;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +94,26 @@ class NpcWorld {
             order by m.arrive_at, m.id
             """;
 
+    /**
+     * The won attacks of humans on villages with an owner (09 §15.2), from the attacker's own copy
+     * of the report: one count column per unit type.
+     */
+    private static final String HUMAN_WINS =
+            "select r.happened_at, "
+                    + Arrays.stream(UnitType.values())
+                            .map(
+                                    t ->
+                                            "coalesce((r.payload -> 'attackerUnits' ->> '"
+                                                    + t.name()
+                                                    + "')::int, 0) as u_"
+                                                    + t.name().toLowerCase())
+                            .collect(Collectors.joining(", "))
+                    + " from report r join player p on p.id = r.player_id"
+                    + " where r.kind = 'ATTACK' and r.shared_by_id is null"
+                    + " and r.happened_at > :since and not p.npc"
+                    + " and r.payload ->> 'outcome' = 'ATTACKER_WON'"
+                    + " and r.payload -> 'defender' ->> 'playerId' is not null";
+
     private final JdbcClient jdbc;
     private final WorldService worldService;
 
@@ -173,6 +197,28 @@ class NpcWorld {
                         .param("playerIds", playerIds)
                         .query(Long.class)
                         .list());
+    }
+
+    /**
+     * The attacks humans won since {@code since} against a village with an owner, a player's or a
+     * lord's (09 §15.2): anonymous, only when and with which units.
+     */
+    List<NpcLearning.Win> humanWins(Instant since) {
+        return jdbc.sql(HUMAN_WINS)
+                .param("since", Timestamp.from(since))
+                .query(
+                        (rs, n) -> {
+                            Map<UnitType, Integer> units = new EnumMap<>(UnitType.class);
+                            for (UnitType type : UnitType.values()) {
+                                int count = rs.getInt("u_" + type.name().toLowerCase());
+                                if (count > 0) {
+                                    units.put(type, count);
+                                }
+                            }
+                            return new NpcLearning.Win(
+                                    rs.getTimestamp("happened_at").toInstant(), units);
+                        })
+                .list();
     }
 
     /** Which of these movement ids still exist. */

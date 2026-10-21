@@ -69,12 +69,14 @@ class PushFlowTest {
                 .containsExactly(
                         "ATTACK",
                         "VILLAGE_LOST",
+                        "ATTACK_RETURNED",
                         "MESSAGE",
                         "GUILD_INVITE",
                         "WORLD_END",
-                        "BUILDS_DONE");
+                        "BUILDS_DONE",
+                        "STORAGE_FULL");
         assertThat(JsonPath.<List<Boolean>>read(settings, "$.kinds[*].enabled"))
-                .containsExactly(true, true, true, true, true, false);
+                .containsExactly(true, true, true, true, true, true, false, false);
     }
 
     @Test
@@ -217,7 +219,7 @@ class PushFlowTest {
                 .andExpect(jsonPath("$.kinds[0].kind").value("ATTACK"))
                 .andExpect(jsonPath("$.kinds[0].enabled").value(false))
                 .andExpect(jsonPath("$.kinds[1].enabled").value(true))
-                .andExpect(jsonPath("$.kinds[5].enabled").value(true));
+                .andExpect(jsonPath("$.kinds[6].enabled").value(true));
         TestPlayer attacker = TestPlayer.register(mockMvc);
         unprotect(player);
         setAxemen(attacker, 10);

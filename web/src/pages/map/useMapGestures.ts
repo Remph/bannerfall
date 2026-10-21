@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent } from 'react';
+import { useRef, type PointerEvent, type TouchEvent } from 'react';
 import { releaseVelocity, type PointerSample } from '../../game/mapMotion';
 import type { Point } from '../../game/mapView';
 
@@ -63,11 +63,14 @@ function position(event: PointerEvent<HTMLElement>): Point {
 export function useMapGestures(callbacks: MapGestureCallbacks) {
   // A ref, not state: the gesture changes on every pointer event and nothing renders from it.
   const gesture = useRef<Gesture | null>(null);
+  // The last gesture ended as a tap: only then did the browser focus the canvas (see onTouchEnd).
+  const tapped = useRef(false);
 
   function onPointerDown(event: PointerEvent<HTMLElement>) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return; // only the main mouse button drags
     }
+    tapped.current = false;
     // Keep receiving this pointer's events even when it leaves the canvas during a drag.
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = position(event);
@@ -139,6 +142,7 @@ export function useMapGestures(callbacks: MapGestureCallbacks) {
     gesture.current = null;
     delete event.currentTarget.dataset.dragging;
     if (completed && !current.moved) {
+      tapped.current = true;
       callbacks.onTap(position(event), current.pointerType);
     }
     if (completed && current.moved && !current.pinched) {
@@ -158,6 +162,19 @@ export function useMapGestures(callbacks: MapGestureCallbacks) {
     onPointerLeave: (event: PointerEvent<HTMLElement>) => {
       if (event.pointerType === 'mouse' && gesture.current === null) {
         callbacks.onHover(null);
+      }
+    },
+    // After a finger lifts, the browser sends mousedown, mouseup and click to whatever is under it by
+    // then: a tap opens the village panel on pointerup, so that click hit the panel's button under the
+    // finger and sent a farm attack (1.6). Cancelling touchend drops them; the map only needs the
+    // pointer events. The focus the mousedown gave the canvas after a tap (not after a drag: the go-to
+    // field keeps it while the map pans) it gets here instead.
+    onTouchEnd: (event: TouchEvent<HTMLElement>) => {
+      if (event.cancelable) {
+        event.preventDefault();
+        if (tapped.current) {
+          event.currentTarget.focus({ preventScroll: true, focusVisible: false });
+        }
       }
     },
   };

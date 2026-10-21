@@ -1,0 +1,54 @@
+/* The noble's price behind its info button (1.6), in the popover and in the sheet. */
+.body {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  font-weight: 700;
+  color: var(--color-title);
+}
+
+.headIcon {
+  color: var(--color-accent);
+}
+
+.factor {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.after {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+}
+
+.afterLabel {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.notes {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.notes p {
+  margin: 0;
+}

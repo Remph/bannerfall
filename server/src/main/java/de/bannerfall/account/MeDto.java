@@ -13,6 +13,8 @@ import java.util.List;
  *     pre-game (M14g): the player has no village yet because the world has not opened
  * @param villages the player's villages, oldest first
  * @param linked the account logs in through the account server and has no password here (1.5)
+ * @param respawnNearGuild while {@code needsRespawn}: a guild mate has a village the new start can
+ *     go next to (1.6, 02-game-rules §2), so the respawn screen offers the choice
  */
 public record MeDto(
         long accountId,
@@ -23,10 +25,16 @@ public record MeDto(
         Instant protectedUntil,
         boolean needsRespawn,
         List<VillageSummaryDto> villages,
-        boolean linked) {
+        boolean linked,
+        boolean respawnNearGuild) {
 
     static MeDto of(
-            Account account, Player player, List<VillageSummaryDto> villages, boolean pregame) {
+            Account account,
+            Player player,
+            List<VillageSummaryDto> villages,
+            boolean pregame,
+            boolean guildMateHasVillage) {
+        boolean needsRespawn = !pregame && !player.isNpc() && villages.isEmpty();
         return new MeDto(
                 account.getId(),
                 account.getUsername(),
@@ -34,8 +42,9 @@ public record MeDto(
                 player.getId(),
                 player.getPoints(),
                 player.getProtectedUntil(),
-                !pregame && !player.isNpc() && villages.isEmpty(),
+                needsRespawn,
                 villages,
-                account.isLinked());
+                account.isLinked(),
+                needsRespawn && guildMateHasVillage);
     }
 }

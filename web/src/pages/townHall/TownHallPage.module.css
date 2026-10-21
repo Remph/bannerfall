@@ -365,3 +365,113 @@
 .reorderIcons {
   display: inline-flex;
 }
+
+/* ---------- demolishing (1.6) ---------- */
+/* time, freed population and points left, the button right; wraps on narrow phones */
+.demolishLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.demolishFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.demolishFacts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.demolishFacts svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.demolishShort {
+  display: none;
+}
+
+/* Phones (1.6 UI review): one slim line per building – head, time, a small "−1" button at the right.
+   The line's parts join the row's grid, so a reason why not (or "the minimum") gets its own line
+   below; the freed population and the points wait in the confirm sheet. */
+@media (max-width: 639.98px) {
+  .demolishRow {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: var(--space-2);
+  }
+
+  .demolishRow > .maxed {
+    grid-column: 1 / -1;
+  }
+
+  .demolishRow .demolishLine {
+    display: contents;
+  }
+
+  .demolishRow .demolishFacts {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  /* no info button on this side: the head needs no room kept free for one */
+  .demolishRow .rowHead {
+    padding-right: 0;
+  }
+
+  /* time and button stay on the first line even when a reason why not follows them in the markup:
+     auto-placement would put the button on a line of its own under the reason, stretched wide */
+  .demolishRow .demolishLine > .demolishFacts {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .demolishRow .demolishLine > button {
+    grid-row: 1;
+    grid-column: 3;
+    min-width: var(--touch-target);
+  }
+
+  .demolishRow .demolishLine > .hint {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .demolishFacts .demolishExtra,
+  .demolishLong {
+    display: none;
+  }
+
+  .demolishShort {
+    display: inline;
+  }
+}
+
+.demolishLocks {
+  margin: var(--space-1) 0 0;
+  padding-left: 1.2rem;
+}
+
+/* next to a demolition in the queue: red like everything that takes something away */
+.demolishChip {
+  align-self: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

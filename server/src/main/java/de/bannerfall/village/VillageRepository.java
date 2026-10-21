@@ -37,6 +37,20 @@ public interface VillageRepository extends JpaRepository<Village, Long> {
     @Query("select new de.bannerfall.common.Coordinates(v.x, v.y) from Village v")
     List<Coordinates> findAllCoordinates();
 
+    /**
+     * The villages of a player's guild mates (1.6, 02-game-rules §2): the leader's first, then by
+     * membership, longest first, and each mate's main village (held the longest) first.
+     */
+    @Query(
+            """
+            select new de.bannerfall.common.Coordinates(v.x, v.y)
+            from Village v, de.bannerfall.guild.GuildMember m
+            where m.guildId = :guildId and m.playerId <> :playerId and v.player.id = m.playerId
+            order by case when m.role = de.bannerfall.guild.GuildRole.LEADER then 0 else 1 end,
+                     m.joinedAt, m.playerId, v.ownerSince, v.id
+            """)
+    List<Coordinates> findGuildMateCoordinates(long guildId, long playerId);
+
     /** All barbarian villages, for the growth round (they are locked afterwards). */
     @Query("select v.id from Village v where v.player is null order by v.id")
     List<Long> findBarbarianIds();

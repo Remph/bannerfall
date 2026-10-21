@@ -69,24 +69,27 @@ class GameDataTest {
         assertThat(def.requires()).isEqualTo(parseRequires(requires));
     }
 
-    // type | building | requires | wood | clay | iron | pop | att | defInf | defCav | attackType |
+    // type | building | requires | wood | clay | iron | pop | att | defInf | defCav | defArch |
+    // attackType |
     // speed | carry | seconds
     @ParameterizedTest(name = "{0}")
     @CsvSource(
             delimiter = '|',
             textBlock =
                     """
-                    SPEARMAN      | BARRACKS | BARRACKS:1           |    40 |    35 |    15 |   1 |  10 |  15 |  40 | INFANTRY | 18 | 25 |  1000
-                    SWORDSMAN     | BARRACKS | BARRACKS:1;SMITHY:1  |    30 |    30 |    70 |   1 |  20 |  50 |  20 | INFANTRY | 22 | 15 |  1450
-                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    50 |    35 |    45 |   1 |  40 |  10 |   5 | INFANTRY | 18 | 15 |  1300
-                    SCOUT         | STABLE   | STABLE:1             |    50 |    50 |    20 |   2 |   0 |   2 |   1 | INFANTRY |  9 |  0 |   900
-                    LIGHT_CAVALRY | STABLE   | STABLE:3             |   125 |   100 |   250 |   4 | 120 |  30 |  40 | CAVALRY  | 10 | 80 |  1800
-                    HEAVY_CAVALRY | STABLE   | STABLE:10;SMITHY:15  |   200 |   150 |   600 |   6 | 150 | 200 |  80 | CAVALRY  | 11 | 50 |  3600
-                    RAM           | WORKSHOP | WORKSHOP:1           |   300 |   200 |   200 |   5 |   2 |  20 |  50 | INFANTRY | 30 |  0 |  4800
-                    CATAPULT      | WORKSHOP | WORKSHOP:2;SMITHY:12 |   320 |   400 |   100 |   8 | 100 | 100 |  50 | INFANTRY | 30 |  0 |  7200
-                    NOBLE         | ACADEMY  | ACADEMY:1            | 40000 | 50000 | 50000 | 100 |  30 | 100 |  50 | INFANTRY | 35 |  0 | 10800
-                    PALADIN       | BANNER_HALL | BANNER_HALL:1     |  1000 |  1000 |  1000 |  10 | 120 | 150 | 150 | INFANTRY | 14 |  0 | 10800
-                    BANNER_THIEF  | BANNER_HALL | BANNER_HALL:1     |   100 |   120 |   150 |   2 |   0 |   3 |   3 | INFANTRY | 18 |  0 |  1500
+                    SPEARMAN      | BARRACKS | BARRACKS:1           |    40 |    35 |    15 |   1 |  10 |  15 |  40 |  20 | INFANTRY | 18 | 25 |  1000
+                    SWORDSMAN     | BARRACKS | BARRACKS:1;SMITHY:1  |    30 |    30 |    70 |   1 |  20 |  50 |  20 |  40 | INFANTRY | 22 | 15 |  1450
+                    AXEMAN        | BARRACKS | BARRACKS:2;SMITHY:2  |    50 |    35 |    45 |   1 |  40 |  10 |   5 |  10 | INFANTRY | 18 | 15 |  1300
+                    SCOUT         | STABLE   | STABLE:1             |    50 |    50 |    20 |   2 |   0 |   2 |   1 |   2 | INFANTRY |  9 |  0 |   900
+                    LIGHT_CAVALRY | STABLE   | STABLE:3             |   125 |   100 |   250 |   4 | 120 |  30 |  40 |  30 | CAVALRY  | 10 | 80 |  1800
+                    HEAVY_CAVALRY | STABLE   | STABLE:10;SMITHY:15  |   200 |   150 |   600 |   6 | 150 | 200 |  80 | 180 | CAVALRY  | 11 | 50 |  3600
+                    RAM           | WORKSHOP | WORKSHOP:1           |   300 |   200 |   200 |   5 |   2 |  20 |  50 |  20 | INFANTRY | 30 |  0 |  4800
+                    CATAPULT      | WORKSHOP | WORKSHOP:2;SMITHY:12 |   320 |   400 |   100 |   8 | 100 | 100 |  50 | 100 | INFANTRY | 30 |  0 |  7200
+                    NOBLE         | ACADEMY  | ACADEMY:1            | 40000 | 50000 | 50000 | 100 |  30 | 100 |  50 | 100 | INFANTRY | 35 |  0 | 10800
+                    PALADIN       | BANNER_HALL | BANNER_HALL:1     |  1000 |  1000 |  1000 |  10 | 120 | 150 | 150 | 150 | INFANTRY | 14 |  0 | 10800
+                    BANNER_THIEF  | BANNER_HALL | BANNER_HALL:1     |   100 |   120 |   150 |   2 |   0 |   3 |   3 |   3 | INFANTRY | 18 |  0 |  1500
+                    ARCHER        | BARRACKS | BARRACKS:5;SMITHY:5  |    80 |    40 |    70 |   1 |  15 |  50 |  40 |   5 | ARCHER   | 18 | 10 |  1600
+                    MOUNTED_ARCHER | STABLE  | STABLE:5;SMITHY:10   |   220 |   130 |   150 |   5 | 110 |  40 |  30 |  50 | ARCHER   | 10 | 50 |  2700
                     """)
     void unitsMatchTheRulebook(
             UnitType type,
@@ -99,6 +102,7 @@ class GameDataTest {
             int attack,
             int defenseInfantry,
             int defenseCavalry,
+            int defenseArcher,
             AttackType attackType,
             double minutesPerField,
             int carry,
@@ -112,34 +116,50 @@ class GameDataTest {
         assertThat(def.attack()).isEqualTo(attack);
         assertThat(def.defenseInfantry()).isEqualTo(defenseInfantry);
         assertThat(def.defenseCavalry()).isEqualTo(defenseCavalry);
+        assertThat(def.defenseArcher()).isEqualTo(defenseArcher);
         assertThat(def.attackType()).isEqualTo(attackType);
         assertThat(def.minutesPerField()).isEqualTo(minutesPerField);
         assertThat(def.carry()).isEqualTo(carry);
         assertThat(def.baseSeconds()).isEqualTo(baseSeconds);
     }
 
-    // type | att 2 | defInf 2 | defCav 2 | att 3 | defInf 3 | defCav 3 (02-game-rules §5.4)
+    // type | att 2 | defInf 2 | defCav 2 | defArch 2 | att 3 | defInf 3 | defCav 3 | defArch 3
+    // (02-game-rules §5.4)
     @ParameterizedTest(name = "{0}")
     @CsvSource(
             delimiter = '|',
             textBlock =
                     """
-                    SPEARMAN      |  11 |  17 |  44 |  12 |  18 |  48
-                    SWORDSMAN     |  22 |  55 |  22 |  24 |  60 |  24
-                    AXEMAN        |  44 |  11 |   6 |  48 |  12 |   7
-                    LIGHT_CAVALRY | 132 |  33 |  44 | 144 |  36 |  48
-                    HEAVY_CAVALRY | 165 | 220 |  88 | 180 | 240 |  96
+                    SPEARMAN       |  11 |  17 |  44 |  22 |  12 |  18 |  48 |  24
+                    SWORDSMAN      |  22 |  55 |  22 |  44 |  24 |  60 |  24 |  48
+                    AXEMAN         |  44 |  11 |   6 |  11 |  48 |  12 |   7 |  12
+                    LIGHT_CAVALRY  | 132 |  33 |  44 |  33 | 144 |  36 |  48 |  36
+                    HEAVY_CAVALRY  | 165 | 220 |  88 | 198 | 180 | 240 |  96 | 216
+                    ARCHER         |  17 |  55 |  44 |   6 |  18 |  60 |  48 |   7
+                    MOUNTED_ARCHER | 121 |  44 |  33 |  55 | 132 |  48 |  36 |  60
                     """)
     void unitLevelsMatchTheRulebook(
-            UnitType type, int att2, int inf2, int cav2, int att3, int inf3, int cav3) {
+            UnitType type,
+            int att2,
+            int inf2,
+            int cav2,
+            int arch2,
+            int att3,
+            int inf3,
+            int cav3,
+            int arch3) {
         var def = data.unit(type);
 
         assertThat(def.maxLevel()).isEqualTo(3);
         assertThat(def.stats(1))
                 .isEqualTo(
-                        new UnitStats(def.attack(), def.defenseInfantry(), def.defenseCavalry()));
-        assertThat(def.stats(2)).isEqualTo(new UnitStats(att2, inf2, cav2));
-        assertThat(def.stats(3)).isEqualTo(new UnitStats(att3, inf3, cav3));
+                        new UnitStats(
+                                def.attack(),
+                                def.defenseInfantry(),
+                                def.defenseCavalry(),
+                                def.defenseArcher()));
+        assertThat(def.stats(2)).isEqualTo(new UnitStats(att2, inf2, cav2, arch2));
+        assertThat(def.stats(3)).isEqualTo(new UnitStats(att3, inf3, cav3, arch3));
         // level 2 costs 20 times and level 3 50 times the recruit cost, 12 h and 30 h at Smithy 1
         assertThat(def.levelDef(2).cost()).isEqualTo(def.cost().times(20));
         assertThat(def.levelDef(3).cost()).isEqualTo(def.cost().times(50));
@@ -164,8 +184,8 @@ class GameDataTest {
         var def = data.unit(UnitType.PALADIN);
 
         // Hall training (1.4, 02-game-rules §5.4): +5 % and +10 %, 5 and 15 times his cost
-        assertThat(def.stats(2)).isEqualTo(new UnitStats(126, 158, 158));
-        assertThat(def.stats(3)).isEqualTo(new UnitStats(132, 165, 165));
+        assertThat(def.stats(2)).isEqualTo(new UnitStats(126, 158, 158, 158));
+        assertThat(def.stats(3)).isEqualTo(new UnitStats(132, 165, 165, 165));
         assertThat(def.levelDef(2).cost()).isEqualTo(def.cost().times(5));
         assertThat(def.levelDef(3).cost()).isEqualTo(def.cost().times(15));
         assertThat(def.levelDef(2).baseSeconds()).isEqualTo(12 * 3600);
@@ -195,7 +215,7 @@ class GameDataTest {
         var def = data.unit(UnitType.SCOUT);
 
         assertThat(def.maxLevel()).isEqualTo(2);
-        assertThat(def.stats(2)).isEqualTo(new UnitStats(0, 3, 2));
+        assertThat(def.stats(2)).isEqualTo(new UnitStats(0, 3, 2, 3));
         assertThat(def.levelDef(2).cost()).isEqualTo(def.cost().times(20));
         assertThat(def.levelDef(2).requires()).isEqualTo(Map.of(BuildingType.SMITHY, 10));
     }

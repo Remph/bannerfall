@@ -78,6 +78,8 @@ describe('VillageScene', () => {
       targetLevel: 6,
       startAt: new Date(now - MINUTE).toISOString(),
       endAt: new Date(now + MINUTE).toISOString(),
+      demolish: false,
+      automated: false,
     };
     const waiting = { ...running, id: 2, building: 'MARKET' as const, targetLevel: 4, startAt: running.endAt };
     const scene = renderScene(village({ ...allBuilt, SMITHY: 5, MARKET: 3 }, [running, waiting]));

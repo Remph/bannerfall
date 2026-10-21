@@ -68,14 +68,17 @@ class FarmController {
     /**
      * "Send all" (M39): the list from the top, one attack per entry, until it ends or the units run
      * out; the answer says what was sent, skipped and where it stopped. {@code
-     * bannerChanceOnly=true} (1.2.3) sends only the entries with {@code bannerChance}.
+     * bannerChanceOnly=true} (1.2.3) sends only the entries with {@code bannerChance}; {@code
+     * notifyReturn=true} (1.6) tells the player once when every attack of the run is home.
      */
     @PostMapping("/send-all")
     FarmSendAllDto sendAll(
             @PathVariable long villageId,
             @RequestParam(defaultValue = "false") boolean bannerChanceOnly,
+            @RequestParam(defaultValue = "false") boolean notifyReturn,
             @AuthenticationPrincipal AccountPrincipal me) {
-        return farmService.sendAll(villageId, playerService.idOf(me.accountId()), bannerChanceOnly);
+        return farmService.sendAll(
+                villageId, playerService.idOf(me.accountId()), bannerChanceOnly, notifyReturn);
     }
 
     /** One attack with the target's template; the answer is the movement, like POST …/commands. */

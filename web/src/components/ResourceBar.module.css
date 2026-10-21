@@ -134,6 +134,13 @@
     gap: 1.25rem;
   }
 
+  /* narrow desktop windows: a little less air, so the village switcher keeps its name (1.6 UI review) */
+  @media (max-width: 1279.98px) {
+    .bar {
+      gap: var(--space-3);
+    }
+  }
+
   .item {
     flex: none;
     flex-direction: row;

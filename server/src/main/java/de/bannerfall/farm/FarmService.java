@@ -15,8 +15,11 @@ import de.bannerfall.movement.CommandService;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementDto;
 import de.bannerfall.movement.MovementRepository;
+import de.bannerfall.movement.ReturnWatchService;
 import de.bannerfall.note.VillageNoteService;
 import de.bannerfall.player.Player;
+import de.bannerfall.rules.BannerEffect;
+import de.bannerfall.rules.Loot;
 import de.bannerfall.rules.RecruitRules;
 import de.bannerfall.rules.Travel;
 import de.bannerfall.unit.UnitCounts;
@@ -63,6 +66,7 @@ public class FarmService {
     private final BannerBattleService bannerBattles;
     private final MovementRepository movements;
     private final VillageNoteService villageNotes;
+    private final ReturnWatchService returnWatches;
 
     FarmService(
             FarmTargetRepository targets,
@@ -76,7 +80,8 @@ public class FarmService {
             VillageBanners villageBanners,
             BannerBattleService bannerBattles,
             MovementRepository movements,
-            VillageNoteService villageNotes) {
+            VillageNoteService villageNotes,
+            ReturnWatchService returnWatches) {
         this.targets = targets;
         this.templates = templates;
         this.villages = villages;
@@ -89,6 +94,7 @@ public class FarmService {
         this.bannerBattles = bannerBattles;
         this.movements = movements;
         this.villageNotes = villageNotes;
+        this.returnWatches = returnWatches;
     }
 
     /**
@@ -111,7 +117,7 @@ public class FarmService {
                         entries.stream().map(FarmTarget::getTargetVillageId).toList())) {
             byId.put(target.getId(), target);
         }
-        double haste = villageBanners.effectOf(source).haste(); // one lookup for the list
+        BannerEffect banner = villageBanners.effectOf(source); // one lookup for the list
         BannerChances chances = new BannerChances(playerId, byId.values(), now); // and for all
         Map<Long, FarmTemplateLetter> letters = letters(playerId);
         Map<Long, String> notes = villageNotes.notesOn(playerId, byId.keySet());
@@ -122,7 +128,7 @@ public class FarmService {
                                         source,
                                         entry,
                                         byId.get(entry.getTargetVillageId()),
-                                        haste,
+                                        banner,
                                         chances,
                                         letters,
                                         notes,
@@ -179,7 +185,7 @@ public class FarmService {
                 source,
                 entry,
                 target,
-                villageBanners.effectOf(source).haste(),
+                villageBanners.effectOf(source),
                 new BannerChances(playerId, List.of(target), now),
                 letters(playerId),
                 villageNotes.notesOn(playerId, List.of(target.getId())),
@@ -206,7 +212,7 @@ public class FarmService {
                 source,
                 entry,
                 target,
-                villageBanners.effectOf(source).haste(),
+                villageBanners.effectOf(source),
                 new BannerChances(playerId, List.of(target), now),
                 letters(playerId),
                 villageNotes.notesOn(playerId, List.of(target.getId())),
@@ -356,11 +362,15 @@ public class FarmService {
      * entries whose roll is used, whose pair already has an attack on the way (sent earlier or by
      * this run), or whose template can't win one.
      *
+     * <p>With {@code notifyReturn} (1.6) the player is told once when every attack of the run is
+     * home ({@link ReturnWatchService}).
+     *
      * @throws GameRuleException {@code BANNERS_DISABLED} for {@code bannerChanceOnly} in a world
      *     without banners or drops
      */
     @Transactional
-    public FarmSendAllDto sendAll(long villageId, long playerId, boolean bannerChanceOnly) {
+    public FarmSendAllDto sendAll(
+            long villageId, long playerId, boolean bannerChanceOnly, boolean notifyReturn) {
         Village source = locker.lockOwned(villageId, playerId);
         if (bannerChanceOnly) {
             if (!bannerDrops(worldService.settings())) {
@@ -382,6 +392,7 @@ public class FarmService {
         boolean senderProtected = ownProtection != null && ownProtection.isAfter(now);
 
         List<Long> sent = new ArrayList<>();
+        List<Long> attacks = new ArrayList<>();
         List<FarmSendAllDto.Skipped> skipped = new ArrayList<>();
         for (FarmTarget entry : entries) {
             Village target = byId.get(entry.getTargetVillageId());
@@ -407,6 +418,7 @@ public class FarmService {
             if (attempt.movement() != null) {
                 entry.sentAt(clock.instant());
                 sent.add(entry.getId());
+                attacks.add(attempt.movement().id());
                 if (chances != null) {
                     chances.claim(target);
                 }
@@ -432,6 +444,9 @@ public class FarmService {
                 throw new IllegalStateException(
                         "Farm entry " + entry.getId() + " can't be sent: " + errors);
             }
+        }
+        if (notifyReturn) {
+            returnWatches.watchFarmRun(playerId, source, attacks, now);
         }
         return new FarmSendAllDto(sent, skipped);
     }
@@ -534,8 +549,8 @@ public class FarmService {
     }
 
     /**
-     * @param haste the source's Haste banner (02-game-rules §21.2), so the trip shown is the one
-     *     the attack will take
+     * @param banner the source's banner (02-game-rules §21.2): Haste, so the trip shown is the one
+     *     the attack will take, and Plunder for what the units can carry
      * @param chances the banner chances of this answer; the entry claims its pair if it has one
      * @param letters the player's templates by id
      * @param notes the player's village notes by village id (1.4)
@@ -544,7 +559,7 @@ public class FarmService {
             Village source,
             FarmTarget entry,
             Village target,
-            double haste,
+            BannerEffect banner,
             BannerChances chances,
             Map<Long, FarmTemplateLetter> letters,
             Map<Long, String> notes,
@@ -557,7 +572,7 @@ public class FarmService {
                                 distance,
                                 Travel.armyMinutesPerField(gameData, units.toMap()),
                                 worldService.settings()),
-                        haste);
+                        banner.haste());
         Player owner = target.getPlayer();
         Instant protectedUntil = owner == null ? null : owner.getProtectedUntil();
         boolean bannerChance = bannerDrops(worldService.settings()) && chances.has(entry, target);
@@ -575,6 +590,22 @@ public class FarmService {
                 entry.getLastSentAt(),
                 chances.nextRollAt(target),
                 bannerChance,
-                notes.get(target.getId()));
+                notes.get(target.getId()),
+                morale(source.getPlayer(), owner),
+                Loot.capacity(gameData, units.toMap(), banner.plunder()),
+                FarmRaidDto.of(entry));
+    }
+
+    /**
+     * The morale an attack on {@code owner}'s village would have with today's points (1.6,
+     * 02-game-rules §8.2); null at full strength and at barbarians.
+     */
+    private Double morale(Player attacker, Player owner) {
+        if (attacker == null || owner == null) {
+            return null;
+        }
+        double morale =
+                worldService.settings().morale().factor(attacker.getPoints(), owner.getPoints());
+        return morale < 1 ? morale : null;
     }
 }

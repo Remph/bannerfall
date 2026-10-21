@@ -26,6 +26,7 @@ function battle(overrides: Partial<BattleReport>): BattleReport {
     banners: null,
     haulCapacity: null,
     nightBonus: null,
+    morale: null,
     ...overrides,
   };
 }
@@ -143,5 +144,31 @@ describe('BattleDetails with the night bonus', () => {
 
     open('ATTACK', battle({}));
     expect(screen.queryByText(/Night bonus/)).toBeNull();
+  });
+});
+
+/** Morale (1.6, 02-game-rules §8.2). */
+describe('BattleDetails with morale', () => {
+  afterEach(cleanup);
+
+  it('explains the attacker’s morale in both copies, only below 100 %', () => {
+    open('ATTACK', battle({ morale: 0.48 }));
+    expect(
+      screen.getByText(
+        'Morale 48%: Blue has far fewer points than you, so your attack hit with only 48% of its strength.',
+      ),
+    ).toBeTruthy();
+    cleanup();
+
+    open('DEFENSE', battle({ morale: 0.3 }));
+    expect(
+      screen.getByText(
+        'Morale 30%: Blue has far fewer points than Red, so the attack hit with only 30% of its strength.',
+      ),
+    ).toBeTruthy();
+    cleanup();
+
+    open('ATTACK', battle({}));
+    expect(screen.queryByText(/Morale/)).toBeNull();
   });
 });

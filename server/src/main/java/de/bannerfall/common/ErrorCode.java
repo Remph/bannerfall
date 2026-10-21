@@ -39,6 +39,16 @@ public enum ErrorCode {
     BUILD_ORDER_NOT_FOUND,
     /** Moving a build order that has started, or to a place in front of one (M4c). */
     ORDER_NOT_MOVABLE,
+    /**
+     * Demolishing a building that is at its lowest level already (1.6): level 0, or 1 for the Town
+     * Hall, farm, warehouse and rally point (queued demolitions count).
+     */
+    MIN_LEVEL_REACHED,
+    /**
+     * An upgrade of a building with a demolition in the build queue, or the other way round (1.6):
+     * a building has either kind queued, never both.
+     */
+    BUILD_ORDER_CONFLICT,
 
     // Recruitment (M5)
     /**
@@ -158,6 +168,10 @@ public enum ErrorCode {
     WORLD_NOT_OPEN,
     /** Pre-game only: map size, setting or moving the opening time once the world is open (409). */
     WORLD_ALREADY_OPEN,
+    /**
+     * Guided setup (1.6): a setup code that is wrong, used already or older than 30 minutes (400).
+     */
+    SETUP_CODE_INVALID,
 
     // World end (v1.3, 02-game-rules §22)
     /**
@@ -232,6 +246,12 @@ public enum ErrorCode {
     /** The player has no farm template with that letter (404, 1.4). */
     FARM_TEMPLATE_NOT_FOUND,
 
+    // Village automation (1.6)
+    /** The player has no build plan with that letter (404). */
+    BUILD_PLAN_NOT_FOUND,
+    /** The player owns fewer villages than the world's automationVillages, or it is off (409). */
+    AUTOMATION_LOCKED,
+
     // Unit levels (M30)
     /** Researching a unit level while the host has unit levels switched off (409). */
     UNIT_LEVELS_DISABLED,
@@ -252,6 +272,11 @@ public enum ErrorCode {
     PALADIN_SLOTS_FULL,
     /** Recruiting a paladin in a world whose host has set the maximum slots to 0 (409). */
     PALADIN_DISABLED,
+    /**
+     * Recruiting or researching an archer or a mounted archer in a world without archers (1.6,
+     * 409).
+     */
+    ARCHERS_DISABLED,
 
     // Banners (M32)
     /** Equipping a banner while the host has banners switched off (409). */

@@ -2,12 +2,14 @@ import type { QueryKey } from '@tanstack/react-query';
 import { meQueryKey, type Me } from '../api/queries/auth';
 import { worldSettingsKey } from '../api/queries/admin';
 import { achievementsQueryKey } from '../api/queries/achievements';
+import { automationQueryKey } from '../api/queries/automation';
 import { bannersQueryKey } from '../api/queries/banners';
 import { buildingsQueryKey } from '../api/queries/buildings';
 import { farmListsQueryKey } from '../api/queries/farm';
 import { mapMovementsQueryKey, mapQueryKey } from '../api/queries/map';
 import { messagesQueryKey } from '../api/queries/messages';
 import { marketQueryKey, offersQueryKey } from '../api/queries/market';
+import { nobleQueryKey } from '../api/queries/noble';
 import { paladinQueryKey } from '../api/queries/paladin';
 import { playerQueryKey, rankingQueryKey } from '../api/queries/ranking';
 import { recruitmentQueryKey } from '../api/queries/recruitment';
@@ -27,6 +29,7 @@ import { bannersPath } from '../pages/banners/bannerPaths';
 import { conversationPath } from '../pages/messages/messagePaths';
 import { rankingPath } from '../pages/ranking/rankingPaths';
 import type { Language } from '../i18n/language';
+import { attacksReturnedText, storageFullText } from './returnTexts';
 
 type Schemas = components['schemas'];
 
@@ -51,7 +54,9 @@ export type GameNotification =
   | Schemas['MessageReceived']
   | Schemas['AchievementEarned']
   | Schemas['BannerFound']
-  | Schemas['BannerStolen'];
+  | Schemas['BannerStolen']
+  | Schemas['AttacksReturned']
+  | Schemas['StorageFull'];
 
 const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'VILLAGE_UPDATED',
@@ -70,6 +75,8 @@ const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'ACHIEVEMENT_EARNED',
   'BANNER_FOUND',
   'BANNER_STOLEN',
+  'ATTACKS_RETURNED',
+  'STORAGE_FULL',
 ]);
 
 /**
@@ -111,8 +118,12 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         bannersQueryKey,
         smithyQueryKey(notification.villageId),
         paladinQueryKey,
+        // dead nobles and a conquest change the next noble's price (1.6)
+        nobleQueryKey,
         // catapults also lower the hall that Hall training needs (1.4)
         hallTrainingQueryKey(notification.villageId),
+        // the automation placed orders, or lost levels it had reached (1.6)
+        automationQueryKey(notification.villageId),
       ];
     case 'INCOMING_ATTACK':
       return [
@@ -148,6 +159,8 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         // the Banner Hall's level opens Hall training (1.4), the Market's gives merchants
         hallTrainingQueryKey(notification.villageId),
         marketQueryKey(notification.villageId),
+        // a finished level moves the automation's line on (1.6)
+        automationQueryKey(notification.villageId),
       ];
     case 'SUPPORT_ARRIVED':
       return [troopsQueryKey(notification.villageId), villageQueryKey(notification.villageId), mapMovementsQueryKey];
@@ -180,6 +193,10 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
     case 'BANNER_STOLEN':
       // the stash of the thief; the slot of the robbed village, and what its banner did there
       return notification.lost ? [bannersQueryKey, villageQueryKey(notification.village.id)] : [bannersQueryKey];
+    case 'ATTACKS_RETURNED':
+    case 'STORAGE_FULL':
+      // 1.6, only words: the arrival brought its own VILLAGE_UPDATED, and resources tick on the screen
+      return [];
     case 'VILLAGE_LOST':
     case 'VILLAGE_CONQUERED':
       // the village list (and needsRespawn) and everything about the village changed hands
@@ -195,6 +212,8 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
         bannersQueryKey,
         // the village count gives the paladin slots, and paladins outside a lost village are gone
         paladinQueryKey,
+        // the village count and the nobles that went with it set the next noble's price (1.6)
+        nobleQueryKey,
         hallTrainingQueryKey(notification.villageId),
         // its owner's colour on the map, and the village count on the profiles
         mapQueryKey,
@@ -243,7 +262,11 @@ export function notificationToast(
     case 'BUILD_COMPLETE': {
       const village = ownVillageName(me, notification.villageId) ?? t.realtime.yourVillage;
       return {
-        text: t.realtime.buildComplete(village, t.buildings[notification.building], notification.level),
+        text: (notification.demolished ? t.realtime.demolished : t.realtime.buildComplete)(
+          village,
+          t.buildings[notification.building],
+          notification.level,
+        ),
         tone: 'success',
         to: { pathname: `/v/${notification.villageId}/hq` },
       };
@@ -282,6 +305,23 @@ export function notificationToast(
       return notification.lost
         ? { text: t.realtime.bannerLost(banner, village), tone: 'danger', to: { pathname: bannersPath(where.id) } }
         : { text: t.realtime.bannerStolen(banner, village), tone: 'success', to: bannersLink(me) };
+    }
+    case 'ATTACKS_RETURNED': {
+      const village = ownVillageName(me, notification.villageId) ?? t.realtime.yourVillage;
+      return {
+        text: attacksReturnedText(notification, village, t, language),
+        tone: notification.lost === notification.attacks ? 'danger' : 'success',
+        to: { pathname: '/reports' },
+      };
+    }
+    case 'STORAGE_FULL': {
+      const village = ownVillageName(me, notification.villageId) ?? t.realtime.yourVillage;
+      // a full warehouse is one of the warnings (red, ui-design-principles)
+      return {
+        text: storageFullText(notification, village, t),
+        tone: 'danger',
+        to: { pathname: `/v/${notification.villageId}/warehouse` },
+      };
     }
     // nothing to say: a conquest's CONQUEST / VILLAGE_LOST report brings its own toast, a change in
     // the guild only refreshes its page

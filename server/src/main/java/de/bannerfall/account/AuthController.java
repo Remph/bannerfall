@@ -75,11 +75,16 @@ class AuthController {
         return accountService.me(principal.accountId());
     }
 
-    /** A player who lost all his villages starts again (only while {@code needsRespawn}). */
+    /**
+     * A player who lost all his villages starts again (only while {@code needsRespawn}), next to
+     * his guild if the optional body asks for it (1.6).
+     */
     @PostMapping("/me/respawn")
     @ResponseStatus(HttpStatus.CREATED)
-    VillageSummaryDto respawn(@AuthenticationPrincipal AccountPrincipal principal) {
-        return accountService.respawn(principal.accountId());
+    VillageSummaryDto respawn(
+            @RequestBody(required = false) RespawnRequest body,
+            @AuthenticationPrincipal AccountPrincipal principal) {
+        return accountService.respawn(principal.accountId(), body != null && body.nearGuild());
     }
 
     /** The player changes his own password (M14d): {@code 204}, {@code 409 WRONG_PASSWORD}. */

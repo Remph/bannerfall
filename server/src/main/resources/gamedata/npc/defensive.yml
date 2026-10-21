@@ -7,12 +7,13 @@ npc:
         - { name: MID, below-points: 4500, troop-share: 0.35 }
         - { name: LATE, troop-share: 0.45 }
       mix:
-        EARLY: { SPEARMAN: 65, SWORDSMAN: 35 }
-        MID: { SPEARMAN: 45, SWORDSMAN: 35, SCOUT: 5, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 10 }
-        LATE: { SPEARMAN: 35, SWORDSMAN: 25, SCOUT: 3, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 25, RAM: 4, CATAPULT: 3 }
+        # ARCHER counts only in a world with archers (1.6, 09 §5.3); without it the mix renormalizes to before
+        EARLY: { SPEARMAN: 65, SWORDSMAN: 35, ARCHER: 20 }
+        MID: { SPEARMAN: 45, SWORDSMAN: 35, SCOUT: 5, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 10, ARCHER: 25 }
+        LATE: { SPEARMAN: 35, SWORDSMAN: 25, SCOUT: 3, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 25, RAM: 4, CATAPULT: 3, ARCHER: 20 }
       farm-units: [LIGHT_CAVALRY, SPEARMAN]
-      attack-units: [SPEARMAN, SWORDSMAN, LIGHT_CAVALRY, HEAVY_CAVALRY, RAM]
-      support-units: [SPEARMAN, SWORDSMAN, HEAVY_CAVALRY]
+      attack-units: [SPEARMAN, SWORDSMAN, ARCHER, LIGHT_CAVALRY, HEAVY_CAVALRY, RAM]
+      support-units: [SPEARMAN, SWORDSMAN, ARCHER, HEAVY_CAVALRY]
       home-guard: 0.6
       support-share: 0.5
       margin: 2.0

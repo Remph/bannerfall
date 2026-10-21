@@ -131,12 +131,17 @@ export function SendCard({ village, home }: SendCardProps) {
       if (kind === 'ATTACK' && attacks.length > 1) {
         setCommand({
           type: 'train',
-          request: { target: parsed, attacks: attacks.map((attack) => ({ units: attack, catapultTarget: null })) },
+          request: {
+            target: parsed,
+            attacks: attacks.map((attack) => ({ units: attack, catapultTarget: null })),
+            // asked on the confirm sheet
+            notifyReturn: null,
+          },
         });
       } else {
         setCommand({
           type: 'command',
-          request: { kind, target: parsed, units: attacks[0] ?? units, catapultTarget: null },
+          request: { kind, target: parsed, units: attacks[0] ?? units, catapultTarget: null, notifyReturn: null },
         });
       }
     }

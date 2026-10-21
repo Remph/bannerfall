@@ -1,6 +1,7 @@
 package de.bannerfall.npc;
 
 import de.bannerfall.gamedata.BannerType;
+import de.bannerfall.gamedata.UnitType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
  * @param paladinLevel its Hall-trained paladin level (lord banners, 09 §14.6); 1 untrained
  * @param bannerVillages its villages with a banner or standard equipped (09 §14.8), oldest first
  * @param stash its banners and standards in the stash, counted by type and tier
+ * @param learning what it learned (09 §15.5); null while nothing is learned or learning is off
  */
 public record NpcLordDto(
         long playerId,
@@ -37,7 +39,8 @@ public record NpcLordDto(
         boolean guildByAdmin,
         int paladinLevel,
         List<BannerVillage> bannerVillages,
-        List<StashCount> stash) {
+        List<StashCount> stash,
+        @Schema(nullable = true) Learning learning) {
 
     /**
      * A lord village with its banner and standard; each null if none is equipped.
@@ -61,4 +64,25 @@ public record NpcLordDto(
 
     /** How many banners of one type and tier the stash holds. */
     public record StashCount(BannerType type, int tier, int count) {}
+
+    /**
+     * A learning lord's lessons (09 §15.5).
+     *
+     * @param defenceWeight the share of the mix the attacks on it moved (0–1)
+     * @param attackWeight the share the human wins moved (0–1)
+     * @param changes the largest changes against the template in its biggest village's stage, in
+     *     percentage points of the army's population, largest first
+     * @param walls its villages with a wall goal (siege attacks)
+     */
+    public record Learning(
+            double defenceWeight,
+            double attackWeight,
+            List<MixChange> changes,
+            List<WallGoal> walls) {}
+
+    /** A unit's share in the learned mix minus its share in the template, in percentage points. */
+    public record MixChange(UnitType unit, int points) {}
+
+    /** A village's wall goal and until when it holds. */
+    public record WallGoal(long villageId, String name, int level, Instant until) {}
 }

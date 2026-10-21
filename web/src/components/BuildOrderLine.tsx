@@ -47,6 +47,8 @@ export function BuildOrderLine({
       <span className={styles.text}>
         <span className={styles.name}>
           {t.buildings[order.building]} <span className={styles.level}>{t.village.level(order.targetLevel)}</span>
+          {order.demolish && <span className={styles.demolish}>{t.buildQueue.demolition}</span>}
+          {order.automated && <AutomatedMark />}
         </span>
         <span className={styles.time}>
           {started && (
@@ -65,6 +67,18 @@ export function BuildOrderLine({
       </span>
       {children !== undefined && <span className={styles.actions}>{children}</span>}
     </li>
+  );
+}
+
+/** After the level of an order the village automation placed (1.6): a small cogwheel. */
+export function AutomatedMark() {
+  const t = useT();
+  return (
+    <>
+      {' '}
+      <Icon name="settings" className={styles.automated} />
+      <span className="sr-only">({t.automation.automatedOrder})</span>
+    </>
   );
 }
 

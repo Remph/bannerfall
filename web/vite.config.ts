@@ -70,5 +70,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Vitest hands tests empty CSS; these two are read as text by src/theme/palettes.test.ts (1.6)
+    css: { include: [/styles\/(tokens|palettes)\.css/] },
   },
 });

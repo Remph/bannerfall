@@ -69,6 +69,14 @@ class LoyaltyTest {
     }
 
     @Test
+    void oneHitAfterTheOathIsRoundedLikeTheRealDrop() {
+        // the simulator's loyalty outlook takes its weakest and strongest hit from here
+        assertThat(Loyalty.hit(Loyalty.MAX_HIT, 0.12)).isEqualTo(31); // 30.8
+        assertThat(Loyalty.hit(Loyalty.MIN_HIT, 0.04)).isEqualTo(19); // 19.2
+        assertThat(Loyalty.hit(Loyalty.MIN_HIT, 0)).isEqualTo(Loyalty.MIN_HIT);
+    }
+
+    @Test
     void aFullVillageFallsWhenTheHitsAddUpToOneHundred() {
         // three high hits are enough (100 − 105), four low ones are not (100 − 80)
         assertThat(Loyalty.conquers(Loyalty.afterNobles(100, 3, FixedRandomSource.constant(0.99))))

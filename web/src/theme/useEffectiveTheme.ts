@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { parsePalette, type Palette } from './theme';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
@@ -13,7 +14,7 @@ function effectiveTheme(): 'light' | 'dark' {
 
 function subscribe(onChange: () => void): () => void {
   const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-palette'] });
   const media = window.matchMedia(DARK_QUERY);
   media.addEventListener('change', onChange);
   return () => {
@@ -29,4 +30,9 @@ function subscribe(onChange: () => void): () => void {
 export function useEffectiveTheme(): 'light' | 'dark' {
   // useSyncExternalStore: React's way to read a value that lives outside React (here: the DOM).
   return useSyncExternalStore(subscribe, effectiveTheme);
+}
+
+/** The colour theme on screen (data-palette on <html>, 1.6), for the same canvas redraws. */
+export function usePalette(): Palette {
+  return useSyncExternalStore(subscribe, () => parsePalette(document.documentElement.getAttribute('data-palette')));
 }

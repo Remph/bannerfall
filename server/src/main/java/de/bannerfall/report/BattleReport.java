@@ -36,6 +36,8 @@ import java.util.Map;
  *     in the attacker's copy and only when they took loot; null otherwise and in older reports
  * @param nightBonus the night bonus factor the defence had (1.4, 02-game-rules §8.1), e.g. {@code
  *     2.0}, in every copy; null by day, without a main battle and in older reports
+ * @param morale the attacker's morale (1.6, 02-game-rules §8.2), e.g. {@code 0.48}, in every copy;
+ *     null at full strength, without a main battle and in older reports
  */
 public record BattleReport(
         VillageRefDto attacker,
@@ -52,8 +54,45 @@ public record BattleReport(
         @Schema(nullable = true) LoyaltyReport loyalty,
         @Schema(nullable = true) BannerReport banners,
         @Schema(nullable = true) Integer haulCapacity,
-        @Schema(nullable = true) Double nightBonus)
+        @Schema(nullable = true) Double nightBonus,
+        @Schema(nullable = true) Double morale)
         implements ReportPayload {
+
+    /** A battle report without morale. */
+    public BattleReport(
+            VillageRefDto attacker,
+            VillageRefDto defender,
+            BattleOutcome outcome,
+            Double luck,
+            Map<UnitType, Integer> attackerUnits,
+            Map<UnitType, Integer> attackerLosses,
+            Map<UnitType, Integer> attackerLevels,
+            BuildingType catapultTarget,
+            DefenderSide defenderSide,
+            ScoutingReport scouting,
+            ResourceAmounts loot,
+            LoyaltyReport loyalty,
+            BannerReport banners,
+            Integer haulCapacity,
+            Double nightBonus) {
+        this(
+                attacker,
+                defender,
+                outcome,
+                luck,
+                attackerUnits,
+                attackerLosses,
+                attackerLevels,
+                catapultTarget,
+                defenderSide,
+                scouting,
+                loot,
+                loyalty,
+                banners,
+                haulCapacity,
+                nightBonus,
+                null);
+    }
 
     /** A battle report without the night bonus. */
     public BattleReport(
@@ -86,6 +125,7 @@ public record BattleReport(
                 loyalty,
                 banners,
                 haulCapacity,
+                null,
                 null);
     }
 

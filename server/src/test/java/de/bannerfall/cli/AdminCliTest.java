@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.json.JsonMapper;
 
 /** The CLI without a server: argument parsing, usage errors, the token check, {@code logs}. */
 class AdminCliTest {
@@ -44,6 +45,20 @@ class AdminCliTest {
         assertThat(out.toString())
                 .contains("status", "players", "player", "world", "events", "npc", "barbarians")
                 .contains("broadcast", "cheats", "audit", "logs");
+    }
+
+    @Test
+    void npcListShowsWhatALordLearnedInShort() {
+        JsonMapper json = JsonMapper.builder().build();
+        assertThat(AdminCli.NpcCommand.learned(json.readTree("{\"learning\":null}")))
+                .isEqualTo("-");
+        assertThat(
+                        AdminCli.NpcCommand.learned(
+                                json.readTree(
+                                        "{\"learning\":{\"defenceWeight\":0.3,"
+                                                + "\"attackWeight\":0.05,\"changes\":[],"
+                                                + "\"walls\":[{\"villageId\":1}]}}")))
+                .isEqualTo("attacks 30 %, wins 5 %, 1 wall");
     }
 
     @Test

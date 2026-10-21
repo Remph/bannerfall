@@ -106,6 +106,14 @@ tasks.register<Test>("simulationTest") {
         "simLordGuilds" to "simulation.lordGuilds",
         // lord banners (09 §14): -PsimLordBanners=true
         "simLordBanners" to "simulation.lordBanners",
+        // archers (1.6, 02 §5.6): -PsimArchers=true
+        "simArchers" to "simulation.archers",
+        // morale (1.6, 02 §8.2; on by default): -PsimMorale=false
+        "simMorale" to "simulation.morale",
+        // learning lords (09 §15): -PsimLordLearning=true
+        "simLordLearning" to "simulation.lordLearning",
+        // lord shipments (09 §5.5): on unless -PsimShipments=false
+        "simShipments" to "simulation.shipments",
         "simFarmCooldown" to "npc.balance.farm-cooldown-minutes",
     )) {
         findProperty(property)?.let { systemProperty(name, it.toString()) }

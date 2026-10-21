@@ -316,6 +316,14 @@ public class MarketService {
         village.spend(resources);
     }
 
+    /**
+     * The village's free merchants at {@code now} (NPC lord shipments, 09-npc-lords §5.5). The
+     * caller holds the village's lock.
+     */
+    public int freeMerchants(Village village, Instant now) {
+        return freeMerchants(village, offers.findByVillageIdOrderByIdAsc(village.getId()), now);
+    }
+
     /** Total of the market level minus merchants away and merchants reserved by its offers. */
     private int freeMerchants(Village village, List<TradeOffer> ownOffers, Instant now) {
         long busy = transports.sumBusyMerchants(village.getId(), now);

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { meQueryKey, type Me } from '../api/queries/auth';
+import { getIconStyle, setIconStyle } from '../components/iconStyle';
 import { renderPage } from '../testing/renderPage';
+import { applyPalette } from '../theme/theme';
 import { MenuSheet, type MenuKind } from './MenuSheet';
 
 const PLAYER_ID = 7;
@@ -16,6 +18,7 @@ const me: Me = {
   protectedUntil: '2026-10-10T00:00:00Z',
   needsRespawn: false,
   linked: false,
+  respawnNearGuild: false,
   villages: [{ id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 300, incomingAttacks: 0 }],
 };
 
@@ -86,5 +89,81 @@ describe('MenuSheet: the open page is marked (1.5.1)', () => {
   it('marks the Town Hall tile on its page', () => {
     open('more', { profile: true, url: '/v/9/hq' });
     expect(current('Town Hall')).toBe('page');
+  });
+});
+
+describe('MenuSheet: the source code link (1.6)', () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.open = true;
+    };
+  });
+  afterEach(cleanup);
+
+  it.each<[MenuKind, boolean]>([
+    ['more', true],
+    ['settings', true],
+    ['settings', false],
+  ])('has a GitHub row to the public repository in %s (profile: %s), opening a new tab', (kind, profile) => {
+    open(kind, { profile });
+    const link = screen.getByRole('link', { name: 'GitHub' });
+    expect(link.getAttribute('href')).toBe('https://github.com/Remph/bannerfall');
+    expect(link.getAttribute('target')).toBe('_blank');
+  });
+});
+
+describe('MenuSheet: medieval or classic icons (1.6)', () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.open = true;
+    };
+  });
+  afterEach(() => {
+    cleanup();
+    act(() => setIconStyle('medieval'));
+  });
+
+  it('switches to the classic icons and back in the settings', () => {
+    open('settings', {});
+    const group = screen.getByRole('group', { name: 'Icons' });
+    const classic = within(group).getByRole('button', { name: 'Classic' });
+    expect(within(group).getByRole('button', { name: 'Medieval' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(classic);
+    expect(getIconStyle()).toBe('classic');
+    expect(classic.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Medieval' }));
+    expect(getIconStyle()).toBe('medieval');
+  });
+});
+
+describe('MenuSheet: colour themes (1.6)', () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.open = true;
+    };
+  });
+  afterEach(() => {
+    cleanup();
+    applyPalette('green');
+  });
+
+  it('offers the five themes, green chosen by default, and switches the page on a tap', () => {
+    open('settings', {});
+    const group = screen.getByRole('radiogroup', { name: 'Colours' });
+    const choices = within(group).getAllByRole('radio');
+    expect(choices.map((choice) => choice.getAttribute('aria-label'))).toEqual([
+      'Green banner',
+      'Royal blue',
+      'Black and gold',
+      'Purple',
+      'Leather and forest',
+    ]);
+    expect(screen.getByRole('radio', { name: 'Green banner' })).toHaveProperty('checked', true);
+    expect(screen.getByText('Green banner')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Royal blue' }));
+    expect(document.documentElement.getAttribute('data-palette')).toBe('blue');
+    expect(screen.getByRole('radio', { name: 'Royal blue' })).toHaveProperty('checked', true);
+    expect(screen.getByText('Royal blue')).toBeDefined();
   });
 });

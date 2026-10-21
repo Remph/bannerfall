@@ -4,12 +4,10 @@ import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.rules.PaladinRules;
+import de.bannerfall.unit.PlayerUnitCount;
 import de.bannerfall.village.VillageRepository;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
-import java.sql.Timestamp;
-import java.time.Clock;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,25 +22,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaladinService {
 
     private final VillageRepository villages;
-    private final JdbcClient jdbc;
+    private final PlayerUnitCount unitCount;
     private final PlayerRepository players;
     private final WorldService worldService;
     private final GameData gameData;
-    private final Clock clock;
 
     PaladinService(
             VillageRepository villages,
-            JdbcClient jdbc,
+            PlayerUnitCount unitCount,
             PlayerRepository players,
             WorldService worldService,
-            GameData gameData,
-            Clock clock) {
+            GameData gameData) {
         this.villages = villages;
-        this.jdbc = jdbc;
+        this.unitCount = unitCount;
         this.players = players;
         this.worldService = worldService;
         this.gameData = gameData;
-        this.clock = clock;
     }
 
     /** The paladin slots of the player now. */
@@ -63,41 +58,12 @@ public class PaladinService {
     }
 
     /**
-     * Paladins that take a slot, read in one statement: the database runs at READ COMMITTED, so
-     * separate sums could each see their own moment and miss a paladin that moves between them
-     * (from the recruit queue into a stack, from a movement into a stack). A dismissal frees its
-     * slots by the clock (RecruitRules.finishedBy), not when the village is caught up next.
+     * Paladins that take a slot: at home, supporting, on the way, in training, waiting to be
+     * dismissed ({@link PlayerUnitCount}).
      */
     @Transactional(readOnly = true)
     public int used(long playerId) {
-        // plain SQL doesn't flush by itself: an order or stack this transaction just changed would
-        // still be pending
-        players.flush();
-        long used =
-                jdbc.sql(
-                                """
-                                select
-                                  (select coalesce(sum(s.u_paladin), 0) from unit_stack s
-                                     join village v on v.id = s.home_village_id
-                                     where v.player_id = :player)
-                                + (select coalesce(sum(m.u_paladin), 0) from movement m
-                                     join village v on v.id = m.home_village_id
-                                     where v.player_id = :player)
-                                + (select coalesce(sum(o.count - o.completed_count), 0)
-                                     from recruit_order o join village v on v.id = o.village_id
-                                     where v.player_id = :player and o.unit = 'PALADIN')
-                                + (select coalesce(sum(o.count - least(o.count,
-                                       greatest(0, floor(extract(epoch from
-                                         (cast(:now as timestamptz) - o.start_at))))::bigint
-                                       / o.seconds_per_unit)), 0)
-                                     from dismiss_order o join village v on v.id = o.village_id
-                                     where v.player_id = :player and o.unit = 'PALADIN')
-                                """)
-                        .param("player", playerId)
-                        .param("now", Timestamp.from(clock.instant()))
-                        .query(Long.class)
-                        .single();
-        return Math.toIntExact(used);
+        return unitCount.owned(playerId, UnitType.PALADIN);
     }
 
     /** Slots not taken. Never negative (more paladins than slots leave none free). */

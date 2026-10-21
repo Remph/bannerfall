@@ -85,6 +85,7 @@ const troops: Troops = {
       departAt: DEPART,
       arriveAt: ARRIVE,
       cancellableUntil: '2026-10-15T20:30:00Z',
+      notifyReturn: false,
     },
   ],
   incoming: [

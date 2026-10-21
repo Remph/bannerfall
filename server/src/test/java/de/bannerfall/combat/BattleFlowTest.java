@@ -629,6 +629,79 @@ class BattleFlowTest {
     }
 
     @Test
+    void catapultsLowerQueuedDemolitionsAndDropTheOnesThatWouldGoTooLow() throws Exception {
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 50, UnitType.CATAPULT, 30));
+        setLevel(defender, BuildingType.HEADQUARTERS, 3);
+        setLevel(defender, BuildingType.BARRACKS, 5);
+        Instant now = clock.instant();
+        Instant arrival = attack("{\"AXEMAN\":50,\"CATAPULT\":30}", "BARRACKS");
+        // four demolitions of the barracks (5 → 1), then a woodcutter, all still queued then
+        int duration = (int) Duration.between(now, arrival).toSeconds() + 3600;
+        long[] demolitions = new long[4];
+        for (int i = 0; i < 4; i++) {
+            demolitions[i] =
+                    insertBuildOrder(
+                            defender,
+                            BuildingType.BARRACKS,
+                            4 - i,
+                            now.plusSeconds((long) i * duration),
+                            duration,
+                            true);
+        }
+        long woodcutter =
+                insertBuildOrder(
+                        defender,
+                        BuildingType.WOODCUTTER,
+                        2,
+                        now.plusSeconds(4L * duration),
+                        duration,
+                        false);
+
+        arriveAt(arrival);
+
+        // 30 catapults take the barracks 5 → 3: the demolitions aim at 2, 1 and 0, the fourth
+        // (to −1) is gone and the woodcutter moved up behind the third
+        String village = body(defender.village());
+        assertThat(number(village, "$.buildings.BARRACKS").intValue()).isEqualTo(3);
+        assertThat(JsonPath.<List<Number>>read(village, "$.buildQueue[*].id"))
+                .extracting(Number::longValue)
+                .containsExactly(demolitions[0], demolitions[1], demolitions[2], woodcutter);
+        assertThat(JsonPath.<List<Integer>>read(village, "$.buildQueue[*].targetLevel"))
+                .containsExactly(2, 1, 0, 2);
+        assertThat(JsonPath.<String>read(village, "$.buildQueue[3].startAt"))
+                .isEqualTo(JsonPath.<String>read(village, "$.buildQueue[2].endAt"));
+    }
+
+    @Test
+    void droppingADemolitionKeepsTheUpgradesBehindItEvenWhenTheirRequirementsAreGone()
+            throws Exception {
+        setUnits(attacker, Map.of(UnitType.AXEMAN, 50, UnitType.CATAPULT, 30));
+        setLevel(defender, BuildingType.HEADQUARTERS, 3);
+        setLevel(defender, BuildingType.BARRACKS, 2);
+        Instant now = clock.instant();
+        Instant arrival = attack("{\"AXEMAN\":50,\"CATAPULT\":30}", "BARRACKS");
+        int duration = (int) Duration.between(now, arrival).toSeconds() + 3600;
+        // the barracks 2 → 1, then a wall upgrade (it needs Barracks 1), both still queued then
+        long demolition = insertBuildOrder(defender, BuildingType.BARRACKS, 1, now, duration, true);
+        long wall =
+                insertBuildOrder(
+                        defender, BuildingType.WALL, 1, now.plusSeconds(duration), duration, false);
+
+        arriveAt(arrival);
+
+        // 30 catapults take the barracks 2 → 0: the demolition (to −1) is gone, the wall upgrade
+        // stays like any order after catapults (it was paid for) and moves up
+        String village = body(defender.village());
+        assertThat(number(village, "$.buildings.BARRACKS").intValue()).isEqualTo(0);
+        assertThat(JsonPath.<List<Number>>read(village, "$.buildQueue[*].id"))
+                .extracting(Number::longValue)
+                .containsExactly(wall)
+                .doesNotContain(demolition);
+        assertThat(Instant.parse(JsonPath.<String>read(village, "$.buildQueue[0].startAt")))
+                .isEqualTo(arrival);
+    }
+
+    @Test
     void catapultsAimAtTheTownHallByDefaultAndStopAtItsMinimumLevel() throws Exception {
         setUnits(attacker, Map.of(UnitType.CATAPULT, 60));
         setLevel(defender, BuildingType.HEADQUARTERS, 3);
@@ -835,23 +908,37 @@ class BattleFlowTest {
             int targetLevel,
             Instant startAt,
             int durationSeconds) {
-        return jdbc.sql(
-                        """
-                        insert into build_order (village_id, building, target_level,
-                            duration_seconds, start_at, end_at, cost_wood, cost_clay, cost_iron,
-                            cost_pop, created_at)
-                        values (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?) returning id
-                        """)
-                .params(
-                        player.villageId,
-                        building.name(),
-                        targetLevel,
-                        durationSeconds,
-                        Timestamp.from(startAt),
-                        Timestamp.from(startAt.plusSeconds(durationSeconds)),
-                        Timestamp.from(clock.instant()))
-                .query(Long.class)
-                .single();
+        return insertBuildOrder(player, building, targetLevel, startAt, durationSeconds, false);
+    }
+
+    /** A build order, or a demolition (1.6); no BUILD_COMPLETE event. */
+    private long insertBuildOrder(
+            TestPlayer player,
+            BuildingType building,
+            int targetLevel,
+            Instant startAt,
+            int durationSeconds,
+            boolean demolish) {
+        long id =
+                jdbc.sql(
+                                """
+                                insert into build_order (village_id, building, target_level,
+                                    duration_seconds, start_at, end_at, cost_wood, cost_clay,
+                                    cost_iron, cost_pop, demolish, created_at)
+                                values (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, ?) returning id
+                                """)
+                        .params(
+                                player.villageId,
+                                building.name(),
+                                targetLevel,
+                                durationSeconds,
+                                Timestamp.from(startAt),
+                                Timestamp.from(startAt.plusSeconds(durationSeconds)),
+                                demolish,
+                                Timestamp.from(clock.instant()))
+                        .query(Long.class)
+                        .single();
+        return id;
     }
 
     private void insertRecruitOrder(

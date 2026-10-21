@@ -410,9 +410,9 @@ final class BattleReports {
                 banners,
                 haulCapacity,
                 // the night bonus (1.4, §8.1) only matters in a main battle; both copies show it
-                result.mainBattle() != null && input.nightFactor() > 1
-                        ? input.nightFactor()
-                        : null);
+                result.mainBattle() != null && input.nightFactor() > 1 ? input.nightFactor() : null,
+                // morale (1.6, §8.2) likewise, and only below full strength
+                result.mainBattle() != null && input.morale() < 1 ? input.morale() : null);
     }
 
     /** The levels above 1 of the unit types that are in {@code units} (M30). */

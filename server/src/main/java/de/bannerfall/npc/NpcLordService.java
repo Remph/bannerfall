@@ -135,7 +135,7 @@ public class NpcLordService {
         Instant now = clock.instant();
         double factor = NpcBalance.productionFactor(balance.difficulty(), NpcMemory.Stance.NONE);
         Player lord = players.save(Player.npcLord(pickName(), factor, now));
-        Optional<Village> village = spawnService.tryCreateStartingVillage(lord);
+        Optional<Village> village = spawnService.tryCreateStartingVillage(lord, false);
         if (village.isEmpty()) {
             players.delete(lord);
             return Optional.empty();

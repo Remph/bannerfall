@@ -84,6 +84,9 @@ export const de: Dictionary = {
     toReports: 'Berichte lesen',
     start: 'Neues Dorf gründen',
     starting: 'Dein Dorf wird gegründet…',
+    guildText: 'Deine Gilde ist noch im Spiel: Du kannst auch ein paar Felder neben einem Gildenmitglied anfangen.',
+    nearGuild: 'Neben meiner Gilde anfangen',
+    elsewhere: 'An neuer Stelle anfangen',
   },
   nav: {
     label: 'Spielbereiche',
@@ -115,10 +118,22 @@ export const de: Dictionary = {
     language: 'Sprache',
     theme: 'Erscheinungsbild',
     themeModes: { system: 'Gerät', light: 'Hell', dark: 'Dunkel' },
+    palette: 'Farben',
+    palettes: {
+      green: 'Grünes Banner',
+      blue: 'Königsblau',
+      black: 'Schwarz und Gold',
+      purple: 'Purpur',
+      leather: 'Leder und Wald',
+    },
+    icons: 'Symbole',
+    iconStyles: { medieval: 'Mittelalter', classic: 'Klassisch' },
     serverTime: 'Serverzeit',
     version: 'Version',
     changePassword: 'Passwort ändern',
     worldInfo: 'Welteinstellungen',
+    source: 'GitHub',
+    sourceTitle: 'Quellcode auf GitHub (öffnet einen neuen Tab)',
   },
   push: {
     link: 'Benachrichtigungen',
@@ -153,6 +168,8 @@ export const de: Dictionary = {
       GUILD_INVITE: 'Gildeneinladungen',
       WORLD_END: 'Siegesuhr und Weltende',
       BUILDS_DONE: 'Bauschleife leer',
+      ATTACK_RETURNED: 'Rückkehr deiner Angriffe',
+      STORAGE_FULL: 'Speicher voll',
     },
     kindHints: {
       ATTACK: 'Sobald ein Angriff auf eines deiner Dörfer losgeschickt wird, mit seiner Ankunft.',
@@ -161,6 +178,10 @@ export const de: Dictionary = {
       GUILD_INVITE: 'Wenn dich eine Gilde einlädt.',
       WORLD_END: 'Wenn eine Seite die Siegesuhr startet oder sie stehen bleibt, und wenn die Welt endet.',
       BUILDS_DONE: 'Wenn das letzte Gebäude in der Bauschleife eines Dorfes fertig ist.',
+      ATTACK_RETURNED:
+        'Wenn Angriffe, nach denen du gefragt hast, wieder zu Hause sind: ein Angriff, ein Angriffszug oder eine Farmlisten-Runde. Du wählst es beim Schicken oder mit der Glocke.',
+      STORAGE_FULL:
+        'Wenn Holz, Lehm oder Eisen in einem Dorf die Grenze des Speichers erreicht. Einmal, bis es wieder weniger wird.',
     },
     testBody: 'Benachrichtigungen funktionieren auf diesem Gerät.',
     attacks: (count: number, target: string, first: string) =>
@@ -169,6 +190,8 @@ export const de: Dictionary = {
       by === null ? `${village} wurde erobert` : `${by} hat ${village} erobert`,
     buildsDone: (village: string, building: string, level: number) =>
       `${village}: Die Bauschleife ist leer. ${building} hat Stufe ${level} erreicht.`,
+    demolishedDone: (village: string, building: string, level: number) =>
+      `${village}: Die Bauschleife ist leer. ${building} wurde auf Stufe ${level} abgerissen.`,
   },
   /** The banner after a new version was deployed (M28): links to the changelog on bannerfall.de. */
   changelogBanner: {
@@ -211,11 +234,164 @@ export const de: Dictionary = {
     toAdmin: 'Zur Admin-Seite',
     guildsHint:
       'In dieser Welt sind Gilden eingeschaltet: Du kannst jetzt eine gründen oder auf eine Einladung warten.',
+    guildsTogetherHint:
+      'In dieser Welt gibt es Gilden, und Gildenmitglieder starten nebeneinander: Gründe jetzt eine mit deinen Freunden oder warte auf eine Einladung.',
     toGuilds: 'Gilden öffnen',
     notice: {
       opensAt: (world: string, when: string) => `${world} öffnet ${when}.`,
       noTime: (world: string) => `${world} ist noch nicht eröffnet. Der Startzeitpunkt wird bekannt gegeben.`,
       register: 'Du kannst dein Konto schon jetzt anlegen; dein Dorf entsteht, wenn die Welt öffnet.',
+    },
+  },
+  setup: {
+    title: 'Welt einrichten',
+    stepOf: (step: number, total: number) => `Schritt ${step} von ${total}`,
+    back: 'Zurück',
+    next: 'Weiter',
+    finish: 'Einrichtung abschließen',
+    skip: 'Einrichtung überspringen',
+    stepsLabel: 'Schritte',
+    steps: {
+      start: 'Ausgangspunkt',
+      basics: 'Grundlagen',
+      pace: 'Tempo',
+      map: 'Karte und Gegner',
+      rules: 'Regeln',
+      victory: 'Sieg',
+      opening: 'Eröffnung',
+    },
+    intros: {
+      start:
+        'Wähle, was für eine Welt du willst. Alle weiteren Schritte starten davon, und du kannst jeden Wert ändern.',
+      basics: 'Wie die Welt heißt und wie Spieler hineinkommen.',
+      pace: 'Wie schnell alles läuft. Produktion, Bauen, Rekrutieren und Marschieren richten sich nach dem Tempo.',
+      map: 'Die Karte entsteht bei der Eröffnung: diese Werte stehen danach fest.',
+      rules: 'Welche Teile des Spiels eingeschaltet sind. Das alles lässt sich auch in der laufenden Welt noch ändern.',
+      victory: 'Wie die Welt endet. Auch das kannst du später ändern.',
+      opening: 'Prüfe alles noch einmal und wähle dann, wann die Welt öffnet.',
+    },
+    presets: {
+      friends: {
+        name: 'Runde unter Freunden',
+        text: 'Ein bis zwei Wochen mit ein paar Freunden: zügiges Tempo, kurzer Schutz und vier Fürsten als Gegner.',
+      },
+      long: {
+        name: 'Dauerhafte Welt',
+        text: 'Eine Welt, die bleibt: ruhiges Tempo, voller Schutz, Fürsten in Gilden und kein geplantes Ende.',
+      },
+      coop: {
+        name: 'Gemeinsam gegen die Fürsten',
+        text: 'Zwei bis vier Freunde in einer Gilde gegen etwa 20 starke Fürsten in ein oder zwei Fürstengilden.',
+      },
+      custom: {
+        name: 'Eigene Einstellungen',
+        text: 'Von den Standardwerten aus starten und alles selbst einstellen.',
+      },
+    },
+    facts: {
+      speed: (value: string) => `Tempo ${value}`,
+      protection: (hours: string) => `${hours} h Schutz`,
+      lords: (count: string) => `${count} Fürsten`,
+    },
+    name: 'Name der Welt',
+    inviteCode: 'Einladungscode',
+    inviteHint: 'Spieler brauchen ihn zum Registrieren. Gib ihn nur denen, die du einlädst.',
+    newCode: 'Neuen Code erzeugen',
+    villageNames: 'Dorfnamen',
+    speed: 'Weltgeschwindigkeit',
+    unitSpeed: 'Einheitengeschwindigkeit',
+    unitSpeedHint: 'Nur marschierende Truppen und Händler; 1 lässt sie beim Welttempo.',
+    protection: 'Anfängerschutz (Stunden)',
+    protectionHint: 'Echte Stunden ab der Eröffnung, in denen niemand einen neuen Spieler angreifen kann.',
+    startResources: 'Startrohstoffe (je)',
+    paceHint: (from: number, to: number) => `Bei diesem Tempo kommen die ersten Adligen etwa an Tag ${from} bis ${to}.`,
+    mapSpread: 'Kartenweite',
+    mapSpreadHint: 'Die Wahl setzt auch Kartengröße und Adelsreichweite; beide kannst du danach noch ändern.',
+    mapSize: 'Kartengröße (Felder je Seite)',
+    nobleMaxDistance: 'Adelsreichweite (Felder)',
+    barbarians: 'Barbarendörfer',
+    barbarianInitialCount: 'Zum Start',
+    barbariansPerNewPlayer: 'Je neuem Spieler',
+    barbarianGrowth: 'Barbarendörfer wachsen',
+    barbarianGrowthHint: 'Sie bauen langsam aus, späte Farmen bringen mehr.',
+    barbarianWalls: 'Barbarenwälle',
+    barbarianWallsHint: 'Barbarendörfer bauen nach einigen Tagen einen Wall.',
+    lords: 'NPC-Fürsten',
+    npcLordCount: 'Fürsten zum Start',
+    difficulty: 'Schwierigkeit',
+    difficulties: { EASY: 'Leicht', NORMAL: 'Normal', HARD: 'Schwer', CUSTOM: 'Eigene' },
+    npcGuilds: 'Fürsten bilden Gilden',
+    npcGuildsHint: 'Benachbarte Fürsten verbünden sich, verteidigen und rächen einander.',
+    npcGuildMaxMembers: 'Höchstens Fürsten je Fürstengilde',
+    npcBanners: 'Fürsten nutzen Banner',
+    npcBannersHint: 'Sie finden, hissen und verschmelzen Banner wie Spieler.',
+    guilds: 'Gilden',
+    guildsHint: 'Spieler können Gilden gründen und beitreten.',
+    guildMaxMembers: 'Höchstens Mitglieder je Gilde',
+    guildStartTogether: 'Gildenmitglieder starten nebeneinander',
+    guildStartTogetherHint:
+      'Wer zur Eröffnung in einer Gilde ist, bekommt sein Dorf ein paar Felder neben seinen Gildenmitgliedern; wer sein letztes Dorf verliert, darf neben seiner Gilde neu anfangen.',
+    guildsStartTogether: 'an, Mitglieder starten zusammen',
+    morale: 'Moral',
+    moraleHint:
+      'Angriffe auf viel kleinere Spieler treffen schwächer. Nur der Angriff ändert sich, nie die Verteidigung.',
+    moraleFloor: 'Niedrigste Moral (%)',
+    moraleFloorHint: '30 bis 100',
+    moraleValue: (floor: string) => `an, mindestens ${floor} %`,
+    noblePrice: 'Steigender Adelspreis',
+    noblePriceShort: 'Adelspreis',
+    noblePriceValue: (percent: string) => `+${percent} % je Dorf und Adligem`,
+    noblePriceHint: (percent: string) =>
+      `Jedes Dorf und jeder Adlige über vier legt ${percent} % des Grundpreises auf den nächsten Adligen, damit Große nicht davonziehen.`,
+    unitLevels: 'Einheitenstufen',
+    unitLevelsHint: 'Die Schmiede kann Einheiten auf höhere Stufen bringen.',
+    archers: 'Bogenschützen',
+    archersHint: 'Bogenschütze und berittener Bogenschütze können ausgebildet werden; auch NPC-Fürsten setzen sie ein.',
+    paladin: 'Paladin',
+    paladinHint: 'Ein Held je Spieler, mehr mit mehr Dörfern.',
+    banners: 'Banner',
+    bannersHint: 'Banner fallen in Kämpfen und werden in der Bannerhalle getragen.',
+    standardTheft: 'Standartenraub',
+    standardTheftHint: 'Verteidiger können die Standarte eines abgewehrten Angriffs nehmen.',
+    nightBonus: 'Nachtbonus',
+    nightBonusHint: (from: string, to: string) => `Dörfer verteidigen sich von ${from}:00 bis ${to}:00 Uhr stärker.`,
+    market: 'Tausch mit dem Markt',
+    marketHint: 'Mit dem Markt selbst handeln, nicht nur mit Spielern.',
+    victoryMode: 'Sieg',
+    victoryModes: { DOMINATION: 'Vorherrschaft', KEEPS: 'Bannerfesten', NONE: 'Keiner' },
+    victoryHints: {
+      DOMINATION: 'Eine Seite gewinnt, sobald sie lange genug einen Anteil aller Dörfer hält.',
+      KEEPS: 'Bannerfesten stehen um die Kartenmitte; es gewinnt, wer die meisten hält.',
+      NONE: 'Keine Seite gewinnt von selbst: du beendest die Welt, wann du willst.',
+    },
+    dominationPercent: 'Anteil aller Dörfer (%)',
+    victoryHoldHours: 'Gehalten für (Stunden)',
+    keepCount: 'Anzahl Festen',
+    endsAt: 'Enddatum (freiwillig)',
+    endsAtHint: 'Zu dieser Zeit gewinnen die meisten Punkte, in jeder Siegart.',
+    opensAt: 'Eröffnung',
+    opensAtHint:
+      'Jeder registrierte Spieler bekommt in diesem Moment ein Dorf. Leer lassen, um sie später festzulegen.',
+    summary: 'Zusammenfassung',
+    change: 'Ändern',
+    on: 'an',
+    off: 'aus',
+    server: 'Auf dem Server festgelegt',
+    serverHint: 'Diese Werte stehen in der .env-Datei des Servers (Hosting-Anleitung); der Assistent zeigt sie nur.',
+    loginMode: 'Anmeldung',
+    push: 'Push-Benachrichtigungen',
+    invalid: 'Ein Wert liegt außerhalb des erlaubten Bereichs: prüfe die Felder dieses Schritts.',
+    claiming: 'Du wirst zum Host dieser Welt…',
+    toHome: 'Zurück zur Startseite',
+    worldOpen:
+      'Diese Welt ist schon offen: die Einrichtung läuft nur vor der Eröffnung. Ihre Einstellungen stehen auf der Admin-Seite.',
+    toAdmin: 'Zur Admin-Seite',
+    loginModes: { OFF: 'eigene Konten', LINKING: 'eigene Konten oder Kontoserver', REQUIRED: 'nur Kontoserver' },
+    entry: {
+      title: 'Diese Welt einrichten',
+      text: 'Ein paar kurze Schritte: Ausgangspunkt wählen, Tempo, Karte und Regeln prüfen, Eröffnung festlegen. Bis zur Eröffnung kannst du auf der Admin-Seite noch alles ändern.',
+      start: 'Einrichtung starten',
+      skip: 'Nicht jetzt',
     },
   },
   worldInfo: {
@@ -224,6 +400,16 @@ export const de: Dictionary = {
     unitSpeed: 'Einheitengeschwindigkeit',
     mapSize: 'Karte',
     mapSizeValue: (size: number) => `${size} × ${size} Felder`,
+    /** Wie weit die Seiten auseinander beginnen (1.6). */
+    mapSpread: 'Kartenweite',
+    mapSpreadValue: (spread: string, distance: string) => `${spread}: ${distance}`,
+    mapSpreads: { CLOSE: 'Eng', NORMAL: 'Normal', WIDE: 'Weit', VAST: 'Riesig' },
+    mapSpreadDistances: {
+      CLOSE: 'Nachbarn beginnen etwa 3 bis 4 Felder voneinander entfernt.',
+      NORMAL: 'Nachbarn beginnen etwa 4 bis 5 Felder voneinander entfernt.',
+      WIDE: 'Nachbarn beginnen etwa 6 Felder voneinander entfernt.',
+      VAST: 'Nachbarn beginnen etwa 7 Felder voneinander entfernt.',
+    },
     startResources: 'Startrohstoffe',
     startResourcesValue: (amount: string) => `je ${amount}`,
     beginnerProtection: 'Anfängerschutz',
@@ -252,9 +438,14 @@ export const de: Dictionary = {
     marketExchange: 'Mit dem Markt tauschen',
     marketExchangeValue: (ratio: string) => `${ratio} für 1, bis zu einer Tagesmenge`,
     guilds: 'Gilden',
-    guildsValue: (max: number) => `bis zu ${max} Mitglieder je Gilde`,
+    guildsValue: (max: number, together: boolean) =>
+      together
+        ? `bis zu ${max} Mitglieder je Gilde; Gildenmitglieder starten nebeneinander`
+        : `bis zu ${max} Mitglieder je Gilde`,
     unitLevels: 'Einheitenstufen',
     unitLevelsValue: 'in der Schmiede erforscht',
+    archers: 'Bogenschützen',
+    archersValue: 'Bogenschütze und berittener Bogenschütze',
     paladin: 'Paladin',
     paladinValue: (perSlot: number, max: number) =>
       max === 1
@@ -262,9 +453,15 @@ export const de: Dictionary = {
         : `ein Platz, ein weiterer ${perSlot === 1 ? 'je Dorf' : `je ${perSlot} Dörfer`}, bis zu ${max}`,
     banners: 'Banner',
     bannersValue: 'Bannerhalle, Banner hissen und tauschen',
+    noblePrice: 'Adelspreis',
+    noblePriceValue: (percent: string) => `+${percent} % je Dorf und Adligem über vier`,
+    noblePriceFlat: 'für jeden Adligen gleich',
     nightBonus: 'Nachtbonus',
     nightBonusValue: (hours: string, factor: string) =>
       `${hours} deutsche Zeit: Dörfer von Spielern und NPC-Fürsten verteidigen sich ×${factor}`,
+    morale: 'Moral',
+    moraleValue: (floor: string) =>
+      `Angriffe auf Spieler mit weniger als etwa einem Viertel deiner Punkte treffen schwächer, bis hinunter auf ${floor}`,
     victory: 'Sieg',
     victoryDomination: (percent: number, hours: number) => `${percent} % aller Dörfer, ${hours} Stunden lang gehalten`,
     victoryKeeps: (needed: number, count: number, hours: number) =>
@@ -332,6 +529,8 @@ export const de: Dictionary = {
     NOBLE: 'Adliger',
     PALADIN: 'Paladin',
     BANNER_THIEF: 'Bannerdieb',
+    ARCHER: 'Bogenschütze',
+    MOUNTED_ARCHER: 'Berittener Bogenschütze',
   },
   village: {
     switcherTitle: 'Deine Dörfer',
@@ -398,6 +597,9 @@ export const de: Dictionary = {
     defenseInfantryShort: 'Vert. Inf.',
     defenseCavalry: 'Verteidigung gegen Kavallerie',
     defenseCavalryShort: 'Vert. Kav.',
+    defenseArcher: 'Verteidigung gegen Bogenschützen',
+    defenseArcherShort: 'Vert. Bog.',
+    archerHint: 'Greift als Bogenschütze an: Die Verteidiger zählen ihre Verteidigung gegen Bogenschützen.',
     minutesPerField: 'Minuten pro Feld',
     carry: 'Tragekraft',
     level: (level: number) => `Stufe ${level}`,
@@ -458,6 +660,38 @@ export const de: Dictionary = {
     queuedLevel: (level: number) => `→ Stufe ${level}`,
     queuedLevelLong: (level: number) => `(Stufe ${level}, wenn die Bauschleife fertig ist)`,
     maxLevel: 'Höchste Stufe erreicht',
+    modeLabel: 'Ausbauen oder abreißen',
+    modes: { build: 'Ausbauen', demolish: 'Abreißen' },
+    demolitionQueued: 'Ein Abriss dieses Gebäudes steht in der Bauschleife.',
+    demolish: {
+      title: 'Abreißen',
+      intro:
+        'Jeder Abriss nimmt eine Stufe weg und reiht sich in die Bauschleife ein. Er braucht ein Fünftel der Bauzeit und kostet nichts; es gibt nichts zurück.',
+      button: (level: number) => `Abriss auf Stufe ${level}`,
+      buttonShort: '−1',
+      buttonLabel: (building: string, level: number) => `${building} auf Stufe ${level} abreißen`,
+      factsLabel: 'Was der Abriss kostet und frei macht',
+      time: 'Dauer',
+      frees: (pop: number) => `+${pop} frei`,
+      freesLong: (pop: number) => `macht ${pop} Bevölkerung frei`,
+      points: (points: number) => `−${points} Punkte`,
+      lowest: (level: number) => `Stufe ${level} ist das Minimum.`,
+      rallyPoint: 'Der Sammelplatz kann nicht abgerissen werden.',
+      conflict: 'Ein Ausbau dieses Gebäudes steht in der Bauschleife.',
+      farmTooSmall: 'Der kleinere Bauernhof könnte deine Bevölkerung nicht versorgen.',
+      confirmTitle: (building: string) => `${building} abreißen?`,
+      confirmLevels: (from: number, to: number) => `Stufe ${from} → ${to}`,
+      confirmText: (time: string) => ` in ${time}. Der Abriss kostet nichts, es gibt aber auch nichts zurück.`,
+      confirmFrees: (pop: number) => ` Frei werden ${pop} Bevölkerung.`,
+      confirmPoints: (points: number) => ` Das Dorf verliert ${points} Punkte.`,
+      warehouse: 'Rohstoffe über dem kleineren Speicher bleiben, es wird aber nichts produziert, bis du darunter bist.',
+      locksTitle: 'Danach gesperrt, bis du wieder ausbaust:',
+      locksBuilding: (building: string) => `${building}: kein weiterer Ausbau`,
+      locksUnit: (unit: string) => `${unit}: keine Rekrutierung`,
+      keep: 'Behalten',
+      confirm: 'Abreißen',
+      queueing: 'Wird eingereiht…',
+    },
     needs: (list: string) => `Benötigt ${list}`,
     requirement: (building: string, level: number) => `${building} ${level}`,
     buildTime: 'Bauzeit',
@@ -508,6 +742,10 @@ export const de: Dictionary = {
     confirmCancel: 'Auftrag abbrechen',
     moveBlocked: 'Dieser Auftrag kann nicht vor einen Auftrag, den er braucht.',
     paidSlot: 'Bezahlplatz',
+    demolition: 'Abriss',
+    cancelDemolitionText: (order: string) => `${order} wird nicht abgerissen.`,
+    cancelDemolitionNote:
+      'Er hat nichts gekostet, also gibt es nichts zurück. Spätere Abrisse dieses Gebäudes fallen mit weg.',
     paidSlotsNote: (size: number) => `Plätze nach ${size} kosten extra, ihre Aufträge lassen sich nicht verschieben.`,
     reorder: 'Reihenfolge ändern',
     reorderDone: 'Fertig',
@@ -579,6 +817,89 @@ export const de: Dictionary = {
     save: 'Speichern',
   },
   /** Der Paladin und seine Plätze (M31, 02-game-rules §5.5): der Zähler unter seinem Namen in der Bannerhalle (1.4). */
+  automation: {
+    title: 'Automatik',
+    back: 'Rathaus',
+    rowTitle: (letter: string, name: string) => `Automatik · ${letter} ${name}`,
+    rowLine: (line: number, count: number) => `Zeile ${line}/${count}`,
+    rowOpen: 'Automatik öffnen',
+    lockedShort: (needed: number) => `Ab deinem ${needed}. Dorf`,
+    locked: (needed: number) =>
+      `Ab deinem ${needed}. Dorf: Dörfer bauen dann nach deinem Plan von selbst weiter, auch wenn du offline bist.`,
+    lockedCount: (villages: number, needed: number) => `Du hast ${villages} von ${needed} Dörfern.`,
+    noWorld: 'In dieser Welt gibt es keine Automatik.',
+    villageTitle: 'Dieses Dorf',
+    switchLabel: 'Automatik an',
+    running: 'Läuft',
+    paused: 'Pausiert',
+    choosePlan: 'Plan wählen',
+    changePlan: (letter: string, name: string) => `Plan ${letter}: ${name}. Plan wechseln`,
+    progress: (line: number, count: number) => `Zeile ${line} von ${count}`,
+    state: {
+      OFF: 'Ausgeschaltet.',
+      PAUSED:
+        'Pausiert: Du hast einen ihrer Aufträge abgebrochen oder eine Stufe abgerissen, die ihr Plan baut. Schalte sie wieder an, um weiterzumachen.',
+      NO_PLAN: 'Ihr Plan wurde gelöscht. Wähle einen anderen.',
+      READY: (next: string) => `Reiht jetzt ${next} ein.`,
+      WAITING_RESOURCES: (next: string, time: string) => `Wartet auf Rohstoffe: ${next} · genug um ${time}`,
+      WAITING_QUEUE: (next: string) => `Wartet, bis ein Bauauftrag fertig ist: als Nächstes ${next}.`,
+      WAITING_UPGRADE: 'Wartet auf die Speicher- oder Bauernhofstufe in der Bauschleife.',
+      BLOCKED: (next: string) =>
+        `Hängt bei ${next}: Ein Rohstoff dafür wird nicht produziert, oder der Bauernhof ist voll.`,
+      DONE: 'Plan fertig: Alle Zeilen sind erreicht.',
+    },
+    noPlanYet: 'Wähle einen Plan: Das Dorf fängt gleich an, ihn abzuarbeiten.',
+    recruiting: (letter: string, name: string) => `Hält die Rekrutier-Vorlage ${letter} ${name} voll.`,
+    recruitingGone: (letter: string) =>
+      `Die Rekrutier-Vorlage ${letter} gibt es nicht mehr: Es wird nichts rekrutiert.`,
+    missing: (list: string) => `Fehlen: ${list}`,
+    templateFull: 'Die Vorlage ist voll.',
+    byHand: (list: string) => `${list}: rekrutierst du selbst.`,
+    planTitle: (letter: string, name: string) => `Plan ${letter} · ${name}`,
+    edit: 'Bearbeiten',
+    plansTitle: 'Baupläne',
+    plansHint:
+      'Ein Plan listet Gebäude und Stufen von oben nach unten. Das Dorf reiht sie nacheinander ein, höchstens zwei eigene Aufträge auf einmal, und baut zuerst einen größeren Speicher oder Bauernhof, wenn es einen braucht. Alle deine Dörfer können denselben Plan nutzen.',
+    createPlan: (letter: string) => `Plan ${letter} anlegen`,
+    pickTitle: (village: string) => `Plan für ${village}`,
+    lineCount: (count: number) => (count === 1 ? '1 Zeile' : `${count} Zeilen`),
+    newPlan: (letter: string) => `Neuer Plan (${letter})`,
+    newPlanHint: 'Leer oder aus den Stufen dieses Dorfs',
+    noPlan: 'Kein Plan',
+    noPlanHint: 'Das Dorf baut nur, was du einreihst.',
+    editTitle: (letter: string) => `Plan ${letter}`,
+    name: 'Name',
+    nameHint: 'Kurz, z. B. Wirtschaft oder Angriff',
+    linesHint: (count: number) => `${count === 1 ? '1 Zeile' : `${count} Zeilen`} · von oben nach unten`,
+    reorder: 'Reihenfolge ändern',
+    reorderDone: 'Fertig',
+    empty: 'Noch keine Zeilen. Füge ein Gebäude hinzu oder übernimm die Stufen dieses Dorfs.',
+    fromVillage: 'Stufen dieses Dorfs übernehmen',
+    addBuilding: '+ Gebäude',
+    addRecruit: '+ Rekrutieren starten',
+    addTitle: 'Zeile anhängen',
+    addHint: 'Jeder Tipp hängt die nächste Stufe an. Fehlt eine Voraussetzung, kommt sie davor mit hinein.',
+    addClose: 'Schließen',
+    recruitTitle: 'Welche Vorlage soll rekrutiert werden?',
+    recruitHint:
+      'Ab dieser Zeile hält das Dorf die Vorlage voll (außer Adligen und Bannerdieben). Die Zeilen darunter werden weiter gebaut.',
+    noTemplates: 'Lege zuerst beim Rekrutieren eine Rekrutier-Vorlage an.',
+    startRecruiting: 'Rekrutieren starten',
+    recruitChip: (letter: string, name: string) => `${letter} ${name}`,
+    levelDown: (building: string) => `${building}: eine Stufe weniger`,
+    levelUp: (building: string) => `${building}: eine Stufe mehr`,
+    moveUp: (line: number) => `Zeile ${line} nach oben schieben`,
+    moveDown: (line: number) => `Zeile ${line} nach unten schieben`,
+    remove: (line: number) => `Zeile ${line} entfernen`,
+    needs: (list: string) => `Braucht ${list} in einer Zeile darüber`,
+    tooMany: (max: number) => `Ein Plan hat höchstens ${max} Zeilen.`,
+    save: 'Speichern',
+    delete: 'Plan löschen',
+    deleteTitle: (letter: string) => `Plan ${letter} löschen?`,
+    deleteText: 'Dörfer, die ihn abarbeiten, halten an, bis du einen anderen Plan wählst.',
+    keep: 'Behalten',
+    automatedOrder: 'von der Automatik eingereiht',
+  },
   paladin: {
     slots: (used: number, slots: number) =>
       slots === 1 ? `${used} von 1 Platz belegt` : `${used} von ${slots} Plätzen belegt`,
@@ -586,6 +907,38 @@ export const de: Dictionary = {
     atMaximum: 'Mehr Plätze erlaubt die Welt nicht.',
     freeSlots: (free: number) =>
       free <= 0 ? 'Alle Plätze sind belegt.' : free === 1 ? 'Nur 1 Platz ist frei.' : `Nur ${free} Plätze sind frei.`,
+  },
+  /** Der steigende Adelspreis (1.6, 02-game-rules §5.7): der Info-Knopf des Adligen in der Akademie. */
+  noble: {
+    button: 'Preis des nächsten Adligen',
+    title: 'Preis der Adligen',
+    next: 'Dein nächster Adliger',
+    after: 'Der danach',
+    factor: (factor: string) => `×${factor}`,
+    factorChip: (factor: string) => `Preis ×${factor}: Preis des nächsten Adligen`,
+    rankLine: (
+      villages: number,
+      nobles: number,
+      free: number,
+      rank: number,
+      percent: string,
+      factor: string,
+      capped: boolean,
+    ) =>
+      `${villages} ${villages === 1 ? 'Dorf' : 'Dörfer'} + ${nobles} ${nobles === 1 ? 'Adliger' : 'Adlige'}, ${free} frei → ${
+        rank === 0
+          ? 'Grundpreis'
+          : capped
+            ? `${rank} × ${percent} %, höchstens ×${factor}`
+            : `${rank} × ${percent} % = ×${factor}`
+      }`,
+    rule: (free: number, percent: string, max: string) =>
+      `Mit einem Dorf kosten deine ersten ${free} Adligen den Grundpreis. Jedes weitere Dorf und jeder Adlige darüber hinaus macht den nächsten um ${percent} % des Grundpreises teurer, höchstens bis zum ${max}-Fachen.`,
+    counted: 'Adlige zählen, wo immer sie sind: daheim, unterwegs, als Unterstützung, in Ausbildung.',
+    cheaper: 'Stirbt ein Adliger oder verlierst du ein Dorf, wird der nächste wieder billiger.',
+    atMaximum: 'Das ist der höchste Preis: Er steigt nicht weiter.',
+    flat: 'In dieser Welt kostet jeder Adlige gleich viel.',
+    order: 'Mehrere Adlige in einem Auftrag zahlen jeder den Durchschnitt ihrer Preise.',
   },
   /** Banner und die Bannerhalle (M32a, 02-game-rules §21). */
   banners: {
@@ -912,10 +1265,14 @@ export const de: Dictionary = {
     catapultTarget: 'Katapulte zielen auf',
     endsProtection: 'Ein Angriff beendet deinen eigenen Anfängerschutz.',
     nightBonus: (factor: string) => `Er kommt im Nachtbonus an: Das Dorf verteidigt sich ×${factor}.`,
+    morale: (percent: string) =>
+      `Moral ${percent}: Der Besitzer hat weit weniger Punkte als du, dein Angriff trifft deshalb nur mit ${percent} seiner Stärke.`,
     nightTag: (factor: string) => `Nachtbonus ×${factor}`,
     paladinLeads: 'Der Paladin führt diese Unterstützung an: Alle Einheiten laufen in seinem Tempo.',
     back: 'Zurück',
     confirm: { ATTACK: 'Angriff schicken', SUPPORT: 'Unterstützung schicken' },
+    notifyReturn: 'Benachrichtigen, wenn sie zurück sind',
+    notifyReturnFor: (attack: string) => `Benachrichtigen, wenn sie zurück sind (${attack})`,
     sending: 'Wird geschickt…',
     addToTrain: 'Zum Angriffszug',
     attackTrain: (count: number) => `Angreifen (${count})`,
@@ -986,6 +1343,7 @@ export const de: Dictionary = {
     myUnits: 'Meine Truppen hier',
     thisVillage: 'Dieses Dorf',
     clear: 'Leeren',
+    showAllUnits: (more: number) => `Alle Einheiten zeigen (${more} weitere)`,
     reportTitle: 'Bericht',
     levelLabel: (unit: string) => `Stufe: ${unit}`,
     hallLevelsHint:
@@ -1075,6 +1433,10 @@ export const de: Dictionary = {
     nightHint: (hours: string) =>
       `Der Nachtbonus dieser Welt: ${hours} deutsche Zeit. In Barbarendörfern gilt er nicht.`,
     nightResult: 'Nachtbonus',
+    morale: 'Moral des Angreifers (%)',
+    moraleHint: (floor: string) =>
+      `100, außer der Verteidiger hat weniger als etwa ein Viertel der Punkte des Angreifers; die niedrigste Moral dieser Welt ist ${floor}.`,
+    moraleResult: 'Moral',
     defenderThievesSurvive: 'Überlebende Bannerdiebe der Verteidiger',
     standardTheftChance: 'Chance, dass sie die Standarte nehmen',
   },
@@ -1284,6 +1646,10 @@ export const de: Dictionary = {
     levelsScouted: 'Deine aufgerüsteten Späher haben die Stufen gesehen: Gezeigt wird die höchste Stufe jeder Einheit.',
     nobodyCameBack: 'Keine deiner Truppen ist zurückgekehrt, daher weißt du nichts über die Verteidiger.',
     nightBonus: (factor: string) => `Nachtbonus: Der Angriff kam nachts an, das Dorf verteidigte sich ×${factor}.`,
+    moraleAttack: (percent: string, owner: string | null) =>
+      `Moral ${percent}: ${owner ?? 'Der Besitzer'} hat weit weniger Punkte als du, dein Angriff traf deshalb nur mit ${percent} seiner Stärke.`,
+    moraleDefence: (percent: string, owner: string | null, attacker: string | null) =>
+      `Moral ${percent}: ${owner ?? 'Der Besitzer'} hat weit weniger Punkte als ${attacker ?? 'der Angreifer'}, der Angriff traf deshalb nur mit ${percent} seiner Stärke.`,
     luck: 'Glück',
     catapultTarget: 'Katapulte zielten auf',
     wall: 'Wall',
@@ -1370,6 +1736,8 @@ export const de: Dictionary = {
     reportShared: (player: string, kind: string) => `${player} hat dir einen Bericht gesendet: ${kind}`,
     buildComplete: (village: string, building: string, level: number) =>
       `${village}: ${building} hat Stufe ${level} erreicht`,
+    demolished: (village: string, building: string, level: number) =>
+      `${village}: ${building} auf Stufe ${level} abgerissen`,
     incomingBadge: (count: number) =>
       count === 1 ? '1 Angriff auf dem Weg zu deinen Dörfern' : `${count} Angriffe auf dem Weg zu deinen Dörfern`,
     notifications: 'Benachrichtigungen',
@@ -1392,6 +1760,26 @@ export const de: Dictionary = {
     bannerStolen: (banner: string, village: string) =>
       `Deine Diebe haben in ${village} ein Banner gestohlen: ${banner}`,
     dismiss: 'Ausblenden',
+    troopsBack: (village: string, from: string, loot: string | null) =>
+      loot === null
+        ? `Deine Truppen aus ${from} sind zurück in ${village}.`
+        : `Deine Truppen aus ${from} sind zurück in ${village}, mit ${loot} Rohstoffen.`,
+    nobodyBack: (from: string) => `Aus ${from} ist niemand zurückgekehrt.`,
+    attacksBack: (count: number, village: string, from: string | null, loot: string | null, lost: number) => {
+      if (lost === count) {
+        const ofThem = count === 1 ? 'Von dem Angriff' : `Von den ${count} Angriffen`;
+        return from === null
+          ? `Farmlisten-Runde aus ${village}: ${ofThem} ist niemand zurückgekehrt.`
+          : `${ofThem} auf ${from} ist niemand zurückgekehrt.`;
+      }
+      const attacks = count === 1 ? '1 Angriff' : `${count} Angriffe`;
+      const head =
+        from === null
+          ? `Farmlisten-Runde zurück in ${village}: ${attacks}`
+          : `${attacks} auf ${from} zurück in ${village}`;
+      return `${head}${loot === null ? '' : `, ${loot} Rohstoffe`}${lost === 0 ? '' : `, ${lost} verloren`}.`;
+    },
+    storageFull: (village: string, resources: string) => `Speicher voll in ${village}: ${resources}.`,
   },
   /** Der Farmhelfer (M18): Ziele mit den üblichen Truppen, ein Tipp schickt einen Angriff. */
   farm: {
@@ -1405,7 +1793,7 @@ export const de: Dictionary = {
     add: 'Zur Liste hinzufügen',
     countLabel: (unit: string) => `Zu schickende Einheiten: ${unit}`,
     trip: (distance: string, duration: string) => `${distance} Felder · ${duration} einfach`,
-    lastSent: (when: string) => `zuletzt geschickt ${when}`,
+    lastSent: (when: string) => `Zuletzt geschickt ${when}`,
     protectedUntil: (when: string) => `Unter Anfängerschutz bis ${when}`,
     bannerRollUsed: (when: string) => `Banner ab ${when}`,
     bannerRollHint:
@@ -1421,7 +1809,29 @@ export const de: Dictionary = {
     editTitle: (target: string) => `Truppen für ${target}`,
     save: 'Speichern',
     remove: 'Entfernen',
-    more: (target: string) => `Mehr zu ${target}`,
+    /** 1.6, Überarbeitung der Farmliste: die kurzen Angaben der kompakten Zeile (Screenreader hören die Bezeichnungen). */
+    travelTime: 'Laufzeit',
+    lastSentLabel: 'Zuletzt geschickt',
+    lootLabel: 'Beute',
+    bannerRollUsedShort: 'Bannerchance heute verbraucht',
+    nightShort: 'Nachtbonus ',
+    moraleShort: 'Moral',
+    protectedShort: 'Unter Anfängerschutz',
+    haulUpTo: (amount: string) => `bis ${amount}`,
+    raidLost: 'verloren',
+    onMap: 'Auf der Karte',
+    capacityLine: (amount: string) => `Die Truppen tragen bis zu ${amount} Rohstoffe heim.`,
+    lastRaidLine: (when: string, loot: string | undefined, full: boolean) =>
+      loot === undefined
+        ? `Letzter Angriff ${when}: verloren.`
+        : full
+          ? `Letzter Angriff ${when}: ${loot} erbeutet, alles, was sie tragen konnten – im Dorf war mehr.`
+          : `Letzter Angriff ${when}: ${loot} erbeutet.`,
+    rowsHint: 'Tippe auf ein Ziel für Truppen, Details und Ändern.',
+    runPreview: (attacks: number, haul: string) =>
+      attacks === 0
+        ? 'Jetzt ginge kein Angriff los.'
+        : `${attacks === 1 ? '1 Angriff' : `${attacks} Angriffe`}, Beute bis zu ${haul}`,
     /** „Alle schicken“ (M39): die ganze Liste von oben; reichen die Truppen für ein Ziel nicht, wird es übersprungen (1.3). */
     sendAll: 'Alle schicken',
     sendAllArmed: 'Wirklich alle schicken?',
@@ -1433,6 +1843,7 @@ export const de: Dictionary = {
     sendBannerChancesHint:
       '„Bannerchancen schicken“ macht dasselbe, aber nur für die Ziele ohne „Banner ab …“, deren Vorlage ein Banner gewinnen kann (nicht nur Späher, gegen Barbarendörfer mindestens 30 Bevölkerung) und zu denen noch kein Angriff von dir unterwegs ist. Die Dörfer eines Spielers teilen sich eine Chance, darum geht nur das erste davon, für das die Truppen reichen.',
     sendAllLeavesPlayersOut: 'Solange dein Anfängerschutz läuft, lässt „Alle schicken“ die Dörfer von Spielern aus.',
+    notifyRun: 'Benachrichtigen, wenn diese Runde zurück ist',
     sendAllSent: (count: number) =>
       count === 0 ? 'Kein Angriff geschickt' : count === 1 ? '1 Angriff geschickt' : `${count} Angriffe geschickt`,
     sendAllSkipped: (count: number) => `${count} übersprungen.`,
@@ -1533,6 +1944,7 @@ export const de: Dictionary = {
     explainer:
       'Eine Gilde ist eine Gruppe von Spielern. Ihr Kürzel steht in eckigen Klammern vor ihren Namen in der Rangliste und auf der Karte. Gründe eine oder warte auf die Einladung eines Anführers.',
     disabled: 'Der Host hat Gilden in dieser Welt nicht eingeschaltet.',
+    startTogether: 'Wer bei der Eröffnung in einer Gilde ist, startet neben ihr.',
     notInGuild: 'Du bist in keiner Gilde.',
     back: 'Gilden',
     allGuilds: 'Alle Gilden',
@@ -1916,11 +2328,17 @@ export const de: Dictionary = {
     title: 'Über Bannerfall',
     intro:
       'Bannerfall ist ein Browser-Strategiespiel für eine kleine Gruppe von Freunden: Dörfer ausbauen, Truppen ausbilden, sich gegenseitig angreifen und unterstützen, Dörfer erobern, handeln und chatten. Computergesteuerte NPC-Fürsten und Barbarendörfer füllen die Welt, wenn nur wenige mitspielen.',
+    testersTitle: 'Danke',
+    testers:
+      'Ein großes Dankeschön an die Testspieler Anjum, David und Kai: Ihr habt von der ersten Welt an mitgespielt, Fehler gefunden und Bannerfall mit euren Ideen besser gemacht.',
+    testersSignature: 'Alles Liebe, Remph :)',
     originalTitle: 'Eigenes Werk',
-    original:
-      'Bannerfall steht in keiner Verbindung zu einem bestehenden Spiel. Name, Zahlen, Texte und Grafiken sind eigen.',
+    original: 'Bannerfall steht in keiner Verbindung zu einem bestehenden Spiel. Name, Zahlen und Texte sind eigen.',
     graphicsTitle: 'Grafiken',
-    graphics: 'Alle Symbole und das Banner-Zeichen wurden für Bannerfall gezeichnet.',
+    graphics:
+      'Die mittelalterlichen Symbole stammen von game-icons.net, gezeichnet von Lorc, Delapouite, Skoll, HeavenlyDog, Cathelineau und DarkZaitzev, unter der Lizenz Creative Commons Namensnennung 3.0. Die klassischen Symbole, das Dorfbild, die Karte und das Banner-Zeichen wurden für Bannerfall gezeichnet.',
+    graphicsSource: 'game-icons.net',
+    graphicsLicence: 'Lizenz CC BY 3.0',
     fontsTitle: 'Schriften',
     fonts:
       'Uncial Antiqua, Alegreya SC und Alegreya Sans, alle unter der SIL Open Font License 1.1, von diesem Server ausgeliefert.',
@@ -1980,7 +2398,6 @@ export const de: Dictionary = {
       spawned: (x: number, y: number) => `Auf ${x}|${y} steht jetzt ein Barbarendorf.`,
     },
     victory: {
-      title: 'Sieg',
       hint: 'Wie diese Welt gewonnen wird. Eine Seite ist eine Gilde mit allen Mitgliedern, solange Gilden an sind, sonst ein einzelner Spieler; auch NPC-Fürsten können gewinnen. Der Server prüft alle 5 Minuten, und die Haltezeit beginnt neu, sobald eine andere Seite führt oder die führende unter das Ziel fällt. Ein Enddatum (nächste Karte) gilt in jedem Modus.',
       mode: 'Wie die Welt gewonnen wird',
       modes: {
@@ -2000,7 +2417,6 @@ export const de: Dictionary = {
       keepCount: 'Bannerfesten auf der Karte',
       keepPercent: 'Anteil der Festen (%)',
       keepsNeeded: (needed: number, count: number) => `Eine Seite muss ${needed} von ${count} Festen halten.`,
-      saved: 'Gespeichert.',
     },
     worldEnd: {
       title: 'Weltende',
@@ -2008,13 +2424,11 @@ export const de: Dictionary = {
       noDate: 'Kein Enddatum gesetzt.',
       status: (when: string) => `Die Welt endet am ${when}.`,
       at: 'Enddatum',
-      set: 'Enddatum setzen',
       clear: 'Enddatum entfernen',
       endNow: 'Jetzt beenden',
       confirmNow:
         'Die Welt jetzt beenden? Die Seite mit den meisten Punkten gewinnt, und nichts bewegt sich mehr. Du kannst sie danach wieder öffnen.',
       confirmYes: 'Ja, beenden',
-      saved: 'Gespeichert.',
       ended: (when: string) => `Die Welt endete am ${when}. Sie ist eingefroren.`,
       reopen: 'Welt wieder öffnen',
       confirmReopen:
@@ -2022,13 +2436,8 @@ export const de: Dictionary = {
       confirmReopenYes: 'Ja, wieder öffnen',
     },
     barbarianWalls: {
-      title: 'Barbaren',
       hint: 'Barbarendörfer, die Wälle bauen: Sie starten ohne Wall, und ab dem Starttag kommt in jeder Wachstumsrunde eine Stufe dazu, bis zur Obergrenze. Rammböcke können einen Wall einreißen; er wächst nur mit dem letzten Schalter wieder nach. Ein Wall über der Obergrenze (Dorf eines gelöschten Spielers) bleibt, wie er ist. Aus heißt wie bisher: zufälliger Wall von 0–2 zu Beginn, nie mehr.',
-      barbarianWallsEnabled: 'Barbaren bauen Wälle',
-      barbarianWallStartDays: 'Mit dem Bau beginnen nach (Tagen seit der Eröffnung)',
-      barbarianWallMaxLevel: 'Höchste Wallstufe der Barbaren',
       barbarianWallsRebuild: 'Barbaren bauen Wälle wieder auf',
-      saved: 'Gespeichert.',
     },
     players: {
       title: 'Spieler',
@@ -2115,12 +2524,8 @@ export const de: Dictionary = {
       target: (type: string, id: number | null) => (id === null ? type : `${type} ${id}`),
     },
     world: {
-      title: 'Welteinstellungen',
-      hint: 'Änderungen gelten sofort. Laufende Aufträge behalten ihre Zeiten; eine neue Geschwindigkeit zählt für die Produktion ab der letzten Aktualisierung jedes Dorfes.',
-      fixed: (mapSize: number, barbarians: number, lords: number) =>
-        `Fest, sobald die Welt erstellt ist: Karte ${mapSize} × ${mapSize}, ${barbarians} Barbarendörfer zu Beginn, ${lords} NPC-Fürsten zu Beginn.`,
-      name: 'Weltname',
-      inviteCode: 'Einladungscode',
+      fixed: (mapSize: number, spread: string, barbarians: number, lords: number) =>
+        `Fest, sobald die Welt erstellt ist: Karte ${mapSize} × ${mapSize}, Kartenweite ${spread}, ${barbarians} Barbarendörfer zu Beginn, ${lords} NPC-Fürsten zu Beginn.`,
       speed: 'Weltgeschwindigkeit',
       unitSpeed: 'Einheitengeschwindigkeit',
       startResources: 'Startrohstoffe (je)',
@@ -2135,40 +2540,155 @@ export const de: Dictionary = {
       barbariansPerNewPlayer: 'Barbarendörfer pro neuem Spieler',
       tradeMaxRatio: 'Größtes Marktverhältnis',
       npcThinkMinutes: 'NPC-Runde alle (Minuten, vor Geschwindigkeit)',
-      barbarianGrowthEnabled: 'Barbarendörfer wachsen',
-      guildsEnabled: 'Gilden dürfen gegründet werden und Mitglieder aufnehmen',
-      unitLevelsEnabled: 'Einheiten können in der Schmiede höhere Stufen erreichen',
-      guildMaxMembers: 'Höchstens so viele Mitglieder je Gilde',
-      npcGuildsEnabled: 'NPC-Fürsten gründen Gilden',
+      archersHint:
+        'Sie greifen als eigene Klasse an, gegen die die Verteidigung gegen Bogenschützen jeder Einheit zählt. Auch NPC-Fürsten setzen sie ein.',
+      archersOff: 'Vorhandene Bogenschützen bleiben und kämpfen weiter; neue kann niemand ausbilden oder erforschen.',
+      guildStartTogetherHint:
+        'Wer zur Eröffnung in einer Gilde ist, bekommt sein Dorf ein paar Felder neben seinen Gildenmitgliedern; wer sein letztes Dorf verloren hat, darf neben seiner Gilde neu anfangen.',
       npcGuildsHint:
-        'Fürsten ab 850 Punkten tun sich mit einem Fürsten im Umkreis von 15 Feldern zusammen: Sie greifen einander nie an, verteidigen einander und rächen einander. Umstellen kannst du sie im Reiter NPC-Fürsten.',
+        'Fürsten ab 850 Punkten tun sich mit einem Fürsten im Umkreis von 15 Feldern zusammen (auf einer weiteren Karte mehr): Sie greifen einander nie an, verteidigen einander und rächen einander. Umstellen kannst du sie im Reiter NPC-Fürsten.',
       npcGuildsOff: 'Beim Speichern enden alle Fürstengilden, und deine Zuordnungen werden gelöscht.',
-      npcGuildMaxMembers: 'Höchstens so viele Fürsten je Fürstengilde',
-      paladinVillagesPerSlot: 'Dörfer je zusätzlichem Paladin-Platz',
-      paladinMaxSlots: 'Höchstens so viele Paladin-Plätze (0 = kein Paladin)',
-      bannersEnabled: 'Banner wirken (Bannerhalle, Hissen)',
-      bannerDropFactor: 'Chance auf Banner-Beute als Faktor (1 = normal, 0 = keine)',
-      standardTheftEnabled:
-        'Bannerdiebe der Verteidiger können die Paladin-Standarte eines zurückgeschlagenen Angriffs nehmen',
-      npcBannersEnabled: 'NPC-Fürsten nutzen Banner',
+      npcLearningHint:
+        'Fürsten verschieben bis zu 35 % ihrer Truppen hin zu dem, was gegen die Angriffe auf sie hilft, und zur Mischung menschlicher Angriffe, die gegen Dörfer von Spielern oder Fürsten gewonnen haben, und bauen nach Rammböcken und Katapulten ihren Wall aus. Ihre Wirtschaft bleibt gleich.',
       npcBannersHint:
         'Fürsten finden, hissen und verschmelzen Banner und Standarten wie Spieler, bilden ihren Paladin in der Bannerhalle aus und nehmen Bannerdiebe auf ihre Racheangriffe mit. Aus: Was Fürsten besitzen, ruht, kann aber weiterhin gestohlen oder erobert werden.',
-      marketExchangeRatio: 'Tauschkurs des Marktes (1 für x; 0 = aus, sonst 1 bis 10)',
-      nightBonusEnabled: 'Nachtbonus: Dörfer verteidigen sich nachts stärker',
-      nightBonusStartHour: 'Nacht ab (Stunde, deutsche Zeit)',
-      nightBonusEndHour: 'Nacht bis (Stunde)',
-      nightBonusFactor: 'Verteidigung nachts als Faktor (1,1 bis 3)',
+      npcShipmentsHint:
+        'Ein Fürstendorf, dessen Speicher nach Bauen und Rekrutieren fast voll ist, schickt, was überlaufen würde, mit Händlern in die Dörfer des Fürsten, die noch ausgebaut werden. Nie nachts, nie in ein angegriffenes Dorf.',
       nightBonusHint:
         'Gilt für Angriffe, die in diesen Stunden ankommen, in Dörfern von Spielern und NPC-Fürsten, nicht in Barbarendörfern. Beginn und Ende müssen sich unterscheiden. Angriffe, die schon unterwegs sind, bekommen den Bonus, der bei ihrer Ankunft gilt.',
-      villageNameLanguage: 'Dorfnamen',
+      moraleHint:
+        'Der Angriff zählt mit 30 % + 3 × Punkte des Verteidigers / Punkte des Angreifers, höchstens 100 % und mindestens die niedrigste Moral. Nur der Angriff ändert sich, nie die Verteidigung. Für Spieler und NPC-Fürsten gleich; Barbarendörfer und Späher betrifft sie nicht.',
       villageNameLanguageHint:
         "Neue Dörfer heißen „Dorf von Ben“ oder „Ben's village“. Speichern mit der anderen Sprache benennt jedes Dorf um, das noch seinen Standardnamen trägt; Namen von Spielern bleiben.",
-      saved: 'Gespeichert.',
       mapSize: 'Kartengröße (Felder pro Seite)',
+      /** 1.6: wie weit die Seiten auseinander beginnen. */
+      mapSpread: 'Kartenweite',
+      mapSpreadHint:
+        'So weit verteilen sich Spieler, NPC-Fürsten und Barbaren, und so weit suchen die Fürsten nach Zielen. Die Wahl setzt auch Kartengröße und Adelsreichweite, beide kannst du danach noch ändern.',
       barbarianInitialCount: 'Barbarendörfer zu Beginn',
       npcLordCount: 'NPC-Fürsten zu Beginn',
       pregameHint:
-        'Die Welt ist noch nicht eröffnet: Kartengröße, Barbaren und NPC-Fürsten kannst du hier noch ändern. Sie entstehen erst bei der Eröffnung.',
+        'Die Welt ist noch nicht eröffnet: Kartenweite, Kartengröße, Barbaren und NPC-Fürsten kannst du hier noch ändern. Sie entstehen erst bei der Eröffnung.',
+      setupLink: 'Die wichtigsten Einstellungen Schritt für Schritt einrichten',
+    },
+    worldTab: {
+      sectionsLabel: 'Welteinstellungen',
+      sections: {
+        basics: 'Grundlagen',
+        pace: 'Tempo',
+        map: 'Karte und Gegner',
+        rules: 'Regeln',
+        victory: 'Sieg und Ende',
+      },
+      short: {
+        basics: 'Basis',
+        pace: 'Tempo',
+        map: 'Karte',
+        rules: 'Regeln',
+        victory: 'Sieg',
+      },
+      intros: {
+        basics: 'Wie die Welt heißt, wie Spieler hineinkommen und wie Dörfer heißen.',
+        pace: 'Wie schnell die Welt läuft. Laufende Aufträge behalten ihre Zeiten; eine neue Geschwindigkeit zählt für die Produktion ab der letzten Aktualisierung jedes Dorfes.',
+        map: 'Die Karte, die Barbaren und die NPC-Fürsten.',
+        rules: 'Welche Teile des Spiels eingeschaltet sind. Änderungen gelten ab dem Speichern.',
+        victory: 'Wie die Welt gewonnen wird und wann sie endet.',
+      },
+      groups: {
+        world: 'Welt',
+        pace: 'Tempo',
+        map: 'Karte',
+        barbarians: 'Barbaren',
+        lords: 'NPC-Fürsten',
+        guilds: 'Gilden',
+        combat: 'Kampf',
+        bannersNobles: 'Banner und Adel',
+        economy: 'Wirtschaft',
+        victory: 'Siegbedingung',
+        end: 'Weltende',
+      },
+      rows: {
+        name: 'Weltname',
+        inviteCode: 'Einladungscode',
+        villageNameLanguage: 'Dorfnamen',
+        speed: 'Weltgeschwindigkeit',
+        unitSpeed: 'Einheitengeschwindigkeit',
+        beginnerProtectionHours: 'Anfängerschutz',
+        startResources: 'Startrohstoffe',
+        buildQueue: 'Bauschlange',
+        recruitQueueSize: 'Rekrutierungsaufträge',
+        cancelWindowSeconds: 'Abbruchfenster',
+        mapSpread: 'Kartenweite',
+        mapSize: 'Kartengröße',
+        nobleMaxDistance: 'Reichweite der Adligen',
+        barbarianInitialCount: 'Barbaren zu Beginn',
+        barbariansPerNewPlayer: 'Barbaren je neuem Spieler',
+        barbarianGrowth: 'Barbarendörfer wachsen',
+        barbarianWalls: 'Barbarenwälle',
+        npcLordCount: 'Fürsten zum Start',
+        npcGuilds: 'Fürsten bilden Gilden',
+        npcLearning: 'Fürsten lernen von Spielern',
+        npcBanners: 'Fürsten nutzen Banner',
+        npcShipments: 'Fürsten schicken Überschuss',
+        npcThinkMinutes: 'NPC-Runde',
+        guilds: 'Gilden',
+        guildStartTogether: 'Gildenmitglieder starten nebeneinander',
+        morale: 'Moral',
+        nightBonus: 'Nachtbonus',
+        unitLevels: 'Einheitenstufen',
+        archers: 'Bogenschützen',
+        paladin: 'Paladin',
+        luckRange: 'Glücksbereich',
+        banners: 'Banner',
+        standardTheft: 'Standartenraub',
+        noblePrice: 'Steigender Adelspreis',
+        loyaltyRegenPerHour: 'Zustimmung',
+        market: 'Tausch mit dem Markt',
+        tradeMaxRatio: 'Größtes Marktverhältnis',
+        automation: 'Dorf-Automatik',
+        victory: 'Siegbedingung',
+        endsAt: 'Enddatum',
+      },
+      npcLearningHint: 'Sie verschieben ihre Truppen hin zu dem, was gegen die Angriffe auf sie hilft und was gewinnt.',
+      npcShipmentsHint: 'Was überlaufen würde, geht per Händler in ihre Dörfer, die noch wachsen.',
+      automationHint: 'Dörfer ab dieser Nummer können selbst nach einem Bau- und Rekrutierungsplan arbeiten.',
+      paladinHint: 'Ein Held je Spieler, ein weiterer Platz je einige Dörfer.',
+      fields: {
+        guildMaxMembers: 'Höchstens Mitglieder je Gilde',
+        npcGuildMaxMembers: 'Höchstens Fürsten je Fürstengilde',
+        moraleFloor: 'Niedrigste Moral (%)',
+        nightBonusStartHour: 'Nacht ab (Stunde, deutsche Zeit)',
+        nightBonusEndHour: 'Nacht bis (Stunde)',
+        nightBonusFactor: 'Verteidigung ×',
+        paladinMaxSlots: 'Höchstens Plätze',
+        paladinVillagesPerSlot: 'Dörfer je weiterem Platz',
+        bannerDropFactor: 'Banner-Beute ×',
+        noblePriceStep: 'Aufschlag je Rang',
+        marketExchangeRatio: 'Kurs (1 für x)',
+        automationVillages: 'Ab Dorf Nr.',
+        barbarianWallStartDays: 'Beginnen nach (Tagen seit der Eröffnung)',
+        barbarianWallMaxLevel: 'Höchste Wallstufe',
+      },
+      fieldHints: {
+        moraleFloor: '30 bis 100',
+        nightBonusFactor: '1,1 bis 3',
+        bannerDropFactor: '1 = normal, 0 = keine',
+        noblePriceStep: 'höchstens 1',
+        marketExchangeRatio: '1 bis 10',
+      },
+      more: 'Weitere Einstellungen',
+      lordsLink: 'Schwierigkeit und die einzelnen Fürsten: Reiter NPC-Fürsten',
+      endsAtHint: 'Leer lassen, dann läuft die Welt weiter.',
+      endNowHint: '„Jetzt beenden“ fragt nach und gilt sofort, nicht über die Leiste.',
+      changes: (count: number) => (count === 1 ? '1 Änderung' : `${count} Änderungen`),
+      where: (section: string, rows: string) => `${section}: ${rows}`,
+      unsaved: '(ungespeicherte Änderungen)',
+      discard: 'Verwerfen',
+      invalid: (rows: string) => `Bitte prüfen: ${rows}`,
+      saved: 'Gespeichert.',
+      failed: (error: string) => `Nicht gespeichert: ${error}`,
+      endFailed: (error: string) => `Gespeichert bis auf das Enddatum: ${error}`,
+      settingsFailed: (error: string) => `Nur das Enddatum ist gespeichert, der Rest nicht: ${error}`,
     },
     opening: {
       title: 'Startzeitpunkt',
@@ -2261,6 +2781,17 @@ export const de: Dictionary = {
       asleep: 'ruht',
       worksAt: (tier: string) => `wirkt auf ${tier}`,
       bannersOff: 'Fürstenbanner sind aus (Welteinstellungen): Was Fürsten besitzen, ruht.',
+      /** Lernende Fürsten (09-npc-lords §15.5). */
+      learned: (changes: string) => `Gelernt: ${changes}`,
+      learnedNoChange: 'Gelernt: noch keine spürbare Änderung an den Truppen',
+      learnedInfo: 'Was der Fürst gelernt hat',
+      learnedAttacks: (percent: number) =>
+        `Aus Angriffen auf ihn: ${percent}\u00a0%. So viel seiner Truppen stellt er auf das um, was ihn angreift (Speerträger gegen Kavallerie, Schwertkämpfer gegen Infanterie, Späher gegen Späher).`,
+      learnedWins: (percent: number) =>
+        `Aus Siegen der Spieler: ${percent}\u00a0%. So viel mischt er seine Angriffstruppen so wie die Armeen, mit denen Spieler zuletzt gewonnen haben.`,
+      learnedRest:
+        'Der Rest folgt der Vorlage seiner Persönlichkeit. Ohne neue Angriffe und Siege verblasst das Gelernte.',
+      wallGoal: (village: string, level: number, until: string) => `${village}: Wall auf Stufe ${level} bis ${until}`,
     },
   },
   dev: {
@@ -2288,6 +2819,8 @@ export const de: Dictionary = {
     WORLD_FULL: 'Die Welt ist voll. Es gibt keinen freien Platz für ein neues Dorf.',
     WORLD_NOT_OPEN: 'Die Welt ist noch nicht eröffnet.',
     WORLD_ALREADY_OPEN: 'Die Welt ist schon offen; das lässt sich nur vor der Eröffnung ändern.',
+    SETUP_CODE_INVALID:
+      'Dieser Einrichtungslink ist falsch, schon benutzt oder älter als 30 Minuten. `bannerfall-admin setup` erzeugt einen neuen.',
     WORLD_ENDED: 'Die Welt ist beendet. Es lässt sich nichts mehr ändern.',
     WORLD_NOT_ENDED: 'Die Welt ist nicht beendet.',
     SERVER_STARTING: 'Der Server startet gerade. Versuche es gleich noch einmal.',
@@ -2318,6 +2851,8 @@ export const de: Dictionary = {
     NOT_ENOUGH_POPULATION: 'Nicht genug freie Bevölkerung. Baue zuerst den Bauernhof aus.',
     REQUIREMENTS_NOT_MET: 'Die Voraussetzungen sind noch nicht erfüllt.',
     MAX_LEVEL_REACHED: 'Dieses Gebäude hat bereits die höchste Stufe.',
+    MIN_LEVEL_REACHED: 'Dieses Gebäude kann nicht weiter abgerissen werden.',
+    BUILD_ORDER_CONFLICT: 'Ein Gebäude kann nicht in derselben Bauschleife ausgebaut und abgerissen werden.',
     UNIT_LEVELS_DISABLED: 'Einheitenstufen sind in dieser Welt abgeschaltet.',
     PALADIN_SLOTS_FULL: 'Alle deine Paladin-Plätze sind belegt. Mehr Dörfer schalten weitere Plätze frei.',
     BANNERS_DISABLED: 'Banner sind in dieser Welt ausgeschaltet.',
@@ -2332,6 +2867,7 @@ export const de: Dictionary = {
     BANNER_FUSE_TYPE: 'Das neue Banner nimmt die Art eines der drei an.',
     BANNER_FAMILIES_DIFFER: 'Banner verschmelzen nur mit Bannern, Paladin-Standarten nur mit Standarten.',
     PALADIN_DISABLED: 'In dieser Welt gibt es keine Paladine.',
+    ARCHERS_DISABLED: 'In dieser Welt gibt es keine Bogenschützen.',
     RESEARCH_BUSY: 'Diese Schmiede oder diese Einheit wird schon erforscht. Warte, bis es fertig ist.',
     RESEARCH_ORDER_NOT_FOUND: 'Diese Erforschung gibt es nicht mehr. Vielleicht ist sie schon fertig.',
     QUEUE_FULL: 'Die Schleife ist voll.',
@@ -2339,6 +2875,8 @@ export const de: Dictionary = {
     ORDER_NOT_MOVABLE: 'Begonnene Aufträge lassen sich nicht verschieben, und nichts kann vor sie.',
     RECRUIT_ORDER_NOT_FOUND: 'Diesen Rekrutierungsauftrag gibt es nicht mehr. Vielleicht ist er schon fertig.',
     RECRUIT_TEMPLATE_NOT_FOUND: 'Diese Vorlage gibt es nicht (mehr).',
+    BUILD_PLAN_NOT_FOUND: 'Diesen Bauplan gibt es nicht (mehr).',
+    AUTOMATION_LOCKED: 'Die Automatik ist für dich noch nicht freigeschaltet.',
     DISMISS_ORDER_NOT_FOUND: 'Diese Entlassung gibt es nicht mehr. Vielleicht sind die Einheiten schon weg.',
     DISMISS_LOCKED:
       'Ein Angriff ist unterwegs, deshalb lässt sich die Entlassung jetzt nicht stoppen. Versuche es nach seiner Ankunft erneut.',

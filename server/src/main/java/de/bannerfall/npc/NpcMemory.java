@@ -26,6 +26,7 @@ import java.util.Set;
  * @param farmed per village id: arrival of the lord's last farm or attack there (09 §6.2)
  * @param supported the incoming attacks a village of the lord already answered (09 §6.5)
  * @param conquest per academy village id: its current conquest target (09 §6.6)
+ * @param lessons what the attacks on the lord taught it (learning lords, 09 §15)
  */
 public record NpcMemory(
         long lastReportId,
@@ -36,7 +37,8 @@ public record NpcMemory(
         List<SentAttack> attacksSent,
         Map<Long, Instant> farmed,
         List<Supported> supported,
-        Map<Long, ConquestTarget> conquest) {
+        Map<Long, ConquestTarget> conquest,
+        Lessons lessons) {
 
     public NpcMemory {
         ledger = ledger == null ? Map.of() : Map.copyOf(ledger);
@@ -47,10 +49,35 @@ public record NpcMemory(
         farmed = farmed == null ? Map.of() : Map.copyOf(farmed);
         supported = supported == null ? List.of() : List.copyOf(supported);
         conquest = conquest == null ? Map.of() : Map.copyOf(conquest);
+        lessons = lessons == null ? Lessons.NONE : lessons;
+    }
+
+    /** Memory without lessons (written before learning lords, and tests). */
+    public NpcMemory(
+            long lastReportId,
+            Map<Long, Ledger> ledger,
+            Stance stance,
+            Map<Long, Intel> intel,
+            Map<Long, Grudge> grudges,
+            List<SentAttack> attacksSent,
+            Map<Long, Instant> farmed,
+            List<Supported> supported,
+            Map<Long, ConquestTarget> conquest) {
+        this(
+                lastReportId,
+                ledger,
+                stance,
+                intel,
+                grudges,
+                attacksSent,
+                farmed,
+                supported,
+                conquest,
+                null);
     }
 
     public static NpcMemory empty() {
-        return new NpcMemory(0, null, null, null, null, null, null, null, null);
+        return new NpcMemory(0, null, null, null, null, null, null, null, null, null);
     }
 
     /** Spending on buildings (and nobles) and on troops, in resources, decayed every round. */
@@ -199,6 +226,45 @@ public record NpcMemory(
     /** An academy village's conquest target, kept until {@code until}. */
     public record ConquestTarget(long villageId, Instant until) {}
 
+    /**
+     * What attacks on the lord taught it (09 §15.1, §15.4).
+     *
+     * @param seen the fading tally of the attacks on its villages
+     * @param walls per own village id: the wall goal set by siege attacks
+     */
+    public record Lessons(Tally seen, Map<Long, WallGoal> walls) {
+        public static final Lessons NONE = new Lessons(null, null);
+
+        public Lessons {
+            seen = seen == null ? Tally.ZERO : seen;
+            walls = walls == null ? Map.of() : Map.copyOf(walls);
+        }
+    }
+
+    /**
+     * A fading tally of attacks (09 §15.1), every value as of {@code at}: it halves every {@code
+     * half-life-hours} real hours after that ({@link NpcLearning#fadedTo}).
+     *
+     * @param at the moment the values hold for (null: nothing seen yet)
+     * @param infantry attack power of infantry units (count × attack)
+     * @param cavalry attack power of cavalry units
+     * @param siege population of rams and catapults
+     * @param attacks number of attacks (not scouts only)
+     * @param scoutings number of scouts-only attacks
+     */
+    public record Tally(
+            Instant at,
+            double infantry,
+            double cavalry,
+            double siege,
+            double attacks,
+            double scoutings) {
+        public static final Tally ZERO = new Tally(null, 0, 0, 0, 0, 0);
+    }
+
+    /** A village's wall goal (09 §15.4): build the wall up to {@code level} until {@code until}. */
+    public record WallGoal(int level, Instant until) {}
+
     /** The ledger of a village (zero if it has none yet). */
     public Ledger ledgerOf(long villageId) {
         return ledger.getOrDefault(villageId, Ledger.ZERO);
@@ -227,6 +293,9 @@ public record NpcMemory(
         Draft draft = draft();
         draft.ledger.keySet().retainAll(villageIds);
         draft.conquest.keySet().retainAll(villageIds);
+        Map<Long, WallGoal> walls = new HashMap<>(draft.lessons.walls());
+        walls.keySet().retainAll(villageIds);
+        draft.lessons = new Lessons(draft.lessons.seen(), walls);
         return draft.build();
     }
 
@@ -251,6 +320,7 @@ public record NpcMemory(
         public final Map<Long, Instant> farmed;
         public final List<Supported> supported;
         public final Map<Long, ConquestTarget> conquest;
+        public Lessons lessons;
 
         private Draft(NpcMemory m) {
             lastReportId = m.lastReportId;
@@ -262,6 +332,7 @@ public record NpcMemory(
             farmed = new HashMap<>(m.farmed);
             supported = new ArrayList<>(m.supported);
             conquest = new HashMap<>(m.conquest);
+            lessons = m.lessons;
         }
 
         public NpcMemory build() {
@@ -274,7 +345,8 @@ public record NpcMemory(
                     attacksSent,
                     farmed,
                     supported,
-                    conquest);
+                    conquest,
+                    lessons);
         }
     }
 }

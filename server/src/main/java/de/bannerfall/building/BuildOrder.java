@@ -13,9 +13,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * One upgrade in a village's build queue (02-game-rules §4.3). The orders of a village run one
- * after another: each starts when the one before it ends. Its BUILD_COMPLETE event is due at {@link
- * #getEndAt()}. Change orders only while the village is locked.
+ * One upgrade, or since 1.6 one demolition, in a village's build queue (02-game-rules §4.3, §4.5).
+ * The orders of a village run one after another: each starts when the one before it ends. Its
+ * BUILD_COMPLETE event is due at {@link #getEndAt()}. Change orders only while the village is
+ * locked.
  *
  * <p>No {@code @Version}: every change happens under the village lock.
  */
@@ -32,9 +33,15 @@ public class BuildOrder {
     @Enumerated(EnumType.STRING)
     private BuildingType building;
 
-    /** For display; completion adds one level to whatever the village has then. */
+    /**
+     * For display; completion adds one level to whatever the village has then (a demolition takes
+     * one away).
+     */
     @JdbcTypeCode(SqlTypes.SMALLINT)
     private int targetLevel;
+
+    /** A demolition (1.6, 02-game-rules §4.5): one level less when it completes, nothing paid. */
+    private boolean demolish;
 
     /** Kept so the queue can be re-timed after a cancel. */
     private int durationSeconds;
@@ -51,6 +58,9 @@ public class BuildOrder {
 
     private Instant createdAt;
 
+    /** Placed by the village automation (1.6, 02-game-rules §25), not by a tap. */
+    private boolean automated;
+
     protected BuildOrder() {}
 
     private BuildOrder(
@@ -61,6 +71,7 @@ public class BuildOrder {
             Instant startAt,
             ResourceAmounts cost,
             int costPop,
+            boolean demolish,
             Instant now) {
         this.villageId = villageId;
         this.building = building;
@@ -72,6 +83,7 @@ public class BuildOrder {
         this.costClay = cost.clay();
         this.costIron = cost.iron();
         this.costPop = costPop;
+        this.demolish = demolish;
         this.createdAt = now;
     }
 
@@ -91,7 +103,43 @@ public class BuildOrder {
             int costPop,
             Instant now) {
         return new BuildOrder(
-                villageId, building, targetLevel, durationSeconds, startAt, cost, costPop, now);
+                villageId,
+                building,
+                targetLevel,
+                durationSeconds,
+                startAt,
+                cost,
+                costPop,
+                false,
+                now);
+    }
+
+    /**
+     * A new demolition that runs from {@code startAt} for {@code durationSeconds} and leaves the
+     * building at {@code targetLevel}. It costs nothing, so nothing is refunded on a cancel either.
+     */
+    public static BuildOrder createDemolition(
+            long villageId,
+            BuildingType building,
+            int targetLevel,
+            int durationSeconds,
+            Instant startAt,
+            Instant now) {
+        return new BuildOrder(
+                villageId,
+                building,
+                targetLevel,
+                durationSeconds,
+                startAt,
+                ResourceAmounts.ZERO,
+                0,
+                true,
+                now);
+    }
+
+    /** The village automation placed this order (02-game-rules §25). */
+    public void markAutomated() {
+        automated = true;
     }
 
     /** Moves the order to another start; the end follows with the stored duration. */
@@ -102,10 +150,11 @@ public class BuildOrder {
 
     /**
      * The building lost {@code levels} levels in a battle (02-game-rules §9.2): the order stays and
-     * still adds one level when it completes, so it aims that much lower.
+     * still adds (or for a demolition takes away) one level when it completes, so it aims that much
+     * lower.
      */
     public void lowerTargetLevel(int levels) {
-        if (levels < 0 || targetLevel - levels < 1) {
+        if (levels < 0 || targetLevel - levels < (demolish ? 0 : 1)) {
             throw new IllegalArgumentException(
                     "Build order " + id + " at level " + targetLevel + " can't lose " + levels);
         }
@@ -123,6 +172,10 @@ public class BuildOrder {
     /** What the order cost, refunded in full when it is cancelled. */
     public ResourceAmounts cost() {
         return new ResourceAmounts(costWood, costClay, costIron);
+    }
+
+    public boolean isDemolish() {
+        return demolish;
     }
 
     public Long getId() {
@@ -159,5 +212,9 @@ public class BuildOrder {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isAutomated() {
+        return automated;
     }
 }

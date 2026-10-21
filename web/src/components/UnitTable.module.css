@@ -39,9 +39,16 @@
 
 .unit {
   display: flex;
-  flex-wrap: wrap; /* the level badge (M30) drops under a long name instead of widening the table */
   align-items: center;
   gap: var(--space-2);
+}
+
+/* the name wraps beside the icon ("Berittener Bogenschütze"); the level badge (M30) follows the
+   last word and goes to the next line with it only when it doesn't fit there */
+.name {
+  min-width: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .icon {
@@ -64,6 +71,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
+  display: inline-block;
 }
 
 .lost {

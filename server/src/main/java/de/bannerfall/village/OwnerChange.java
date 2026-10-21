@@ -1,5 +1,6 @@
 package de.bannerfall.village;
 
+import de.bannerfall.automation.VillageAutomationRepository;
 import de.bannerfall.building.BuildOrder;
 import de.bannerfall.building.BuildOrderRepository;
 import de.bannerfall.event.EventScheduler;
@@ -10,6 +11,7 @@ import de.bannerfall.market.TradeTransport;
 import de.bannerfall.market.TradeTransportRepository;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementRepository;
+import de.bannerfall.movement.ReturnWatchRepository;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.player.Player;
@@ -41,6 +43,7 @@ public class OwnerChange {
     private final DismissOrderRepository dismissOrders;
     private final ResearchOrderRepository researchOrders;
     private final FarmTargetRepository farmTargets;
+    private final VillageAutomationRepository automations;
     private final TradeOfferRepository tradeOffers;
     private final TradeTransportRepository transports;
     private final UnitStackRepository stacks;
@@ -48,6 +51,7 @@ public class OwnerChange {
     private final MovementRepository movements;
     private final EventScheduler scheduler;
     private final ApplicationEventPublisher events;
+    private final ReturnWatchRepository returnWatches;
 
     OwnerChange(
             BuildOrderRepository buildOrders,
@@ -55,18 +59,21 @@ public class OwnerChange {
             DismissOrderRepository dismissOrders,
             ResearchOrderRepository researchOrders,
             FarmTargetRepository farmTargets,
+            VillageAutomationRepository automations,
             TradeOfferRepository tradeOffers,
             TradeTransportRepository transports,
             UnitStackRepository stacks,
             UnitService unitService,
             MovementRepository movements,
             EventScheduler scheduler,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            ReturnWatchRepository returnWatches) {
         this.buildOrders = buildOrders;
         this.recruitOrders = recruitOrders;
         this.dismissOrders = dismissOrders;
         this.researchOrders = researchOrders;
         this.farmTargets = farmTargets;
+        this.automations = automations;
         this.tradeOffers = tradeOffers;
         this.transports = transports;
         this.stacks = stacks;
@@ -74,14 +81,15 @@ public class OwnerChange {
         this.movements = movements;
         this.scheduler = scheduler;
         this.events = events;
+        this.returnWatches = returnWatches;
     }
 
     /**
-     * Build orders (with their events), recruit, dismiss and running research orders, market offers
-     * and the farm list are deleted; nothing is refunded (an offer's resources are lost,
-     * 02-game-rules §10). Transports on the way still arrive, and what comes to the village goes to
-     * its new owner; the merchants the village sent out were the old owner's and don't come back
-     * (code review 1.2, D8): they are no longer busy here or listed.
+     * Build orders (with their events), recruit, dismiss and running research orders, market
+     * offers, the farm list and the village automation are deleted; nothing is refunded (an offer's
+     * resources are lost, 02-game-rules §10). Transports on the way still arrive, and what comes to
+     * the village goes to its new owner; the merchants the village sent out were the old owner's
+     * and don't come back (code review 1.2, D8): they are no longer busy here or listed.
      *
      * @param at when the village changes owner (a conquest: the battle's time, which the event
      *     worker may handle a little later)
@@ -106,6 +114,8 @@ public class OwnerChange {
         }
         // the farm list is the old owner's: the new one starts with an empty one
         farmTargets.deleteAll(farmTargets.findByVillageIdOrderByIdAsc(villageId));
+        // so is the automation (1.6, 02-game-rules §25); its pending look finds nothing to do
+        automations.deleteForVillage(villageId);
     }
 
     /**
@@ -133,6 +143,8 @@ public class OwnerChange {
             notifyOwnerOf(movement.getTargetVillage(), quietPlayerId);
             movements.delete(movement);
         }
+        // nobody waits for them any more (1.6)
+        returnWatches.deleteByVillage(village.getId());
     }
 
     private void notifyOwnerOf(Village village, Long quietPlayerId) {

@@ -2,8 +2,11 @@ package de.bannerfall.banner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import de.bannerfall.gamedata.BannerType;
+import de.bannerfall.rules.BannerEffect;
+import de.bannerfall.rules.StandardEffect;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +73,36 @@ class BannerCatalogTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> catalog.effect(BannerType.HARVEST, 4))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void aFlyingBannerWorksAtMostAtTheHallsLevelAndSleepsWithoutOne() {
+        // 02 §21.3: the battle, the simulator and the NPC estimate all take it from here
+        BannerCatalog catalog = new BannerCatalog(effects(), DROPS, THEFT, FUSING);
+
+        assertThat(catalog.flying(BannerType.BULWARK, 3, 5))
+                .isEqualTo(new BannerEffect(BannerType.BULWARK, 3, 3, 0.15));
+        assertThat(catalog.flying(BannerType.BULWARK, 3, 2))
+                .isEqualTo(new BannerEffect(BannerType.BULWARK, 3, 2, 0.10));
+        assertThat(catalog.flying(BannerType.OATH, 2, 0))
+                .isEqualTo(new BannerEffect(BannerType.OATH, 2, 0, 0));
+        // a standard works at the tier it is given (BannerRules.standardTier), 0 while it sleeps
+        assertThat(catalog.standard(BannerType.SIEGE_STANDARD, 3, 1))
+                .isEqualTo(new StandardEffect(BannerType.SIEGE_STANDARD, 3, 1, 0.05));
+        assertThat(catalog.standard(BannerType.SIEGE_STANDARD, 3, 0))
+                .isEqualTo(new StandardEffect(BannerType.SIEGE_STANDARD, 3, 0, 0));
+    }
+
+    @Test
+    void theTheftChanceOfABannerShrinksWithTheHallAndThatOfAStandardDoesNot() {
+        // 02 §21.6.2 and §21.18: 1 − (1 − perThief)^survivors, the hall takes 10 % per level
+        double tenThieves = 1 - Math.pow(1 - 0.04, 10);
+
+        assertThat(THEFT.chance(10, 0, 2)).isCloseTo(tenThieves, within(1e-12));
+        assertThat(THEFT.chance(10, 3, 2)).isCloseTo(tenThieves * 0.7, within(1e-12));
+        assertThat(THEFT.standardChance(10, 2)).isCloseTo(tenThieves, within(1e-12));
+        assertThat(THEFT.chance(200, 0, 3)).isEqualTo(0.85);
+        assertThat(THEFT.standardChance(0, 1)).isZero();
     }
 
     @Test

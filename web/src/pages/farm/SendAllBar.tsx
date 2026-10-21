@@ -4,8 +4,10 @@ import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { IconButton } from '../../components/IconButton';
-import type { SendAllResult } from '../../game/farm';
-import { useT } from '../../i18n';
+import { SwitchRow } from '../../components/SwitchRow';
+import type { RunPreview, SendAllResult } from '../../game/farm';
+import { formatNumber } from '../../game/format';
+import { useI18n } from '../../i18n';
 import type { Dictionary } from '../../i18n/en';
 import styles from './Farm.module.css';
 
@@ -24,7 +26,14 @@ interface SendAllBarProps {
   pending: boolean;
   result: SendAllResult | undefined;
   error: unknown;
+  /**
+   * "Notify me when this run is back" (1.6): one push when the run's last attack is home;
+   * undefined hides the switch (no push device).
+   */
+  notifyRun?: { on: boolean; onChange: (on: boolean) => void };
   onSend: (bannerChanceOnly: boolean) => void;
+  /** What each run would do now (1.6): shown on its first tap, in place of the hint. */
+  preview: { all: RunPreview; bannerChances: RunPreview };
 }
 
 /**
@@ -33,15 +42,39 @@ interface SendAllBarProps {
  * to 50 attacks. After the run a chip next to the buttons says how many attacks went out, how many
  * were skipped and how many of those for lack of troops (the run goes on past them since 1.3); the
  * rows say which. One hint line below (1.3); the banner chance rules open behind its (i) button.
+ * On the first tap that line says what the run would do now: how many attacks and the most they
+ * can bring home together (1.6).
  */
-export function SendAllBar({ leavesPlayersOut, bannerChances, pending, result, error, onSend }: SendAllBarProps) {
-  const t = useT();
+export function SendAllBar({
+  leavesPlayersOut,
+  bannerChances,
+  pending,
+  result,
+  error,
+  notifyRun,
+  onSend,
+  preview,
+}: SendAllBarProps) {
+  const { t, language } = useI18n();
+  // the run waiting for its second tap, if any
+  const [armedRun, setArmedRun] = useState<keyof SendAllBarProps['preview']>();
+  const shown = armedRun === undefined ? undefined : preview[armedRun];
+
+  useEffect(() => {
+    if (armedRun === undefined) {
+      return;
+    }
+    const timer = setTimeout(() => setArmedRun(undefined), ARMED_MS);
+    return () => clearTimeout(timer);
+  }, [armedRun]);
   const rulesId = useId();
   const [rulesOpen, setRulesOpen] = useState(false);
   return (
     <div className={styles.sendAll}>
       <div className={styles.actions}>
         <TwoTapButton
+          armed={armedRun === 'all'}
+          onArm={(armed) => setArmedRun(armed ? 'all' : undefined)}
           label={t.farm.sendAll}
           armedLabel={t.farm.sendAllArmed}
           disabled={pending}
@@ -50,6 +83,8 @@ export function SendAllBar({ leavesPlayersOut, bannerChances, pending, result, e
         {bannerChances !== undefined &&
           (bannerChances > 0 ? (
             <TwoTapButton
+              armed={armedRun === 'bannerChances'}
+              onArm={(armed) => setArmedRun(armed ? 'bannerChances' : undefined)}
               variant="secondary"
               label={t.farm.sendBannerChances(bannerChances)}
               armedLabel={t.farm.sendBannerChancesArmed}
@@ -68,7 +103,13 @@ export function SendAllBar({ leavesPlayersOut, bannerChances, pending, result, e
         )}
       </div>
       <div className={styles.hintLine}>
-        <p className={styles.meta}>{t.farm.sendAllHint}</p>
+        {shown === undefined ? (
+          <p className={styles.meta}>{t.farm.sendAllHint}</p>
+        ) : (
+          <p className={styles.runPreview} role="status">
+            <Icon name="sack" /> {t.farm.runPreview(shown.attacks, formatNumber(shown.haul, language))}
+          </p>
+        )}
         {bannerChances !== undefined && (
           <IconButton
             icon="info"
@@ -84,6 +125,9 @@ export function SendAllBar({ leavesPlayersOut, bannerChances, pending, result, e
           {t.farm.sendBannerChancesHint}
         </p>
       )}
+      {notifyRun !== undefined && (
+        <SwitchRow label={t.farm.notifyRun} checked={notifyRun.on} onChange={notifyRun.onChange} />
+      )}
       {leavesPlayersOut && <p className={styles.notice}>{t.farm.sendAllLeavesPlayersOut}</p>}
       {error != null && <ErrorMessage>{errorMessage(t, error)}</ErrorMessage>}
     </div>
@@ -95,30 +139,24 @@ interface TwoTapButtonProps {
   armedLabel: string;
   variant?: 'secondary';
   disabled: boolean;
+  /** Waiting for the second tap (the bar holds it, so the line below can say what the run does). */
+  armed: boolean;
+  onArm: (armed: boolean) => void;
   onSend: () => void;
 }
 
 /**
  * The first tap turns the label into the question, without a second it turns back after a few
- * seconds. Armed it is the red attack button (1.3), with a thin bar running down over those seconds.
+ * seconds (the bar's timer). Armed it is the red attack button (1.3), with a thin bar running down
+ * over those seconds.
  */
-function TwoTapButton({ label, armedLabel, variant, disabled, onSend }: TwoTapButtonProps) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) {
-      return;
-    }
-    const timer = setTimeout(() => setArmed(false), ARMED_MS);
-    return () => clearTimeout(timer);
-  }, [armed]);
-
+function TwoTapButton({ label, armedLabel, variant, disabled, armed, onArm, onSend }: TwoTapButtonProps) {
   function onClick() {
     if (!armed) {
-      setArmed(true);
+      onArm(true);
       return;
     }
-    setArmed(false);
+    onArm(false);
     onSend();
   }
 
@@ -129,7 +167,7 @@ function TwoTapButton({ label, armedLabel, variant, disabled, onSend }: TwoTapBu
       className={armed ? styles.armed : undefined}
       disabled={disabled}
       onClick={onClick}
-      onBlur={() => setArmed(false)}
+      onBlur={() => armed && onArm(false)}
     >
       {armed ? armedLabel : label}
     </Button>

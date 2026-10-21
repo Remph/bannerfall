@@ -6,12 +6,15 @@ import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
+import { SwitchRow } from '../../components/SwitchRow';
 import { UnitSummary } from '../../components/UnitSummary';
 import { formatDecimal, formatDuration, formatFactor, formatWhenExact } from '../../game/format';
 import { buildingTypes, type BuildingType } from '../../game/gameData';
+import { formatMorale } from '../../game/morale';
 import { nightBonusAt } from '../../game/nightBonus';
 import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
+import { useOffersReturnPush, useRememberedChoice } from '../../push/returnChoice';
 import styles from './RallyPage.module.css';
 import { VillageRefText } from './VillageRefText';
 
@@ -38,6 +41,9 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
   const [catapultTargets, setCatapultTargets] = useState<BuildingType[]>(() => train.attacks.map(() => 'HEADQUARTERS'));
   const preview = useTrainPreview(villageId, train);
   const send = useSendTrain(villageId);
+  // 1.6: one notification when every attack of the train is home
+  const offersReturnPush = useOffersReturnPush();
+  const [notifyReturn, setNotifyReturn] = useRememberedChoice('attack');
   const world = useWorld();
 
   if (preview.isPending) {
@@ -76,6 +82,7 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
           units: attack.units,
           catapultTarget: (attack.units.CATAPULT ?? 0) > 0 ? (catapultTargets[index] ?? 'HEADQUARTERS') : null,
         })),
+        notifyReturn: offersReturnPush && notifyReturn,
       },
       { onSuccess: onSent },
     );
@@ -151,6 +158,11 @@ export function TrainConfirm({ villageId, train, onSent, onBack }: TrainConfirmP
           <Icon name="moon" /> {t.rally.nightBonus(formatFactor(night, language))}
         </p>
       )}
+      {/* 1.6: morale with today's points, only below full strength (the battle reads them at the arrival) */}
+      {preview.data.morale != null && (
+        <p className={styles.notice}>{t.rally.morale(formatMorale(preview.data.morale, language))}</p>
+      )}
+      {offersReturnPush && <SwitchRow label={t.rally.notifyReturn} checked={notifyReturn} onChange={setNotifyReturn} />}
       {send.isError && !broken && <ErrorMessage>{errorMessage(t, send.error)}</ErrorMessage>}
       <div className={styles.confirmActions}>
         <Button type="button" variant="secondary" onClick={onBack}>

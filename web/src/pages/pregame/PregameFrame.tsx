@@ -13,7 +13,7 @@ import { ChatPanel } from '../chat/ChatPanel';
 import styles from './Pregame.module.css';
 
 /** The pages that work without a village (the server closes the rest, `PregameGateFilter`). */
-const PREGAME_PATHS: readonly string[] = ['/', '/admin', '/password', '/about', '/privacy', '/guild'];
+const PREGAME_PATHS: readonly string[] = ['/', '/admin', '/setup', '/password', '/about', '/privacy', '/guild'];
 
 /** The pre-game pages with an id in the path (a guild's page, M15a). */
 const PREGAME_PREFIXES: readonly string[] = ['/guilds/'];
@@ -62,7 +62,7 @@ export function PregameFrame() {
           <Icon name="settings" />
         </button>
       </header>
-      <main className={styles.main}>
+      <main className={location.pathname === '/setup' ? `${styles.main} ${styles.mainWide}` : styles.main}>
         <Outlet />
       </main>
       <MenuSheet kind={settingsOpen ? 'settings' : null} villageId={undefined} onClose={() => setSettingsOpen(false)} />

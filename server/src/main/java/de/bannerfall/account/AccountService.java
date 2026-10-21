@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -153,25 +154,30 @@ public class AccountService implements UserDetailsService {
                 accounts.findById(accountId)
                         .orElseThrow(() -> new NotFoundException(ErrorCode.ACCOUNT_NOT_FOUND));
         Player player = playerService.getByAccountId(accountId);
-        return MeDto.of(
-                account,
-                player,
-                villageService.summariesOf(player.getId()),
-                worldService.phase() == WorldPhase.PREGAME);
+        List<VillageSummaryDto> villages = villageService.summariesOf(player.getId());
+        boolean pregame = worldService.phase() == WorldPhase.PREGAME;
+        // only asked for a player on the respawn screen: one query fewer on every other load,
+        // the pre-game's included (nobody has a village there)
+        boolean guildMateHasVillage =
+                !pregame
+                        && villages.isEmpty()
+                        && spawnService.guildMateVillage(player.getId()).isPresent();
+        return MeDto.of(account, player, villages, pregame, guildMateHasVillage);
     }
 
     /**
      * The player of the account starts again with a new village ({@link SpawnService#respawn}).
      *
+     * @param nearGuild next to a guild mate's village if there is one (1.6)
      * @return the new village
      */
     @Transactional
-    public VillageSummaryDto respawn(long accountId) {
+    public VillageSummaryDto respawn(long accountId, boolean nearGuild) {
         // A session of a player the admin deleted may still be open (sessions are in memory, M14e).
         if (accounts.findById(accountId).orElseThrow().isDisabled()) {
             throw new GameRuleException(ErrorCode.RESPAWN_NOT_ALLOWED, "This player was deleted");
         }
-        Village village = spawnService.respawn(playerService.idOf(accountId));
+        Village village = spawnService.respawn(playerService.idOf(accountId), nearGuild);
         return new VillageSummaryDto(
                 village.getId(),
                 village.getName(),

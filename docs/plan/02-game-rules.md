@@ -23,7 +23,8 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `name` | "Bannerfall 1" | Display name |
 | `speed` | 1.0 | Multiplies production and loyalty regen, divides build/recruit times |
 | `unitSpeed` | 1.0 | Additionally divides travel times (troops and merchants) |
-| `mapSize` | 100 | Coordinates are `0 ≤ x, y < mapSize`. Small on purpose: 2–10 players plus NPC lords should meet each other early |
+| `mapSize` | 100 | Coordinates are `0 ≤ x, y < mapSize`. Only a fence: how dense the map is comes from `mapSpread` (§2), so a new spread brings its own size (`100 × factor`) |
+| `mapSpread` | NORMAL | 1.6: how far apart the sides start, `CLOSE` / `NORMAL` / `WIDE` / `VAST` = factor 0.8 / 1.0 / 1.3 / 1.6 for every placement and NPC radius (§2, *Map spread*). `NORMAL` is every world before 1.6 |
 | `startResources` | 500 | Wood, clay, iron in a new player village |
 | `luckRange` | 0.25 | Luck is uniform in `[-luckRange, +luckRange]` |
 | `beginnerProtectionHours` | 72 | Not scaled by speed |
@@ -47,10 +48,17 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `bannerDropFactor` | 1.0 | 0–3: multiplies the banner drop chances (§21.7, built in M32b); 0 = no drops. Stored and shown since M32a |
 | `standardTheftEnabled` | true | 1.4: the defenders' surviving banner thieves can take the paladin standard of an attack they beat (§21.18) |
 | `npcBannersEnabled` | false | 1.4: NPC lords find, fly, fuse and lose banners and standards like players (§21.18; works only with `bannersEnabled`) |
+| `npcLearningEnabled` | false | 1.6: NPC lords adapt their troop mix and wall to the attacks on them and to what wins for human players (§11b, 09 §15) |
+| `npcShipmentsEnabled` | true | 1.6: NPC lords send what would overflow in a village by merchant to their own villages that still build (09 §5.5) |
 | `nightBonusEnabled` | false | 1.4: the night bonus (§8.1): villages of players and NPC lords defend more strongly against attacks that arrive at night |
 | `nightBonusStartHour` | 23 | 0–23: the first hour of the night, in German time (§8.1) |
 | `nightBonusEndHour` | 7 | 0–23: the hour the night ends (not part of it); never equal to the start, the window may run across midnight |
 | `nightBonusFactor` | 2.0 | 1.1–3: multiplies the defence at night (§8.1) |
+| `moraleEnabled` | true | 1.6: morale (§8.2): attacks on much smaller players hit weaker; on by default, also in worlds from before 1.6 |
+| `moraleFloor` | 30 | 30–100: the lowest morale in percent (§8.2) |
+| `archersEnabled` | false | 1.6: archers (§5.6): on = the archer (barracks) and the mounted archer (stable) can be recruited and researched, by players and NPC lords; off = they are listed nowhere. Archers that exist when the host switches it off stay and keep fighting |
+| `noblePriceStep` | 0.25 | 0–1: how much dearer each village and noble beyond the first four makes a player's next noble, as a share of the base price (1.6, §5.7); **0 = the flat price** of before 1.6. Realm 1 got 0.25 with the 1.6 update (decided 2026-10-20) |
+| `automationVillages` | 3 | 0–100: village automation (1.6, §25) from a player's N-th village on; **0 = no automation in this world** |
 | `tradeMaxRatio` | 3.0 | Market offers: `1/ratio ≤ want/offer ≤ ratio` |
 | `marketExchangeRatio` | 1.5 | Trading with the market itself (v1.3, §12.1): what 1 of another resource costs; 0 = off, otherwise 1–10 |
 | `victoryMode` | DOMINATION | How the world is won (v1.3, §22): `DOMINATION`, `KEEPS` or `NONE` |
@@ -64,7 +72,7 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `npcThinkMinutes` | 20 | Base interval between NPC decision rounds, ÷ `speed` (§11b) |
 | `inviteCode` | (set by admin) | Required for registration; friends only |
 
-The admin changes everything in this table except `mapSize`, `barbarianInitialCount` and `npcLordCount` (only used when the world is created) in a running world (M14a, `PUT /api/admin/world-settings`, ranges in 04-api); the cached settings reload at once. Running events keep their times, and a new `speed` counts for production from each village's last update on (resources are computed lazily from that anchor), so change it early or accept a small jump. `npcDifficulty` has its own endpoint.
+The admin changes everything in this table except `mapSize`, `mapSpread`, `barbarianInitialCount` and `npcLordCount` (only used when the world is created) in a running world (M14a, `PUT /api/admin/world-settings`, ranges in 04-api); the cached settings reload at once. Running events keep their times, and a new `speed` counts for production from each village's last update on (resources are computed lazily from that anchor), so change it early or accept a small jump. `npcDifficulty` has its own endpoint.
 
 **Effect of `speed`:** production ×speed, build time ÷speed, recruit time ÷speed, travel time ÷(speed × unitSpeed), loyalty regen ×speed, barbarian growth interval ÷speed, NPC think interval ÷speed. Beginner protection is NOT scaled.
 
@@ -75,8 +83,9 @@ First friends world (2026-10-11): `speed = 6`, `unitSpeed = 1`, `beginnerProtect
 A fresh production world starts in the **pre-game** (`bannerfall.world.start-in-pregame`, on in the `prod` profile; dev and tests start an open world as before). The world's content does not exist yet: no map, no barbarians, no NPC lords, no villages.
 
 - **Players** can register (invite code as always), log in, chat, change language, theme and password, and read the world settings. They have **no village**: `GET /api/me` has `villages: []` and `needsRespawn: false`, the web shows the countdown and the settings instead of the village. Every other game request is answered `409 WORLD_NOT_OPEN` (`PregameGateFilter`, a short list of what stays open: auth, `/api/me`, password, `/api/world`, chat, admin). A later feature that works before the opening (guilds: creating one, if the host enabled them) adds its path to that list.
-- **The host** (admin page, tab World, or `bannerfall-admin world open`) configures everything, including `mapSize`, `barbarianInitialCount` and `npcLordCount`, which are fixed once the world is open, and sets the **opening time** (any time, movable, can be taken back; a time in the past or "now" opens within a moment). Without a time the world waits.
-- **At the opening time** (event `WORLD_OPEN`, survives restarts like every event): the content is created exactly like at the first start of an open world (02 §11, §11b), then every player who registered meanwhile gets a starting village, oldest registration first, with `barbariansPerNewPlayer` barbarian villages around it. **Beginner protection counts from the opening**, not from the registration. A player the map has no room for stays without a village and sees the respawn screen, which tries again. Everybody online gets `WORLD_OPENED` and the page switches over by itself. A registration after the opening works as before (village at once).
+- **The host** (admin page, tab World, or `bannerfall-admin world open`) configures everything, including `mapSize`, `mapSpread`, `barbarianInitialCount` and `npcLordCount`, which are fixed once the world is open, and sets the **opening time** (any time, movable, can be taken back; a time in the past or "now" opens within a moment). Without a time the world waits.
+- **Guided setup (1.6):** `bannerfall-admin setup` prints a one-time link (`/setup?code=…`, 30 minutes, single use, only in the pre-game; a new code replaces the old one). Opening it while logged in makes that account an admin (audit `SETUP_CLAIM`) and starts a wizard: a starting point (Friends' round, Long-running world, Together against the lords, Custom; each only fills in values) and one step each for basics, pace, map and opponents, rules, victory and the opening. Each step saves through the same `PUT /api/admin/world-settings` as the admin page; advanced settings stay there. Finishing or skipping sets `setupDone`, after which the pre-game page shows the admin hint instead of the setup card. The 1.6 settings sit in the step they belong to: map spread (with map size and noble range) in map and opponents; guild mates starting together, morale, the rising noble price and archers in the rules.
+- **At the opening time** (event `WORLD_OPEN`, survives restarts like every event): the content is created exactly like at the first start of an open world (02 §11, §11b), then every player who registered meanwhile gets a starting village, oldest registration first, with `barbariansPerNewPlayer` barbarian villages around it; a player whose guild already has a placed member starts next to that member (1.6, `guildStartTogether`, §2). **Beginner protection counts from the opening**, not from the registration. A player the map has no room for stays without a village and sees the respawn screen, which tries again. Everybody online gets `WORLD_OPENED` and the page switches over by itself. A registration after the opening works as before (village at once).
 - Banned-for-good and deleted accounts get no village. Spawning a barbarian village or an NPC lord by hand is refused in the pre-game.
 - **Not built (2026-10-11):** a mailing list (start notice by e-mail, double opt-in, SMTP) — dropped for now; friends who register before the start are the list. Revisit before a public launch (own session).
 
@@ -94,7 +103,7 @@ A fresh production world starts in the **pre-game** (`bannerfall.world.start-in-
 **Main village (v1.3).** A player's village list (`/api/me`, the village switcher, and with it the village a fresh login or a new start of the game opens, 1.4.1) is ordered by `owner_since`, when the player got the village (founded or conquered); the first one, held the longest, is tagged "Main village" once he has more than one. It has no game effect.
 ```
 n = number of player-owned villages
-r = 8 + 2.5 * sqrt(n) + random(-2.0, 2.0)
+r = (8 + 2.5 * sqrt(n) + random(-2.0, 2.0)) * spread
 repeat up to 200 times:
     angle = random(0, 2π)
     (x, y) = (round(c + r*cos(angle)), round(c + r*sin(angle)))
@@ -102,8 +111,23 @@ repeat up to 200 times:
     r = r + 0.25
 fail -> no spot (MapPlacement returns Optional.empty(); the service answers WORLD_FULL)
 ```
-**Barbarian spawn around a point** `(px, py)`: same loop with `r = random(3, 8)` around `(px, py)`.
-**Initial barbarians:** `barbarianInitialCount` villages with the loop around the center, `r = random(4, 30)`.
+**Next to a guild mate (1.6, decided 2026-10-20).** Friends who want to play together (two players in one guild against a world of NPC lords) start together: the guild is the agreement, since an invitation and its acceptance are a yes from both. While `guildStartTogether` (world setting, **on by default**, admin world settings card and `bannerfall-admin world set guild-start-together false`) and `guildsEnabled` are on, a starting village at the **opening** (§1b) of a player whose guild already has a member with a village goes **next to that member** instead of the ring: the same loop with `r = random(4, 6)` around the mate's main village (`MapPlacement.findSpotNearGuildMate`; about 2 h for swordsmen at speed 1, so they can support each other, with room to grow for both). The mate is the leader if he has a village, otherwise the longest member who has one (`SpawnService.guildMateVillage`), so a guild of five ends up as one cluster around its leader. Each still gets his `barbariansPerNewPlayer` barbarians around himself, so the friends share a farming area. No spot found there (a full corner of the map): the ring as always. A **respawn** (§10) offers the same: the respawn screen asks "next to my guild" or "somewhere new" while a guild mate has a village. A registration after the opening gets its village at once, before it can be in a guild, so it starts on the ring as before (a later move next to the guild was left out, 2026-10-20). NPC lords never start next to anybody; lord guilds form later (09 §13).
+
+**Barbarian spawn around a point** `(px, py)`: same loop with `r = random(3, 8) × spread` around `(px, py)`.
+**Initial barbarians:** `barbarianInitialCount` villages with the loop around the center, `r = random(4, 30) × spread`.
+
+**Map spread (1.6, decided 2026-10-20).** Everybody spawns from the centre outwards, so before 1.6 every world had the same density and `mapSize` was only a fence (a playtest world with 12 sides: all 82 villages within 30 fields of the centre, about 70 % of the 100 × 100 map unused). What changes how a world plays is how far apart the sides start: how soon neighbours meet, how many farms each has to himself, how long supports and noble trains walk. The host picks it as one word, `mapSpread`, and one factor `spread` scales every distance that new villages and NPC lords use:
+
+| `mapSpread` | spread | Neighbours start about | Map size and noble range it brings | Spearman to a neighbour at speed 6 |
+|---|---|---|---|---|
+| `CLOSE` | 0.8 | 3.5 fields | 80, 56 | 11 min |
+| `NORMAL` | 1.0 | 4.4 fields | 100, 70 (as before) | 13 min |
+| `WIDE` | 1.3 | 5.8 fields | 130, 91 | 17 min |
+| `VAST` | 1.6 | 7.1 fields | 160, 112 | 21 min |
+
+- Scaled by `spread`: the player spawn radius, both barbarian rings (above), the keep ring (§22.3) and the NPC lords' `farm-radius`, `conquest-radius` and `guild-radius` (09 §5, §13.1; rounded to whole fields), so lords keep finding targets and guild mates on a wider map. Not scaled: the spacing rule, `barbariansPerNewPlayer` and `barbarianInitialCount` (the same number of villages over a wider area), unit speeds.
+- The map stays a fixed square (decided 2026-10-20: no edge that grows with the players). A spread brings its own `mapSize` and `nobleMaxDistance`, `round(100 × spread)` and `round(70 × spread)`: the admin page fills both in when the host picks a spread and he can still change them, and `bannerfall-admin world set map-spread WIDE` sets both in the pre-game. The server stores what it is sent, so a value the host typed is never overwritten. Like `mapSize`, the spread is fixed once the world is open (`409 WORLD_ALREADY_OPEN`); existing worlds get `NORMAL`.
+- Players see it in the world info ("Map spread: Normal: neighbours start about 4 to 5 fields apart.").
 
 `Random` is injected (`RandomSource` interface), so tests are deterministic.
 
@@ -221,7 +245,8 @@ Reference: HQ level 2 with HQ 1 → 1011 s. Woodcutter 30 with HQ 20 → 40 885 
 - **Cancel** (any order that is not done yet, owner only; an order whose `endAt` has passed counts as done even if the worker hasn't applied it yet). Later orders that no longer fit are cancelled with it: later upgrades of the same building (their target level is gone) and orders whose requirements were only met through a cancelled order; the player can queue them again. Every cancelled order is refunded (resources and population), but resources are **received like incoming resources** (§3): `max(stored, min(cap, stored + refund))`, the part above the capacity is lost. The orders that stay shift earlier: each one gets `startAt = min(its old startAt, max(now, endAt of the previous remaining order))` with its stored duration, and its event is rescheduled. So an order is never pushed later by a cancel.
 - **Move** (M4c, 2026-10-03): the owner can move a queued order that hasn't started to another place behind the orders that have started, as long as every order still fits afterwards (it is the next level of its building and its requirements are met by the orders in front of it). So upgrades of one building keep their order, and nothing moves in front of what it needs. An order has started once its `startAt` is reached (normally only the running one; more while the event worker is behind). Durations and costs stay; the waiting orders are re-timed back to back after the started ones (`startAt = max(now, end of the previous order)`) and the events move with them (here an order may get later).
 - The build time is fixed at enqueue (Town Hall level of that moment, stored as `durationSeconds`); later Town Hall levels don't change orders already in the queue.
-- No demolishing in the MVP.
+- Demolishing: since 1.6, see §4.5.
+- The village automation (1.6, §25) queues through these same rules: its orders are normal orders (normal places only, never a paid slot) and can be moved or cancelled like any other.
 
 ### 4.4 Upgrade preview (M24, branch `integration/v1-1-features`)
 
@@ -245,6 +270,25 @@ The Town Hall page shows what the **next** level of a building does before the p
 
 **Why not.** When the next level can't be queued the preview says why instead of hiding it, with the reasons in this order: requirements missing (queued levels count), the build queue is full, a cost is above the warehouse capacity, a needed resource isn't produced, the farm has no room, "enough resources at 21:14". At the maximum level it says so. Buildings whose requirements are not met show the same preview with what they need.
 
+### 4.5 Demolishing (1.6, branch `integration/v1-6-features`)
+
+Decided on 2026-10-20 (thread "Demolishing buildings"): a demolition is like a catapult hit the owner orders on his own village, one level per order, in the build queue.
+
+- **The build queue.** A demolition is an order of the build queue (`build_order.demolish`): it takes a place like an upgrade (also a paid slot; the surcharge is a share of the cost, so it stays 0), runs in line with the upgrades, and can be cancelled and moved by the rules of §4.3. One order takes one level away; its target level is the level after it.
+- **Time** = a fifth of the build time of the level that goes, with the Town Hall level and world speed of the moment: `max(1, round(baseTime × 1.18^(L−1) × 0.952^hqLevel / speed / 5))` for level `L → L−1` (the ratio of dismissing units, §5.2a). Fixed when queued. The Builders banner doesn't shorten it (as Drill doesn't shorten dismissing). Example: Wall 20 → 19 with Town Hall 20 at speed 6 takes 17 min 22 s.
+- **Nothing is paid, nothing comes back.** Cancelling a demolition refunds nothing either.
+- **Lowest level** = the catapults' minimum (§9.2): Town Hall, farm and warehouse stay at 1, the rally point (level 1 at most) can't be demolished, everything else goes down to 0. Queued demolitions count (`MIN_LEVEL_REACHED`).
+- **Upgrades or demolitions, never both.** While a demolition of a building is queued it can't be upgraded, and the other way round (`BUILD_ORDER_CONFLICT`). Queued levels count demolitions as one level less, so an upgrade queued after a demolition is checked against the lower level. Cancelling a demolition also cancels the later demolitions of that building (their level is gone); a demolition can't be moved in front of an upgrade that needs the level (`REQUIREMENTS_NOT_MET`).
+- **Other buildings and units that need the level**: allowed. They keep their levels, but can't be upgraded (buildings) or recruited (units) until the level is back – the same state catapults can cause. The Town Hall's list names what a demolition locks before the player confirms.
+- **When it is done** (`BUILD_COMPLETE` at `endAt`): catch-up to that moment, the level goes, village and player points are recalculated. Population: the building keeps its population until then (a queued demolition doesn't free anything yet). The statistic *building levels* and the achievements don't change (they count what was built). The owner gets the usual notification, worded "demolished".
+- **Farm.** A farm demolition is refused if the population in use wouldn't fit the smaller farm (`NOT_ENOUGH_POPULATION`); while one is queued, new upgrades and recruits count the smaller farm, so nothing takes the place it won't have (the village's `population.capacity` shows the smaller farm then).
+- **Warehouse.** Stock above the smaller warehouse stays (§3, as after catapults); production stops until the stock is below the capacity.
+- **Running work keeps running**, as after catapults: recruit orders, smithy research and hall training. A Banner Hall at level 0 leaves its banner dormant (§21.3).
+- **Incoming attacks** don't stop demolishing (2026-10-20: tearing down one's own village before nobles land is slow with one level per order and at most `buildQueueMax` orders).
+- **Catapults on a building with queued demolitions** (§9.2): they aim lower by the levels lost, like upgrades; the ones that would go below the lowest level are dropped (nothing to refund) and the orders behind them move up like after a cancel. Every other order stays, also an upgrade whose requirements the lost levels no longer meet (as after any catapult hit).
+- **Conquest** drops the build queue as before (§10). **NPC lords and barbarians** never demolish.
+- Pages: the Town Hall's switch "Upgrade | Demolish" (05 §3). API: `POST /api/villages/{id}/demolitions`, `BuildingInfoDto.demolish` (04).
+
 ---
 
 ## 5. Units
@@ -253,23 +297,25 @@ The Town Hall page shows what the **next** level of a building does before the p
 
 `type` decides which defence value is used against it (§8). Speed is minutes per field.
 
-| Key | EN | DE | Building | Requires | Wood | Clay | Iron | Pop | Att | Def inf | Def cav | Type | Speed | Carry | Time (s) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| SPEARMAN | Spearman | Speerträger | BARRACKS | Barracks 1 | 40 | 35 | 15 | 1 | 10 | 15 | 40 | INF | 18 | 25 | 1000 |
-| SWORDSMAN | Swordsman | Schwertkämpfer | BARRACKS | Barracks 1, Smithy 1 | 30 | 30 | 70 | 1 | 20 | 50 | 20 | INF | 22 | 15 | 1450 |
-| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 50 | 35 | 45 | 1 | 40 | 10 | 5 | INF | 18 | 15 | 1300 |
-| SCOUT | Scout | Späher | STABLE | Stable 1 | 50 | 50 | 20 | 2 | 0 | 2 | 1 | INF | 9 | 0 | 900 |
-| LIGHT_CAVALRY | Light Cavalry | Leichte Kavallerie | STABLE | Stable 3 | 125 | 100 | 250 | 4 | 120 | 30 | 40 | CAV | 10 | 80 | 1800 |
-| HEAVY_CAVALRY | Heavy Cavalry | Schwere Kavallerie | STABLE | Stable 10, Smithy 15 | 200 | 150 | 600 | 6 | 150 | 200 | 80 | CAV | 11 | 50 | 3600 |
-| RAM | Ram | Rammbock | WORKSHOP | Workshop 1 | 300 | 200 | 200 | 5 | 2 | 20 | 50 | INF | 30 | 0 | 4800 |
-| CATAPULT | Catapult | Katapult | WORKSHOP | Workshop 2, Smithy 12 | 320 | 400 | 100 | 8 | 100 | 100 | 50 | INF | 30 | 0 | 7200 |
-| NOBLE | Noble | Adliger | ACADEMY | Academy 1 | 40000 | 50000 | 50000 | 100 | 30 | 100 | 50 | INF | 35 | 0 | 10800 |
-| PALADIN | Paladin | Paladin | BANNER_HALL | Banner Hall 1 | 1000 | 1000 | 1000 | 10 | 120 | 150 | 150 | INF | 14 | 0 | 10800 |
-| BANNER_THIEF | Banner Thief | Bannerdieb | BANNER_HALL | Banner Hall 1 | 100 | 120 | 150 | 2 | 0 | 3 | 3 | INF | 18 | 0 | 1500 |
+| Key | EN | DE | Building | Requires | Wood | Clay | Iron | Pop | Att | Def inf | Def cav | Def arch | Type | Speed | Carry | Time (s) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SPEARMAN | Spearman | Speerträger | BARRACKS | Barracks 1 | 40 | 35 | 15 | 1 | 10 | 15 | 40 | 20 | INF | 18 | 25 | 1000 |
+| SWORDSMAN | Swordsman | Schwertkämpfer | BARRACKS | Barracks 1, Smithy 1 | 30 | 30 | 70 | 1 | 20 | 50 | 20 | 40 | INF | 22 | 15 | 1450 |
+| AXEMAN | Axeman | Axtkämpfer | BARRACKS | Barracks 2, Smithy 2 | 50 | 35 | 45 | 1 | 40 | 10 | 5 | 10 | INF | 18 | 15 | 1300 |
+| SCOUT | Scout | Späher | STABLE | Stable 1 | 50 | 50 | 20 | 2 | 0 | 2 | 1 | 2 | INF | 9 | 0 | 900 |
+| LIGHT_CAVALRY | Light Cavalry | Leichte Kavallerie | STABLE | Stable 3 | 125 | 100 | 250 | 4 | 120 | 30 | 40 | 30 | CAV | 10 | 80 | 1800 |
+| HEAVY_CAVALRY | Heavy Cavalry | Schwere Kavallerie | STABLE | Stable 10, Smithy 15 | 200 | 150 | 600 | 6 | 150 | 200 | 80 | 180 | CAV | 11 | 50 | 3600 |
+| RAM | Ram | Rammbock | WORKSHOP | Workshop 1 | 300 | 200 | 200 | 5 | 2 | 20 | 50 | 20 | INF | 30 | 0 | 4800 |
+| CATAPULT | Catapult | Katapult | WORKSHOP | Workshop 2, Smithy 12 | 320 | 400 | 100 | 8 | 100 | 100 | 50 | 100 | INF | 30 | 0 | 7200 |
+| NOBLE | Noble | Adliger | ACADEMY | Academy 1 | 40000 | 50000 | 50000 | 100 | 30 | 100 | 50 | 100 | INF | 35 | 0 | 10800 |
+| PALADIN | Paladin | Paladin | BANNER_HALL | Banner Hall 1 | 1000 | 1000 | 1000 | 10 | 120 | 150 | 150 | 150 | INF | 14 | 0 | 10800 |
+| BANNER_THIEF | Banner Thief | Bannerdieb | BANNER_HALL | Banner Hall 1 | 100 | 120 | 150 | 2 | 0 | 3 | 3 | 3 | INF | 18 | 0 | 1500 |
+| ARCHER | Archer | Bogenschütze | BARRACKS | Barracks 5, Smithy 5 | 80 | 40 | 70 | 1 | 15 | 50 | 40 | 5 | ARCH | 18 | 10 | 1600 |
+| MOUNTED_ARCHER | Mounted Archer | Berittener Bogenschütze | STABLE | Stable 5, Smithy 10 | 220 | 130 | 150 | 5 | 110 | 40 | 30 | 50 | ARCH | 10 | 50 | 2700 |
 
-The enum order above is the canonical order (UI columns, report tables, embeddable columns).
+The enum order above is the canonical order (report tables, embeddable columns). The UI lists the archers (1.6, §5.6) next to their building's other units instead: the archer after the axeman, the mounted archer after the light cavalry. `Def arch` (1.6) is the defence against units of type `ARCH`; it only counts when archers attack (§8).
 
-The numbers are the unit's values at **level 1**. With the world setting `unitLevelsEnabled` the smithy raises five units (spearman, swordsman, axeman, light and heavy cavalry) to levels 2 and 3 (§5.4). The paladin (M31, §5.5) is recruited in the Banner Hall (the barracks until 1.3) and limited by slots. The scout has one level (level 2, §5.4). The banner thief (M32b, §21.5) is recruited in the Banner Hall, only while banners are on. Since 1.4 the paladin and the banner thief have levels 2 and 3 that the Banner Hall trains (*Hall training*, §5.4), also with unit levels off.
+The numbers are the unit's values at **level 1**. With the world setting `unitLevelsEnabled` the smithy raises five units (spearman, swordsman, axeman, light and heavy cavalry) to levels 2 and 3 (§5.4). The paladin (M31, §5.5) is recruited in the Banner Hall (the barracks until 1.3) and limited by slots. The scout has one level (level 2, §5.4). The banner thief (M32b, §21.5) is recruited in the Banner Hall, only while banners are on. Since 1.4 the paladin and the banner thief have levels 2 and 3 that the Banner Hall trains (*Hall training*, §5.4), also with unit levels off. The noble's price in the table is his **base price**: since 1.6 it rises with the villages and nobles a player holds (§5.7).
 
 ### 5.2 Recruitment
 
@@ -279,7 +325,7 @@ The numbers are the unit's values at **level 1**. With the world setting `unitLe
 - An order = (unit type, count ≥ 1). `startAt = max(now, endAt of the last order in that building's queue)`, `endAt = startAt + count × secondsPerUnit`. The time per unit is fixed at enqueue; later levels of the building don't change orders already in the queue.
 - **Requirements** (table column "Requires", always including the producing building itself) are checked against the **current** levels: queued building levels don't count (unlike for buildings, §4.3), because the units start training now.
 - **Costs (count × unit cost) and population (count × pop) are paid at enqueue.** Check: `floor(stored) ≥ cost` for each resource and `freePop ≥ count × pop` (§5.3).
-- Checks in this order, the first one that fails is the answer: queue full, requirements, paladin slots (only for the paladin, §5.5), resources, population. One order has at most 30 000 units (an API limit that keeps the arithmetic in `int`; more than a farm at level 30 feeds).
+- Checks in this order, the first one that fails is the answer: queue full, requirements, paladin slots (only for the paladin, §5.5), banners on (only for the banner thief, `BANNERS_DISABLED`), archers on (only for the two archers, `ARCHERS_DISABLED`, 1.6, §5.6), resources, population. One order has at most 30 000 units (an API limit that keeps the arithmetic in `int`; more than a farm at level 30 feeds).
 - **Recruit all** (M27): several orders in one request (at most one per unit type, in any buildings) are queued **all or none**. They are checked and queued one after another in the given order with exactly the checks above, each against what the ones before it left: resources, free population and the free places of its building's queue (two orders for the same building take two places and run one after another). The first order that fails is the answer and nothing is queued.
 - Units complete **one by one**, lazily: `finishedBy(t) = clamp(floor((t − startAt) / secondsPerUnit), 0, count)`. `catchUp(t)` moves newly finished units into the village's home stack and stores `completedCount`. Finished orders are deleted. No events are needed for recruitment.
 - **Cancel** an order (owner only; an order whose last unit is done no longer exists): the units already finished stay at home; the cost of the units not yet finished is refunded in full, but **received like incoming resources** (§3, capped at the warehouse capacity, the rest is lost – the same rule as for build orders, decided in M5a), and their population is free again. Later orders in that building's queue shift earlier (same rule as buildings: `startAt = min(old startAt, max(now, endAt of the previous remaining order))`); they haven't started yet, because the order in front of them isn't done.
@@ -328,13 +374,17 @@ The request (2026-10-13): "units still unlock through the building requirements;
 - **Which units**: spearman, swordsman, axeman, light cavalry and heavy cavalry have levels 2 and 3. The **scout** has level 2 only (the *upgraded scout*, 2026-10-13: it is the unit that sees other units' levels, see *Upgraded scouts* below). Ram, catapult and noble have none (default; rams and catapults are tuned by §9, nobles by their own rules). The paladin and the banner thief have levels 2 and 3 since 1.4, trained in the Banner Hall instead of the smithy (*Hall training* below).
 - **What a level changes**: attack, defence against infantry and defence against cavalry; nothing else (speed, carry, cost, population and recruit time stay, so a level never changes how far a unit walks or what it costs to train). About +10 % (level 2) and +20 % (level 3), whole numbers, and never the same value twice in a row:
 
-| Unit | Att 1 / 2 / 3 | Def inf 1 / 2 / 3 | Def cav 1 / 2 / 3 |
-|---|---|---|---|
-| SPEARMAN | 10 / 11 / 12 | 15 / 17 / 18 | 40 / 44 / 48 |
-| SWORDSMAN | 20 / 22 / 24 | 50 / 55 / 60 | 20 / 22 / 24 |
-| AXEMAN | 40 / 44 / 48 | 10 / 11 / 12 | 5 / 6 / 7 |
-| LIGHT_CAVALRY | 120 / 132 / 144 | 30 / 33 / 36 | 40 / 44 / 48 |
-| HEAVY_CAVALRY | 150 / 165 / 180 | 200 / 220 / 240 | 80 / 88 / 96 |
+| Unit | Att 1 / 2 / 3 | Def inf 1 / 2 / 3 | Def cav 1 / 2 / 3 | Def arch 1 / 2 / 3 (1.6) |
+|---|---|---|---|---|
+| SPEARMAN | 10 / 11 / 12 | 15 / 17 / 18 | 40 / 44 / 48 | 20 / 22 / 24 |
+| SWORDSMAN | 20 / 22 / 24 | 50 / 55 / 60 | 20 / 22 / 24 | 40 / 44 / 48 |
+| AXEMAN | 40 / 44 / 48 | 10 / 11 / 12 | 5 / 6 / 7 | 10 / 11 / 12 |
+| LIGHT_CAVALRY | 120 / 132 / 144 | 30 / 33 / 36 | 40 / 44 / 48 | 30 / 33 / 36 |
+| HEAVY_CAVALRY | 150 / 165 / 180 | 200 / 220 / 240 | 80 / 88 / 96 | 180 / 198 / 216 |
+| ARCHER (1.6) | 15 / 17 / 18 | 50 / 55 / 60 | 40 / 44 / 48 | 5 / 6 / 7 |
+| MOUNTED_ARCHER (1.6) | 110 / 121 / 132 | 40 / 44 / 48 | 30 / 33 / 36 | 50 / 55 / 60 |
+
+The level 2 scout defends 3 against archers, the paladin's hall levels 158 / 165 (like his other defence values), the banner thief stays at 3.
 
 - **Upgraded scouts (M31 follow-up, 2026-10-13: "you can only see the unit levels starting from level 2")**: the scout's level 2 costs 1000 / 1000 / 400 (20× his recruit cost), takes 12 h at Smithy 1 and needs Smithy 10 like every level 2; his stats move only a little (defence 3 / 2 instead of 2 / 1, attack stays 0), the point is what the report shows. **An attacker's report shows the unit levels of the defenders only if his attack carried scouts at level 2 or more and the scouting succeeded** (the same condition as the other scouted data, §7.1, §14). Level 1 scouts, a failed scouting, a lost battle with no survivor and a world with unit levels off show no levels. His copy has no stacks (he never learns who supports a village), so he gets **one level per unit type: the highest among all defending stacks** (default; the defenders' own copy lists the levels per stack as before). A level 2 scout also does not change the scouting phase itself (§7.1): only the report.
 - **Cost and time**: a research costs **20×** (level 2) and **50×** (level 3) the unit's recruit cost, paid when it starts (e.g. spearman level 2: 800 wood, 700 clay, 300 iron; heavy cavalry level 3: 10 000 / 7 500 / 30 000). It takes `max(1, round(baseSeconds × 0.937^(smithyLevel−1) / speed))` with `baseSeconds` 12 h (level 2) and 30 h (level 3) at Smithy 1 and world speed 1 – the same smithy-level factor as recruiting, with the smithy level of the village at the start. At speed 6 and Smithy 10: about 1 h 7 min for level 2.
@@ -379,6 +429,31 @@ The request (2026-10-13): "The paladin, like in tribal wars. A setting in the wo
 - **Admin:** the two settings of §1 sit with the other world settings: the card on the admin page, `bannerfall-admin world set paladin-villages-per-slot|paladin-max-slots <n>` and the world info. A running world may change them: raising the maximum opens slots at once, lowering it follows the rule "nobody loses a paladin".
 - **Pages:** under the paladin's name in the barracks list a **slot counter**: a dot per slot (filled = taken), "1 of 2 slots in use" and "Next slot at 9 villages (you own 6)" or "This is the most slots the world allows"; the free slots limit the amount for the paladin everywhere (the "max" button, "Recruit all"). The rally point's confirm screen says that a support with a paladin walks at his pace. API: `GET /api/paladin` (04-api).
 
+### 5.6 Archers (1.6, branch `feature/archers`)
+
+The request (2026-10-20, 1.6 "feature complete"): "Archers – inspired by Tribal Wars and should be an optional unit. Just want it to be there to be complete." Decided in the design round: **both** Tribal Wars units, **with their own attack class**, the numbers below, and NPC lords use them in worlds that have them.
+
+- **World setting** `archersEnabled` (§1), **off by default**. Off: the two units are listed nowhere (recruiting, smithy, the upgrade preview's unlocks, farm templates, the simulator's fields) and recruiting or researching one is `ARCHERS_DISABLED` (409). Since nobody attacks as an archer then, every battle comes out exactly as before 1.6. The host can switch it on in a running world; switching it off again stops recruiting and research, while archers that exist stay, fight, walk, support and can be dismissed (the same rule as banners that exist when banners go off). The simulator and the templates still show archer fields that already hold archers.
+- **The units** (§5.1): the **archer** (barracks, Barracks 5 and Smithy 5) is a cheap defender per population (50 against infantry, 40 against cavalry for 1 population) that is weak only against other archers (5); the **mounted archer** (stable, Stable 5 and Smithy 10) is a fast raider (10 minutes per field, carry 50) with attack 110, a little below light cavalry. Numbers adapted from Tribal Wars (archer 100 / 30 / 60, mounted archer 250 / 100 / 150 and attack 120 there): the same totals with some wood moved onto clay and iron like the 1.2.2 wood balance (§3), and the mounted archer kept below light cavalry as in Tribal Wars. All in `units.yml`; a balancing round may tune them.
+- **Their class** (`ARCH`, §8): the attack of the archers forms a third share next to infantry and cavalry, and against it every defending unit counts its **defence against archers** (`Def arch`, §5.1): spearmen are weak against archers (20), swordsmen better (40), heavy cavalry very strong (180). So mounted archers break spear walls, and foot archers fear only archers.
+- **Unit levels** (§5.4): both have levels 2 and 3 in the smithy like the other combat units (+10 % / +20 %, 20× / 50× the recruit cost, Smithy 10 / 15). Every level table carries the defence against archers.
+- **Everything else is generic:** population, loot (carry), travel (the slowest unit), attack trains, scouting, dismissing, banners (War, Bulwark, Drill … count for them like for any unit), the night bonus and recruit and farm templates. No paladin standard covers them (the seven of §21.18 stay).
+- **NPC lords** (09-npc-lords §5.3): the templates' mixes carry archer shares (DEFENSIVE foot archers, OFFENSIVE mounted archers, BALANCED a little of both) that count only in a world with archers; without them the mix renormalizes to exactly the one of before 1.6. Their unit lists name them too (they only send what they have). Lords keep level 1. Their estimate runs `Combat.fight`, so it knows the archer class.
+- **Code:** `UnitType.ARCHER` / `MOUNTED_ARCHER` (appended to the enum; the web lists them next to their building's units, `byUnitOrder`), `AttackType.ARCHER`, `UnitStats.defenseArcher` with `defenseAgainst(type)`, `Combat.mainBattle` (one share per class), migration V54 (`archers_enabled`, `u_archer` and `u_mounted_archer` on the five tables with unit counts).
+
+### 5.7 The rising noble price (1.6, branch `integration/v1-6-features`)
+
+The request (2026-10-20): "Creating new nobles once you've started gives you exponential growth. Having for example 5 villages just pumping out 5 nobles at the same time is unfair to the player that just got his 2nd (or doesn't even have a second one) village. The more points you have the easier it is to get them basically. Not a fan of the rich get richer in that regard. There is the coin system from Tribal Wars but if you have a nicer idea that isn't just outright limiting the amount of nobles you have, I'd love to hear it." Before 1.6 every noble cost the same in every Academy, and after the first conquest each further village cost about one noble (the survivors are reused) while the income grew with every village. The design (proposal with Tribal Wars' coins, Grepolis' culture levels and Travian's culture points, all of which make the next village dearer the more a player owns; decided 2026-10-20: "rising noble price", step 0.25, on for Realm 1 at the update; the Academy shows the price behind an info button like the Town Hall's buildings):
+
+- **Rank** = villages the player owns + nobles he owns − 4, never below 0. Nobles count **wherever they are**: at home, in a support, on the way, in a recruit order and waiting to be dismissed (the count of the paladin slots, §5.5). Nothing is stored: the rank is counted when it is needed.
+- **Price of the next noble** = the base price (§5.1) × `min(7, 1 + noblePriceStep × rank)`, each resource rounded. So a player with one village pays the base price for his first four nobles (rank 0 up to three in hand), and every further village and every noble beyond that makes the next one a quarter of the base price dearer (default step). The cap of 7× keeps the price inside a warehouse at level 30 (350,000 clay of 395,000). Prices with three nobles in hand at 0.25: 2 villages 1.25×, 5 villages 2×, 10 villages 3.25×, 25 or more villages 7×.
+- **An order of several** pays for each noble the **average** of their prices (noble *i* of the order at the rank of the nobles before it plus *i*), each resource rounded up; the order costs count × that. So a cancel refunds exactly what each noble still in training paid (§5.2: the order keeps its price per unit), and ordering several at once is never cheaper than one by one. `maxAffordable` (recruitment, 04-api) counts the rising price.
+- **What lowers it:** a noble that dies, a noble used up by a conquest (§10: the village he takes counts instead), a lost village, a cancelled order, a dismissed noble (no refund, so it is no trick). A conquest leaves the rank as it was: one noble less, one village more.
+- **Checked** when the order is placed, under the player's lock (after the village lock, the order of §5.5), so two villages of one player can't order at the same rank. The stock must pay the whole order (`NOT_ENOUGH_RESOURCES`); orders already queued keep what they paid when the rank changes.
+- **NPC lords** pay the same price (09 §5.1). A lord's village that saves for a noble builds the warehouse up until the price fits.
+- **A running world** gets the rule with the update; the rank comes from what players own at that moment, so nothing is migrated. `noblePriceStep` 0 switches it off (the admin page, `bannerfall-admin world set noble-price-step 0`).
+- **Pages:** the noble's row in the Academy has an **info button** (popover on a computer, sheet on a phone, like the Town Hall's upgrade preview): the next noble's price (red where the village is short), the factor ("×1.25"), the rank line "2 villages + 3 nobles − 4 = rank 1", the one after it, and the rule in a few lines ("This is the highest price" at 7×; "In this world every noble costs the same" at step 0). The row's cost per unit is the next noble's price; the total for a typed count, its "max", "Recruit all" and the recruit templates' plan use the rising price. The world info names the step ("+25 % for every village and noble beyond four"). API: `GET /api/noble` (04-api). Code: `rules.NobleRules`, `noble.NobleService`, `unit.PlayerUnitCount`; web `game/noblePrice.ts`, `pages/recruit/NoblePrice.tsx`, `components/InfoRow.tsx`.
+
 ---
 
 ## 6. Movements (commands)
@@ -400,6 +475,7 @@ Types: `ATTACK`, `SUPPORT`, `RETURN`.
   - RETURN → units join the home stack, loot is added with the incoming-resources rule (§3).
 - **Withdraw support:** the owner of the home village sends a stack (or part of it) home → RETURN. **Send back:** the owner of the location village can do the same for supports in his village. The owner of the other village gets a "support returned" report at once (none if both villages are his; M8b, §14).
 - If the home village changes owner (conquest, §10), every unit belonging to it outside the village is **lost**: its stacks elsewhere are deleted and its movements are cancelled without return (events deleted).
+- **"Notify me when they're back" (1.6, decided 2026-10-21):** the player can ask to be told once when attacks he sent are home: a switch on the confirm sheet of an attack or a train (it starts the way he left it last time on that device), a bell on each outgoing attack (on or off at any time until it arrives), and a switch under the farm list's "Send all" buttons for the whole run (§18). One message per group: a single attack, a whole train or a whole run, sent when the last of them is home or nobody of it survived; it says the loot the survivors carried (before the warehouse cap) and how many attacks were lost. An attack whose survivors stay (a conquest), that arrives at a village that is the player's by then, or whose bell he switches off leaves the group quietly; if it was the last one on the way, the message for the others comes right then (review 2026-10-21). A home village that changes owner drops the group. It comes as a toast in the game and as a push (switch "Returning attacks", on by default, 01 §4.8b). The switches are only offered to a player who gets push on at least one device.
 - **On the map (M26, 2026-10-13):** the target village of a movement gets a marker – red crossed swords for attacks, yellow crossed swords for attacks that carry nobles, a green sword for supports. A player only sees markers for **his own commands** (attacks and supports sent from his villages, wherever they go) and for **what is on the way to his own villages** (foreign attacks and supports) – the same he sees at his rally points, so the map reveals nothing about other players' movements (like M21's loyalty rule). Yellow only for his own attacks: a foreign attack hides its units, so a defender sees an incoming noble attack in red. His own attack on a village he owns by now gets no marker (it arrives like a support, §10).
 - **Returning troops on the map (M36, 2026-10-14):** when his own troops walk home (survivors of an attack, a cancelled command, a support withdrawn or sent back), the village they return to gets a blue badge with the rally point's "returning" arrow in the **top right** corner of its field, with the number of returns from 2 on. Only his own returns, and only on his own villages (a RETURN always walks to the units' home): the defender's map doesn't follow an attacker home, and nobody sees another player's troops returning.
 - **Movement lines (v1.3, 2026-10-16, a player's wish):** a switch of its own on the map draws the same movements one by one as lines from where they started to where they arrive, solid behind the troops and dotted ahead, with the marker's badge where the troops are now (position = start + (target − start) × elapsed ÷ travel time). Same visibility as the markers. **Another player's attack on one of his villages gets a line but no position:** the server leaves out its start time, because with the distance it would give away the pace of the slowest unit (a noble walks slowest), which the rally point doesn't tell either; it is dotted all the way and shows only the time left. Supports other players send him show their position (their units are visible at the rally point anyway). Tapping a badge or a line shows what it is, the time left, the arrival to the second and the fields still ahead; since the UI review 1.3 in a panel that also shows the troops wherever the rally point shows them and offers Cancel while the cancel window is open. An attack on the player stands out in long dashes; the player's own troops still within one field of their start fold into one badge with their number at that village. Off by default, stored per device (picked defaults, overrulable).
@@ -448,17 +524,19 @@ Scouting success reveals: resources (before loot), building levels (before the b
 ## 8. Main battle
 
 ```
-Ainf = Σ count × att   over attacking units of type INF
-Acav = Σ count × att   over attacking units of type CAV
-if Ainf + Acav == 0 -> no main battle (scouts and/or banner thieves only, handled above; §21.5)
+Ainf  = Σ count × att   over attacking units of type INF
+Acav  = Σ count × att   over attacking units of type CAV
+Aarch = Σ count × att   over attacking units of type ARCH  (the archers, 1.6, §5.6)
+if Ainf + Acav + Aarch == 0 -> no main battle (scouts and/or banner thieves only, handled above; §21.5)
 
 luck  ∈ [−luckRange, +luckRange] uniform
-A     = (Ainf + Acav) × (1 + luck) × (1 + war)              // war: the attack's War banner snapshot (M32b, §21.2), else 0
+A     = (Ainf + Acav + Aarch) × (1 + luck) × (1 + war)      // war: the attack's War banner snapshot (M32b, §21.2), else 0
+        × morale                                               // morale: the attacker's morale at the arrival, else 1 (1.6, §8.2)
 
-shareInf = Ainf / (Ainf + Acav);  shareCav = 1 − shareInf
+shareX = AX / (Ainf + Acav + Aarch)   for X = inf, cav, arch
 Wb    = wallAfterRams(wallLevel, floor(ramsSent / 2))          // effective wall during the battle (§9.1)
 Dunits = Σ over every defending unit (all stacks in the village, all types incl. scouts and nobles)
-            count × (defInf × shareInf + defCav × shareCav)
+            count × (defInf × shareInf + defCav × shareCav + defArch × shareArch)
 D     = (Dunits + 20 + 50 × Wb) × (1 + 0.05 × Wb) × (1 + bulwark)   // bulwark: the village's Bulwark banner at battle time, else 0
         × night                                                // night: the night bonus factor at the arrival, else 1 (1.4, §8.1)
 
@@ -467,11 +545,12 @@ else:      defender wins.   defenderLossRatio = (A / D)^1.5,  attackerLossRatio 
 losses per type per stack = round(count × lossRatio)
 ```
 Notes:
-- **Unit levels (M30, §5.4):** `att`, `defInf` and `defCav` are the values of the unit's level for its owner (each defending stack uses its owner's levels); without `unitLevelsEnabled`, and for NPC lords and barbarians, they are the table's. Nothing else of the formula changes.
+- **Archers (1.6, §5.6):** without archers in the attack `shareArch` is 0 and the formula is the one of before 1.6; `defArch` only counts against archers.
+- **Unit levels (M30, §5.4):** `att`, `defInf`, `defCav` and `defArch` are the values of the unit's level for its owner (each defending stack uses its owner's levels); without `unitLevelsEnabled`, and for NPC lords and barbarians, they are the table's. Nothing else of the formula changes.
 - The base defence `20 + 50 × Wb` means even an empty village needs a few units to take.
 - Each defending stack (owner's own and every support) loses with the same ratio, rounded per stack.
 - A tie (`A == D`) goes to the defender.
-- Code (M8a): `rules.Combat.fight(GameData, BattleInput) → BattleResult` does §7.1, §8 and §9.1–§9.2 in one pure call (loot is §9.3, `rules.Loot`, done by the caller because it needs the target's stock). Luck is drawn by the caller with `Combat.drawLuck(random, luckRange)`: one `RandomSource` draw, uniform in `[−luckRange, +luckRange)`; `luckRange` must be in [0, 1].
+- Code (M8a): `rules.Combat.fight(GameData, BattleInput) → BattleResult` does §7.1, §8 and §9.1–§9.2 in one pure call (loot is §9.3, `rules.Loot`, done by the caller because it needs the target's stock). Luck is drawn by the caller with `Combat.drawLuck(random, luckRange)`: one `RandomSource` draw, uniform in `[−luckRange, +luckRange)`; `luckRange` must be in [0, 1]. **Battle setup (1.6, tech-debt review item 8):** the three callers (the battle, the simulator §20 and the NPC estimate) build the input with `BattleInput.attack(units)…build()`, where everything left out is neutral, so a new modifier is one builder method; a village's banner and a carried standard come from `BannerCatalog.flying` and `BannerCatalog.standard`, a noble's hit after the Oath from `Loyalty.hit`, the theft chances from `BannerCatalog.Theft.chance` and `standardChance`.
 
 **Test vectors** (luck = 0):
 
@@ -481,6 +560,9 @@ Notes:
 | 50 light cav vs 100 spearmen, wall 0 | 6000 | 4000+20 = 4020 | attacker wins, ratio 0.54842 → loses 27 light cav |
 | 20 axemen vs 100 swordsmen, wall 0 | 800 | 5000+20 = 5020 | defender wins, ratio 0.06362 → loses 6 swordsmen; all axemen die |
 | 10 scouts vs 4 scouts | – | – | scouting succeeds, attacker loses round(10×0.4^1.5)=3 |
+| 50 mounted archers vs 100 spearmen, wall 0 (1.6) | 5500 | 2000+20 = 2020 | attacker wins, ratio 0.22258 → loses 11 mounted archers (50 light cavalry lose 27) |
+| 50 mounted archers vs 100 swordsmen, wall 0 (1.6) | 5500 | 4000+20 = 4020 | attacker wins, ratio 0.62488 → loses 31 |
+| 100 axemen + 50 mounted archers vs 100 spearmen, wall 0 (1.6) | 9500 | 100 × (15×4000 + 20×5500)/9500 + 20 = 1809.47 | attacker wins, ratio 0.08313 → loses 8 axemen, 4 mounted archers |
 
 ### 8.1 Night bonus (1.4)
 
@@ -504,6 +586,31 @@ The request (2026-10-18, from the parked list): villages defend more strongly at
 - Code: `rules.NightBonus` (pure: the window and `factorAt(at, owned)`), `BattleInput.nightFactor`, `world.NightBonusService` (the settings with the zone). Migration V41.
 
 **Test vectors** (luck = 0, night ×2): 100 axemen vs 100 spearmen at wall 5 at night: A = 4000, D = 2212.5 × 2 = 4425, the defender wins, ratio (4000/4425)^1.5 = 0.85944 → loses 86 spearmen; all axemen die. 50 axemen vs 100 spearmen, wall 0: A = 2000, D = 1520 × 2 = 3040, the defender wins and loses 53.
+
+### 8.2 Morale (1.6)
+
+The request (2026-10-20, from the parked list): the attacker's attack power sinks the more his points outweigh the defender's; the defence always stays at 100 %, so a smaller player gains nothing by attacking a bigger one. Decided in the design round:
+
+- **The curve: the classic one.** With both players' points (the ranking's player points, not the village's) read **at the arrival**:
+
+  ```
+  ratio  = defender's points / attacker's points
+  morale = clamp(round(0.3 + 3 × ratio, whole percent), moraleFloor, 100 %)
+  A      = (Ainf + Acav + Aarch) × (1 + luck) × (1 + war) × morale     // only A; D is untouched
+  ```
+
+  Full strength from a ratio of about 0.233 (the defender has at least about a quarter of the attacker's points); below that it falls to the floor (default **30 %**, the host sets 30–100 %). Never above 100 %: a smaller attacker gets nothing.
+- **Only `A`.** Losses follow from `A` and `D` as always. The rams during the battle, the catapults after a won battle, the loot and the nobles' loyalty hit are not scaled: they only work after a won battle, which morale already makes harder.
+- **Who.** Players and **NPC lords alike, both ways**: a lord's attack on a small player has morale, and so does an attack on a small lord. **Barbarian villages** have no owner and so no morale (always 100 %); an army whose home village lost its owner fights at full strength too.
+- **Scouting is not affected** (§7.1); a scouts-only attack fights no main battle.
+- **On by default**, also in worlds from before 1.6 (the 1.6 migration switches it on at the 30 % floor); the host switches it off or raises the floor on the admin World card. The battle reads the setting and the points at the arrival.
+- **Shown before.** The send confirmation (attacks and trains) and the map panel's farm line show "Morale 48 %" when it is below 100 %, from today's points (points are public in the ranking, so this reveals nothing). The farm list's rows say it too (their Send has no confirmation). The world settings sheet lists the floor. Not shown (yet): the rally point's movement lines.
+- **Shown after.** Both copies of the battle report carry `morale` when the main battle had less than 100 %; the attacker's card explains it in a line under its table, in the send sheet's words ("Morale 30%: Graf Ottmar has far fewer points than you, so your attack hit with only 30% of its strength."; the defenders' copy names both players; 1.6 UI review).
+- **NPC lords** count morale in their attack and farm estimates (09-npc-lords §6.1), from their own points and the target owner's, so they don't send attacks that lose.
+- **Simulator** (§20): a field "Attacker's morale (%)" in the attacker's card (empty = 100), only in a world with morale on, filled from a report of a battle that had it.
+- Code: `rules.Morale` (pure: `factor(attackerPoints, defenderPoints)`), `BattleInput.morale` (builder `.morale(f)`, default 1), applied in `Combat.mainBattle` right after the War banner; `WorldSettings.morale()`. Migration V59.
+
+**Test vectors** (luck = 0, floor 30 %): 6 449 points against 1 339: 0.3 + 3 × 0.2076 → **92 %**; against 377 → **48 %**; against 88 → **34 %**; against 4 346 → 100 %. 10 000 against 100 with the floor at 50 %: 33 % → **50 %**. 50 axemen vs 100 spearmen, wall 0, at 60 % (10 000 against 1 000 points): A = 2000 × 0.6 = 1200, D = 1520, the defender wins and loses round(100 × (1200/1520)^1.5) = 70.
 
 ## 9. Siege and loot (attacker won only)
 
@@ -534,6 +641,7 @@ levelAfterCatapults(level, cats, minLevel):
 - Uses **surviving** catapults, applied after the ram damage (so targeting WALL stacks with rams).
 - `minLevel` = 1 for HEADQUARTERS, FARM, WAREHOUSE, RALLY_POINT; 0 otherwise.
 - Reference: HQ 20 with 100 catapults → 18.
+- Queued demolitions (1.6, §4.5) aim lower the same way; the ones that would go below `minLevel` are dropped and the orders behind them move up.
 - If the target building's level drops below a level in a queued build order, that order stays valid (it upgrades from the new level, target level is recomputed when it completes: `level = level + 1`). In code (M8b) the queued orders of a building that lost `n` levels get their target level lowered by `n` right away (`BuildService.levelsLost`), so the queue shows the right levels and a later cancel or move – which checks that each order is the next level of its building – still works. Costs and times stay as paid. The same applies to the wall after rams.
 
 ### 9.3 Loot
@@ -575,7 +683,7 @@ Example: capacity 1000, stored 300/2000/2000, hiding 150 → avail 150/1850/1850
 - A conquering battle takes **no loot** (review, 2026-10-07): the army stays in the village, so its resources stay there and belong to the conqueror with it (before the fix the loot was taken and then vanished with the RETURN that never happened). The battle reports show loot 0.
 - Supports still on their way to the village when it falls **arrive** and stand in the conqueror's village; their owners can withdraw them (M11 review, 2026-10-07).
 - Foreign supports in the conquered village stay (as for M10's conversion to a barbarian village); their owners can withdraw them. Their supporters get the `DEFENSE` report as usual.
-- A respawn gives fresh beginner protection (§13, `beginnerProtectionHours` from now) and spawns **no** barbarians around the new village (it would let a player farm fresh barbarians by losing his last village). It is refused (`409 RESPAWN_NOT_ALLOWED`) while the player still owns a village, and for NPC lords.
+- A respawn gives fresh beginner protection (§13, `beginnerProtectionHours` from now) and spawns **no** barbarians around the new village (it would let a player farm fresh barbarians by losing his last village). Since 1.6 the player may start next to his guild (`nearGuild`, §2) while a guild mate has a village and the host has `guildStartTogether` on; otherwise, or when the mate lost his villages meanwhile, at a ring spot as before. It is refused (`409 RESPAWN_NOT_ALLOWED`) while the player still owns a village, and for NPC lords.
 - Market offers: `OwnerChange.dropOrders` deletes the village's open offers (M13a); transports already on the way still arrive and go to the new owner. The village's outgoing transports end their way home at the conquest (`TradeTransport.lostWithVillage`): the goods arrive, the merchants are free.
 
 **Who sees a village's loyalty (M21, 2026-10-12).** Taking a village over without any information sharing must not be a valid strategy, so the loyalty of a village is **not public**:
@@ -640,9 +748,11 @@ NPC lords fight each other by the same rules.
 - **Build quiet hours:** NPC lords queue no new buildings 22:00–08:00 (EASY), 23:00–07:00 (NORMAL), 00:00–06:00 (HARD), Europe/Berlin; what is queued keeps building.
 - **CUSTOM:** a difficulty whose values the host sets in the admin page (a copy of NORMAL to start with).
 
+**Learning lords** (1.6, world setting `npcLearningEnabled`, off by default; 09 §15): lords adapt to how they are attacked and to what wins. From the attacks on their own villages (what their defence reports show, as for a human) they recruit more spearmen against cavalry, more swordsmen against infantry and more scouts when they are scouted often, and after rams or catapults they build their wall a few levels above what the attack left. From the human attacks that won against a player's or a lord's village anywhere in the world (not barbarians) (anonymous: no names, no villages) they blend that army's mix into their own attack units (cavalry, axemen, siege and scouts; their spearmen and swordsmen stay). Both lessons together move at most 35 % of a lord's troop mix and fade over about two real days, so its personality stays. They change what a lord recruits and when it builds its wall, never how much it produces or how often it may attack: production factor, farm limits, caps, quiet hours and the rubber band stay as above.
+
 **Testing balance:** a headless simulation (M12d, 09 §11) runs a world with only NPC lords (and once with two sleeping humans) for 50 days at speed 3 and prints points, villages and battles per personality. It's used to tune the templates before friends play.
 
-**Later (not MVP):** Drivatar-style learning – NPC lords copy build orders and unit mixes that human players used successfully; NPC lords trading on the market; chat lines from NPC lords.
+**Later (not MVP):** NPC lords copying build orders of human players (learning from unit mixes is built in 1.6, above); chat lines from NPC lords. (Trading with the market is built since v1.3, 09 §5.4.)
 
 ## 12. Market
 
@@ -666,7 +776,7 @@ NPC lords fight each other by the same rules.
 - Free merchants never go below 0: a market that was hit by catapults while merchants are away shows 0 free, not a negative number. The merchants of an accepted offer's side are the ones it reserved at creation, so accepting needs free merchants only for the acceptor's payment.
 - Resources can be sent to a barbarian village (they are received there, nobody hears of it). Merchants of an accepted offer walk to the acceptor and back with the same travel time formula as plain transports; a transport that arrives gives the owner of the target village a `TRADE_ARRIVED` report ("Merchants from A arrived in B", what was delivered) and a `VILLAGE_UPDATED` push. The sender gets no report. The owner of an offer hears of an acceptance through `VILLAGE_UPDATED` (the trade report comes when the goods arrive).
 - Cancelling an offer refunds what is left, capped at the warehouse like every refund (§4.3). Accepting the last unit deletes the offer.
-- NPC lords do not trade in the MVP (09 §1).
+- NPC lords do not trade in the MVP (09 §1). Since v1.3 they trade with the market itself (§12.1); since 1.6 they send resources to their own villages (09 §5.5, `npcShipmentsEnabled`), never to other players, and they make or accept no offers.
 
 **Decisions in M13b (2026-10-07):** the `TRADE_ARRIVED` report says what the warehouse could not take (`Village.receiveResources` returns the lost amount, counted in whole units like the shown stock); the market page checks the same limits as the server before it enables a button (free merchants, stock, ratio – `tradeMaxRatio` comes with `GET /api/world`) and the server still decides. The dev cheat `finish-movements` lets the merchants a village sent arrive too.
 
@@ -721,12 +831,13 @@ Details (M8b):
 - Each recipient's copy is stored already cut down to what he may see.
 - **Unit levels (M30, §5.4):** a battle report stores the research levels above 1 of the attacking unit types (`attackerLevels`) and of every defending stack (`levels` per stack); nothing for level 1, a world without unit levels and reports from before M30. The web shows them as a small "Lv 2" badge next to the unit. **The attacker's copy** has `defenderSide.levels` – the highest level above 1 per defending unit type – only when his scouts were level 2 or more and scouting succeeded (§5.4, *Upgraded scouts*); it is empty otherwise, and in the defenders' copy.
 - **Night bonus (1.4, §8.1):** `ATTACK` and `DEFENSE` copies carry `nightBonus`, the factor the defence had, when the main battle fell into the night bonus; null otherwise and in reports from before.
+- **Morale (1.6, §8.2):** `ATTACK` and `DEFENSE` copies carry `morale`, the attacker's morale (e.g. 0.48), when the main battle had less than full strength; null otherwise and in reports from before.
 - **Banners (M32b, §21.16):** `ATTACK`, `DEFENSE` and `SCOUT` copies carry a `banners` block when banners did something: the War bonus of the attacker (both copies), the Bulwark bonus of the village (defenders; the attacker only when his scouting succeeded), the banner the reader's side found, the thieves' result (attacker only) and the banner they stole (defenders only).
 - `SUPPORT_ARRIVED`: when a support arrives, for its sender and the supported village's owner (one report if it's the same player). `SUPPORT_RETURNED`: when a support is withdrawn or sent back (§6), for the owner of the other village – the one who didn't do it; the units are those sent home. A cancelled support (it never arrived) gives no report, nor does a RETURN arriving home.
 
 ## 15. Not in the MVP (ideas for later)
 
-Paladin, archers, morale, night bonus (built in 1.4, §8.1), demolishing, research levels, world end conditions (built in v1.3, §22), multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style).
+Paladin, archers, morale (built in 1.6, §8.2), night bonus (built in 1.4, §8.1), demolishing, research levels, world end conditions (built in v1.3, §22), multiple worlds, premium/automation features, sitters, NPC lords learning from human players (Drivatar-style; troop mixes and walls built in 1.6, §11b).
 
 **Dismissing units** – implemented, see §5.2a. The rules as decided (2026-10-04):
 - The player dismisses units of one kind from the home stack (only units at home). They **leave the home stack at once**: they no longer defend and can't be sent.
@@ -739,7 +850,7 @@ Paladin, archers, morale, night bonus (built in 1.4, §8.1), demolishing, resear
 
 A guild is a named group of players with a tag shown next to their names. (Called *tribes* until M20, for more distance from Tribal Wars. In the first migrations V16 and V17 and in older log entries the word is still `tribe`; V22 renamed everything in the database.) M15a is the membership only; the guild chat is M15b, a political layer on the map M15c (06-milestones). Nothing here changes combat, support, conquest or the market: guild members are not allies in the rules yet.
 
-**Switch.** `guildsEnabled` (world setting, **off by default**, host switches it in the admin world settings or `bannerfall-admin`) and `guildMaxMembers` (2–50, default 10). While off, nothing can be founded, invited to or joined (`409 GUILDS_DISABLED`) and the Guild section is hidden (except for members of an existing guild, who keep it); guilds that exist stay readable. Guilds work in the pre-game too (founding and inviting before the opening); profiles stay closed there, so member names are plain text.
+**Switch.** `guildsEnabled` (world setting, **off by default**, host switches it in the admin world settings or `bannerfall-admin`) and `guildMaxMembers` (2–50, default 10). While off, nothing can be founded, invited to or joined (`409 GUILDS_DISABLED`) and the Guild section is hidden (except for members of an existing guild, who keep it); guilds that exist stay readable. Guilds work in the pre-game too (founding and inviting before the opening); profiles stay closed there, so member names are plain text. Guild mates start next to each other at the opening and may respawn next to their guild (1.6, `guildStartTogether`, §2); the pre-game page says so.
 
 **Name, tag, description.**
 - Name 3–30 characters: letters and digits of any language, single spaces and `' . _ -` between; starts and ends with a letter or digit. Tag 2–5 ASCII letters or digits (looks the same everywhere). Both are trimmed.
@@ -799,7 +910,10 @@ A list of targets per village with the units the player usually sends, a one-tap
 - **Send:** one tap sends exactly the template as an **attack** from the list's village, through the same code as a normal command (§6): units leave home now, the same errors (`NOT_ENOUGH_UNITS`, `PROTECTED_TARGET` at the arrival time, `OWN_VILLAGE` if the player has conquered the target since …), nothing is sent in part. The attack ends the sender's own beginner protection like any other, unless the target is a barbarian village (§6; the template has no nobles). The entry remembers when it was last sent; since 1.4 any attack from the list's village at the target counts (from the map's farm line or the rally point too, attack trains included), so the time is the latest attack however it was sent.
 - **Send all (M39):** one button above the list works through it **from the top** (the order the targets were added), each entry exactly like its own Send (its template, an attack, the same rules). It always goes on **to the end of the list**. An entry whose template the units at home don't cover (any more) is **skipped** (`NOT_ENOUGH_UNITS`) and the run goes on with the next one, so a later entry with other or fewer units still goes out (v1.3, a player's wish: five axe entries and then four light cavalry entries, with axemen for four, used to stop at the fifth axe entry and leave the cavalry at home; until 1.2.3 the run stopped at the first such entry). Entries whose target can't be hit right now are skipped the same way: the target player is under beginner protection at arrival (`PROTECTED_TARGET`) or the target is the player's own village by now (`OWN_VILLAGE`); these reasons win over `NOT_ENOUGH_UNITS` when both apply. While the **sender's own beginner protection** lasts, players' villages are skipped as well (default): a single Send of such a target asks twice because it ends that protection, so one tap for the whole list never does; barbarian villages are sent. Every attack that went out stays sent (no all-or-nothing, unlike an attack train); the run holds the village's lock, so nothing else takes its units in between. The answer lists the sent and skipped entries (with the reason); the status line counts the attacks sent, the entries skipped and, separately, those not sent for lack of troops. Two taps (the button turns into "Really send all?", like a protected row's Send) since one tap sends up to 50 attacks; no other confirmation, no cooldown, entries with an attack already on the way are sent again.
 - **Send banner chances (1.2.3):** a second button next to "Send all" runs the same way over only the entries with a banner chance: no "Banner from …" tag (§21.7: the player's roll against that target is free) and a template that can win a roll (not scouts alone; against a barbarian village at least 30 population, since the attacker's army is the losing side's size there). An entry whose pair (§21.7) already has one of the player's attacks on the way that can win a roll is left out too, since that attack uses the roll when it lands; a player's villages are one pair, so only the first of them on the list gets the chance (1.2.3, after the review). So a player can go for banners in one tap. The entries left out are neither sent nor counted as skipped. An entry with a chance that the units don't cover is skipped like in "Send all" and doesn't use its pair's chance, so the next entry of the same player can still take it (v1.3). Hidden in worlds without banner drops.
-- **List display:** distance and one-way travel time of the template (the slowest unit), the target's beginner protection if it still lasts, when it was last sent. No result of the last attack is shown (default; the reports have it).
+- **List display:** distance and one-way travel time of the template (the slowest unit), the target's beginner protection if it still lasts, when it was last sent. Until 1.6 no result of the last attack was shown (the reports had it).
+- **Loot per entry (1.6, the owner's ask "theoretical max per attack"; the owner picked "capacity + last raid"):** each entry shows the **most one attack can bring home**: its units' carry capacity (§9.3), the list village's Plunder banner included, as "up to 800". Once an attack from the list's village at the target has **landed**, the entry shows that **last raid**: the loot (all resources together) over what the units can carry now, "632/800"; **full** (the survivors carried all they could, so the village had more) in green, a **lost** battle as "lost". Any attack from that village at the target counts, however it was sent (like "last sent"); a later landing replaces an earlier one; a conquering attack leaves it. The target's stock is never guessed (it would need scouts in every template, and reports get deleted).
+- **What a run would bring (1.6):** on the first tap of "Send all" or "Send banner chances" (the one that asks "Really …?") the line under the buttons says what the run would do with the units at home now: the number of attacks and the most they can bring home together ("30 attacks, loot up to 22,200"), counted like the run (top to bottom, units taken from what is left, the player's own villages, protected targets and, while the sender's protection lasts, players left out; the banner chance run only its entries). A hint, the run itself decides.
+- **Compact list (1.6):** an entry is two short lines (template, village, Send; then travel time, loot, small marks for banner chance used, night bonus, morale, protection, and when it was last sent); a tap on the row opens its units, the facts in words, the full warnings and Edit / Remove, and a chevron on the row says so (the owner's condition). Up to 50 entries take about half the height they took before.
 - **From a report (M38):** a battle report offers the other side's village for the farm list: in the attacker's `ATTACK` and `SCOUT` reports the attacked village, in a `DEFENSE` report (also a supporter's) the attacker's village; never one of the reader's own villages. It opens the farm list of the village that sent the attack or scouts (while it is still the reader's), otherwise the current village's (the map's "Add to farm list" uses the current village's list too), with the target filled in, and from an `ATTACK` report also the units that attack sent (without nobles, paladin and thieves) as the template; the player checks and adds it there. A village already on that list gets a link to the list instead.
 - **Owner change:** when a village changes hands (§10), its farm list is dropped with its orders; the new owner starts with an empty one.
 - **Not in v1.1** (defaults, overrulable): a "send to all" (came in M39, above), result and loot columns, sorting and filters, templates shared between villages (came in 1.4, above), a cooldown or "do not send again for N minutes" warning. **Not in 1.4:** template names, templates per village, a farm list marker on the map, sending one template to several villages at once from the map.
@@ -917,7 +1031,7 @@ Left out (2026-10-18): Giant Slayer (a counted win against a player with twice y
 
 The request (2026-10-12): an attack simulator at the rally point, to simulate from your own numbers or from recent (for example spy) reports, with the units of the current village easy to paste in.
 
-- **It is the real battle.** `POST /api/simulator` runs `Combat.fight` (§7, §8, §9), the same code real battles use, on numbers sent with the request: attacking units, defending units (everything in the village, own units and supports together), the wall level and, with catapults, the target building and its level. There is no second implementation that could drift. A test fights a real battle through the commands and shows the simulator predicts it exactly. One difference by design: the defender is typed in as **one** stack (the village's own units and the supports added up), while a real battle rounds the losses per stack (§8), so with supports standing in the village the defender's losses of a type can differ from the real battle by a unit or two; strengths, winner, attacker losses, wall and catapult damage do not. There is no morale or other modifier in this game (§8) apart from the night bonus (1.4, §8.1, below), and the world speed doesn't enter a battle, so nothing of that is left out.
+- **It is the real battle.** `POST /api/simulator` runs `Combat.fight` (§7, §8, §9), the same code real battles use, on numbers sent with the request: attacking units, defending units (everything in the village, own units and supports together), the wall level and, with catapults, the target building and its level. There is no second implementation that could drift. A test fights a real battle through the commands and shows the simulator predicts it exactly. One difference by design: the defender is typed in as **one** stack (the village's own units and the supports added up), while a real battle rounds the losses per stack (§8), so with supports standing in the village the defender's losses of a type can differ from the real battle by a unit or two; strengths, winner, attacker losses, wall and catapult damage do not. Morale (1.6, §8.2) and the night bonus (1.4, §8.1) are inputs (below), and the world speed doesn't enter a battle, so nothing of that is left out.
 - **Luck.** The battle is run three times: with the world's worst luck (`-luckRange`), with none and with the best (`+luckRange`). A world without luck answers with one run. Real luck is random inside that range, so the three runs frame what can happen.
 - **What it answers.** Per run: who wins, attack and defence strength, the wall level that counted (rams, §9) and the wall afterwards, the catapult target before and after, the scouting phase (§7.1) if scouts attack, per unit type what dies and what survives on both sides, and the carrying capacity of the surviving attackers (what they actually take depends on the stock, which the simulator does not know).
 - **Nobles.** Only a won battle lets the surviving nobles work (§10): every noble lowers the loyalty by 20 to 35, so with `n` nobles the answer is a range, and whether the village falls is `NO` (even the strongest hits leave the loyalty above 0), `YES` (even the weakest hits take it to 0 or below) or `POSSIBLE` in between. The loyalty to start from is typed in (default 100).
@@ -925,6 +1039,8 @@ The request (2026-10-12): an attack simulator at the rally point, to simulate fr
 - **Reveals nothing.** The simulator reads no village, report or player: it only calculates with what the player sent, so it cannot be used to find anything out about another village (M21 stays intact). It can simulate units and buildings the player does not have; limits only keep the numbers sane (at most 1 000 000 per unit type, levels up to the building's maximum). It needs a login and changes nothing.
 - **Banners (M32c, §21.17).** With banners on, the request may carry the attacker's War banner (`warTier`), the target's Bulwark (`bulwarkTier`) and its Banner Hall (`bannerHall`, which caps the Bulwark and makes theft harder). The answer shows both bonuses and, if Banner Thieves attack, how many survive and the chance to steal a banner that flies there. It still reveals nothing: the player types (or takes from his own report) what the target has. **Since the code review 1.2 (D4)** also the attacker's Plunder banner (`plunderTier`, raises the loot capacity) and the target's Oath (`oathTier`, capped by the hall like the Bulwark, lowers every noble's hit to `round(hit × (1 − oath))` in the loyalty outlook). A village flies one banner, so War with Plunder or Bulwark with Oath is refused (400 `VALIDATION`); the form clears the other field.
 - **Night bonus (1.4, §8.1).** The request may carry `night: true`; it counts only in a world with the night bonus on and multiplies `D` by the world's factor (the answer's `nightFactor`, 1 without). The web shows the switch only in such a world and ticks it when the numbers come from a report of a night battle.
+- **Morale (1.6, §8.2).** The request may carry `morale` in percent (30–100, missing = 100); it counts only in a world with morale on, never below the world's floor (a real battle doesn't go under it), and multiplies `A` (the answer's `morale`, 1 without). The web shows the field only in such a world and fills it from a report of a battle that had morale.
+- **Archers (1.6, §5.6).** The simulator takes archers like any unit (it is the real battle, so the archer class counts). The web shows their fields only in a world with archers, or when the numbers (say from a report) already hold some.
 - **Filling the form (web).** "My units here" takes the units at home into the attacker, "This village" takes the village's defence (units at home plus the supports standing in it), its wall, its loyalty and the level of the catapult target. "Take numbers from a report" lists the newest battle reports (attack, defence, scouting; the 25 newest of them, found among the player's 100 newest reports so that a flood of trade reports doesn't hide them) and a battle report has a "Simulate this attack" link (`?report=`). From a report: the attacker only if there was a real attack (a spy report has no army to attack with: the attacker of the form stays), the defending units and the wall as they were **before** that battle, the catapult target with its level, and the loyalty **before** that battle (the "after" of a conquering battle is 0, which would let any noble conquer). A report from an attack nobody came back from has no defender numbers: those stay as they are.
 
 ---
@@ -1029,9 +1145,9 @@ New building, so the feature has a home, a price and something to catch up on.
 
 ### 21.5 The banner thief
 
-| Key | EN | DE | Building | Requires | Wood | Clay | Iron | Pop | Att | Def inf | Def cav | Type | Speed | Carry | Time (s) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| BANNER_THIEF | Banner Thief | Bannerdieb | BANNER_HALL | Banner Hall 1 | 100 | 120 | 150 | 2 | 0 | 3 | 3 | INF | 18 | 0 | 1500 |
+| Key | EN | DE | Building | Requires | Wood | Clay | Iron | Pop | Att | Def inf | Def cav | Def arch | Type | Speed | Carry | Time (s) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| BANNER_THIEF | Banner Thief | Bannerdieb | BANNER_HALL | Banner Hall 1 | 100 | 120 | 150 | 2 | 0 | 3 | 3 | 3 | INF | 18 | 0 | 1500 |
 
 - Joins the enum **after NOBLE** (the canonical unit order, 02 §5.1), recruiting works like every other unit (02 §5.2), the queue is the Banner Hall's own.
 - **Attack 0, defence 3:** thieves add nothing to a battle and die in it like scouts: they take the attacker's loss ratio (02 §8) with everyone else. They are not support material and defend nothing.
@@ -1268,7 +1384,7 @@ Until v1.3 a world ran until the host stopped it. Now the host picks how it is w
 
 ### 22.3 Banner keeps
 
-- `keepCount` (1–12, default 5) strong barbarian villages, flagged `keep`, on a ring around the map centre where the map is otherwise empty: evenly spaced, the first one straight north, radius `max(3, keepCount × 2.5 / 2π)` fields; a single keep sits on the centre. An occupied or too-close field moves the keep to the nearest free field within 10 (deterministic scan).
+- `keepCount` (1–12, default 5) strong barbarian villages, flagged `keep`, on a ring around the map centre where the map is otherwise empty: evenly spaced, the first one straight north, radius `max(3, keepCount × 2.5 / 2π) × spread` fields (§2, 1.6); a single keep sits on the centre. An occupied or too-close field moves the keep to the nearest free field within 10 (deterministic scan).
 - Each starts with mines, warehouse, farm and Town Hall at level 10, wall 10, a half-full warehouse and a garrison of 1000 spearmen, 1000 swordsmen and 100 heavy cavalry. Otherwise it is an ordinary barbarian village (it grows, can be farmed and conquered); conquered, it stays a keep for its new owner.
 - They are placed at world creation in a `KEEPS` world (before the other barbarians), and by the next victory check when the host switches to `KEEPS` or raises `keepCount`. Lowering it removes none; the share counts against the keeps that exist.
 - The map draws every keep as a fort with a gold flag and a gold ring around it (a gold star when zoomed far out and on the overview map); the village panel names it "Banner keep" and says how the race stands for the side holding it.
@@ -1312,3 +1428,19 @@ Battle numbers per player, three more ranking tabs and a daily history with char
 - **Where it shows:** a "Statistics" card and an "Over time" chart (points or villages) on every profile, the tabs on the ranking, and the world statistics page (linked from the ranking): the points of today's top five over time and the world's numbers over time.
 - **Career page:** for players who linked their account to the account server, the realm also sends attacks won, defences won, units killed (attacking plus defending) and villages conquered with the career report (only where the host turned career reports on).
 - No effect on the game: nothing reads the statistics for a rule, an achievement or an NPC lord.
+
+## 25. Village automation (1.6)
+
+A village builds by a plan by itself, also while its owner is offline, and from a chosen point on keeps a recruit template filled. Decided 2026-10-20; the choices made then are in bold.
+
+- **Unlock:** from the player's `automationVillages`-th village on (world setting, default **3**; 0 = no automation in this world). Counted are the villages he owns now; below it the automation of every village rests (its plan and switch are kept) and wakes up again with the next village.
+- **Build plans:** up to five per player, **A to E**, shared by all his villages. A plan has a **name** (1 … 16 characters) and **1 … 80 ordered lines**, each "**building to level N**" (1 … its top level) or the one **recruit line** "start recruiting recruit template X" (at most one per plan). A building's requirements must be reached by the lines above it, counted from a new village's levels (so the plan never waits for a building it doesn't build); the editor puts a missing requirement in front of a new line by itself. A plan can be written from a village's levels ("take this village's levels": one line per building above its start level, requirements first).
+- **Per village** the owner picks a plan and switches it on or off. Picking the first plan switches it on.
+- **Progress needs no bookkeeping:** the current line is the first building line whose level the village doesn't reach with its current **and queued** levels. A queued demolition (§4.5) counts one level less, not one more (merge of the 1.6 branches). Lines already reached (built by hand, or a level that was there before) are skipped; a level lost to catapults makes its line current again. Banner Hall lines are skipped in a world without the hall.
+- **What it queues:** the current line's building, one level at a time, through the normal build queue and its rules (§4.3): cost and population paid when queued, normal places only (never a paid slot), **at most two of its own orders at a time** (orders queued by hand don't count). **A full warehouse or farm comes first:** when the next level costs more than the warehouse holds, or needs more population than the farm has free (while a farm demolition is queued, the smaller farm's, §4.5), it queues a warehouse or farm level instead (**like the NPC lords**, 09 §5.1, with their 10 % farm reserve), and waits while such a level is queued.
+- **When it looks:** when it is switched on or its plan changes, when its stock pays the next level (from the production per hour; a resource that isn't produced makes it wait), when the first order of a busy queue is done, at the latest every 30 minutes, and when the owner opens its status while it could queue now (so loot, transports and trades count at once). It acts with the world's clock like everything else; no player action is needed.
+- **Cancelling one of its orders pauses it** (the owner wants something else): it stays paused until he switches it on again. Moving its orders is fine. **Queueing a demolition (§4.5) of a level its plan builds pauses it the same way** (it would build the level again; merge-train review of 1.6); a demolition of a building the plan doesn't reach that high changes nothing.
+- **Recruit line:** once every line above it is reached, the village **keeps the recruit template filled** like the template's "Recruit" button (§5.2b): what the goal still lacks (units at home, away and in recruit orders count), cut by one share so stock and free population pay. **Losses are refilled.** It recruits only into a building whose recruit queue holds fewer than two orders, and it keeps back the cost and population of its next build level, so building goes first (not while that level is stuck, see *Status*). **Nobles and banner thieves are never recruited automatically** (they stay a decision of the player); the status names them. The lines below the recruit line go on being built.
+- **Status** (Town Hall row and the automation page): off, paused, no plan (deleted), queues now, waits for resources (until when), waits for a build order to finish (the queue's normal places are full, it has its two own orders, or a demolition of the building it wants next is queued: an upgrade can't go next to it), waits for a warehouse or farm level, stuck (a resource isn't produced, or the farm is at its top), done; the line it is on; while recruiting, what the template still lacks.
+- **Ownership:** a conquered village loses its automation (the new owner starts without one). Deleting a plan stops the villages on it until they get another.
+- Orders it placed carry a small cogwheel in the queue. Nothing else changes: an automatic order costs, builds and counts like a tapped one.

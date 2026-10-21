@@ -6,9 +6,19 @@ import type { MarkerKind } from '../game/mapMovements';
 import type { VillageKind } from '../game/mapView';
 import type { ReportKind, TheftResult } from '../game/reports';
 import type { CommandKind, MovementKind } from '../game/troops';
+import type { WorldRow, WorldSection } from '../pages/admin/worldTabForm';
 import type { MapActionKey } from '../pages/map/mapActions';
 import type { RankingKind } from '../api/queries/ranking';
 import type { PushKind } from '../push/pushMessage';
+import type { Palette } from '../theme/theme';
+
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st (the automation's "from your 3rd village"). */
+function ordinal(n: number): string {
+  const hundreds = n % 100;
+  const teen = hundreds >= 11 && hundreds <= 13;
+  const suffix = teen ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${suffix}`;
+}
 
 /**
  * English texts – the source dictionary. de.ts must have exactly the same keys (the compiler checks it).
@@ -98,6 +108,9 @@ export const en = {
     toReports: 'Read the reports',
     start: 'Start a new village',
     starting: 'Founding your village…',
+    guildText: 'Your guild is still in the game: you can also start a few fields from a guild mate.',
+    nearGuild: 'Start next to my guild',
+    elsewhere: 'Start somewhere new',
   },
   nav: {
     label: 'Game sections',
@@ -129,10 +142,25 @@ export const en = {
     language: 'Language',
     theme: 'Theme',
     themeModes: { system: 'Device', light: 'Light', dark: 'Dark' },
+    /** Colour themes (1.6, theme/theme.ts `palettes`), each with a light and a dark set. */
+    palette: 'Colours',
+    palettes: {
+      green: 'Green banner',
+      blue: 'Royal blue',
+      black: 'Black and gold',
+      purple: 'Purple',
+      leather: 'Leather and forest',
+    } satisfies Record<Palette, string>,
+    /** 1.6: the medieval icons from game-icons.net or the classic hand-drawn ones. */
+    icons: 'Icons',
+    iconStyles: { medieval: 'Medieval', classic: 'Classic' },
     serverTime: 'Server time',
     version: 'Version',
     changePassword: 'Change password',
     worldInfo: 'World settings',
+    /** The link to the public source code (1.6): footer on desktop, a row in the menu everywhere. */
+    source: 'GitHub',
+    sourceTitle: 'Source code on GitHub (opens a new tab)',
   },
   /**
    * 1.5: push notifications. The Notifications page, and the notifications themselves (the service
@@ -168,6 +196,8 @@ export const en = {
       GUILD_INVITE: 'Guild invitations',
       WORLD_END: 'Victory clock and end of the world',
       BUILDS_DONE: 'Build queue empty',
+      ATTACK_RETURNED: 'Returning attacks',
+      STORAGE_FULL: 'Warehouse full',
     } satisfies Record<PushKind, string>,
     kindHints: {
       ATTACK: 'As soon as an attack on one of your villages is sent, with its arrival.',
@@ -176,6 +206,9 @@ export const en = {
       GUILD_INVITE: 'When a guild invites you.',
       WORLD_END: 'When a side starts or stops the victory clock, and when the world ends.',
       BUILDS_DONE: 'When the last building in a village’s build queue is done.',
+      ATTACK_RETURNED:
+        'When attacks you asked about are home again: one attack, a train or a farm list run. You choose when you send them, or with the bell.',
+      STORAGE_FULL: 'When wood, clay or iron reaches the warehouse limit in a village. Once, until it drops again.',
     } satisfies Record<PushKind, string>,
     /** The notifications themselves. */
     testBody: 'Notifications work on this device.',
@@ -185,6 +218,8 @@ export const en = {
       by === null ? `${village} was conquered` : `${by} conquered ${village}`,
     buildsDone: (village: string, building: string, level: number) =>
       `${village}: the build queue is empty. ${building} reached level ${level}.`,
+    demolishedDone: (village: string, building: string, level: number) =>
+      `${village}: the build queue is empty. ${building} was demolished to level ${level}.`,
   },
   /** The banner after a new version was deployed (M28): links to the changelog on bannerfall.de. */
   changelogBanner: {
@@ -227,6 +262,8 @@ export const en = {
     adminHint: 'You are the host: set the opening time and the world settings on the admin page.',
     toAdmin: 'Open the admin page',
     guildsHint: 'Guilds are switched on in this world: you can found one now, or wait for an invitation.',
+    guildsTogetherHint:
+      'Guilds are switched on in this world, and guild mates start next to each other: found one now with your friends, or wait for an invitation.',
     toGuilds: 'Open guilds',
     /** The notice under the login and register forms. */
     notice: {
@@ -236,12 +273,172 @@ export const en = {
     },
   },
   /** The world settings every player may see (pre-game page and the settings menu). */
+  /** The guided world setup (1.6): the host's wizard in the pre-game. */
+  setup: {
+    title: 'World setup',
+    stepOf: (step: number, total: number) => `Step ${step} of ${total}`,
+    back: 'Back',
+    next: 'Next',
+    finish: 'Finish setup',
+    skip: 'Skip setup',
+    stepsLabel: 'Steps',
+    steps: {
+      start: 'Starting point',
+      basics: 'Basics',
+      pace: 'Pace',
+      map: 'Map and opponents',
+      rules: 'Rules',
+      victory: 'Victory',
+      opening: 'Opening',
+    },
+    intros: {
+      start: 'Pick what kind of world you want. Every later step starts from it, and you can change each value.',
+      basics: 'What the world is called and how players get in.',
+      pace: 'How fast everything runs. Production, building, recruiting and marching all scale with the speed.',
+      map: 'The map is created when the world opens: these values are fixed from then on.',
+      rules: 'Which parts of the game are switched on. Everything here can still be changed while the world runs.',
+      victory: 'How the world ends. You can change this later, too.',
+      opening: 'Check everything once more, then pick when the world opens.',
+    },
+    presets: {
+      friends: {
+        name: 'Friends’ round',
+        text: 'One to two weeks with a few friends: a quick pace, short protection and four lords as opponents.',
+      },
+      long: {
+        name: 'Long-running world',
+        text: 'A world that stays: a calm pace, full protection, lords in guilds and no planned end.',
+      },
+      coop: {
+        name: 'Together against the lords',
+        text: 'Two to four friends in one guild against about 20 hard lords in one or two lord guilds.',
+      },
+      custom: {
+        name: 'Custom',
+        text: 'Start from the default settings and set everything yourself.',
+      },
+    },
+    facts: {
+      speed: (value: string) => `Speed ${value}`,
+      protection: (hours: string) => `${hours} h protection`,
+      lords: (count: string) => `${count} lords`,
+    },
+    name: 'World name',
+    inviteCode: 'Invite code',
+    inviteHint: 'Players need it to register. Share it only with the people you invite.',
+    newCode: 'Make a new code',
+    villageNames: 'Village names',
+    speed: 'World speed',
+    unitSpeed: 'Unit speed',
+    unitSpeedHint: 'Only marching troops and merchants; 1 keeps them at the world speed.',
+    protection: 'Beginner protection (hours)',
+    protectionHint: 'Real hours from the opening in which nobody can attack a new player.',
+    startResources: 'Start resources (each)',
+    paceHint: (from: number, to: number) => `At this speed the first nobles come around day ${from} to ${to}.`,
+    mapSpread: 'Map spread',
+    mapSpreadHint: 'Picking one also sets the map size and the noble range; you can still change both.',
+    mapSize: 'Map size (fields per side)',
+    nobleMaxDistance: 'Noble range (fields)',
+    barbarians: 'Barbarian villages',
+    barbarianInitialCount: 'At the start',
+    barbariansPerNewPlayer: 'Per new player',
+    barbarianGrowth: 'Barbarian villages grow',
+    barbarianGrowthHint: 'They build up slowly, so late farms give more.',
+    barbarianWalls: 'Barbarian walls',
+    barbarianWallsHint: 'Barbarian villages build a wall after a few days.',
+    lords: 'NPC lords',
+    npcLordCount: 'Lords at the start',
+    difficulty: 'Difficulty',
+    difficulties: { EASY: 'Easy', NORMAL: 'Normal', HARD: 'Hard', CUSTOM: 'Custom' },
+    npcGuilds: 'Lords form guilds',
+    npcGuildsHint: 'Lords near each other team up, defend and avenge each other.',
+    npcGuildMaxMembers: 'Most lords per lord guild',
+    npcBanners: 'Lords use banners',
+    npcBannersHint: 'They find, fly and fuse banners like players.',
+    guilds: 'Guilds',
+    guildsHint: 'Players can found and join guilds.',
+    guildMaxMembers: 'Most members per guild',
+    guildStartTogether: 'Guild mates start next to each other',
+    guildStartTogetherHint:
+      'Players in a guild at the opening get villages a few fields apart; who loses his last village may start again next to his guild.',
+    guildsStartTogether: 'on, mates start together',
+    morale: 'Morale',
+    moraleHint: 'Attacks on much smaller players hit weaker. Only the attack changes, never the defence.',
+    /** 1.6 UI review: the range in the hint, so the label fits on one line on a phone */
+    moraleFloor: 'Lowest morale (%)',
+    moraleFloorHint: '30 to 100',
+    moraleValue: (floor: string) => `on, at least ${floor} %`,
+    noblePrice: 'Rising noble price',
+    noblePriceShort: 'Noble price',
+    noblePriceValue: (percent: string) => `+${percent} % per village and noble`,
+    noblePriceHint: (percent: string) =>
+      `Each village and noble beyond four adds ${percent} % of the base price to the next noble, so big players don’t snowball.`,
+    unitLevels: 'Unit levels',
+    unitLevelsHint: 'The smithy can raise units to higher levels.',
+    archers: 'Archers',
+    archersHint: 'The archer and the mounted archer can be recruited; NPC lords use them too.',
+    paladin: 'Paladin',
+    paladinHint: 'One hero per player, more with more villages.',
+    banners: 'Banners',
+    bannersHint: 'Banners drop from battles and are carried in the Banner Hall.',
+    standardTheft: 'Standard theft',
+    standardTheftHint: 'Defenders can take the standard of an attack they beat.',
+    nightBonus: 'Night bonus',
+    nightBonusHint: (from: string, to: string) => `Villages defend more strongly from ${from}:00 to ${to}:00.`,
+    market: 'Market exchange',
+    marketHint: 'Trade with the market itself, not only with players.',
+    victoryMode: 'Victory',
+    victoryModes: { DOMINATION: 'Domination', KEEPS: 'Banner keeps', NONE: 'None' },
+    victoryHints: {
+      DOMINATION: 'A side wins once it holds a share of all villages long enough.',
+      KEEPS: 'Banner keeps stand around the map centre; a side wins by holding most of them.',
+      NONE: 'No side wins on its own: you end the world when you like.',
+    },
+    dominationPercent: 'Share of all villages (%)',
+    victoryHoldHours: 'Held for (hours)',
+    keepCount: 'Number of keeps',
+    endsAt: 'End date (optional)',
+    endsAtHint: 'At this time the most points win, in every mode.',
+    opensAt: 'Opening time',
+    opensAtHint: 'Every registered player gets a village at that moment. Leave it empty to set it later.',
+    summary: 'Summary',
+    change: 'Change',
+    on: 'on',
+    off: 'off',
+    server: 'Set on the server',
+    serverHint: 'These come from the server’s .env file (hosting guide); the wizard only shows them.',
+    loginMode: 'Login',
+    push: 'Push notifications',
+    invalid: 'A value is out of range: check the fields of this step.',
+    claiming: 'Making you the host of this world…',
+    toHome: 'Back to the start page',
+    worldOpen:
+      'This world is open already: the setup only runs before the opening. Its settings are on the admin page.',
+    toAdmin: 'Open the admin page',
+    loginModes: { OFF: 'own accounts', LINKING: 'own accounts or the account server', REQUIRED: 'account server only' },
+    entry: {
+      title: 'Set up this world',
+      text: 'A few short steps: pick a starting point, check pace, map and rules, and set the opening time. Until the world opens you can still change everything on the admin page.',
+      start: 'Start the setup',
+      skip: 'Not now',
+    },
+  },
   worldInfo: {
     title: 'World settings',
     speed: 'World speed',
     unitSpeed: 'Unit speed',
     mapSize: 'Map',
     mapSizeValue: (size: number) => `${size} × ${size} fields`,
+    /** How far apart the sides start (1.6). */
+    mapSpread: 'Map spread',
+    mapSpreadValue: (spread: string, distance: string) => `${spread}: ${distance}`,
+    mapSpreads: { CLOSE: 'Close', NORMAL: 'Normal', WIDE: 'Wide', VAST: 'Vast' },
+    mapSpreadDistances: {
+      CLOSE: 'neighbours start about 3 to 4 fields apart.',
+      NORMAL: 'neighbours start about 4 to 5 fields apart.',
+      WIDE: 'neighbours start about 6 fields apart.',
+      VAST: 'neighbours start about 7 fields apart.',
+    },
     startResources: 'Start resources',
     startResourcesValue: (amount: string) => `${amount} of each`,
     beginnerProtection: 'Beginner protection',
@@ -271,9 +468,12 @@ export const en = {
     marketExchange: 'Trade with the market',
     marketExchangeValue: (ratio: string) => `${ratio} for 1, up to a daily amount`,
     guilds: 'Guilds',
-    guildsValue: (max: number) => `up to ${max} members each`,
+    guildsValue: (max: number, together: boolean) =>
+      together ? `up to ${max} members each; guild mates start next to each other` : `up to ${max} members each`,
     unitLevels: 'Unit levels',
     unitLevelsValue: 'researched in the smithy',
+    archers: 'Archers',
+    archersValue: 'archer and mounted archer',
     paladin: 'Paladin',
     paladinValue: (perSlot: number, max: number) =>
       max === 1
@@ -281,10 +481,18 @@ export const en = {
         : `one slot, another ${perSlot === 1 ? 'for every village' : `for every ${perSlot} villages`}, up to ${max}`,
     banners: 'Banners',
     bannersValue: 'Banner Hall, equip and swap banners',
+    /** 1.6 (02-game-rules §5.7): "25" */
+    noblePrice: 'Noble price',
+    noblePriceValue: (percent: string) => `+${percent} % for every village and noble beyond four`,
+    noblePriceFlat: 'the same for every noble',
     /** 1.4 (02-game-rules §8.1): "23:00–07:00", "2" */
     nightBonus: 'Night bonus',
     nightBonusValue: (hours: string, factor: string) =>
       `${hours} German time: player and NPC lord villages defend ×${factor}`,
+    /** 1.6 (02-game-rules §8.2): "30%" */
+    morale: 'Morale',
+    moraleValue: (floor: string) =>
+      `attacks on players with less than about a quarter of your points hit weaker, down to ${floor}`,
     /** v1.3 (02-game-rules §22): how the world is won, and its end date. */
     victory: 'Victory',
     victoryDomination: (percent: number, hours: number) => `${percent}% of all villages, held for ${hours} hours`,
@@ -358,6 +566,8 @@ export const en = {
     NOBLE: 'Noble',
     PALADIN: 'Paladin',
     BANNER_THIEF: 'Banner Thief',
+    ARCHER: 'Archer',
+    MOUNTED_ARCHER: 'Mounted Archer',
   } satisfies Record<UnitType, string>,
   village: {
     switcherTitle: 'Your villages',
@@ -428,6 +638,9 @@ export const en = {
     defenseInfantryShort: 'Def. inf.',
     defenseCavalry: 'Defence vs. cavalry',
     defenseCavalryShort: 'Def. cav.',
+    defenseArcher: 'Defence vs. archers',
+    defenseArcherShort: 'Def. arch.',
+    archerHint: 'Attacks as an archer: the defenders count their defence against archers.',
     minutesPerField: 'Minutes per field',
     carry: 'Carries',
     level: (level: number) => `Lv ${level}`,
@@ -495,6 +708,44 @@ export const en = {
     queuedLevel: (level: number) => `→ Lv ${level}`,
     queuedLevelLong: (level: number) => `(Lv ${level} once the queue is done)`,
     maxLevel: 'Maximum level reached',
+    /** The switch at the top of the Town Hall (1.6): upgrading or demolishing. */
+    modeLabel: 'Upgrade or demolish',
+    modes: { build: 'Upgrade', demolish: 'Demolish' },
+    /** Instead of the upgrade button while a demolition of the building is queued (1.6). */
+    demolitionQueued: 'A demolition of this building is in the build queue.',
+    /** The demolish side of the Town Hall (1.6, 02-game-rules §4.5). */
+    demolish: {
+      title: 'Demolish',
+      intro:
+        'Each demolition takes one level away and joins the build queue. It takes a fifth of the build time and costs nothing; nothing comes back.',
+      button: (level: number) => `Demolish to Lv ${level}`,
+      /** The button on phones (1.6 UI review): one level down; the screen-reader name stays `buttonLabel`. */
+      buttonShort: '−1',
+      buttonLabel: (building: string, level: number) => `Demolish ${building} to level ${level}`,
+      /** Screen-reader name of the facts of a demolition. */
+      factsLabel: 'What the demolition takes and frees',
+      time: 'Time',
+      frees: (pop: number) => `+${pop} free`,
+      freesLong: (pop: number) => `frees ${pop} population`,
+      points: (points: number) => `−${points} points`,
+      /** A building at the lowest level it can be demolished to. */
+      lowest: (level: number) => `Level ${level} is the lowest.`,
+      rallyPoint: 'The rally point can’t be demolished.',
+      conflict: 'An upgrade of this building is in the build queue.',
+      farmTooSmall: 'The smaller farm could not feed your population.',
+      confirmTitle: (building: string) => `Demolish ${building}?`,
+      confirmLevels: (from: number, to: number) => `Lv ${from} → ${to}`,
+      confirmText: (time: string) => ` in ${time}. Demolishing costs nothing, and nothing comes back.`,
+      confirmFrees: (pop: number) => ` ${pop} population becomes free.`,
+      confirmPoints: (points: number) => ` The village loses ${points} points.`,
+      warehouse: 'Resources above the smaller warehouse stay, but nothing is produced until you are below it.',
+      locksTitle: 'Locked afterwards until you build it up again:',
+      locksBuilding: (building: string) => `${building}: no further upgrades`,
+      locksUnit: (unit: string) => `${unit}: no recruiting`,
+      keep: 'Keep it',
+      confirm: 'Demolish',
+      queueing: 'Queueing…',
+    },
     needs: (list: string) => `Needs ${list}`,
     requirement: (building: string, level: number) => `${building} ${level}`,
     buildTime: 'Build time',
@@ -553,6 +804,11 @@ export const en = {
     moveBlocked: 'This order cannot come before an order it needs.',
     /** Next to an order in a paid slot (behind the world's queue size, M13c). */
     paidSlot: 'paid slot',
+    /** Next to a demolition (1.6). */
+    demolition: 'demolition',
+    cancelDemolitionText: (order: string) => `${order} will not be demolished.`,
+    cancelDemolitionNote:
+      'It cost nothing, so nothing comes back. Later demolitions of this building are cancelled too.',
     paidSlotsNote: (size: number) => `Places after ${size} cost extra, and their orders can't be moved.`,
     /** Below the queue: shows the move buttons on the waiting orders (1.3). */
     reorder: 'Change order',
@@ -635,6 +891,93 @@ export const en = {
     countLabel: (unit: string) => `Goal for ${unit}`,
     save: 'Save',
   },
+  /** Village automation (1.6, 02-game-rules §25): the Town Hall's row, its page and the plan sheets. */
+  automation: {
+    title: 'Automation',
+    back: 'Town Hall',
+    /** The Town Hall's row. */
+    rowTitle: (letter: string, name: string) => `Automation · ${letter} ${name}`,
+    rowLine: (line: number, count: number) => `Line ${line}/${count}`,
+    rowOpen: 'Open the automation',
+    lockedShort: (needed: number) => `From your ${ordinal(needed)} village`,
+    locked: (needed: number) =>
+      `Unlocks with your ${ordinal(needed)} village: villages then keep building by your plan by themselves, even while you are offline.`,
+    lockedCount: (villages: number, needed: number) => `You have ${villages} of ${needed} villages.`,
+    noWorld: 'This world has no automation.',
+    villageTitle: 'This village',
+    switchLabel: 'Automation on',
+    /** next to the switch (1.6 UI review) */
+    running: 'Running',
+    paused: 'Paused',
+    choosePlan: 'Choose a plan',
+    changePlan: (letter: string, name: string) => `Plan ${letter}: ${name}. Change plan`,
+    progress: (line: number, count: number) => `Line ${line} of ${count}`,
+    /** What it does now, by state; `next` is "Barracks Lv 4". */
+    state: {
+      OFF: 'Switched off.',
+      PAUSED: 'Paused: you cancelled one of its orders or demolished a level its plan builds. Switch it on to go on.',
+      NO_PLAN: 'Its plan was deleted. Choose another one.',
+      READY: (next: string) => `Queues ${next} now.`,
+      WAITING_RESOURCES: (next: string, time: string) => `Waits for resources: ${next} · enough at ${time}`,
+      WAITING_QUEUE: (next: string) => `Waits until a build order is done: ${next} next.`,
+      WAITING_UPGRADE: 'Waits for the warehouse or farm level in the queue.',
+      BLOCKED: (next: string) => `Stuck at ${next}: a resource for it is not produced, or the farm is full.`,
+      DONE: 'Plan done: every line is reached.',
+    },
+    noPlanYet: 'Choose a plan: the village starts working through it right away.',
+    recruiting: (letter: string, name: string) => `Keeps recruit template ${letter} ${name} filled.`,
+    recruitingGone: (letter: string) => `Recruit template ${letter} no longer exists: nothing is recruited.`,
+    missing: (list: string) => `Missing: ${list}`,
+    templateFull: 'The template is full.',
+    byHand: (list: string) => `${list}: you recruit these yourself.`,
+    planTitle: (letter: string, name: string) => `Plan ${letter} · ${name}`,
+    edit: 'Edit',
+    plansTitle: 'Build plans',
+    plansHint:
+      'A plan lists buildings and levels from top to bottom. The village queues them one after the other, at most two orders of its own at a time, and builds a bigger warehouse or farm first when it needs one. All your villages can use the same plan.',
+    createPlan: (letter: string) => `Create plan ${letter}`,
+    /** The plan picker. */
+    pickTitle: (village: string) => `Plan for ${village}`,
+    lineCount: (count: number) => (count === 1 ? '1 line' : `${count} lines`),
+    newPlan: (letter: string) => `New plan (${letter})`,
+    newPlanHint: "Empty, or from this village's levels",
+    noPlan: 'No plan',
+    noPlanHint: 'This village builds only what you queue.',
+    /** The editor. */
+    editTitle: (letter: string) => `Plan ${letter}`,
+    name: 'Name',
+    nameHint: 'Short, e.g. Economy or Offence',
+    linesHint: (count: number) => `${count === 1 ? '1 line' : `${count} lines`} · from top to bottom`,
+    reorder: 'Change order',
+    reorderDone: 'Done',
+    empty: 'No lines yet. Add a building, or take the levels of this village.',
+    fromVillage: "Take this village's levels",
+    addBuilding: '+ Building',
+    addRecruit: '+ Start recruiting',
+    addTitle: 'Add a line',
+    addHint: 'Each tap adds the next level. A missing requirement comes in front of it.',
+    addClose: 'Close',
+    recruitTitle: 'Start recruiting which template?',
+    recruitHint:
+      'From this line on the village keeps the template filled (nobles and banner thieves excepted). The lines below it go on being built.',
+    noTemplates: 'Make a recruit template on the recruit page first.',
+    startRecruiting: 'Start recruiting',
+    recruitChip: (letter: string, name: string) => `${letter} ${name}`,
+    levelDown: (building: string) => `${building}: one level less`,
+    levelUp: (building: string) => `${building}: one level more`,
+    moveUp: (line: number) => `Move line ${line} up`,
+    moveDown: (line: number) => `Move line ${line} down`,
+    remove: (line: number) => `Remove line ${line}`,
+    needs: (list: string) => `Needs ${list} in a line above`,
+    tooMany: (max: number) => `A plan has at most ${max} lines.`,
+    save: 'Save',
+    delete: 'Delete plan',
+    deleteTitle: (letter: string) => `Delete plan ${letter}?`,
+    deleteText: 'Villages working through it stop until you pick another plan.',
+    keep: 'Keep it',
+    /** Next to an order the automation placed in the build queue. */
+    automatedOrder: 'placed by the automation',
+  },
   /** The paladin and his slots (M31, 02-game-rules §5.5): the counter under his name in the Banner Hall (1.4). */
   paladin: {
     slots: (used: number, slots: number) =>
@@ -643,6 +986,41 @@ export const en = {
     atMaximum: 'This is the most slots the world allows.',
     freeSlots: (free: number) =>
       free <= 0 ? 'Every slot is taken.' : free === 1 ? 'Only 1 slot is free.' : `Only ${free} slots are free.`,
+  },
+  /** The rising noble price (1.6, 02-game-rules §5.7): the noble's info button in the Academy. */
+  noble: {
+    button: 'Price of the next noble',
+    title: 'Price of nobles',
+    next: 'Your next noble',
+    after: 'The one after it',
+    /** "×1.5" */
+    factor: (factor: string) => `×${factor}`,
+    /** the chip after the noble's costs in the Academy (1.6 UI review), for screen readers */
+    factorChip: (factor: string) => `Price ×${factor}: price of the next noble`,
+    /** "3 villages + 3 nobles, 4 free → 2 × 25% = ×1.5" (1.6 UI review: it read like a ranking before) */
+    rankLine: (
+      villages: number,
+      nobles: number,
+      free: number,
+      rank: number,
+      percent: string,
+      factor: string,
+      capped: boolean,
+    ) =>
+      `${villages} ${villages === 1 ? 'village' : 'villages'} + ${nobles} ${nobles === 1 ? 'noble' : 'nobles'}, ${free} free → ${
+        rank === 0
+          ? 'base price'
+          : capped
+            ? `${rank} × ${percent}%, at most ×${factor}`
+            : `${rank} × ${percent}% = ×${factor}`
+      }`,
+    rule: (free: number, percent: string, max: string) =>
+      `With one village your first ${free} nobles cost the base price. Every further village and every noble beyond that makes the next one ${percent}% of the base price dearer, up to ${max} times the base price.`,
+    counted: 'Nobles count wherever they are: at home, on the way, in support, in training.',
+    cheaper: 'A noble that dies or a village you lose makes the next one cheaper again.',
+    atMaximum: 'This is the highest price: it rises no further.',
+    flat: 'In this world every noble costs the same.',
+    order: 'Several nobles in one order each pay the average of their prices.',
   },
   /** Banners and the Banner Hall (M32a, 02-game-rules §21). */
   banners: {
@@ -1006,12 +1384,18 @@ export const en = {
     endsProtection: 'Attacking ends your own beginner protection.',
     /** The night bonus (1.4): the attack would arrive at night at an owned village. */
     nightBonus: (factor: string) => `It arrives during the night bonus: the village defends ×${factor}.`,
+    /** Morale (1.6) with today's points: "48%" */
+    morale: (percent: string) =>
+      `Morale ${percent}: the owner has far fewer points than you, so your attack hits with ${percent} of its strength.`,
     /** The moon tag on an attack that arrives at night (1.4). */
     nightTag: (factor: string) => `Night bonus ×${factor}`,
     paladinLeads: 'The paladin leads this support: all units walk at his speed.',
     back: 'Back',
     confirm: { ATTACK: 'Send attack', SUPPORT: 'Send support' } satisfies Record<CommandKind, string>,
     sending: 'Sending…',
+    /** 1.6: the switch on the confirm sheet, and the bell on an outgoing attack. */
+    notifyReturn: 'Notify me when they’re back',
+    notifyReturnFor: (attack: string) => `Notify me when they’re back (${attack})`,
     /** Attack train (M37): several attacks at one target with one confirm. */
     addToTrain: 'Add to train',
     attackTrain: (count: number) => `Attack (${count})`,
@@ -1098,6 +1482,8 @@ export const en = {
     /** Fills the defender with this village: its troops, the support standing in it and its wall. */
     thisVillage: 'This village',
     clear: 'Clear',
+    /** on phones, after a side was filled in (1.6 UI review) */
+    showAllUnits: (more: number) => `Show all units (${more} more)`,
     reportTitle: 'Report',
     levelLabel: (unit: string) => `Level of ${unit}`,
     /** Hall training (1.4): the paladin's and the thieves' levels in a world without unit levels. */
@@ -1198,6 +1584,11 @@ export const en = {
     nightHint: (hours: string) =>
       `The world’s night bonus: ${hours} German time. It doesn’t count in barbarian villages.`,
     nightResult: 'Night bonus',
+    /** 1.6 (02-game-rules §8.2): the attacker's morale in percent */
+    morale: 'Attacker’s morale (%)',
+    moraleHint: (floor: string) =>
+      `100 unless the defender has less than about a quarter of the attacker’s points; this world’s lowest is ${floor}.`,
+    moraleResult: 'Morale',
     defenderThievesSurvive: 'Defenders’ banner thieves surviving',
     standardTheftChance: 'Chance they take the standard',
   },
@@ -1436,6 +1827,12 @@ export const en = {
     nobodyCameBack: 'None of your troops came back, so you learned nothing about the defenders.',
     /** 1.4: "×2" */
     nightBonus: (factor: string) => `Night bonus: the attack arrived at night, the village defended ×${factor}.`,
+    /** 1.6: the attacker's morale, below 100% only, in the send sheet's words (the reader attacked) */
+    moraleAttack: (percent: string, owner: string | null) =>
+      `Morale ${percent}: ${owner ?? 'the owner'} has far fewer points than you, so your attack hit with only ${percent} of its strength.`,
+    /** the same in the defenders' copy */
+    moraleDefence: (percent: string, owner: string | null, attacker: string | null) =>
+      `Morale ${percent}: ${owner ?? 'the owner'} has far fewer points than ${attacker ?? 'the attacker'}, so the attack hit with only ${percent} of its strength.`,
     luck: 'Luck',
     catapultTarget: 'Catapults aimed at',
     wall: 'Wall',
@@ -1531,6 +1928,9 @@ export const en = {
     reportShared: (player: string, kind: string) => `${player} sent you a report: ${kind}`,
     buildComplete: (village: string, building: string, level: number) =>
       `${village}: ${building} reached level ${level}`,
+    /** A demolition is done (1.6). */
+    demolished: (village: string, building: string, level: number) =>
+      `${village}: ${building} demolished to level ${level}`,
     /** Screen-reader name of the red counter in the top bar. */
     incomingBadge: (count: number) =>
       count === 1 ? '1 attack on the way to your villages' : `${count} attacks on the way to your villages`,
@@ -1556,6 +1956,26 @@ export const en = {
     bannerFound: (banner: string, village: string) => `Banner found at ${village}: ${banner}`,
     bannerLost: (banner: string, village: string) => `Banner stolen from ${village}: ${banner}`,
     bannerStolen: (banner: string, village: string) => `Your thieves stole a banner at ${village}: ${banner}`,
+    /** 1.6: attacks the player asked about are home; `loot` is "1,240" (resources), null for none. */
+    troopsBack: (village: string, from: string, loot: string | null) =>
+      loot === null
+        ? `Your troops from ${from} are back in ${village}.`
+        : `Your troops from ${from} are back in ${village} with ${loot} resources.`,
+    nobodyBack: (from: string) => `Nobody came back from ${from}.`,
+    /** A train (`from` is its target) or a farm list run (`from` null). */
+    attacksBack: (count: number, village: string, from: string | null, loot: string | null, lost: number) => {
+      const attacks = count === 1 ? '1 attack' : `${count} attacks`;
+      if (lost === count) {
+        return from === null
+          ? `Farm run from ${village}: nobody came back from ${count === 1 ? 'the attack' : `the ${attacks}`}.`
+          : `Nobody came back from the ${attacks} on ${from}.`;
+      }
+      const head =
+        from === null ? `Farm run back in ${village}: ${attacks}` : `${attacks} on ${from} back in ${village}`;
+      return `${head}${loot === null ? '' : `, ${loot} resources`}${lost === 0 ? '' : `, ${lost} lost`}.`;
+    },
+    /** 1.6: `resources` is "wood, clay". */
+    storageFull: (village: string, resources: string) => `Warehouse full in ${village}: ${resources}.`,
   },
   /** The farm helper (M18): targets with the usual troops, one tap sends one attack. */
   farm: {
@@ -1568,7 +1988,7 @@ export const en = {
     add: 'Add to list',
     countLabel: (unit: string) => `Units to send: ${unit}`,
     trip: (distance: string, duration: string) => `${distance} fields · ${duration} one way`,
-    lastSent: (when: string) => `last sent ${when}`,
+    lastSent: (when: string) => `Last sent ${when}`,
     protectedUntil: (when: string) => `Under beginner protection until ${when}`,
     /** Your daily banner chance against this target is used (02 §21.7); `when` it comes back. */
     bannerRollUsed: (when: string) => `Banner from ${when}`,
@@ -1587,8 +2007,33 @@ export const en = {
     editTitle: (target: string) => `Troops for ${target}`,
     save: 'Save',
     remove: 'Remove',
-    /** 1.3: the "…" of a row, with Edit and Remove. */
-    more: (target: string) => `More for ${target}`,
+    /** 1.6, the farm list overhaul: the compact row's short facts (the screen reader hears the labels). */
+    travelTime: 'Travel time',
+    lastSentLabel: 'Last sent',
+    lootLabel: 'Loot',
+    bannerRollUsedShort: 'Banner chance used today',
+    nightShort: 'Night bonus ',
+    moraleShort: 'Morale',
+    protectedShort: 'Under beginner protection',
+    /** Before a raid landed: what the units can carry, at most. */
+    haulUpTo: (amount: string) => `up to ${amount}`,
+    raidLost: 'lost',
+    /** The opened row (1.6). */
+    onMap: 'On the map',
+    capacityLine: (amount: string) => `The units carry up to ${amount} resources home.`,
+    /** The last attack from this village that landed: `loot` undefined when it was lost. */
+    lastRaidLine: (when: string, loot: string | undefined, full: boolean) =>
+      loot === undefined
+        ? `Last attack ${when}: lost.`
+        : full
+          ? `Last attack ${when}: ${loot} looted, all they could carry – the village had more.`
+          : `Last attack ${when}: ${loot} looted.`,
+    rowsHint: 'Tap a target for its troops, details and Edit.',
+    /** What a run would do now, on the first tap of "Send all" or "Send banner chances" (1.6). */
+    runPreview: (attacks: number, haul: string) =>
+      attacks === 0
+        ? 'No attack would go out now.'
+        : `${attacks === 1 ? '1 attack' : `${attacks} attacks`}, loot up to ${haul}`,
     /** "Send all" (M39): the whole list from the top; a target the troops don't cover is skipped (1.3). */
     sendAll: 'Send all',
     sendAllArmed: 'Really send all?',
@@ -1603,6 +2048,8 @@ export const en = {
     sendBannerChancesHint:
       '“Send banner chances” does the same, but only for the targets without “Banner from …” whose template can win a banner (not scouts alone, and at least 30 population against barbarian villages) and that have no attack of yours on the way yet. A player’s villages share one chance, so only the first of them the troops cover is sent.',
     sendAllLeavesPlayersOut: 'While your beginner protection lasts, “Send all” leaves players’ villages out.',
+    /** 1.6: a switch under the buttons; one notification when the whole run is home. */
+    notifyRun: 'Notify me when this run is back',
     sendAllSent: (count: number) =>
       count === 0 ? 'No attack sent' : count === 1 ? '1 attack sent' : `${count} attacks sent`,
     sendAllSkipped: (count: number) => `${count} skipped.`,
@@ -1710,6 +2157,8 @@ export const en = {
     explainer:
       'A guild is a group of players. Its tag shows in brackets before their names in the ranking and on the map. Found one, or wait for a leader to invite you.',
     disabled: 'The host has not switched guilds on in this world.',
+    /** pre-game only, with guild mates starting together (1.6 UI review) */
+    startTogether: 'Whoever is in a guild when the world opens starts next to it.',
     notInGuild: 'You are not in a guild.',
     back: 'Guilds',
     allGuilds: 'All guilds',
@@ -2078,10 +2527,19 @@ export const en = {
     title: 'About Bannerfall',
     intro:
       'Bannerfall is a browser strategy game made for a small group of friends: build villages, train troops, attack and support each other, conquer villages, trade and chat. Computer-controlled NPC lords and barbarian villages fill the world when only a few people play.',
+    /** 1.6: the thanks to the first test players, signed by the developer. */
+    testersTitle: 'Thank you',
+    testers:
+      'A big thank you to the test players Anjum, David and Kai: you played from the very first world on, found the bugs and made Bannerfall better with your ideas.',
+    testersSignature: 'Lots of love, Remph :)',
     originalTitle: 'Original work',
-    original: 'Bannerfall is not affiliated with any existing game. Its name, numbers, texts and graphics are its own.',
+    original: 'Bannerfall is not affiliated with any existing game. Its name, numbers and texts are its own.',
     graphicsTitle: 'Graphics',
-    graphics: 'All icons and the banner symbol were drawn for Bannerfall.',
+    /** 1.6: the medieval icons come from game-icons.net (CC BY 3.0 asks for the artists and a link to the licence). */
+    graphics:
+      'The medieval icons are from game-icons.net, drawn by Lorc, Delapouite, Skoll, HeavenlyDog, Cathelineau and DarkZaitzev, under the Creative Commons Attribution 3.0 licence. The classic icons, the village picture, the map and the banner symbol were drawn for Bannerfall.',
+    graphicsSource: 'game-icons.net',
+    graphicsLicence: 'Licence CC BY 3.0',
     fontsTitle: 'Fonts',
     fonts:
       'Uncial Antiqua, Alegreya SC and Alegreya Sans, all under the SIL Open Font License 1.1, served from this server.',
@@ -2142,7 +2600,6 @@ export const en = {
     },
     /** v1.3 (02-game-rules §22): how the world is won. */
     victory: {
-      title: 'Victory',
       hint: 'How this world is won. A side is a guild with all its members while guilds are on, otherwise a single player; NPC lords can win too. The server checks every 5 minutes, and the hold time starts again whenever another side leads or the leader drops below the goal. An end date (next card) works in every mode.',
       mode: 'How the world is won',
       modes: {
@@ -2162,7 +2619,6 @@ export const en = {
       keepCount: 'Banner keeps on the map',
       keepPercent: 'Share of the keeps (%)',
       keepsNeeded: (needed: number, count: number) => `A side has to hold ${needed} of ${count} keeps.`,
-      saved: 'Saved.',
     },
     /** v1.3: the end date, ending the world now, and taking an end back. */
     worldEnd: {
@@ -2171,13 +2627,11 @@ export const en = {
       noDate: 'No end date is set.',
       status: (when: string) => `The world ends ${when}.`,
       at: 'End date',
-      set: 'Set end date',
       clear: 'Remove end date',
       endNow: 'End now',
       confirmNow:
         'End the world now? The side with the most points wins and nothing moves any more. You can reopen it afterwards.',
       confirmYes: 'Yes, end it',
-      saved: 'Saved.',
       ended: (when: string) => `The world ended ${when}. It is frozen.`,
       reopen: 'Reopen the world',
       confirmReopen:
@@ -2185,13 +2639,8 @@ export const en = {
       confirmReopenYes: 'Yes, reopen it',
     },
     barbarianWalls: {
-      title: 'Barbarians',
       hint: 'Barbarian villages that build walls: they start without one, and from the start day on every growth round adds one level up to the cap. Rams can break a wall down; it grows back only with the last switch. A wall that is already above the cap (a deleted player’s village) is left alone. Off keeps the old behaviour: a random wall of 0–2 at the start, never more.',
-      barbarianWallsEnabled: 'Barbarians build walls',
-      barbarianWallStartDays: 'Start building after (days since the opening)',
-      barbarianWallMaxLevel: 'Barbarian max wall level',
       barbarianWallsRebuild: 'Barbarians rebuild walls',
-      saved: 'Saved.',
     },
     players: {
       title: 'Players',
@@ -2278,12 +2727,8 @@ export const en = {
       target: (type: string, id: number | null) => (id === null ? type : `${type} ${id}`),
     },
     world: {
-      title: 'World settings',
-      hint: 'Changes apply at once. Orders that are already running keep their times; a new speed counts for production from each village’s last update on.',
-      fixed: (mapSize: number, barbarians: number, lords: number) =>
-        `Fixed once the world is created: map ${mapSize} × ${mapSize}, ${barbarians} barbarian villages at the start, ${lords} NPC lords at the start.`,
-      name: 'World name',
-      inviteCode: 'Invite code',
+      fixed: (mapSize: number, spread: string, barbarians: number, lords: number) =>
+        `Fixed once the world is created: map ${mapSize} × ${mapSize}, spread ${spread}, ${barbarians} barbarian villages at the start, ${lords} NPC lords at the start.`,
       speed: 'World speed',
       unitSpeed: 'Unit speed',
       startResources: 'Start resources (each)',
@@ -2298,41 +2743,159 @@ export const en = {
       barbariansPerNewPlayer: 'Barbarian villages per new player',
       tradeMaxRatio: 'Widest market ratio',
       npcThinkMinutes: 'NPC round interval (minutes, before speed)',
-      barbarianGrowthEnabled: 'Barbarian villages grow',
-      guildsEnabled: 'Guilds can be founded and joined',
-      unitLevelsEnabled: 'Units can be raised to higher levels in the smithy',
-      paladinVillagesPerSlot: 'Villages per extra paladin slot',
-      paladinMaxSlots: 'Most paladin slots (0 = no paladin)',
-      bannersEnabled: 'Banners work (Banner Hall, equipping)',
-      bannerDropFactor: 'Banner drop chance, as a factor (1 = normal, 0 = none)',
-      standardTheftEnabled: 'Defenders’ banner thieves can take the paladin standard of an attack they beat',
-      npcBannersEnabled: 'NPC lords use banners',
+      archersHint:
+        'They attack as their own class, met by every unit’s defence against archers. NPC lords use them too.',
+      archersOff: 'Archers that exist stay and keep fighting; nobody can recruit or research new ones.',
       npcBannersHint:
         'Lords find, fly and fuse banners and standards like players, train their paladin in the Banner Hall and take banner thieves on their revenge attacks. Off: what lords hold sleeps but can still be stolen or conquered.',
-      marketExchangeRatio: 'Market exchange rate (1 for x; 0 = off, else 1 to 10)',
-      /** The night bonus (1.4). */
-      nightBonusEnabled: 'Night bonus: villages defend more strongly at night',
-      nightBonusStartHour: 'Night from (hour, German time)',
-      nightBonusEndHour: 'Night until (hour)',
-      nightBonusFactor: 'Defence at night, as a factor (1.1 to 3)',
+      npcShipmentsHint:
+        'A lord village whose warehouse is nearly full after building and recruiting sends what would overflow by merchant to the lord’s villages that are still being built. Never at night, never to a village under attack.',
       nightBonusHint:
         'Counts for attacks that arrive in these hours, in player and NPC lord villages, not in barbarian villages. Start and end must differ. Attacks already on their way get the bonus that holds when they arrive.',
-      /** The language of the names the game gives villages (v1.3). */
-      villageNameLanguage: 'Village names',
+      moraleHint:
+        'The attack counts with 30% + 3 × the defender’s points / the attacker’s points, at most 100% and at least the lowest morale. Only the attack changes, never the defence. Players and NPC lords alike; barbarian villages and scouts are not affected.',
       villageNameLanguageHint:
         "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
-      guildMaxMembers: 'Most members per guild',
-      npcGuildsEnabled: 'NPC lords form guilds',
+      guildStartTogetherHint:
+        'At the opening, players who are in a guild by then get villages a few fields apart; a player who lost his last village may start again next to his guild.',
       npcGuildsHint:
-        'Lords from 850 points team up with a lord within 15 fields: they never attack each other, help defend each other and avenge each other. You can rearrange them in the NPC lords tab.',
+        'Lords from 850 points team up with a lord within 15 fields (more on a wider map): they never attack each other, help defend each other and avenge each other. You can rearrange them in the NPC lords tab.',
       npcGuildsOff: 'Saving this ends every lord guild and clears your placements.',
-      npcGuildMaxMembers: 'Most lords per lord guild',
-      saved: 'Saved.',
+      npcLearningHint:
+        'Lords shift up to 35 % of their troops towards what counters the attacks on them and towards the mix of human attacks that won against villages of players or lords, and build their wall up after rams and catapults. Their economy stays the same.',
       mapSize: 'Map size (fields per side)',
+      /** 1.6: how far apart the sides start. */
+      mapSpread: 'Map spread',
+      mapSpreadHint:
+        'Players, NPC lords and barbarians spread out this much; the lords look for targets as far. Picking one also sets the map size and the noble range, which you can still change.',
       barbarianInitialCount: 'Barbarian villages at the start',
       npcLordCount: 'NPC lords at the start',
       pregameHint:
-        'The world has not opened: map size, barbarians and NPC lords can still be changed here. They are created when the world opens.',
+        'The world has not opened: map spread, map size, barbarians and NPC lords can still be changed here. They are created when the world opens.',
+      setupLink: 'Walk through the important settings in the guided setup',
+    },
+    /** The World tab in the setup wizard's five sections with one save bar (1.6). */
+    worldTab: {
+      sectionsLabel: 'World settings',
+      sections: {
+        basics: 'Basics',
+        pace: 'Pace',
+        map: 'Map and opponents',
+        rules: 'Rules',
+        victory: 'Victory and end',
+      } satisfies Record<WorldSection, string>,
+      /** On phones, where the five share one row. */
+      short: {
+        basics: 'Basics',
+        pace: 'Pace',
+        map: 'Map',
+        rules: 'Rules',
+        victory: 'Victory',
+      } satisfies Record<WorldSection, string>,
+      intros: {
+        basics: 'What the world is called, how players get in and what villages are named.',
+        pace: 'How fast the world runs. Running orders keep their times; a new speed counts for production from each village’s last update.',
+        map: 'The map, the barbarians and the NPC lords.',
+        rules: 'Which parts of the game are switched on. Changes apply once you save.',
+        victory: 'How the world is won and when it ends.',
+      } satisfies Record<WorldSection, string>,
+      groups: {
+        world: 'World',
+        pace: 'Pace',
+        map: 'Map',
+        barbarians: 'Barbarians',
+        lords: 'NPC lords',
+        guilds: 'Guilds',
+        combat: 'Combat',
+        bannersNobles: 'Banners and nobles',
+        economy: 'Economy',
+        victory: 'Victory condition',
+        end: 'End of the world',
+      },
+      /** The names the save bar uses for its changes; switch rows show them as their label. */
+      rows: {
+        name: 'World name',
+        inviteCode: 'Invite code',
+        villageNameLanguage: 'Village names',
+        speed: 'World speed',
+        unitSpeed: 'Unit speed',
+        beginnerProtectionHours: 'Beginner protection',
+        startResources: 'Start resources',
+        buildQueue: 'Build queue',
+        recruitQueueSize: 'Recruit orders',
+        cancelWindowSeconds: 'Cancel window',
+        mapSpread: 'Map spread',
+        mapSize: 'Map size',
+        nobleMaxDistance: 'Noble range',
+        barbarianInitialCount: 'Barbarians at the start',
+        barbariansPerNewPlayer: 'Barbarians per new player',
+        barbarianGrowth: 'Barbarian villages grow',
+        barbarianWalls: 'Barbarian walls',
+        npcLordCount: 'Lords at the start',
+        npcGuilds: 'Lords form guilds',
+        npcLearning: 'Lords learn from players',
+        npcBanners: 'Lords use banners',
+        npcShipments: 'Lords ship their surplus',
+        npcThinkMinutes: 'NPC round',
+        guilds: 'Guilds',
+        guildStartTogether: 'Guild mates start next to each other',
+        morale: 'Morale',
+        nightBonus: 'Night bonus',
+        unitLevels: 'Unit levels',
+        archers: 'Archers',
+        paladin: 'Paladin',
+        luckRange: 'Luck range',
+        banners: 'Banners',
+        standardTheft: 'Standard theft',
+        noblePrice: 'Rising noble price',
+        loyaltyRegenPerHour: 'Loyalty',
+        market: 'Market exchange',
+        tradeMaxRatio: 'Largest trade ratio',
+        automation: 'Village automation',
+        victory: 'Victory condition',
+        endsAt: 'End date',
+      } satisfies Record<WorldRow, string>,
+      npcLearningHint: 'They shift their troops towards what works against the attacks on them and what wins.',
+      npcShipmentsHint: 'What would overflow goes by merchant to their villages that are still growing.',
+      automationHint: 'Villages from this number on can follow a building and recruiting plan on their own.',
+      paladinHint: 'One hero per player, one more slot for every few villages.',
+      /** Shorter labels for the numbers under a switch. */
+      fields: {
+        guildMaxMembers: 'Most members per guild',
+        npcGuildMaxMembers: 'Most lords per lord guild',
+        moraleFloor: 'Lowest morale (%)',
+        nightBonusStartHour: 'Night from (hour, German time)',
+        nightBonusEndHour: 'Night until (hour)',
+        nightBonusFactor: 'Defence ×',
+        paladinMaxSlots: 'Most slots',
+        paladinVillagesPerSlot: 'Villages per further slot',
+        bannerDropFactor: 'Banner drops ×',
+        noblePriceStep: 'Added per rank',
+        marketExchangeRatio: 'Rate (1 for x)',
+        automationVillages: 'From village no.',
+        barbarianWallStartDays: 'Start after (days since the opening)',
+        barbarianWallMaxLevel: 'Highest wall level',
+      },
+      fieldHints: {
+        moraleFloor: '30 to 100',
+        nightBonusFactor: '1.1 to 3',
+        bannerDropFactor: '1 = normal, 0 = none',
+        noblePriceStep: 'at most 1',
+        marketExchangeRatio: '1 to 10',
+      },
+      more: 'More settings',
+      lordsLink: 'Difficulty and the single lords: NPC lords tab',
+      endsAtHint: 'Leave it empty and the world keeps running.',
+      endNowHint: '“End now” asks first and works at once, not through the save bar.',
+      changes: (count: number) => (count === 1 ? '1 change' : `${count} changes`),
+      where: (section: string, rows: string) => `${section}: ${rows}`,
+      unsaved: '(unsaved changes)',
+      discard: 'Discard',
+      invalid: (rows: string) => `Check: ${rows}`,
+      saved: 'Saved.',
+      failed: (error: string) => `Not saved: ${error}`,
+      endFailed: (error: string) => `Saved, except the end date: ${error}`,
+      settingsFailed: (error: string) => `Only the end date was saved, the rest not: ${error}`,
     },
     opening: {
       title: 'Opening time',
@@ -2423,6 +2986,17 @@ export const en = {
       asleep: 'asleep',
       worksAt: (tier: string) => `works at ${tier}`,
       bannersOff: 'Lord banners are off (world settings): what lords hold sleeps.',
+      /** Learning lords (09-npc-lords §15.5). */
+      /** 1.6 UI review: the troop shifts first ("Learned: Light cavalry +4 %, Archer −4 %") */
+      learned: (changes: string) => `Learned: ${changes}`,
+      learnedNoChange: 'Learned: no noticeable change to the troops yet',
+      learnedInfo: 'What the lord has learned',
+      learnedAttacks: (percent: number) =>
+        `From attacks on it: ${percent}\u00a0%. This much of its troops it turns towards what attacks it (spearmen against cavalry, swordsmen against infantry, scouts against scouts).`,
+      learnedWins: (percent: number) =>
+        `From players' wins: ${percent}\u00a0%. This much it mixes its attack troops like the armies players have won with lately.`,
+      learnedRest: 'The rest follows its personality’s template. Without new attacks and wins, what it learned fades.',
+      wallGoal: (village: string, level: number, until: string) => `${village}: wall to level ${level} until ${until}`,
     },
   },
   dev: {
@@ -2452,6 +3026,8 @@ export const en = {
     WORLD_FULL: 'The world is full. There is no free spot for a new village.',
     WORLD_NOT_OPEN: 'The world has not opened yet.',
     WORLD_ALREADY_OPEN: 'The world is open already; this can only be changed before it opens.',
+    SETUP_CODE_INVALID:
+      'This setup link is wrong, used already or older than 30 minutes. Run `bannerfall-admin setup` again for a new one.',
     WORLD_ENDED: 'The world has ended. Nothing can change any more.',
     WORLD_NOT_ENDED: 'The world has not ended.',
     SERVER_STARTING: 'The server is starting. Try again in a moment.',
@@ -2482,6 +3058,8 @@ export const en = {
     NOT_ENOUGH_POPULATION: 'Not enough free population. Upgrade the farm first.',
     REQUIREMENTS_NOT_MET: 'The requirements are not met yet.',
     MAX_LEVEL_REACHED: 'This building is already at its maximum level.',
+    MIN_LEVEL_REACHED: 'This building can’t be demolished any further.',
+    BUILD_ORDER_CONFLICT: 'A building can’t be upgraded and demolished in the same build queue.',
     UNIT_LEVELS_DISABLED: 'Unit levels are switched off in this world.',
     PALADIN_SLOTS_FULL: 'All your paladin slots are taken. More villages open more slots.',
     BANNERS_DISABLED: 'Banners are switched off in this world.',
@@ -2496,6 +3074,7 @@ export const en = {
     BANNER_FUSE_TYPE: 'The new banner takes the type of one of the three.',
     BANNER_FAMILIES_DIFFER: 'Banners fuse only with banners, paladin standards only with standards.',
     PALADIN_DISABLED: 'There are no paladins in this world.',
+    ARCHERS_DISABLED: 'There are no archers in this world.',
     RESEARCH_BUSY: 'This smithy, or this unit, is already being researched. Wait until it is done.',
     RESEARCH_ORDER_NOT_FOUND: 'This research no longer exists. It may be done already.',
     QUEUE_FULL: 'The queue is full.',
@@ -2503,6 +3082,8 @@ export const en = {
     ORDER_NOT_MOVABLE: 'Orders that have started cannot be moved, and nothing can go in front of them.',
     RECRUIT_ORDER_NOT_FOUND: 'This recruitment order no longer exists. Its units may be done already.',
     RECRUIT_TEMPLATE_NOT_FOUND: "This template doesn't exist (any more).",
+    BUILD_PLAN_NOT_FOUND: "This build plan doesn't exist (any more).",
+    AUTOMATION_LOCKED: 'The automation is not unlocked for you yet.',
     DISMISS_ORDER_NOT_FOUND: 'This dismiss order no longer exists. Its units may be gone already.',
     DISMISS_LOCKED: 'An attack is on its way, so dismissing cannot be stopped now. Try again once it has arrived.',
     TARGET_NOT_FOUND: 'There is no village on this field.',

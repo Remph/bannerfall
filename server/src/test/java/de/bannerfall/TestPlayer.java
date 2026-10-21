@@ -62,6 +62,19 @@ public final class TestPlayer {
         return number(body, "$.id").longValue();
     }
 
+    /** POST a demolition of one level (1.6). */
+    public ResultActions demolish(BuildingType building) throws Exception {
+        return browser.post(
+                villagePath() + "/demolitions", "{\"building\":\"" + building.name() + "\"}");
+    }
+
+    /** POST a demolition that must succeed; returns its id. */
+    public long demolishOk(BuildingType building) throws Exception {
+        String body =
+                body(demolish(building).andExpect(MockMvcResultMatchers.status().isCreated()));
+        return number(body, "$.id").longValue();
+    }
+
     /** DELETE a build order. */
     public ResultActions cancel(long orderId) throws Exception {
         return browser.delete(villagePath() + "/build-orders/" + orderId);

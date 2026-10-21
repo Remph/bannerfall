@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { refetchDelayMs } from '../../game/buildQueue';
-import type { UnitType } from '../../game/gameData';
+import { byUnitOrder, type UnitType } from '../../game/gameData';
 import { serverNow } from '../../game/serverTime';
 import { api, expectData } from '../client';
 import type { components } from '../schema';
@@ -32,6 +32,8 @@ export function useSmithy(villageId: number, enabled = true) {
     queryKey: smithyQueryKey(villageId),
     enabled,
     queryFn: () => expectData(api.GET('/api/villages/{villageId}/smithy', { params: { path: { villageId } } })),
+    // the server appends the archers (1.6): the UI shows them next to their building's units
+    select: (smithy): Smithy => ({ ...smithy, units: [...smithy.units].sort((a, b) => byUnitOrder(a.unit, b.unit)) }),
   });
 }
 

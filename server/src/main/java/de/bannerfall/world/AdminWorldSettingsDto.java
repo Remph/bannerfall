@@ -11,6 +11,8 @@ import java.time.Instant;
  * {@code npcDifficulty} has its own endpoint.
  *
  * @param phase PREGAME, OPEN (M14g) or ENDED (v1.3, 02-game-rules §22)
+ * @param setupDone the host finished or skipped the guided setup (1.6); the pre-game page offers it
+ *     until then
  * @param opensAt the time the pre-game ends, null if none is set (always null once open)
  * @param endsAt the end date the host set, null if none (§22)
  * @param endedAt when the world ended, null while it runs
@@ -20,6 +22,7 @@ public record AdminWorldSettingsDto(
         double speed,
         double unitSpeed,
         int mapSize,
+        MapSpread mapSpread,
         int startResources,
         double luckRange,
         int beginnerProtectionHours,
@@ -39,6 +42,7 @@ public record AdminWorldSettingsDto(
         int npcThinkMinutes,
         boolean guildsEnabled,
         int guildMaxMembers,
+        boolean guildStartTogether,
         boolean npcGuildsEnabled,
         int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
@@ -52,6 +56,8 @@ public record AdminWorldSettingsDto(
         double bannerDropFactor,
         boolean standardTheftEnabled,
         boolean npcBannersEnabled,
+        boolean npcLearningEnabled,
+        boolean npcShipmentsEnabled,
         double marketExchangeRatio,
         VictoryMode victoryMode,
         int dominationPercent,
@@ -63,18 +69,30 @@ public record AdminWorldSettingsDto(
         int nightBonusStartHour,
         int nightBonusEndHour,
         double nightBonusFactor,
+        boolean archersEnabled,
+        boolean moraleEnabled,
+        int moraleFloor,
+        double noblePriceStep,
+        int automationVillages,
         WorldPhase phase,
+        boolean setupDone,
         @Schema(nullable = true) Instant opensAt,
         @Schema(nullable = true) Instant endsAt,
         @Schema(nullable = true) Instant endedAt) {
 
     static AdminWorldSettingsDto of(
-            WorldSettings s, WorldPhase phase, Instant opensAt, Instant endsAt, Instant endedAt) {
+            WorldSettings s,
+            WorldPhase phase,
+            boolean setupDone,
+            Instant opensAt,
+            Instant endsAt,
+            Instant endedAt) {
         return new AdminWorldSettingsDto(
                 s.name(),
                 s.speed(),
                 s.unitSpeed(),
                 s.mapSize(),
+                s.mapSpread(),
                 s.startResources(),
                 s.luckRange(),
                 s.beginnerProtectionHours(),
@@ -94,6 +112,7 @@ public record AdminWorldSettingsDto(
                 s.npcThinkMinutes(),
                 s.guildsEnabled(),
                 s.guildMaxMembers(),
+                s.guildStartTogether(),
                 s.npcGuildsEnabled(),
                 s.npcGuildMaxMembers(),
                 s.barbarianWallsEnabled(),
@@ -107,6 +126,8 @@ public record AdminWorldSettingsDto(
                 s.bannerDropFactor(),
                 s.standardTheftEnabled(),
                 s.npcBannersEnabled(),
+                s.npcLearningEnabled(),
+                s.npcShipmentsEnabled(),
                 s.marketExchangeRatio(),
                 s.victoryMode(),
                 s.dominationPercent(),
@@ -118,7 +139,13 @@ public record AdminWorldSettingsDto(
                 s.nightBonusStartHour(),
                 s.nightBonusEndHour(),
                 s.nightBonusFactor(),
+                s.archersEnabled(),
+                s.moraleEnabled(),
+                s.moraleFloor(),
+                s.noblePriceStep(),
+                s.automationVillages(),
                 phase,
+                setupDone,
                 phase == WorldPhase.PREGAME ? opensAt : null,
                 endsAt,
                 endedAt);

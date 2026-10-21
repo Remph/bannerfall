@@ -1,0 +1,350 @@
+/*
+ * Colour themes (1.6): each one swaps the colours of the bars, the main buttons, the paper and the
+ * text, in a light and a dark set; the map, the village picture, banners, charts and the war colours
+ * (danger, success) stay as tokens.css has them. theme.ts sets data-palette on <html>; without it
+ * the page shows tokens.css, which is the same as 'green'. The menu's colour picker puts
+ * data-palette on each choice too, so its little preview shows that theme in the current light or
+ * dark mode: hence the selectors without :root.
+ *
+ * Specificity: a light block [data-palette] beats tokens.css's :root (same weight, later file), a dark
+ * one (three parts) beats tokens.css's dark blocks (two). Every palette sets the same tokens in all
+ * three blocks, and the two dark blocks are identical, as in tokens.css (palettes.test.ts checks both).
+ */
+/* Green banner: today's look, the default */
+[data-palette='green'] {
+  --color-bg: #f4eee2;
+  --color-surface: #fdfaf3;
+  --color-well: #eee5d3;
+  --color-border: #d6c9b0;
+  --color-divider: #ece3d2;
+  --color-stain: rgba(110, 90, 60, 0.07);
+  --color-text: #29241e;
+  --color-text-muted: #6f665a;
+  --color-title: #2b4537;
+  --color-accent: #2f5d45;
+  --color-on-accent: #fffaf2;
+  --color-bar: #2f4a3c;
+  --color-bar-edge: #253c30;
+  --color-on-bar: #f3ecdc;
+  --color-on-bar-muted: #b0c2b5;
+  --color-highlight: #e9c46a;
+  --map-edge: #2f4a3c;
+  --map-axis: rgba(37, 60, 48, 0.9);
+  --map-outside: #e2d9c4;
+}
+
+/* Royal blue: navy bars, blue main buttons; pale blue in the dark */
+[data-palette='blue'] {
+  --color-bg: #efede6;
+  --color-surface: #fcfbf7;
+  --color-well: #e6e4dc;
+  --color-border: #cdc8b8;
+  --color-divider: #e7e3d8;
+  --color-stain: rgba(50, 60, 90, 0.06);
+  --color-text: #22252b;
+  --color-text-muted: #5e646c;
+  --color-title: #22395c;
+  --color-accent: #2a4f86;
+  --color-on-accent: #fbfaf5;
+  --color-bar: #233a5c;
+  --color-bar-edge: #1a2c47;
+  --color-on-bar: #eef0f4;
+  --color-on-bar-muted: #a9b8cd;
+  --color-highlight: #e9c46a;
+  --map-edge: #233a5c;
+  --map-axis: rgba(26, 44, 71, 0.9);
+  --map-outside: #e2d9c4;
+}
+
+/* Black and gold: charcoal bars, ochre-gold main buttons */
+[data-palette='black'] {
+  --color-bg: #f1eee7;
+  --color-surface: #fdfbf6;
+  --color-well: #eae5da;
+  --color-border: #d1c9b8;
+  --color-divider: #eae4d8;
+  --color-stain: rgba(40, 35, 25, 0.06);
+  --color-text: #24211d;
+  --color-text-muted: #69635a;
+  --color-title: #3b3127;
+  --color-accent: #7d5a12;
+  --color-on-accent: #fffaf0;
+  --color-bar: #272522;
+  --color-bar-edge: #1a1917;
+  --color-on-bar: #f1ead9;
+  --color-on-bar-muted: #b4ab99;
+  --color-highlight: #e2b54a;
+  --map-edge: #272522;
+  --map-axis: rgba(26, 25, 23, 0.9);
+  --map-outside: #e2d9c4;
+}
+
+/* Purple: plum bars, plum main buttons; lilac in the dark */
+[data-palette='purple'] {
+  --color-bg: #f2ede7;
+  --color-surface: #fdfaf6;
+  --color-well: #ebe3dc;
+  --color-border: #d4c7bc;
+  --color-divider: #ebe2d9;
+  --color-stain: rgba(80, 50, 80, 0.06);
+  --color-text: #28222a;
+  --color-text-muted: #6b626e;
+  --color-title: #4a2a52;
+  --color-accent: #6a3577;
+  --color-on-accent: #fcf8f4;
+  --color-bar: #47294d;
+  --color-bar-edge: #371f3c;
+  --color-on-bar: #f4ecef;
+  --color-on-bar-muted: #c4b0c8;
+  --color-highlight: #e9c46a;
+  --map-edge: #47294d;
+  --map-axis: rgba(55, 31, 60, 0.9);
+  --map-outside: #e2d9c4;
+}
+
+/* Leather and forest: brown bars, the green main buttons stay; mint green in the dark */
+[data-palette='leather'] {
+  --color-bg: #f0e7d8;
+  --color-surface: #fcf6ec;
+  --color-well: #e9ddc8;
+  --color-border: #d0bd9d;
+  --color-divider: #e8dac3;
+  --color-stain: rgba(110, 75, 40, 0.08);
+  --color-text: #2b231b;
+  --color-text-muted: #6b5e4e;
+  --color-title: #4a3220;
+  --color-accent: #2f5d45;
+  --color-on-accent: #fffaf2;
+  --color-bar: #4d3627;
+  --color-bar-edge: #3b291d;
+  --color-on-bar: #f4e9d6;
+  --color-on-bar-muted: #c8b298;
+  --color-highlight: #e9c46a;
+  --map-edge: #4d3627;
+  --map-axis: rgba(59, 41, 29, 0.9);
+  --map-outside: #e2d9c4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-palette='green'],
+  :root:not([data-theme='light']) [data-palette='green'] {
+    --color-bg: #1a1713;
+    --color-surface: #24201b;
+    --color-well: #302a23;
+    --color-border: #4a4135;
+    --color-divider: #302a23;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #eee6d6;
+    --color-text-muted: #aaa08f;
+    --color-title: #e9c46a;
+    --color-accent: #e9c46a;
+    --color-on-accent: #1a1713;
+    --color-bar: #18261f;
+    --color-bar-edge: #111b16;
+    --color-on-bar: #e6dfcd;
+    --color-on-bar-muted: #8ea596;
+    --color-highlight: #e9c46a;
+    --map-edge: #8ea596;
+    --map-axis: rgba(17, 27, 22, 0.9);
+    --map-outside: #1d1a15;
+  }
+  :root:not([data-theme='light'])[data-palette='blue'],
+  :root:not([data-theme='light']) [data-palette='blue'] {
+    --color-bg: #13161b;
+    --color-surface: #1b1f26;
+    --color-well: #252a32;
+    --color-border: #3b4250;
+    --color-divider: #252a32;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #e8e6e0;
+    --color-text-muted: #a1a6ae;
+    --color-title: #e9c46a;
+    --color-accent: #93b8e8;
+    --color-on-accent: #10141a;
+    --color-bar: #152139;
+    --color-bar-edge: #0e172a;
+    --color-on-bar: #e3e7ee;
+    --color-on-bar-muted: #8b9ab1;
+    --color-highlight: #e9c46a;
+    --map-edge: #8b9ab1;
+    --map-axis: rgba(14, 23, 42, 0.9);
+    --map-outside: #15181d;
+  }
+  :root:not([data-theme='light'])[data-palette='black'],
+  :root:not([data-theme='light']) [data-palette='black'] {
+    --color-bg: #121211;
+    --color-surface: #1c1b19;
+    --color-well: #272522;
+    --color-border: #45403a;
+    --color-divider: #272522;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #ece6d8;
+    --color-text-muted: #a8a093;
+    --color-title: #e2b54a;
+    --color-accent: #e2b54a;
+    --color-on-accent: #141210;
+    --color-bar: #0b0b0a;
+    --color-bar-edge: #000000;
+    --color-on-bar: #e8e0cc;
+    --color-on-bar-muted: #9c9483;
+    --color-highlight: #e2b54a;
+    --map-edge: #9c9483;
+    --map-axis: rgba(0, 0, 0, 0.9);
+    --map-outside: #141413;
+  }
+  :root:not([data-theme='light'])[data-palette='purple'],
+  :root:not([data-theme='light']) [data-palette='purple'] {
+    --color-bg: #17141a;
+    --color-surface: #211c23;
+    --color-well: #2c2530;
+    --color-border: #4a3f4e;
+    --color-divider: #2c2530;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #ece4ea;
+    --color-text-muted: #a99fab;
+    --color-title: #e9c46a;
+    --color-accent: #d3a8e0;
+    --color-on-accent: #17141a;
+    --color-bar: #23162a;
+    --color-bar-edge: #190f1f;
+    --color-on-bar: #ebe1ec;
+    --color-on-bar-muted: #a593a9;
+    --color-highlight: #e9c46a;
+    --map-edge: #a593a9;
+    --map-axis: rgba(25, 15, 31, 0.9);
+    --map-outside: #18151a;
+  }
+  :root:not([data-theme='light'])[data-palette='leather'],
+  :root:not([data-theme='light']) [data-palette='leather'] {
+    --color-bg: #19140f;
+    --color-surface: #231c15;
+    --color-well: #2f261d;
+    --color-border: #4d3f30;
+    --color-divider: #2f261d;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #efe4d2;
+    --color-text-muted: #ad9e88;
+    --color-title: #e9c46a;
+    --color-accent: #86c9a0;
+    --color-on-accent: #10170f;
+    --color-bar: #2b1e14;
+    --color-bar-edge: #1f150d;
+    --color-on-bar: #ecdfc8;
+    --color-on-bar-muted: #aa977e;
+    --color-highlight: #e9c46a;
+    --map-edge: #aa977e;
+    --map-axis: rgba(31, 21, 13, 0.9);
+    --map-outside: #1a150f;
+  }
+}
+
+:root[data-theme='dark'][data-palette='green'],
+:root[data-theme='dark'] [data-palette='green'] {
+  --color-bg: #1a1713;
+  --color-surface: #24201b;
+  --color-well: #302a23;
+  --color-border: #4a4135;
+  --color-divider: #302a23;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #eee6d6;
+  --color-text-muted: #aaa08f;
+  --color-title: #e9c46a;
+  --color-accent: #e9c46a;
+  --color-on-accent: #1a1713;
+  --color-bar: #18261f;
+  --color-bar-edge: #111b16;
+  --color-on-bar: #e6dfcd;
+  --color-on-bar-muted: #8ea596;
+  --color-highlight: #e9c46a;
+  --map-edge: #8ea596;
+  --map-axis: rgba(17, 27, 22, 0.9);
+  --map-outside: #1d1a15;
+}
+:root[data-theme='dark'][data-palette='blue'],
+:root[data-theme='dark'] [data-palette='blue'] {
+  --color-bg: #13161b;
+  --color-surface: #1b1f26;
+  --color-well: #252a32;
+  --color-border: #3b4250;
+  --color-divider: #252a32;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #e8e6e0;
+  --color-text-muted: #a1a6ae;
+  --color-title: #e9c46a;
+  --color-accent: #93b8e8;
+  --color-on-accent: #10141a;
+  --color-bar: #152139;
+  --color-bar-edge: #0e172a;
+  --color-on-bar: #e3e7ee;
+  --color-on-bar-muted: #8b9ab1;
+  --color-highlight: #e9c46a;
+  --map-edge: #8b9ab1;
+  --map-axis: rgba(14, 23, 42, 0.9);
+  --map-outside: #15181d;
+}
+:root[data-theme='dark'][data-palette='black'],
+:root[data-theme='dark'] [data-palette='black'] {
+  --color-bg: #121211;
+  --color-surface: #1c1b19;
+  --color-well: #272522;
+  --color-border: #45403a;
+  --color-divider: #272522;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #ece6d8;
+  --color-text-muted: #a8a093;
+  --color-title: #e2b54a;
+  --color-accent: #e2b54a;
+  --color-on-accent: #141210;
+  --color-bar: #0b0b0a;
+  --color-bar-edge: #000000;
+  --color-on-bar: #e8e0cc;
+  --color-on-bar-muted: #9c9483;
+  --color-highlight: #e2b54a;
+  --map-edge: #9c9483;
+  --map-axis: rgba(0, 0, 0, 0.9);
+  --map-outside: #141413;
+}
+:root[data-theme='dark'][data-palette='purple'],
+:root[data-theme='dark'] [data-palette='purple'] {
+  --color-bg: #17141a;
+  --color-surface: #211c23;
+  --color-well: #2c2530;
+  --color-border: #4a3f4e;
+  --color-divider: #2c2530;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #ece4ea;
+  --color-text-muted: #a99fab;
+  --color-title: #e9c46a;
+  --color-accent: #d3a8e0;
+  --color-on-accent: #17141a;
+  --color-bar: #23162a;
+  --color-bar-edge: #190f1f;
+  --color-on-bar: #ebe1ec;
+  --color-on-bar-muted: #a593a9;
+  --color-highlight: #e9c46a;
+  --map-edge: #a593a9;
+  --map-axis: rgba(25, 15, 31, 0.9);
+  --map-outside: #18151a;
+}
+:root[data-theme='dark'][data-palette='leather'],
+:root[data-theme='dark'] [data-palette='leather'] {
+  --color-bg: #19140f;
+  --color-surface: #231c15;
+  --color-well: #2f261d;
+  --color-border: #4d3f30;
+  --color-divider: #2f261d;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #efe4d2;
+  --color-text-muted: #ad9e88;
+  --color-title: #e9c46a;
+  --color-accent: #86c9a0;
+  --color-on-accent: #10170f;
+  --color-bar: #2b1e14;
+  --color-bar-edge: #1f150d;
+  --color-on-bar: #ecdfc8;
+  --color-on-bar-muted: #aa977e;
+  --color-highlight: #e9c46a;
+  --map-edge: #aa977e;
+  --map-axis: rgba(31, 21, 13, 0.9);
+  --map-outside: #1a150f;
+}

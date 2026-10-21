@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/errors';
+import { useWorld } from '../../api/queries/world';
 import { useCancelResearch, type NextResearch, type ResearchOrder, type SmithyUnit } from '../../api/queries/smithy';
 import type { Village } from '../../api/queries/villages';
 import { Button } from '../../components/Button';
@@ -143,6 +144,7 @@ export function UnitRow(props: UnitRowProps) {
       )}
       {leveled && unit.unit === 'SCOUT' && <p className={styles.hint}>{s.scoutHint}</p>}
       {place === 'SMITHY' && unit.unit === 'PALADIN' && <p className={styles.hint}>{s.paladinHint}</p>}
+      {unit.attackType === 'ARCHER' && <p className={styles.hint}>{s.archerHint}</p>}
       {place === 'BANNER_HALL' && unit.unit === 'PALADIN' && (
         <p className={styles.hint}>{t.hallTraining.paladinLevels}</p>
       )}
@@ -177,12 +179,14 @@ export function UnitRow(props: UnitRowProps) {
 }
 
 /**
- * Attack and the two defence values. With unit levels one row per level, the unit's current level
- * marked; otherwise (levels off, or a unit without levels) one row with the values it has.
+ * Attack and the defence values (against archers only in a world with archers, 1.6). With unit
+ * levels one row per level, the unit's current level marked; otherwise (levels off, or a unit
+ * without levels) one row with the values it has.
  */
 function StatsTable({ unit, leveled }: { unit: SmithyUnit; leveled: boolean }) {
   const { t, language } = useI18n();
   const s = t.smithy;
+  const archers = useWorld().data?.archersEnabled === true;
   const rows = leveled
     ? unit.stats.map((stats, index) => ({ level: index + 1, stats }))
     : [{ level: null, stats: statsAt(unit.stats, unit.level) }];
@@ -201,6 +205,11 @@ function StatsTable({ unit, leveled }: { unit: SmithyUnit; leveled: boolean }) {
           <th scope="col">
             <abbr title={s.defenseCavalry}>{s.defenseCavalryShort}</abbr>
           </th>
+          {archers && (
+            <th scope="col">
+              <abbr title={s.defenseArcher}>{s.defenseArcherShort}</abbr>
+            </th>
+          )}
         </tr>
       </thead>
       <tbody>
@@ -212,6 +221,7 @@ function StatsTable({ unit, leveled }: { unit: SmithyUnit; leveled: boolean }) {
             <td>{formatNumber(stats.attack, language)}</td>
             <td>{formatNumber(stats.defenseInfantry, language)}</td>
             <td>{formatNumber(stats.defenseCavalry, language)}</td>
+            {archers && <td>{formatNumber(stats.defenseArcher, language)}</td>}
           </tr>
         ))}
       </tbody>

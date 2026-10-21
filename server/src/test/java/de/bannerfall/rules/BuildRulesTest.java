@@ -101,6 +101,41 @@ class BuildRulesTest {
         assertThat(buildSeconds(BuildingType.RALLY_POINT, 1, 30, 1_000_000.0)).isEqualTo(1);
     }
 
+    // ---- demolition time and lowest level (1.6) ----
+
+    @ParameterizedTest(name = "{0} level {1}, Town Hall {2}, speed {3} → {4} s")
+    @CsvSource({
+        // a fifth of the build time of the level that goes: Town Hall 2 with Town Hall 1 → 1011 / 5
+        "HEADQUARTERS, 2, 1, 1.0, 202",
+        "HEADQUARTERS, 1, 1, 1.0, 171",
+        // the rulebook's example: Wall 20 → 19 with Town Hall 20 at speed 6 → 17 min 22 s
+        "WALL, 20, 20, 6.0, 1042",
+        "SMITHY, 16, 10, 1.0, 8786"
+    })
+    void demolishingTakesAFifthOfTheBuildTimeOfTheLevelThatGoes(
+            BuildingType type, int level, int hqLevel, double speed, long expected) {
+        assertThat(BuildRules.demolishSeconds(data.building(type), level, hqLevel, speed))
+                .isEqualTo(expected);
+    }
+
+    @Test
+    void demolishingTakesAtLeastOneSecond() {
+        assertThat(BuildRules.demolishSeconds(data.building(BuildingType.WALL), 1, 30, 1_000_000.0))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void demolishingStopsAtTheCatapultsMinimum() {
+        for (BuildingType type : BuildingType.values()) {
+            int expected =
+                    switch (type) {
+                        case HEADQUARTERS, FARM, WAREHOUSE, RALLY_POINT -> 1;
+                        default -> 0;
+                    };
+            assertThat(BuildRules.demolishMinLevel(type)).as(type.name()).isEqualTo(expected);
+        }
+    }
+
     // ---- population ----
 
     @ParameterizedTest(name = "{0} to level {1} → +{2}")
@@ -223,6 +258,23 @@ class BuildRulesTest {
                 .containsEntry(BuildingType.BARRACKS, 1)
                 .containsEntry(BuildingType.WOODCUTTER, 1)
                 .containsEntry(BuildingType.WALL, 0)
+                .hasSize(BuildingType.values().length);
+    }
+
+    @Test
+    void levelsWithQueuedTakesOneLevelAwayPerQueuedDemolition() {
+        Map<BuildingType, Integer> current =
+                Map.of(BuildingType.WALL, 5, BuildingType.WOODCUTTER, 1);
+
+        Map<BuildingType, Integer> levels =
+                BuildRules.levelsWithQueued(
+                        current,
+                        List.of(BuildingType.WOODCUTTER),
+                        List.of(BuildingType.WALL, BuildingType.WALL));
+
+        assertThat(levels)
+                .containsEntry(BuildingType.WALL, 3)
+                .containsEntry(BuildingType.WOODCUTTER, 2)
                 .hasSize(BuildingType.values().length);
     }
 

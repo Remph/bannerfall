@@ -13,7 +13,9 @@ export type PushEvent =
   | Schemas['GuildInvited']
   | Schemas['WorldEnded']
   | Schemas['VictoryClock']
-  | Schemas['BuildComplete'];
+  | Schemas['BuildComplete']
+  | Schemas['AttacksReturned']
+  | Schemas['StorageFull'];
 
 /**
  * What one push carries (the server's `PushMessage`, 01-architecture §4.8b): the live notification
@@ -26,7 +28,10 @@ export interface PushMessage {
   world: string;
   /** Missing for a test. */
   event?: PushEvent;
-  /** The village it is about, with its owner now: the attacked, lost or finished one. */
+  /**
+   * The village it is about, with its owner now: the attacked, lost or finished one, the one the
+   * attacks came home to, the full one.
+   */
   village?: Schemas['VillageRefDto'];
   /** Attacks on the way to `village`, this one included. */
   attacks?: number;

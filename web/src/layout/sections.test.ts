@@ -63,6 +63,7 @@ describe('navEntry: what a page lights in the navigation (1.5.1)', () => {
   it('lights the section of every page that has one', () => {
     expect(entry('/v/3')).toBe('village');
     expect(entry('/v/3/hq')).toBe('townHall');
+    expect(entry('/v/3/automation')).toBe('townHall');
     expect(entry('/v/3/recruit')).toBe('recruit');
     expect(entry('/v/3/recruit/stable')).toBe('recruit');
     expect(entry('/v/3/banners')).toBe('bannerHall');

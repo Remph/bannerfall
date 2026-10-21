@@ -10,11 +10,12 @@ import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitDef;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.noble.NobleService;
 import de.bannerfall.paladin.PaladinService;
 import de.bannerfall.rules.BannerEffect;
 import de.bannerfall.rules.BannerRules;
 import de.bannerfall.rules.BuildRules;
-import de.bannerfall.rules.Population;
+import de.bannerfall.rules.NobleRules;
 import de.bannerfall.rules.RecruitRules;
 import de.bannerfall.rules.Requirement;
 import de.bannerfall.unit.UnitCounts;
@@ -49,6 +50,7 @@ public class RecruitService {
     private final BuildService buildService;
     private final DismissService dismissService;
     private final PaladinService paladins;
+    private final NobleService nobles;
     private final VillageBanners villageBanners;
     private final UnitService unitService;
     private final GameData gameData;
@@ -62,6 +64,7 @@ public class RecruitService {
             BuildService buildService,
             DismissService dismissService,
             PaladinService paladins,
+            NobleService nobles,
             VillageBanners villageBanners,
             UnitService unitService,
             GameData gameData,
@@ -73,6 +76,7 @@ public class RecruitService {
         this.buildService = buildService;
         this.dismissService = dismissService;
         this.paladins = paladins;
+        this.nobles = nobles;
         this.villageBanners = villageBanners;
         this.unitService = unitService;
         this.gameData = gameData;
@@ -88,7 +92,8 @@ public class RecruitService {
      * @throws GameRuleException {@code QUEUE_FULL} (that building's queue), {@code
      *     REQUIREMENTS_NOT_MET} (current levels, queued ones don't count), {@code PALADIN_DISABLED}
      *     / {@code PALADIN_SLOTS_FULL} (paladin), {@code BANNERS_DISABLED} (a banner thief in a
-     *     world without banners), {@code NOT_ENOUGH_RESOURCES}, {@code NOT_ENOUGH_POPULATION}
+     *     world without banners), {@code ARCHERS_DISABLED} (an archer in a world without archers),
+     *     {@code NOT_ENOUGH_RESOURCES}, {@code NOT_ENOUGH_POPULATION}
      */
     @Transactional
     public RecruitOrderDto enqueue(long villageId, long playerId, UnitType type, int count) {
@@ -170,7 +175,15 @@ public class RecruitService {
             throw new GameRuleException(
                     ErrorCode.BANNERS_DISABLED, "Banners are switched off in this world");
         }
-        ResourceAmounts cost = RecruitRules.cost(def, count);
+        if (type.isArcher() && !world.archersEnabled()) {
+            throw new GameRuleException(
+                    ErrorCode.ARCHERS_DISABLED, "There are no archers in this world");
+        }
+        // a noble's price rises with the player's rank (1.6, 02-game-rules §5.7); every other unit
+        // costs what the game data says
+        ResourceAmounts unitCost =
+                type == UnitType.NOBLE ? noblePrice(village, def, count, world) : def.cost();
+        ResourceAmounts cost = unitCost.times(count);
         if (!cost.fitsInto(village.floorResources())) {
             throw new GameRuleException(
                     ErrorCode.NOT_ENOUGH_RESOURCES, "Not enough resources for " + type);
@@ -201,11 +214,39 @@ public class RecruitService {
                                 count,
                                 secondsPerUnit,
                                 startAt,
-                                def.cost(),
+                                unitCost,
                                 def.pop(),
                                 now));
         villageOrders.add(order);
         return order;
+    }
+
+    /**
+     * What each noble of an order of {@code count} pays (02-game-rules §5.7): the average of the
+     * prices from the player's rank on, so a cancel refunds what the nobles in training paid. Taken
+     * under the player lock, after the village lock, so two villages of one player can't order at
+     * the same rank. An order the stock can't pay at any rank is refused here, before the price of
+     * thousands of nobles is worked out.
+     */
+    private ResourceAmounts noblePrice(
+            Village village, UnitDef def, int count, WorldSettings world) {
+        long playerId = village.getPlayer().getId();
+        nobles.lock(playerId);
+        int held = nobles.held(playerId);
+        double step = world.noblePriceStep();
+        if (NobleRules.maxAffordable(
+                        def.cost(),
+                        step,
+                        held,
+                        village.floorResources(),
+                        Integer.MAX_VALUE,
+                        1,
+                        count)
+                < count) {
+            throw new GameRuleException(
+                    ErrorCode.NOT_ENOUGH_RESOURCES, "Not enough resources for NOBLE");
+        }
+        return NobleRules.unitPrice(def.cost(), step, held, count);
     }
 
     /**
@@ -285,6 +326,8 @@ public class RecruitService {
         UnitCounts home = unitService.homeUnits(villageId);
         List<DismissOrder> dismissals = dismissService.openOrders(villageId);
         int freePaladinSlots = paladins.free(village.getPlayer().getId());
+        // the noble's price of right now (02-game-rules §5.7); only read where he is listed
+        Integer nobleHeld = null;
         BannerEffect banner = villageBanners.effectOf(village);
 
         List<RecruitBuildingDto> result = new ArrayList<>();
@@ -302,27 +345,47 @@ public class RecruitService {
                     continue;
                 }
                 // a world without paladins (02-game-rules §5.5) does not list him, nor a world
-                // without banners the banner thief (§21.5)
+                // without banners the banner thief (§21.5), nor one without archers those (§5.6)
                 if (type == UnitType.PALADIN && world.paladinMaxSlots() < 1
-                        || type == UnitType.BANNER_THIEF && !world.bannersEnabled()) {
+                        || type == UnitType.BANNER_THIEF && !world.bannersEnabled()
+                        || type.isArcher() && !world.archersEnabled()) {
                     continue;
                 }
                 List<Requirement> missing = BuildRules.missingRequirements(def.requires(), levels);
+                ResourceAmounts cost = def.cost();
+                int affordable =
+                        type == UnitType.PALADIN
+                                ? Math.min(
+                                        freePaladinSlots,
+                                        RecruitRules.maxAffordable(def, stock, freePop))
+                                : RecruitRules.maxAffordable(def, stock, freePop);
+                if (type == UnitType.NOBLE) {
+                    if (nobleHeld == null) {
+                        nobleHeld = nobles.held(village.getPlayer().getId());
+                    }
+                    double step = world.noblePriceStep();
+                    cost = NobleRules.price(def.cost(), step, NobleRules.rank(nobleHeld));
+                    affordable =
+                            NobleRules.maxAffordable(
+                                    def.cost(),
+                                    step,
+                                    nobleHeld,
+                                    stock,
+                                    freePop,
+                                    def.pop(),
+                                    RecruitRules.MAX_COUNT);
+                }
                 units.add(
                         new RecruitBuildingDto.RecruitUnitDto(
                                 type,
-                                def.cost(),
+                                cost,
                                 def.pop(),
                                 BannerRules.seconds(
                                         RecruitRules.secondsPerUnit(def, Math.max(1, level), world),
                                         banner.drill()),
                                 missing.isEmpty(),
                                 missing,
-                                type == UnitType.PALADIN
-                                        ? Math.min(
-                                                freePaladinSlots,
-                                                RecruitRules.maxAffordable(def, stock, freePop))
-                                        : RecruitRules.maxAffordable(def, stock, freePop),
+                                affordable,
                                 home.get(type),
                                 RecruitRules.dismissSecondsPerUnit(def, level, world)));
             }
@@ -346,8 +409,6 @@ public class RecruitService {
      * villageOrders} are the open orders the catch-up returned.
      */
     private int freePopulation(Village village, List<RecruitOrder> villageOrders) {
-        return Population.free(
-                village.getBuildings().get(BuildingType.FARM),
-                buildService.populationUsed(village, villageOrders));
+        return buildService.freePopulation(village, villageOrders);
     }
 }

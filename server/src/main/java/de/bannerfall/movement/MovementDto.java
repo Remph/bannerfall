@@ -16,6 +16,8 @@ import java.util.Map;
  * @param catapultTarget only for an attack with catapults
  * @param loot only a RETURN carries some
  * @param cancellableUntil the owner may cancel before this (exclusive); null for a RETURN
+ * @param notifyReturn the owner gets told when the units are home (1.6, the bell): alone or with
+ *     the other attacks of a farm list run or a train
  */
 public record MovementDto(
         long id,
@@ -28,7 +30,8 @@ public record MovementDto(
         ResourceAmounts loot,
         Instant departAt,
         Instant arriveAt,
-        @Schema(nullable = true) Instant cancellableUntil) {
+        @Schema(nullable = true) Instant cancellableUntil,
+        boolean notifyReturn) {
 
     static MovementDto of(Movement movement, int cancelWindowSeconds) {
         return new MovementDto(
@@ -42,6 +45,7 @@ public record MovementDto(
                 movement.getLoot(),
                 movement.getDepartAt(),
                 movement.getArriveAt(),
-                movement.cancellableUntil(cancelWindowSeconds));
+                movement.cancellableUntil(cancelWindowSeconds),
+                movement.getReturnWatchId() != null);
     }
 }

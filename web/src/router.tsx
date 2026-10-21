@@ -45,6 +45,10 @@ export const router = createBrowserRouter([
               { path: '/', element: <HomePage /> },
               { path: '/v/:villageId', element: <VillagePage /> },
               { path: '/v/:villageId/hq', lazy: page(() => import('./pages/townHall/TownHallPage'), 'TownHallPage') },
+              {
+                path: '/v/:villageId/automation',
+                lazy: page(() => import('./pages/automation/AutomationPage'), 'AutomationPage'),
+              },
               // without a building (the section link): the page redirects to the barracks
               {
                 path: '/v/:villageId/recruit/:building?',
@@ -111,6 +115,9 @@ export const router = createBrowserRouter([
                 path: '/notifications',
                 lazy: page(() => import('./pages/notifications/NotificationsPage'), 'NotificationsPage'),
               },
+              // the guided world setup (1.6): the host's wizard in the pre-game. Not behind RequireAdmin:
+              // the setup link (`?code=`) makes the logged-in account the admin first
+              { path: '/setup', lazy: page(() => import('./pages/setup/SetupPage'), 'SetupPage') },
               // the host's page (04-api, "Admin"): only for ADMIN accounts
               {
                 element: <RequireAdmin />,

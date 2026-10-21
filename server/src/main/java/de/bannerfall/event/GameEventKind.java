@@ -28,6 +28,16 @@ public enum GameEventKind {
     /** {@code refId} = 1 (the world): the end date the host set has come (v1.3, §22). */
     WORLD_END,
     /**
+     * {@code refId} = village: the village automation looks whether it can queue the next line of
+     * its build plan or recruit, and schedules its next look (1.6, 02-game-rules §25).
+     */
+    AUTOMATION_CHECK,
+    /**
+     * No {@code refId}: pushes "storage full" for the villages of players who want it, and
+     * schedules the next look (1.6, 01-architecture §4.8b).
+     */
+    STORAGE_CHECK,
+    /**
      * Only for the event engine's own tests, which register a handler for it. The game has none: a
      * pending TEST event in a real database stops the server at startup.
      */

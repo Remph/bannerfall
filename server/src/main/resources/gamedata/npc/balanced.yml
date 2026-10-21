@@ -8,11 +8,12 @@ npc:
         - { name: LATE, troop-share: 0.50 }
       mix:
         EARLY: { SPEARMAN: 50, AXEMAN: 50 }
-        MID: { SPEARMAN: 30, SWORDSMAN: 10, AXEMAN: 25, SCOUT: 5, LIGHT_CAVALRY: 20, HEAVY_CAVALRY: 5, RAM: 5 }
-        LATE: { SPEARMAN: 25, SWORDSMAN: 10, AXEMAN: 20, SCOUT: 3, LIGHT_CAVALRY: 20, HEAVY_CAVALRY: 12, RAM: 6, CATAPULT: 4 }
-      farm-units: [LIGHT_CAVALRY, AXEMAN, SPEARMAN]
-      attack-units: [AXEMAN, LIGHT_CAVALRY, HEAVY_CAVALRY, RAM, CATAPULT]
-      support-units: [SPEARMAN, SWORDSMAN, HEAVY_CAVALRY]
+        # ARCHER and MOUNTED_ARCHER count only in a world with archers (1.6, 09 §5.3); without them the mix renormalizes
+        MID: { SPEARMAN: 30, SWORDSMAN: 10, AXEMAN: 25, SCOUT: 5, LIGHT_CAVALRY: 20, HEAVY_CAVALRY: 5, RAM: 5, ARCHER: 10, MOUNTED_ARCHER: 5 }
+        LATE: { SPEARMAN: 25, SWORDSMAN: 10, AXEMAN: 20, SCOUT: 3, LIGHT_CAVALRY: 20, HEAVY_CAVALRY: 12, RAM: 6, CATAPULT: 4, ARCHER: 10, MOUNTED_ARCHER: 8 }
+      farm-units: [LIGHT_CAVALRY, MOUNTED_ARCHER, AXEMAN, SPEARMAN]
+      attack-units: [AXEMAN, LIGHT_CAVALRY, MOUNTED_ARCHER, HEAVY_CAVALRY, RAM, CATAPULT]
+      support-units: [SPEARMAN, SWORDSMAN, ARCHER, HEAVY_CAVALRY]
       home-guard: 0.4
       support-share: 0.25
       margin: 1.6

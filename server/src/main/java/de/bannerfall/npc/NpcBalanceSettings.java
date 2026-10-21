@@ -26,6 +26,7 @@ public record NpcBalanceSettings(Balance balance) {
      * @param thinkJitter a round's interval varies by ±this share
      * @param ledgerDecay the spending ledger is multiplied by this each round
      * @param guildRadius in fields: lords this close form guilds (09 §13.1)
+     * @param learning the numbers of learning lords (09 §15)
      * @param difficulties EASY, NORMAL and HARD (CUSTOM lives in {@code world_settings.npc_custom})
      */
     public record Balance(
@@ -44,6 +45,7 @@ public record NpcBalanceSettings(Balance balance) {
             String quietFrom,
             String quietTo,
             String quietZone,
+            Learning learning,
             Map<NpcDifficulty, Difficulty> difficulties) {
 
         public Balance {
@@ -72,6 +74,11 @@ public record NpcBalanceSettings(Balance balance) {
             }
             if (!isZone(quietZone)) {
                 problems.add("quiet-zone must be a time zone id");
+            }
+            if (learning == null) {
+                problems.add("learning: missing");
+            } else {
+                learning.problems(problems);
             }
             for (NpcDifficulty d :
                     new NpcDifficulty[] {
@@ -112,6 +119,44 @@ public record NpcBalanceSettings(Balance balance) {
                 return custom != null ? custom : difficulties.get(NpcDifficulty.NORMAL);
             }
             return difficulties.get(difficulty);
+        }
+    }
+
+    /**
+     * Learning lords (09 §15). Hours are real hours: how often humans attack follows their real
+     * day, not the world speed.
+     *
+     * @param maxShift the largest share of a mix the lessons may move (at full evidence)
+     * @param halfLifeHours a tally of attacks and wins halves in this many real hours
+     * @param evidence this many (faded) attacks or wins are full evidence
+     * @param windowHours human wins older than this are not read
+     * @param scoutShare the scouts' share of the defence lesson when the lord is only scouted
+     * @param wallStep a siege attack sets the wall goal this many levels above the wall it left
+     * @param wallHours a wall goal lasts this long after the latest siege attack
+     */
+    public record Learning(
+            double maxShift,
+            double halfLifeHours,
+            double evidence,
+            double windowHours,
+            double scoutShare,
+            int wallStep,
+            double wallHours) {
+
+        void problems(List<String> problems) {
+            List<String> own = new ArrayList<>();
+            inRange(own, "max-shift", maxShift, 0, 1);
+            positive(own, "half-life-hours", halfLifeHours);
+            if (!(evidence >= 1)) {
+                own.add("evidence must be >= 1");
+            }
+            positive(own, "window-hours", windowHours);
+            inRange(own, "scout-share", scoutShare, 0, 1);
+            if (wallStep < 1) {
+                own.add("wall-step must be >= 1");
+            }
+            positive(own, "wall-hours", wallHours);
+            own.forEach(p -> problems.add("learning: " + p));
         }
     }
 

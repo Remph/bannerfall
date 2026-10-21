@@ -114,15 +114,16 @@ export function useSendFarm(villageId: number) {
 /**
  * POST …/farm-targets/send-all (M39): the whole list from the top, one attack per entry; an entry the
  * troops don't cover is skipped (1.3). The answer says what went out and what was skipped and why.
- * `bannerChanceOnly` (1.2.3) leaves out the entries whose banner roll is used.
+ * `bannerChanceOnly` (1.2.3) leaves out the entries whose banner roll is used; `notifyReturn` (1.6)
+ * asks for one notification when the run's last attack is home.
  */
 export function useSendAllFarm(villageId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (bannerChanceOnly: boolean) =>
+    mutationFn: ({ bannerChanceOnly, notifyReturn }: { bannerChanceOnly: boolean; notifyReturn: boolean }) =>
       expectData(
         api.POST('/api/villages/{villageId}/farm-targets/send-all', {
-          params: { path: { villageId }, query: { bannerChanceOnly } },
+          params: { path: { villageId }, query: { bannerChanceOnly, notifyReturn } },
         }),
       ),
     onSettled: () => refreshAfterSend(queryClient, villageId),

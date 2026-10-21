@@ -9,6 +9,8 @@
 # Hall training (1.4, 02-game-rules §5.4): the levels of the Banner Hall's own units (paladin, banner thief) are trained
 # in the Banner Hall instead of researched in the Smithy, also with unit levels off; base-seconds count at Banner Hall
 # level 1, and requires names the hall level (2 for level 2, 3 for level 3).
+# defense-archer (1.6, 02-game-rules §8) = the defence against units of attack-type ARCHER; it only counts in a world
+# with archers, so without them every battle comes out as before.
 gamedata:
   units:
     SPEARMAN:
@@ -19,6 +21,7 @@ gamedata:
       attack: 10
       defense-infantry: 15
       defense-cavalry: 40
+      defense-archer: 20
       attack-type: INFANTRY
       minutes-per-field: 18
       carry: 25
@@ -27,12 +30,14 @@ gamedata:
         - attack: 11
           defense-infantry: 17
           defense-cavalry: 44
+          defense-archer: 22
           cost: { wood: 800, clay: 700, iron: 300 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 12
           defense-infantry: 18
           defense-cavalry: 48
+          defense-archer: 24
           cost: { wood: 2000, clay: 1750, iron: 750 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
@@ -44,6 +49,7 @@ gamedata:
       attack: 20
       defense-infantry: 50
       defense-cavalry: 20
+      defense-archer: 40
       attack-type: INFANTRY
       minutes-per-field: 22
       carry: 15
@@ -52,12 +58,14 @@ gamedata:
         - attack: 22
           defense-infantry: 55
           defense-cavalry: 22
+          defense-archer: 44
           cost: { wood: 600, clay: 600, iron: 1400 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 24
           defense-infantry: 60
           defense-cavalry: 24
+          defense-archer: 48
           cost: { wood: 1500, clay: 1500, iron: 3500 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
@@ -69,6 +77,7 @@ gamedata:
       attack: 40
       defense-infantry: 10
       defense-cavalry: 5
+      defense-archer: 10
       attack-type: INFANTRY
       minutes-per-field: 18
       carry: 15
@@ -77,12 +86,14 @@ gamedata:
         - attack: 44
           defense-infantry: 11
           defense-cavalry: 6
+          defense-archer: 11
           cost: { wood: 1000, clay: 700, iron: 900 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 48
           defense-infantry: 12
           defense-cavalry: 7
+          defense-archer: 12
           cost: { wood: 2500, clay: 1750, iron: 2250 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
@@ -94,6 +105,7 @@ gamedata:
       attack: 0
       defense-infantry: 2
       defense-cavalry: 1
+      defense-archer: 2
       attack-type: INFANTRY
       minutes-per-field: 9
       carry: 0
@@ -104,6 +116,7 @@ gamedata:
         - attack: 0
           defense-infantry: 3
           defense-cavalry: 2
+          defense-archer: 3
           cost: { wood: 1000, clay: 1000, iron: 400 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
@@ -115,6 +128,7 @@ gamedata:
       attack: 120
       defense-infantry: 30
       defense-cavalry: 40
+      defense-archer: 30
       attack-type: CAVALRY
       minutes-per-field: 10
       carry: 80
@@ -123,12 +137,14 @@ gamedata:
         - attack: 132
           defense-infantry: 33
           defense-cavalry: 44
+          defense-archer: 33
           cost: { wood: 2500, clay: 2000, iron: 5000 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 144
           defense-infantry: 36
           defense-cavalry: 48
+          defense-archer: 36
           cost: { wood: 6250, clay: 5000, iron: 12500 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
@@ -140,6 +156,7 @@ gamedata:
       attack: 150
       defense-infantry: 200
       defense-cavalry: 80
+      defense-archer: 180
       attack-type: CAVALRY
       minutes-per-field: 11
       carry: 50
@@ -148,12 +165,14 @@ gamedata:
         - attack: 165
           defense-infantry: 220
           defense-cavalry: 88
+          defense-archer: 198
           cost: { wood: 4000, clay: 3000, iron: 12000 }
           base-seconds: 43200
           requires: { SMITHY: 10 }
         - attack: 180
           defense-infantry: 240
           defense-cavalry: 96
+          defense-archer: 216
           cost: { wood: 10000, clay: 7500, iron: 30000 }
           base-seconds: 108000
           requires: { SMITHY: 15 }
@@ -165,6 +184,7 @@ gamedata:
       attack: 2
       defense-infantry: 20
       defense-cavalry: 50
+      defense-archer: 20
       attack-type: INFANTRY
       minutes-per-field: 30
       carry: 0
@@ -177,6 +197,7 @@ gamedata:
       attack: 100
       defense-infantry: 100
       defense-cavalry: 50
+      defense-archer: 100
       attack-type: INFANTRY
       minutes-per-field: 30
       carry: 0
@@ -189,6 +210,7 @@ gamedata:
       attack: 30
       defense-infantry: 100
       defense-cavalry: 50
+      defense-archer: 100
       attack-type: INFANTRY
       minutes-per-field: 35
       carry: 0
@@ -203,6 +225,7 @@ gamedata:
       attack: 120
       defense-infantry: 150
       defense-cavalry: 150
+      defense-archer: 150
       attack-type: INFANTRY
       minutes-per-field: 14
       carry: 0
@@ -211,12 +234,14 @@ gamedata:
         - attack: 126
           defense-infantry: 158
           defense-cavalry: 158
+          defense-archer: 158
           cost: { wood: 5000, clay: 5000, iron: 5000 }
           base-seconds: 43200
           requires: { BANNER_HALL: 2 }
         - attack: 132
           defense-infantry: 165
           defense-cavalry: 165
+          defense-archer: 165
           cost: { wood: 15000, clay: 15000, iron: 15000 }
           base-seconds: 108000
           requires: { BANNER_HALL: 3 }
@@ -231,6 +256,7 @@ gamedata:
       attack: 0
       defense-infantry: 3
       defense-cavalry: 3
+      defense-archer: 3
       attack-type: INFANTRY
       minutes-per-field: 18
       carry: 0
@@ -239,12 +265,74 @@ gamedata:
         - attack: 0
           defense-infantry: 3
           defense-cavalry: 3
+          defense-archer: 3
           cost: { wood: 2000, clay: 2400, iron: 3000 }
           base-seconds: 43200
           requires: { BANNER_HALL: 2 }
         - attack: 0
           defense-infantry: 3
           defense-cavalry: 3
+          defense-archer: 3
           cost: { wood: 5000, clay: 6000, iron: 7500 }
           base-seconds: 108000
           requires: { BANNER_HALL: 3 }
+    # 1.6 (02-game-rules §5.6): the two archers, only recruited in a world with archersEnabled. They attack as their own
+    # class (attack-type ARCHER), so the defenders' defense-archer counts against them. Numbers adapted from Tribal Wars:
+    # its totals with some wood moved onto clay and iron (like the 1.2.2 wood balance), the mounted archer's attack below
+    # light cavalry's.
+    ARCHER:
+      building: BARRACKS
+      requires: { BARRACKS: 5, SMITHY: 5 }
+      cost: { wood: 80, clay: 40, iron: 70 }
+      pop: 1
+      attack: 15
+      defense-infantry: 50
+      defense-cavalry: 40
+      defense-archer: 5
+      attack-type: ARCHER
+      minutes-per-field: 18
+      carry: 10
+      base-seconds: 1600
+      levels:
+        - attack: 17
+          defense-infantry: 55
+          defense-cavalry: 44
+          defense-archer: 6
+          cost: { wood: 1600, clay: 800, iron: 1400 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 18
+          defense-infantry: 60
+          defense-cavalry: 48
+          defense-archer: 7
+          cost: { wood: 4000, clay: 2000, iron: 3500 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }
+    MOUNTED_ARCHER:
+      building: STABLE
+      requires: { STABLE: 5, SMITHY: 10 }
+      cost: { wood: 220, clay: 130, iron: 150 }
+      pop: 5
+      attack: 110
+      defense-infantry: 40
+      defense-cavalry: 30
+      defense-archer: 50
+      attack-type: ARCHER
+      minutes-per-field: 10
+      carry: 50
+      base-seconds: 2700
+      levels:
+        - attack: 121
+          defense-infantry: 44
+          defense-cavalry: 33
+          defense-archer: 55
+          cost: { wood: 4400, clay: 2600, iron: 3000 }
+          base-seconds: 43200
+          requires: { SMITHY: 10 }
+        - attack: 132
+          defense-infantry: 48
+          defense-cavalry: 36
+          defense-archer: 60
+          cost: { wood: 11000, clay: 6500, iron: 7500 }
+          base-seconds: 108000
+          requires: { SMITHY: 15 }

@@ -4,8 +4,6 @@ import { useT } from '../../i18n';
 import styles from './AdminPage.module.css';
 import { adminTabs, parseTab, visibleTabs, type AdminTab } from './adminTabs';
 import { AuditCard } from './AuditCard';
-import { BarbarianCard } from './BarbarianCard';
-import { BarbarianWallsCard } from './BarbarianWallsCard';
 import { BroadcastCard } from './BroadcastCard';
 import { CheatsCard } from './CheatsCard';
 import { FailedEventsCard } from './FailedEventsCard';
@@ -15,9 +13,7 @@ import { OpeningCard } from './OpeningCard';
 import { SuspiciousCard } from './SuspiciousCard';
 import { PlayersCard } from './PlayersCard';
 import { StatusCard } from './StatusCard';
-import { VictoryCard } from './VictoryCard';
-import { WorldEndCard } from './WorldEndCard';
-import { WorldSettingsCard } from './WorldSettingsCard';
+import { WorldTab } from './WorldTab';
 
 /**
  * /admin – the host's page (08-host-console §7): one tab per area, the same operations as the CLI
@@ -69,16 +65,8 @@ function TabContent({ tab }: { tab: (typeof adminTabs)[number] }) {
     case 'players':
       return <PlayersCard />;
     case 'world':
-      return (
-        <>
-          <OpeningCard />
-          <WorldSettingsCard />
-          <VictoryCard />
-          <WorldEndCard />
-          <BarbarianWallsCard />
-          <BarbarianCard />
-        </>
-      );
+      // the five sections of the setup wizard with one save bar (1.6); the opening time stays on top
+      return <WorldTab opening={<OpeningCard />} />;
     case 'events':
       return <FailedEventsCard />;
     case 'lords':

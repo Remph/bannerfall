@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useBuildings, useEnqueueBuild, type BuildingInfo, type NextLevel } from '../../api/queries/buildings';
@@ -10,7 +10,7 @@ import { Card } from '../../components/Card';
 import { CostList } from '../../components/CostList';
 import { DevCheats } from '../../components/DevCheats';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import { Icon } from '../../components/Icon';
+import { SegmentedControl } from '../../components/SegmentedControl';
 import { bannerHallAvailable } from '../../game/banners';
 import { byBuildingOrder } from '../../game/gameData';
 import { projectResources, type ResourceAmounts } from '../../game/resources';
@@ -18,14 +18,20 @@ import { useGameNow } from '../../game/serverTime';
 import { upgradeBlocker } from '../../game/upgradePreview';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
+import { AutomationRow } from '../automation/AutomationRow';
 import { VillageError } from '../village/VillageError';
+import { BuildingHead } from './BuildingHead';
 import { BuildQueueCard } from './BuildQueueCard';
+import { DemolishCard } from './DemolishCard';
 import { PreviewRow } from './PreviewRow';
 import { blockerText } from './blockerText';
 import type { PreviewContext } from './UpgradePreview';
 import styles from './TownHallPage.module.css';
 
-/** /v/:villageId/hq – the Town Hall: upgrade buildings, manage the build queue (05-frontend §3). */
+/**
+ * /v/:villageId/hq – the Town Hall: upgrade or (1.6) demolish buildings, manage the build queue
+ * (05-frontend §3).
+ */
 export function TownHallPage() {
   const villageId = parseVillageId(useParams().villageId);
   if (villageId === undefined) {
@@ -42,6 +48,8 @@ function TownHall({ villageId }: { villageId: number }) {
   const queueSize = world?.buildQueueSize;
   const queueMax = world?.buildQueueMax;
   const now = useGameNow();
+  // the switch at the top of the buildings (1.6): upgrading or demolishing
+  const [mode, setMode] = useState<'build' | 'demolish'>('build');
   useScrollToBuilding(buildings.isSuccess);
 
   if (village.isError) {
@@ -80,11 +88,27 @@ function TownHall({ villageId }: { villageId: number }) {
       </header>
       <div className={styles.layout}>
         <div className={styles.queue}>
+          <AutomationRow villageId={village.data.id} />
           <BuildQueueCard village={village.data} queueSize={queueSize} queueMax={queueMax} />
         </div>
         <div className={styles.buildings}>
-          <AvailableBuildings preview={preview} buildings={available} />
-          {locked.length > 0 && <LockedBuildings buildings={locked} preview={preview} />}
+          <SegmentedControl
+            label={t.townHall.modeLabel}
+            options={[
+              { value: 'build', label: t.townHall.modes.build },
+              { value: 'demolish', label: t.townHall.modes.demolish },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
+          {mode === 'build' ? (
+            <>
+              <AvailableBuildings preview={preview} buildings={available} />
+              {locked.length > 0 && <LockedBuildings buildings={locked} preview={preview} />}
+            </>
+          ) : (
+            <DemolishCard villageId={villageId} buildings={sorted} queueFull={queueFull} />
+          )}
         </div>
         {import.meta.env.DEV && (
           <div className={styles.dev}>
@@ -157,32 +181,6 @@ function AvailableBuildings({ preview, buildings }: AvailableProps) {
         ))}
       </ul>
     </Card>
-  );
-}
-
-/** Icon, name, level and – if upgrades are queued – the level after them; the info button is pinned to the end of the row. */
-function BuildingHead({ info, infoButton }: { info: BuildingInfo; infoButton: ReactNode }) {
-  const t = useT();
-  const queued = info.queuedLevel > info.level;
-  return (
-    <div className={styles.rowHead}>
-      <span className={styles.icon}>
-        <Icon name={info.building} />
-      </span>
-      <h3 className={styles.name}>{t.buildings[info.building]}</h3>
-      {info.level === 0 ? (
-        <span className={styles.badgeEmpty}>{t.village.notBuilt}</span>
-      ) : (
-        <span className={styles.badge}>{t.village.level(info.level)}</span>
-      )}
-      {queued && (
-        <span className={styles.queued}>
-          <span aria-hidden="true">{t.townHall.queuedLevel(info.queuedLevel)}</span>
-          <span className="sr-only">{t.townHall.queuedLevelLong(info.queuedLevel)}</span>
-        </span>
-      )}
-      <span className={styles.info}>{infoButton}</span>
-    </div>
   );
 }
 

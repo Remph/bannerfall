@@ -4,6 +4,7 @@ import type { Dictionary } from '../i18n/en';
 import type { Language } from '../i18n/language';
 import { conversationPath } from '../pages/messages/messagePaths';
 import { rankingPath } from '../pages/ranking/rankingPaths';
+import { attacksReturnedText, storageFullText } from '../realtime/returnTexts';
 import type { PushMessage } from './pushMessage';
 
 /** What the service worker shows for a push. */
@@ -72,9 +73,28 @@ export function pushNotificationContent(
     case 'BUILD_COMPLETE':
       return {
         title,
-        body: t.push.buildsDone(place, t.buildings[event.building], event.level),
+        body: (event.demolished ? t.push.demolishedDone : t.push.buildsDone)(
+          place,
+          t.buildings[event.building],
+          event.level,
+        ),
         url: `/v/${event.villageId}/hq`,
         tag: `builds-${event.villageId}`,
+      };
+    case 'ATTACKS_RETURNED':
+      return {
+        title,
+        body: attacksReturnedText(event, place, t, language),
+        url: '/reports',
+        // a newer run from the same village takes the older one's place on the lock screen
+        tag: `returned-${event.villageId}-${event.target?.id ?? 'run'}`,
+      };
+    case 'STORAGE_FULL':
+      return {
+        title,
+        body: storageFullText(event, place, t),
+        url: `/v/${event.villageId}/warehouse`,
+        tag: `storage-${event.villageId}`,
       };
     case undefined:
       return undefined;

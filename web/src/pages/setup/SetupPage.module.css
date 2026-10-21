@@ -1,0 +1,455 @@
+/* The guided world setup (1.6): one step at a time. Phones: a progress strip and the buttons
+   fixed at the bottom; desktop: the steps as a column at the left, the step as a panel beside it. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.stepper {
+  display: none;
+}
+
+.panel {
+  min-width: 0;
+  background: var(--color-surface);
+  border: 3px double var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) 0;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.25rem;
+}
+
+.progressPart {
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+}
+
+.progressPart[data-filled] {
+  background: var(--color-accent);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  color: var(--color-title);
+}
+
+.intro {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.group {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  color: var(--color-title);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  align-items: start;
+  gap: var(--space-3);
+}
+
+/* fields without hints whose labels wrap differently (map size and noble range): inputs on one line */
+.fieldsEnd {
+  align-items: end;
+}
+
+.wide {
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.setting {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.settingLabel {
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+}
+
+.withAction {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.withAction > :first-child {
+  justify-self: stretch;
+}
+
+/* the buttons: fixed at the bottom of the screen on phones, at the panel's foot on desktop */
+.actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+
+.quiet {
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* the presets: one card each, the picked one in the accent colour */
+.presets {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.preset {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.preset[data-picked] {
+  border-color: var(--color-accent);
+  background: var(--color-well);
+}
+
+.preset:has(:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.presetRadio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.presetName {
+  font-family: var(--font-head);
+  font-size: 1.15rem;
+  color: var(--color-title);
+}
+
+.preset[data-picked] .presetName::after {
+  content: ' ✓';
+  color: var(--color-accent);
+}
+
+.presetText {
+  color: var(--color-text-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.chip {
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the switches: one row each, the switch in a fixed slot at the right */
+.switches {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-divider);
+}
+
+.switches > li {
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.switchRow,
+.coming {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+}
+
+.coming {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.switchText {
+  flex: 1;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.switchName {
+  font-weight: 600;
+}
+
+.switchHint {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.switchMore {
+  padding: 0 0 var(--space-3);
+}
+
+/* a switch that belongs to another one (guild mates start together): no second line under it */
+.switchMore .switches {
+  margin-top: var(--space-3);
+}
+
+.switchMore .switches > li:last-child {
+  border-bottom: none;
+}
+
+.switchMore > .switches:last-child {
+  margin-bottom: calc(-1 * var(--space-3));
+}
+
+.comingChip {
+  flex: none;
+  padding: 0.1rem 0.6rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.switch {
+  flex: none;
+  appearance: none;
+  position: relative;
+  width: 2.75rem;
+  height: 1.6rem;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-well);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.switch:checked::after {
+  background: var(--color-surface);
+  transform: translateX(1.15rem);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* the summary on the last step */
+.summary {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.summaryGroup {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+}
+
+.summaryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.summaryHead h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.facts {
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.2rem 0;
+}
+
+.fact dt {
+  color: var(--color-text-muted);
+}
+
+.fact dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-4);
+  }
+
+  .stepper {
+    position: sticky;
+    top: 4rem;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .stepList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .stepItem {
+    width: 100%;
+    min-height: var(--touch-target);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .stepItem:hover {
+    background: var(--color-well);
+  }
+
+  .stepItem[aria-current='step'] {
+    background: var(--color-well);
+    font-weight: 700;
+    color: var(--color-title);
+  }
+
+  .stepNumber {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stepItem[aria-current='step'] .stepNumber,
+  .stepItem[data-done] .stepNumber {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .header .kicker,
+  .progress {
+    display: none;
+  }
+
+  .presets {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actions {
+    position: static;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}

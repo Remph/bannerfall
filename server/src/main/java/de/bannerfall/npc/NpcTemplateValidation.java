@@ -137,6 +137,10 @@ class NpcTemplateValidation {
                 problems.add(name + ".mix." + stage.name() + ": missing");
                 continue;
             }
+            // the archers count only in a world with archers (1.6): the rest must make a mix
+            if (mix.keySet().stream().allMatch(UnitType::isArcher)) {
+                problems.add(name + ".mix." + stage.name() + ": needs a unit besides the archers");
+            }
             for (var entry : mix.entrySet()) {
                 String unit = name + ".mix." + stage.name() + "." + entry.getKey();
                 if (entry.getKey() == UnitType.NOBLE) {

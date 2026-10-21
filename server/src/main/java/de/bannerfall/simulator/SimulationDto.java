@@ -25,6 +25,8 @@ import java.util.Map;
  * @param defenderStandard the defenders' standard as it worked; null like {@code attackerStandard}
  * @param nightFactor the night bonus the defence was multiplied with (1.4, 02-game-rules §8.1),
  *     e.g. {@code 2.0}; 1 by day and in a world without it
+ * @param morale the attacker's morale the attack was multiplied with (1.6, 02-game-rules §8.2),
+ *     e.g. {@code 0.48}; 1 at full strength and in a world without it
  */
 public record SimulationDto(
         List<Scenario> scenarios,
@@ -34,7 +36,8 @@ public record SimulationDto(
         double oathBonus,
         @Schema(nullable = true) Standard attackerStandard,
         @Schema(nullable = true) Standard defenderStandard,
-        double nightFactor) {
+        double nightFactor,
+        double morale) {
 
     /**
      * A paladin standard in the simulated battle (§21.18).

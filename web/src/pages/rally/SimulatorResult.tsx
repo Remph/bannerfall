@@ -7,6 +7,7 @@ import { unitRows } from '../../game/reports';
 import type { SimulatorBody } from '../../game/simulator';
 import type { UnitMap } from '../../game/troops';
 import { toLevelMap } from '../../game/unitLevels';
+import { formatMorale } from '../../game/morale';
 import { useI18n } from '../../i18n';
 import styles from './Simulator.module.css';
 
@@ -39,7 +40,7 @@ export function SimulatorResult({ simulation, request }: SimulatorResultProps) {
 
 /**
  * The banners the battles were fought with (M32c; Plunder and Oath since D4; the paladin standards
- * since 1.4) and the night bonus (1.4); nothing without.
+ * since 1.4), the night bonus (1.4) and morale (1.6); nothing without.
  */
 function BannerBonuses({ simulation }: { simulation: Simulation }) {
   const { t, language } = useI18n();
@@ -52,7 +53,8 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
     simulation.oathBonus <= 0 &&
     simulation.attackerStandard === null &&
     simulation.defenderStandard === null &&
-    simulation.nightFactor <= 1
+    simulation.nightFactor <= 1 &&
+    simulation.morale >= 1
   ) {
     return null;
   }
@@ -97,6 +99,12 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
         <div>
           <dt>{s.nightResult}</dt>
           <dd>×{formatFactor(simulation.nightFactor, language)}</dd>
+        </div>
+      )}
+      {simulation.morale < 1 && (
+        <div>
+          <dt>{s.moraleResult}</dt>
+          <dd>{formatMorale(simulation.morale, language)}</dd>
         </div>
       )}
     </dl>

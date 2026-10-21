@@ -51,6 +51,13 @@
   color: var(--color-text-muted);
 }
 
+/* the pre-game line: guild mates start next to each other (1.6 UI review) */
+.startTogether {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-title);
+}
+
 .facts {
   font-variant-numeric: tabular-nums;
 }

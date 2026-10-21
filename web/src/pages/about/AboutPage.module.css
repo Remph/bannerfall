@@ -13,3 +13,21 @@
   margin: 0;
   padding: 0 var(--space-3) var(--space-3);
 }
+
+/* the line under the thanks to the test players (1.6): its own paragraph, set off like a letter's */
+.text + .signature {
+  margin-top: calc(-1 * var(--space-2));
+  font-style: italic;
+}
+
+/* the source and licence of the medieval icons (1.6), side by side under the credit */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.links a {
+  color: var(--color-accent);
+  font-weight: 500;
+}

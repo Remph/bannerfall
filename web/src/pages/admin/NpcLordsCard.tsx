@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { errorMessage } from '../../api/errors';
 import {
   npcPersonalities,
@@ -11,13 +12,15 @@ import {
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
-import type { IconName } from '../../components/Icon';
+import { Icon, type IconName } from '../../components/Icon';
 import { MoreMenu } from '../../components/MoreMenu';
+import { Sheet } from '../../components/Sheet';
 import { tierName } from '../../game/banners';
 import { formatDateTime, formatDecimal, formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
 import styles from './AdminPage.module.css';
 import { guildChoices, lordGuilds, type GuildChoice } from './lordGuilds';
+import { mixChanges, percentOf, type LordLearning } from './lordLearning';
 
 const choiceIcons: Record<GuildChoice['action'], IconName> = {
   JOIN: 'guild',
@@ -31,7 +34,8 @@ type Equipped = NonNullable<NpcLord['bannerVillages'][number]['banner']>;
 /**
  * The NPC lords of the world, and a button per personality to spawn another one. While lord guilds
  * are on (09-npc-lords §13.7) also the lord guilds, and a "…" per lord to place it in one. While
- * banners are on, each lord's paladin level, equipped banners and stash (09-npc-lords §14.8).
+ * banners are on, each lord's paladin level, equipped banners and stash (09-npc-lords §14.8). While a
+ * lord has learned something, how much each lesson moved its troops and its wall goals (§15.5).
  */
 export function NpcLordsCard() {
   const { t, language } = useI18n();
@@ -190,6 +194,24 @@ export function NpcLordsCard() {
                     ))}
                   </>
                 )}
+                {lord.learning != null && (
+                  <>
+                    {/* 1.6 UI review: the troop shifts first, the two lesson weights behind the (i) */}
+                    <p className={`${styles.meta} ${styles.learnedLine}`}>
+                      <span>
+                        {lord.learning.changes.length > 0
+                          ? labels.learned(mixChanges(lord.learning, (unit) => t.units[unit]))
+                          : labels.learnedNoChange}
+                      </span>
+                      <LearningInfo learning={lord.learning} />
+                    </p>
+                    {lord.learning.walls.map((wall) => (
+                      <p key={wall.villageId} className={styles.meta}>
+                        {labels.wallGoal(wall.name, wall.level, formatDateTime(Date.parse(wall.until), language))}
+                      </p>
+                    ))}
+                  </>
+                )}
                 <p className={styles.meta}>
                   {lord.nextThinkAt == null
                     ? labels.outOfTheGame
@@ -203,5 +225,32 @@ export function NpcLordsCard() {
         </ul>
       </div>
     </Card>
+  );
+}
+
+/** What the two lesson weights of a learning lord mean (09-npc-lords §15.3), behind a small (i). */
+function LearningInfo({ learning }: { learning: LordLearning }) {
+  const { t } = useI18n();
+  const labels = t.admin.lords;
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.learnedInfo}
+        aria-label={labels.learnedInfo}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="info" />
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={labels.learnedInfo}>
+        <div className={styles.learnedSheet}>
+          <p>{labels.learnedAttacks(percentOf(learning.defenceWeight))}</p>
+          <p>{labels.learnedWins(percentOf(learning.attackWeight))}</p>
+          <p className={styles.meta}>{labels.learnedRest}</p>
+        </div>
+      </Sheet>
+    </>
   );
 }

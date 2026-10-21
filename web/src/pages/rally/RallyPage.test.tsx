@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { Link } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { pushQueryKey } from '../../api/queries/push';
 import { troopsQueryKey, type Troops } from '../../api/queries/troops';
 import { villageQueryKey } from '../../api/queries/villages';
 import { FIXTURE_NOW, village } from '../../testing/fixtures';
@@ -29,7 +30,12 @@ const troops: Troops = {
 };
 
 /** The rally point, with a link like the header's attack badge above it. */
-function open(url = `/v/${village.id}/rally`, data: Troops = troops, world: object = { mapSize: 100 }) {
+function open(
+  url = `/v/${village.id}/rally`,
+  data: Troops = troops,
+  world: object = { mapSize: 100 },
+  pushDevices = 0,
+) {
   return renderPage({
     path: '/v/:villageId/rally',
     url,
@@ -43,6 +49,7 @@ function open(url = `/v/${village.id}/rally`, data: Troops = troops, world: obje
       [villageQueryKey(village.id), village],
       [troopsQueryKey(village.id), data],
       [['world'], world],
+      [pushQueryKey, { available: true, publicKey: 'key', devices: pushDevices, kinds: [] }],
     ],
   });
 }
@@ -133,6 +140,7 @@ describe('RallyPage', () => {
       departAt: '2026-10-15T20:20:00Z',
       arriveAt: '2026-10-15T20:40:00Z',
       cancellableUntil: null,
+      notifyReturn: false,
     };
     open(undefined, {
       ...troops,
@@ -192,6 +200,7 @@ describe('RallyPage', () => {
       departAt: '2026-10-15T20:20:00Z',
       arriveAt: '2026-10-15T20:50:00Z',
       cancellableUntil: null,
+      notifyReturn: false,
     };
     const data = {
       ...troops,
@@ -207,5 +216,32 @@ describe('RallyPage', () => {
 
     open(undefined, data, { mapSize: 100, nightBonus: null });
     expect(screen.queryByText('Night bonus ×2')).toBeNull();
+  });
+
+  it('rings a bell on an outgoing attack for a player with push (1.6)', () => {
+    const attack = {
+      id: 5,
+      kind: 'ATTACK' as const,
+      sourceVillage: { ...barbarians, id: village.id, name: village.name, x: 50, y: 50 },
+      targetVillage: barbarians,
+      homeVillage: { ...barbarians, id: village.id, name: village.name, x: 50, y: 50 },
+      units: { SPEARMAN: 10 },
+      catapultTarget: null,
+      loot: { wood: 0, clay: 0, iron: 0 },
+      departAt: '2026-10-15T20:20:00Z',
+      arriveAt: '2026-10-15T20:50:00Z',
+      cancellableUntil: null,
+      notifyReturn: true,
+    };
+    const data = { ...troops, outgoing: [attack, { ...attack, id: 6, notifyReturn: false }] };
+
+    open(undefined, data, { mapSize: 100 }, 1);
+    const bells = screen.getAllByRole('button', { name: /Notify me when they’re back/ });
+    expect(bells.map((bell) => bell.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+    cleanup();
+
+    // no device: no bell
+    open(undefined, data, { mapSize: 100 }, 0);
+    expect(screen.queryByRole('button', { name: /Notify me when they’re back/ })).toBeNull();
   });
 });

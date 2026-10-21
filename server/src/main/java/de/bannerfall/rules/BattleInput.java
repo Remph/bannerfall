@@ -9,6 +9,8 @@ import java.util.Map;
  * Everything {@link Combat#fight} needs to know about one attack (02-game-rules §7–§9.2), taken
  * from the arriving movement and the target village after its catch-up to the arrival time. Unit
  * maps are copied: missing types count 0, zero counts are dropped, negative counts are rejected.
+ * Built with {@link #attack}, so a new modifier is one more builder method with a neutral default
+ * instead of one more constructor (the battle, the simulator and the NPC estimate all build it).
  *
  * @param attacker the arriving units, at least one
  * @param defenderStacks every stack standing in the target village – the owner's own units and each
@@ -34,6 +36,9 @@ import java.util.Map;
  *     entry of {@code defenderStacks}
  * @param nightFactor the night bonus (1.4, 02-game-rules §8.1): multiplies the defence, 1 by day,
  *     in a barbarian village and in a world without it
+ * @param morale the attacker's morale (1.6, 02-game-rules §8.2, {@link Morale}): multiplies the
+ *     attack, in (0, 1]; 1 against a bigger player, in a barbarian village and in a world without
+ *     it
  */
 public record BattleInput(
         Map<UnitType, Integer> attacker,
@@ -48,105 +53,139 @@ public record BattleInput(
         double defenceBonus,
         StandardEffect attackerStandard,
         List<StandardEffect> defenderStandards,
-        double nightFactor) {
+        double nightFactor,
+        double morale) {
 
-    /** A battle without the night bonus. */
-    public BattleInput(
-            Map<UnitType, Integer> attacker,
-            List<Map<UnitType, Integer>> defenderStacks,
-            int wallLevel,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double luck,
-            UnitLevels attackerLevels,
-            List<UnitLevels> defenderLevels,
-            double attackBonus,
-            double defenceBonus,
-            StandardEffect attackerStandard,
-            List<StandardEffect> defenderStandards) {
-        this(
-                attacker,
-                defenderStacks,
-                wallLevel,
-                catapultTarget,
-                catapultTargetLevel,
-                luck,
-                attackerLevels,
-                defenderLevels,
-                attackBonus,
-                defenceBonus,
-                attackerStandard,
-                defenderStandards,
-                1);
+    /**
+     * A builder for the battle of {@code attacker}: everything left out is the plain battle (nobody
+     * defending, wall 0, no catapult target, luck 0, no unit levels, banners, standards, night
+     * bonus or morale), so a caller names only what its battle has.
+     */
+    public static Builder attack(Map<UnitType, Integer> attacker) {
+        return new Builder(attacker);
     }
 
-    /** A battle without paladin standards. */
-    public BattleInput(
-            Map<UnitType, Integer> attacker,
-            List<Map<UnitType, Integer>> defenderStacks,
-            int wallLevel,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double luck,
-            UnitLevels attackerLevels,
-            List<UnitLevels> defenderLevels,
-            double attackBonus,
-            double defenceBonus) {
-        this(
-                attacker,
-                defenderStacks,
-                wallLevel,
-                catapultTarget,
-                catapultTargetLevel,
-                luck,
-                attackerLevels,
-                defenderLevels,
-                attackBonus,
-                defenceBonus,
-                StandardEffect.NONE,
-                defenderStacks.stream().map(stack -> StandardEffect.NONE).toList());
-    }
+    /**
+     * Collects the parts of a {@link BattleInput}; {@link #build} checks them like the constructor.
+     * The levels and standards of the defending stacks default to none for each stack.
+     */
+    public static final class Builder {
+        private final Map<UnitType, Integer> attacker;
+        private List<Map<UnitType, Integer>> defenderStacks = List.of();
+        private int wallLevel;
+        private BuildingType catapultTarget;
+        private int catapultTargetLevel;
+        private double luck;
+        private UnitLevels attackerLevels = UnitLevels.NONE;
+        private List<UnitLevels> defenderLevels;
+        private double attackBonus;
+        private double defenceBonus;
+        private StandardEffect attackerStandard = StandardEffect.NONE;
+        private List<StandardEffect> defenderStandards;
+        private double nightFactor = 1;
+        private double morale = 1;
 
-    /** A battle without banners. */
-    public BattleInput(
-            Map<UnitType, Integer> attacker,
-            List<Map<UnitType, Integer>> defenderStacks,
-            int wallLevel,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double luck,
-            UnitLevels attackerLevels,
-            List<UnitLevels> defenderLevels) {
-        this(
-                attacker,
-                defenderStacks,
-                wallLevel,
-                catapultTarget,
-                catapultTargetLevel,
-                luck,
-                attackerLevels,
-                defenderLevels,
-                0,
-                0);
-    }
+        private Builder(Map<UnitType, Integer> attacker) {
+            this.attacker = attacker;
+        }
 
-    /** A battle without unit levels (every unit at level 1) and without banners. */
-    public BattleInput(
-            Map<UnitType, Integer> attacker,
-            List<Map<UnitType, Integer>> defenderStacks,
-            int wallLevel,
-            BuildingType catapultTarget,
-            int catapultTargetLevel,
-            double luck) {
-        this(
-                attacker,
-                defenderStacks,
-                wallLevel,
-                catapultTarget,
-                catapultTargetLevel,
-                luck,
-                UnitLevels.NONE,
-                defenderStacks.stream().map(stack -> UnitLevels.NONE).toList());
+        /** Every stack standing in the target village, see {@link BattleInput#defenderStacks}. */
+        public Builder defenders(List<Map<UnitType, Integer>> stacks) {
+            this.defenderStacks = stacks;
+            return this;
+        }
+
+        /** One stack standing in the target village (the simulator's and the NPC estimate's). */
+        public Builder defender(Map<UnitType, Integer> stack) {
+            return defenders(List.of(stack));
+        }
+
+        public Builder wall(int level) {
+            this.wallLevel = level;
+            return this;
+        }
+
+        /** The catapults' target and its level before the battle (the wall level for a wall). */
+        public Builder catapults(BuildingType target, int level) {
+            this.catapultTarget = target;
+            this.catapultTargetLevel = level;
+            return this;
+        }
+
+        public Builder luck(double luck) {
+            this.luck = luck;
+            return this;
+        }
+
+        public Builder attackerLevels(UnitLevels levels) {
+            this.attackerLevels = levels;
+            return this;
+        }
+
+        /** One entry per defending stack. */
+        public Builder defenderLevels(List<UnitLevels> levels) {
+            this.defenderLevels = levels;
+            return this;
+        }
+
+        /** The War banner of the attack, as a fraction. */
+        public Builder attackBonus(double bonus) {
+            this.attackBonus = bonus;
+            return this;
+        }
+
+        /** The Bulwark banner of the target, as a fraction. */
+        public Builder defenceBonus(double bonus) {
+            this.defenceBonus = bonus;
+            return this;
+        }
+
+        public Builder attackerStandard(StandardEffect standard) {
+            this.attackerStandard = standard;
+            return this;
+        }
+
+        /** One entry per defending stack. */
+        public Builder defenderStandards(List<StandardEffect> standards) {
+            this.defenderStandards = standards;
+            return this;
+        }
+
+        public Builder nightFactor(double factor) {
+            this.nightFactor = factor;
+            return this;
+        }
+
+        /** The attacker's morale, see {@link BattleInput#morale}. */
+        public Builder morale(double factor) {
+            this.morale = factor;
+            return this;
+        }
+
+        /**
+         * @throws IllegalArgumentException like the constructor
+         */
+        public BattleInput build() {
+            return new BattleInput(
+                    attacker,
+                    defenderStacks,
+                    wallLevel,
+                    catapultTarget,
+                    catapultTargetLevel,
+                    luck,
+                    attackerLevels,
+                    defenderLevels != null
+                            ? defenderLevels
+                            : defenderStacks.stream().map(stack -> UnitLevels.NONE).toList(),
+                    attackBonus,
+                    defenceBonus,
+                    attackerStandard,
+                    defenderStandards != null
+                            ? defenderStandards
+                            : defenderStacks.stream().map(stack -> StandardEffect.NONE).toList(),
+                    nightFactor,
+                    morale);
+        }
     }
 
     public BattleInput {
@@ -202,6 +241,9 @@ public record BattleInput(
         defenderStandards = List.copyOf(defenderStandards);
         if (!(nightFactor >= 1)) {
             throw new IllegalArgumentException("nightFactor must be at least 1: " + nightFactor);
+        }
+        if (!(morale > 0 && morale <= 1)) {
+            throw new IllegalArgumentException("morale must be in (0, 1]: " + morale);
         }
     }
 }

@@ -73,7 +73,10 @@ describe('pushNotificationContent', () => {
 
   it('tells about an empty build queue with the last building', () => {
     const content = pushNotificationContent(
-      message({ event: { type: 'BUILD_COMPLETE', villageId: 7, building: 'CLAY_PIT', level: 5 }, village: hilltop }),
+      message({
+        event: { type: 'BUILD_COMPLETE', villageId: 7, building: 'CLAY_PIT', level: 5, demolished: false },
+        village: hilltop,
+      }),
       de,
       'de',
       now,
@@ -137,6 +140,75 @@ describe('pushNotificationContent', () => {
       body: de.push.testBody,
       url: '/notifications',
       tag: 'test',
+    });
+  });
+});
+
+describe('pushNotificationContent (1.6)', () => {
+  it('says a farm list run is back, with the home village from the message', () => {
+    const content = pushNotificationContent(
+      message({
+        event: {
+          type: 'ATTACKS_RETURNED',
+          villageId: 7,
+          target: null,
+          attacks: 4,
+          lost: 1,
+          loot: { wood: 100, clay: 100, iron: 100 },
+          farmRun: true,
+        },
+        village: hilltop,
+      }),
+      en,
+      'en',
+      now,
+    );
+    expect(content).toEqual({
+      title: 'Realm Two',
+      body: 'Farm run back in Hilltop (48|52): 4 attacks, 300 resources, 1 lost.',
+      url: '/reports',
+      tag: 'returned-7-run',
+    });
+  });
+
+  it('counts a run of one attack in the singular, in both languages', () => {
+    const run = (lost: number) =>
+      message({
+        event: {
+          type: 'ATTACKS_RETURNED',
+          villageId: 7,
+          target: null,
+          attacks: 1,
+          lost,
+          loot: { wood: 0, clay: 0, iron: 0 },
+          farmRun: true,
+        },
+        village: hilltop,
+      });
+    expect(pushNotificationContent(run(0), en, 'en', now)?.body).toBe('Farm run back in Hilltop (48|52): 1 attack.');
+    expect(pushNotificationContent(run(0), de, 'de', now)?.body).toBe(
+      'Farmlisten-Runde zurück in Hilltop (48|52): 1 Angriff.',
+    );
+    expect(pushNotificationContent(run(1), en, 'en', now)?.body).toBe(
+      'Farm run from Hilltop (48|52): nobody came back from the attack.',
+    );
+    expect(pushNotificationContent(run(1), de, 'de', now)?.body).toBe(
+      'Farmlisten-Runde aus Hilltop (48|52): Von dem Angriff ist niemand zurückgekehrt.',
+    );
+  });
+
+  it('names the full resources and opens the warehouse', () => {
+    const content = pushNotificationContent(
+      message({ event: { type: 'STORAGE_FULL', villageId: 7, full: ['CLAY'] }, village: hilltop }),
+      de,
+      'de',
+      now,
+    );
+    expect(content).toEqual({
+      title: 'Realm Two',
+      body: 'Speicher voll in Hilltop (48|52): Lehm.',
+      url: '/v/7/warehouse',
+      tag: 'storage-7',
     });
   });
 });

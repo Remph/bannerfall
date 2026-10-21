@@ -83,6 +83,12 @@ public class Movement {
     private Instant arriveAt;
     private Instant createdAt;
 
+    /**
+     * The {@link ReturnWatch} that pushes when the units are home (1.6); null if the owner doesn't
+     * want to hear about it. An attack hands it on to its RETURN.
+     */
+    private Long returnWatchId;
+
     protected Movement() {}
 
     private Movement(
@@ -296,6 +302,15 @@ public class Movement {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getReturnWatchId() {
+        return returnWatchId;
+    }
+
+    /** Joins the watch (its id), or leaves it (null). */
+    public void watchReturn(Long returnWatchId) {
+        this.returnWatchId = returnWatchId;
     }
 
     public MovementKind getKind() {

@@ -15,6 +15,7 @@ import { UnitSummary } from '../../components/UnitSummary';
 import { UnitTable } from '../../components/UnitTable';
 import { percentPoints } from '../../game/banners';
 import { formatFactor, formatNumber, formatPercent, formatShare } from '../../game/format';
+import { formatMorale } from '../../game/morale';
 import { battleVerdict, builtBuildings, hasSupporters, unitRows, type ReportKind } from '../../game/reports';
 import { presentUnits } from '../../game/troops';
 import { sharedLevels, toLevelMap } from '../../game/unitLevels';
@@ -76,6 +77,19 @@ export function BattleDetails({ kind, battle, villageId }: BattleDetailsProps) {
                   </div>
                 )}
               </dl>
+            )}
+            {/* 1.6 (02-game-rules §8.2): both copies explain the attacker's morale below 100 %, in the
+                send sheet's words (1.6 UI review: a bare "30 %" next to luck was easy to miss) */}
+            {battle.morale != null && (
+              <p className={styles.notice}>
+                {defenderView
+                  ? t.reports.moraleDefence(
+                      formatMorale(battle.morale, language),
+                      battle.defender.playerName,
+                      battle.attacker.playerName,
+                    )
+                  : t.reports.moraleAttack(formatMorale(battle.morale, language), battle.defender.playerName)}
+              </p>
             )}
           </div>
         </Card>

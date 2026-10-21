@@ -160,9 +160,64 @@
   padding: var(--space-3) var(--space-3) 5rem;
 }
 
+.mainWide {
+  max-width: 60rem;
+}
+
 .adminHint {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   background: var(--color-well);
+}
+
+/* the host's way into the guided world setup (1.6) */
+.setupCard {
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.setupTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--color-title);
+}
+
+.setupCard .text {
+  margin-top: var(--space-2);
+}
+
+.setupActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.setupStart {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.setupSkip {
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }

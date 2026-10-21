@@ -60,6 +60,10 @@ export function GuildPage() {
       <header className={styles.head}>
         <h1>{t.guild.title}</h1>
         <p className={styles.hint}>{world.data.guildsEnabled ? t.guild.explainer : t.guild.disabled}</p>
+        {/* 1.6 UI review: where guilds are founded and joined, say what joining before the opening does */}
+        {world.data.phase === 'PREGAME' && world.data.guildsEnabled && world.data.guildStartTogether && (
+          <p className={styles.startTogether}>{t.guild.startTogether}</p>
+        )}
       </header>
       {world.data.guildsEnabled && <InvitationsCard invitations={invitations} />}
       {world.data.guildsEnabled && <CreateGuildCard />}

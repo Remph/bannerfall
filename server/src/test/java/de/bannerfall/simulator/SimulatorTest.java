@@ -603,6 +603,73 @@ class SimulatorTest {
     }
 
     @Test
+    void archersAttackAsTheirOwnClassLikeInARealBattle() throws Exception {
+        // 1.6 (02 §5.6, §8): 50 mounted archers (A = 5500) meet the spearmen's defence against
+        // archers, 100 × 20 + 20 = 2020; light cavalry would meet 40 each. Archers that exist
+        // fight in every world, so the simulator takes them whatever the setting.
+        setLuckRange(0);
+        String body = simulate("{\"MOUNTED_ARCHER\":50}", "{\"SPEARMAN\":100}", 0);
+        assertThat(JsonPath.<Double>read(body, "$.scenarios[0].attack")).isEqualTo(5500.0);
+        assertThat(JsonPath.<Double>read(body, "$.scenarios[0].defense")).isEqualTo(2020.0);
+        assertThat(units(body, "$.scenarios[0].attackerLosses"))
+                .isEqualTo(Map.of("MOUNTED_ARCHER", 11));
+        assertThat(units(body, "$.scenarios[0].defenderLosses")).isEqualTo(Map.of("SPEARMAN", 100));
+
+        // with unit levels: the mounted archer's level 2 attacks with 121, the spearman's level 2
+        // defends with 22 against archers
+        setLevelsEnabled(true);
+        try {
+            String levels =
+                    ",\"attackerLevels\":{\"MOUNTED_ARCHER\":2},\"defenderLevels\":{\"SPEARMAN\":2}";
+            String leveled =
+                    post(request("{\"MOUNTED_ARCHER\":50}", "{\"SPEARMAN\":100}", 0, levels));
+            assertThat(JsonPath.<Double>read(leveled, "$.scenarios[0].attack")).isEqualTo(6050.0);
+            assertThat(JsonPath.<Double>read(leveled, "$.scenarios[0].defense")).isEqualTo(2220.0);
+        } finally {
+            setLevelsEnabled(false);
+        }
+    }
+
+    @Test
+    void moraleWeakensOnlyTheAttackWhenTheWorldHasIt() throws Exception {
+        // 20 axemen (A = 800) against 50 spearmen (D = 770): won at full strength, lost at 90 %
+        String morale = ",\"morale\":90";
+        String full = simulate("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0);
+        assertThat(JsonPath.<Double>read(full, "$.morale")).isEqualTo(1.0);
+        assertThat(JsonPath.<String>read(full, "$.scenarios[1].outcome")).isEqualTo("ATTACKER_WON");
+
+        String weak = post(request("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0, morale));
+        assertThat(JsonPath.<Double>read(weak, "$.morale")).isEqualTo(0.9);
+        assertThat(JsonPath.<Double>read(weak, "$.scenarios[1].attack")).isEqualTo(720.0);
+        assertThat(JsonPath.<Double>read(weak, "$.scenarios[1].defense")).isEqualTo(770.0);
+        assertThat(JsonPath.<String>read(weak, "$.scenarios[1].outcome")).isEqualTo("DEFENDER_WON");
+
+        // below the world's floor it counts as the floor, like in a real battle
+        jdbc.sql("update world_settings set morale_floor = 95").update();
+        worldService.reload();
+        try {
+            String floored = post(request("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0, morale));
+            assertThat(JsonPath.<Double>read(floored, "$.morale")).isEqualTo(0.95);
+            assertThat(JsonPath.<Double>read(floored, "$.scenarios[1].attack")).isEqualTo(760.0);
+        } finally {
+            jdbc.sql("update world_settings set morale_floor = 30").update();
+            worldService.reload();
+        }
+
+        setMorale(false);
+        try {
+            String off = post(request("{\"AXEMAN\":20}", "{\"SPEARMAN\":50}", 0, morale));
+            assertThat(JsonPath.<Double>read(off, "$.morale")).isEqualTo(1.0);
+        } finally {
+            setMorale(true);
+        }
+
+        player.browser
+                .post("/api/simulator", request("{\"AXEMAN\":20}", "{}", 0, ",\"morale\":29"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void itNeedsALoginAndTheCsrfToken() throws Exception {
         String valid = request("{\"AXEMAN\":5}", "{}", 0, "");
         Browser.open(mockMvc).post("/api/simulator", valid).andExpect(status().isUnauthorized());
@@ -656,6 +723,11 @@ class SimulatorTest {
 
     private void setNightBonus(boolean enabled) {
         jdbc.sql("update world_settings set night_bonus_enabled = ?").param(enabled).update();
+        worldService.reload();
+    }
+
+    private void setMorale(boolean enabled) {
+        jdbc.sql("update world_settings set morale_enabled = ?").param(enabled).update();
         worldService.reload();
     }
 

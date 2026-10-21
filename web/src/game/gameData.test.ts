@@ -4,10 +4,13 @@ import {
   bannerTypes,
   buildingTypes,
   byBuildingOrder,
+  byUnitOrder,
+  isArcher,
   isStandard,
   recruitingBuildings,
   standardTypes,
   unitTypes,
+  unitTypesFor,
   type BannerType,
   type BuildingType,
   type UnitType,
@@ -49,5 +52,32 @@ describe('building order', () => {
 
   it('lists every building once', () => {
     expect(new Set(buildingTypes).size).toBe(16);
+  });
+});
+
+describe('unit order (1.6)', () => {
+  it('shows the archers next to their building’s other units', () => {
+    expect(unitTypes.slice(0, 7)).toEqual([
+      'SPEARMAN',
+      'SWORDSMAN',
+      'AXEMAN',
+      'ARCHER',
+      'SCOUT',
+      'LIGHT_CAVALRY',
+      'MOUNTED_ARCHER',
+    ]);
+  });
+
+  it('sorts the server order, archers last, into the UI order', () => {
+    const server: UnitType[] = ['SCOUT', 'LIGHT_CAVALRY', 'HEAVY_CAVALRY', 'MOUNTED_ARCHER'];
+    expect([...server].sort(byUnitOrder)).toEqual(['SCOUT', 'LIGHT_CAVALRY', 'MOUNTED_ARCHER', 'HEAVY_CAVALRY']);
+  });
+
+  it('offers the archers only in a world with them, or when some are already there', () => {
+    expect(unitTypesFor({ archersEnabled: false }).filter(isArcher)).toEqual([]);
+    expect(unitTypesFor(undefined).filter(isArcher)).toEqual([]);
+    expect(unitTypesFor({ archersEnabled: true }).filter(isArcher)).toEqual(['ARCHER', 'MOUNTED_ARCHER']);
+    expect(unitTypesFor({ archersEnabled: false }, { MOUNTED_ARCHER: 3 }).filter(isArcher)).toEqual(['MOUNTED_ARCHER']);
+    expect(unitTypesFor({ archersEnabled: false })).toHaveLength(unitTypes.length - 2);
   });
 });

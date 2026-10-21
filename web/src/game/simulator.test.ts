@@ -6,6 +6,7 @@ import {
   buildingMaxLevels,
   canSimulate,
   emptyForm,
+  filledTypes,
   reportToForm,
   simulatableReports,
   simulatedMaxLevel,
@@ -73,7 +74,16 @@ describe('toRequest', () => {
       defenderStandard: null,
       defenderStandardTier: null,
       night: null,
+      morale: null,
     });
+  });
+
+  it('sends morale below 100 only, an empty field as full strength, never below the lowest (1.6)', () => {
+    const attack = { ...emptyForm, attacker: { AXEMAN: 1 } };
+    expect(toRequest(attack).morale).toBeNull();
+    expect(toRequest({ ...attack, morale: 48 }).morale).toBe(48);
+    expect(toRequest({ ...attack, morale: 0 }).morale).toBeNull();
+    expect(toRequest({ ...attack, morale: 4 }).morale).toBe(30);
   });
 
   it('sends a paladin standard only with a paladin on that side (1.4)', () => {
@@ -266,6 +276,7 @@ describe('reportToForm', () => {
       wall: 3,
       loyalty: 80,
       night: false,
+      morale: 100,
     });
   });
 
@@ -274,6 +285,12 @@ describe('reportToForm', () => {
     expect(reportToForm(battle({ nightBonus: null })).night).toBe(false);
     expect(reportToForm(battle({ outcome: 'SCOUTS_ONLY', nightBonus: null })).night).toBeUndefined();
     expect(toRequest({ ...emptyForm, attacker: { AXEMAN: 1 }, night: true }).night).toBe(true);
+  });
+
+  it('takes the morale of a battle that had it, full strength otherwise (1.6)', () => {
+    expect(reportToForm(battle({ morale: 0.48 })).morale).toBe(48);
+    expect(reportToForm(battle({ morale: null })).morale).toBe(100);
+    expect(reportToForm(battle({ outcome: 'SCOUTS_ONLY', morale: null })).morale).toBeUndefined();
   });
 
   it('takes the unit levels of that battle; the defender gets the highest level of its stacks (M30)', () => {
@@ -446,5 +463,15 @@ describe('reportToForm with paladin standards (1.4)', () => {
       defenderStandard: 'SPEAR_STANDARD',
       defenderStandardTier: 2,
     });
+  });
+});
+
+/** 1.6 UI review: after a fill-in a phone lists only the units it got. */
+describe('filledTypes', () => {
+  it('lists the units with a count, or null for an empty side', () => {
+    expect(filledTypes({ AXEMAN: 200, SPEARMAN: 0, RAM: 5 })).toEqual(['AXEMAN', 'RAM']);
+    expect(filledTypes({ SPEARMAN: 0 })).toBeNull();
+    expect(filledTypes({})).toBeNull();
+    expect(filledTypes(undefined)).toBeNull();
   });
 });

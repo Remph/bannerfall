@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { errorMessage } from '../../api/errors';
+import { useNoble } from '../../api/queries/noble';
 import { usePaladin } from '../../api/queries/paladin';
 import { useEnqueueRecruitAll, type RecruitBuilding } from '../../api/queries/recruitment';
 import {
@@ -22,7 +23,14 @@ import { nextFreeLetter, type TemplateLetter } from '../../game/farmTemplates';
 import { formatNumber } from '../../game/format';
 import { freePaladinSlots } from '../../game/paladin';
 import { MAX_RECRUIT_COUNT, totalOf } from '../../game/recruitment';
-import { ordersOf, planSeconds, planTemplate, type PlanLine, type RecruitTemplate } from '../../game/recruitTemplates';
+import {
+  linePrice,
+  ordersOf,
+  planSeconds,
+  planTemplate,
+  type PlanLine,
+  type RecruitTemplate,
+} from '../../game/recruitTemplates';
 import { projectResources } from '../../game/resources';
 import { useGameNow } from '../../game/serverTime';
 import type { UnitMap } from '../../game/troops';
@@ -133,12 +141,16 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
   // the paladin's free slots cap his line (M31); only asked for where he is listed
   const paladinListed = buildings.some((building) => building.units.some((unit) => unit.unit === 'PALADIN'));
   const paladin = usePaladin(paladinListed);
+  // the noble's price rises with every one (1.6): his line is priced with it
+  const nobleListed = buildings.some((building) => building.units.some((unit) => unit.unit === 'NOBLE'));
+  const noble = useNoble(nobleListed);
   const stock = projectResources(village, now);
   const freePop = village.population.capacity - village.population.used;
   // without the units away the plan would recruit them again, without the slots too many paladins
   // (a failed slot query plans without the cap: the server still refuses a paladin too many)
   const slotsLoading = paladinListed && paladin.data === undefined && !paladin.isError;
-  const ready = away !== undefined && queueSize !== undefined && !slotsLoading;
+  const priceLoading = nobleListed && noble.data === undefined && !noble.isError;
+  const ready = away !== undefined && queueSize !== undefined && !slotsLoading && !priceLoading;
   const lines =
     template === undefined || !ready
       ? []
@@ -151,10 +163,17 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
           freePop,
           queueSize,
           freeSlots: paladin.data === undefined ? undefined : freePaladinSlots(paladin.data),
+          noble: noble.data,
         });
   const orders = ordersOf(lines);
   const recruiting = lines.filter((line) => line.now > 0);
-  const total = totalOf(recruiting.map((line) => ({ cost: line.unit.cost, pop: line.unit.pop, count: line.now })));
+  const total = totalOf(
+    recruiting.map((line) => ({
+      cost: linePrice({ noble: noble.data }, line.unit, line.now),
+      pop: line.unit.pop,
+      count: line.now,
+    })),
+  );
   const allReached = lines.length > 0 && lines.every((line) => line.skip === 'reached');
   const close = () => {
     enqueue.reset();

@@ -8,6 +8,7 @@ import de.bannerfall.common.GameRuleException;
 import de.bannerfall.common.RandomSource;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
+import de.bannerfall.guild.GuildMemberRepository;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.rules.BuildRules;
@@ -36,6 +37,7 @@ public class SpawnService {
     private final RandomSource random;
     private final Clock clock;
     private final AchievementService achievements;
+    private final GuildMemberRepository guildMembers;
 
     SpawnService(
             VillageRepository villages,
@@ -45,7 +47,8 @@ public class SpawnService {
             GameData gameData,
             RandomSource random,
             Clock clock,
-            AchievementService achievements) {
+            AchievementService achievements,
+            GuildMemberRepository guildMembers) {
         this.villages = villages;
         this.stacks = stacks;
         this.players = players;
@@ -54,6 +57,7 @@ public class SpawnService {
         this.random = random;
         this.clock = clock;
         this.achievements = achievements;
+        this.guildMembers = guildMembers;
     }
 
     /**
@@ -66,7 +70,11 @@ public class SpawnService {
      */
     @Transactional
     public Village createStartingVillage(Player player) {
-        return tryCreateStartingVillage(player)
+        return createStartingVillage(player, false);
+    }
+
+    private Village createStartingVillage(Player player, boolean nearGuild) {
+        return tryCreateStartingVillage(player, nearGuild)
                 .orElseThrow(
                         () ->
                                 new GameRuleException(
@@ -75,19 +83,34 @@ public class SpawnService {
 
     /**
      * Like {@link #createStartingVillage}, but answers empty instead of throwing when the map has
-     * no room: for callers that want to go on (the NPC lords at world start) and can't afford the
-     * rollback-only mark an exception leaves on the transaction.
+     * no room: for callers that want to go on (the NPC lords at world start, the players at the
+     * opening) and can't afford the rollback-only mark an exception leaves on the transaction.
+     *
+     * @param nearGuild start next to a guild mate's village if {@link #guildMateVillage} names one
+     *     (1.6); otherwise, or when there is no room around it, at a player spot as always
      */
     @Transactional
-    public Optional<Village> tryCreateStartingVillage(Player player) {
+    public Optional<Village> tryCreateStartingVillage(Player player, boolean nearGuild) {
         worldService.lockMapForPlacement();
         WorldSettings world = worldService.settings();
 
         Set<Coordinates> occupied = new HashSet<>(villages.findAllCoordinates());
-        int playerVillages = Math.toIntExact(villages.countByPlayerIsNotNull());
         Optional<Coordinates> found =
-                MapPlacement.findPlayerSpot(
-                        world.mapSize(), playerVillages, occupied::contains, random);
+                (nearGuild ? guildMateVillage(player.getId()) : Optional.<Coordinates>empty())
+                        .flatMap(
+                                mate ->
+                                        MapPlacement.findSpotNearGuildMate(
+                                                mate, world.mapSize(), occupied::contains, random));
+        if (found.isEmpty()) {
+            int playerVillages = Math.toIntExact(villages.countByPlayerIsNotNull());
+            found =
+                    MapPlacement.findPlayerSpot(
+                            world.mapSize(),
+                            world.mapSpread().factor(),
+                            playerVillages,
+                            occupied::contains,
+                            random);
+        }
         if (found.isEmpty()) {
             return Optional.empty();
         }
@@ -114,15 +137,35 @@ public class SpawnService {
     }
 
     /**
+     * The village a player starts next to when guild mates start together (1.6, 02-game-rules §2):
+     * the main village of a guild mate, the leader's if he has one, otherwise the longest member's
+     * who has a village. Empty while the host has guilds or {@code guildStartTogether} off, for a
+     * player in no guild, and when no mate has a village.
+     */
+    public Optional<Coordinates> guildMateVillage(long playerId) {
+        WorldSettings world = worldService.settings();
+        if (!world.guildsEnabled() || !world.guildStartTogether()) {
+            return Optional.empty();
+        }
+        return guildMembers
+                .findGuildIdOf(playerId)
+                .flatMap(
+                        guildId ->
+                                villages.findGuildMateCoordinates(guildId, playerId).stream()
+                                        .findFirst());
+    }
+
+    /**
      * A player who lost his last village starts again (02-game-rules §10): a new starting village
-     * at a fresh player spot, like at registration, and new beginner protection from now on. No
-     * barbarians are spawned around it (a lost village would otherwise bring fresh ones to farm).
+     * at a fresh player spot, like at registration, or next to his guild ({@code nearGuild}, 1.6),
+     * and new beginner protection from now on. No barbarians are spawned around it (a lost village
+     * would otherwise bring fresh ones to farm).
      *
      * @throws GameRuleException {@code RESPAWN_NOT_ALLOWED} if the player still has a village or is
      *     an NPC lord; {@code WORLD_FULL} if no free spot is found
      */
     @Transactional
-    public Village respawn(long playerId) {
+    public Village respawn(long playerId, boolean nearGuild) {
         // The map lock first: two respawns of the same player at once wait here, and the second
         // one sees the village of the first.
         worldService.lockMapForPlacement();
@@ -133,7 +176,7 @@ public class SpawnService {
         }
         Duration protection = Duration.ofHours(worldService.settings().beginnerProtectionHours());
         player.protectUntil(clock.instant().plus(protection));
-        Village village = createStartingVillage(player);
+        Village village = createStartingVillage(player, nearGuild);
         achievements.grant(player, Achievement.PHOENIX);
         return village;
     }

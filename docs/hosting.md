@@ -2,13 +2,13 @@
 
 A step-by-step guide for running one Bannerfall world (a "realm") on a small Linux server of your own. It assumes Ubuntu 24.04 LTS on a rented virtual server, but any Linux host with Docker works the same way from step 4 on. The README has the reference for everything mentioned here (*Operating the server*, *Deploying*, *Backups*).
 
-Plan about two hours the first time, most of it waiting for DNS and the first image build.
+Plan about two hours the first time, most of it waiting for DNS. The commands use `1.6.0` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
 
 ## 0. What you need
 
 | Thing | Recommendation |
 |---|---|
-| Server | 2+ vCPU, 4 GB RAM (8 GB if you build the image on the server, which this guide does), 40 GB disk. The running stack needs about 1.4 GB (app 768m, database 512m, Caddy 128m). |
+| Server | 2+ vCPU, 4 GB RAM, 40 GB disk, an x86-64 (amd64) processor. The running stack needs about 1.4 GB (app 768m, database 512m, Caddy 128m). On an ARM server you build the image yourself (step 6), which needs 2 GB of swap on top. |
 | Operating system | Ubuntu 24.04 LTS |
 | A domain | One name for the realm, for example `play.example.com`, with an A (and, if your server has IPv6, AAAA) record pointing to the server |
 | Open ports | 22 (SSH), 80 and 443 |
@@ -31,7 +31,7 @@ Order matters: **make a key, put it on the server, test it, and only then switch
    timedatectl set-timezone Europe/Berlin     # or yours
    free -h
    ```
-   If `Swap:` shows 0, add 2 GB (the image build needs a lot of memory for a few minutes):
+   If `Swap:` shows 0 and you are going to build the image on the server (step 6, ARM servers), add 2 GB (the build needs a lot of memory for a few minutes):
    ```
    fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
    echo '/swapfile none swap sw 0 0' >> /etc/fstab
@@ -89,14 +89,15 @@ alias bfa='docker compose -f /opt/bannerfall/compose.prod.yaml exec app bannerfa
 
 ## 4. Get the code
 
-Each release is a tag (`v1.2.1`, …). Check out the newest one:
+Each release is a tag (`v1.6.0`, …). Check out the newest one:
 ```
 sudo mkdir -p /opt/bannerfall && sudo chown deploy:deploy /opt/bannerfall
 git clone https://github.com/Remph/bannerfall.git /opt/bannerfall
 cd /opt/bannerfall
 git tag --sort=-v:refname | head -3
-git checkout v1.2.1                        # the newest tag from the list
+git checkout v1.6.0                        # the newest tag from the list
 ```
+(`git checkout` of a tag says `You are in 'detached HEAD' state`: that is expected, the folder stays exactly on that release.)
 
 ## 5. Configure `.env`
 
@@ -107,7 +108,7 @@ chmod 600 .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_ADMIN_TOKEN=.*/BANNERFALL_ADMIN_TOKEN=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_DOMAIN=.*/BANNERFALL_DOMAIN=play.example.com/" .env
-sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=bannerfall:1.2.1|" .env
+sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.0|" .env
 nano .env
 ```
 Check in `nano` that these are filled:
@@ -118,24 +119,28 @@ Check in `nano` that these are filled:
 | `BANNERFALL_ADMIN_TOKEN` | the random value (at least 32 characters; compose and the server refuse to start without it) |
 | `COMPOSE_PROFILES` | `caddy` (the template's default) |
 | `BANNERFALL_DOMAIN` | your realm's name |
-| `BANNERFALL_IMAGE` | the image you build next, same version as the tag |
-| `TZ` | your time zone |
+| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:1.6.0`); `bannerfall:1.6.0` if you build it yourself in step 6 |
+| `TZ` | your time zone (for log times; the command line's dates are always Berlin time, see step 9) |
 | `BANNERFALL_OPERATOR_NAME`, `BANNERFALL_OPERATOR_CONTACT` | who runs the realm and how players reach you (usually an email address); shown on the privacy page (`/privacy`), linked under the login and register forms. Empty, the page only explains what the game stores |
 
 The privacy page describes what Bannerfall itself stores; it is a starting point, not legal advice. Whether your realm needs more (an imprint, a longer privacy notice, details about your hosting provider) depends on your country and on who plays. It tells players that neither the game nor Caddy logs their address; if you put another proxy in front, switch its access log off.
 
 Leave the port lines commented out unless you need them (README, *Ports*), and do **not** add `BANNERFALL_CHEATS_ENABLED`. Copy the two secrets into your password manager (`grep -E '^(POSTGRES_PASSWORD|BANNERFALL_ADMIN_TOKEN)=' .env`) and never put `.env` anywhere public.
 
-## 6. Build the image and start
+## 6. Get the image and start
 
-The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky):
+Every release is published as a ready image, built from exactly the tagged code (x86-64 only). Pull it:
+```
+docker pull ghcr.io/remph/bannerfall:1.6.0
+```
+**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:1.6.0` in `.env` for it:
 ```
 cd /opt/bannerfall
-docker build -t bannerfall:1.2.1 --build-arg VERSION=1.2.1 .
+docker build -t bannerfall:1.6.0 --build-arg VERSION=1.6.0 .
 ```
 If it dies with `Killed`, check `free -h` (swap, step 2) and run it again; finished layers are cached.
 
-DNS must be right before the first start (`nslookup play.example.com`), or Caddy's certificate request fails and Let's Encrypt rate-limits repeated failures. Then start. The image exists only on this machine, so do **not** run `pull`:
+DNS must be right before the first start (`nslookup play.example.com`), or Caddy's certificate request fails and Let's Encrypt rate-limits repeated failures. Then start:
 ```
 bf up -d
 bf ps                          # app and db "healthy" within about a minute, caddy "running"
@@ -145,16 +150,15 @@ Open `https://play.example.com`: the login page with a padlock.
 
 ## 7. Prove backup and restore while the world is empty
 
-1. Set the first world settings (they live in the database, so the backup holds them):
+1. Set the invite code (it lives in the database, so the backup holds it; the other world settings come in step 9):
    ```
    bfa world set invite-code <your-secret-code>
-   bfa world set speed 6                      # default 1; 6 suits a small group playing a week or two
-   bfa world set beginner-protection-hours 36 # default 72
    ```
+   Each `bfa` command takes a few seconds: it starts a small Java program in the container.
 2. `ops/bannerfall-backup` prints `backup ok: backups/bannerfall-…sql.gz`. Call it backup A.
 3. Register a throw-away player in the browser; `bfa players` shows it.
 4. `ops/bannerfall-restore backups/bannerfall-<A>.sql.gz`, type `restore`.
-5. `bfa players` is empty again, `bfa world` still shows your settings, `bfa check` reports no problems.
+5. Wait until `bf ps` shows the app `healthy` again (about a minute; until then `bfa` says `Can't reach the server`). Then `bfa players` is empty again, `bfa world` still shows your invite code, and `bfa check` says `Nothing wrong.`
 
 ## 8. Daily backups and an off-server copy
 
@@ -170,7 +174,14 @@ A backup on the same disk does not survive losing the server: copy the newest fi
 
 ## 9. Open the world
 
-Follow the README section *First steps in a new world*. In short: register yourself and make yourself admin (`bfa player YourName role admin --yes`, then log in again), check the `/admin` page (tab World; map size, barbarians and NPC lords are fixed once the world is open), give your players the address and the invite code, and set the opening time: `bfa world open --at "2026-11-07 18:00"`. At that moment everybody registered gets a village.
+A new world waits in the **pre-game**: players can register and chat, nobody has a village yet, and the map is made at the opening time you set. Do this before you tell anybody the address:
+
+1. Register yourself in the browser with the invite code from step 7.
+2. `bfa setup` prints a one-time link (`https://play.example.com/setup?code=…`, valid for 30 minutes). Open it in the browser where you are logged in: it makes your account the admin and starts the guided setup.
+3. Pick a starting point (*Friends' round*, *Long-running world*, *Together against the lords* or *Custom*) and go through the steps: basics (name, invite code), pace, map and opponents, rules, victory. Every value can be changed; the summary at the end shows them all. Map spread, map size, barbarians and NPC lords are fixed once the world is open, the rest can be changed later on the `/admin` page (tab World).
+4. Set the opening time (in your browser's time zone) and press *Finish setup*. The start page then shows a countdown; at that moment everybody registered gets a village. Left empty, you set the time later.
+
+Then give your players the address and the invite code. Everything in the setup can also be done on the `/admin` page or on the command line: `bfa world set …`, `bfa player <you> role admin --yes` and `bfa world open --at "2026-11-07 18:00"`. The command line reads such dates as **Berlin time**, whatever `TZ` says; for another zone write the offset, e.g. `--at 2026-11-07T18:00:00+00:00`.
 
 A short daily look keeps a realm healthy: `bfa status`, `bfa events failed`, `bfa check`, `bfa suspicious`, `bfa logs --lines 50`.
 
@@ -178,21 +189,28 @@ Reboot once before the players arrive (`sudo reboot`): after two minutes `bf ps`
 
 ## 10. Updating to a new release
 
+Read the release notes first (below), then one command does the whole update:
+```
+cd /opt/bannerfall
+ops/bannerfall-update 1.6.1                # the new version
+```
+It shows its plan and asks once, pulls the new image, checks the new tag out, takes a backup, warns the players in the chat and waits a minute, restarts the app and runs `bfa check`, stopping at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
+
+The same by hand:
 ```
 cd /opt/bannerfall
 ops/bannerfall-backup                      # always first; it must print "backup ok"
 git status --short                         # must print nothing
 git fetch --tags origin
-git checkout v1.2.2                        # the new release tag
-docker build -t bannerfall:1.2.2 --build-arg VERSION=1.2.2 .
-nano .env                                  # BANNERFALL_IMAGE=bannerfall:1.2.2
+git checkout v1.6.1                        # the new release tag
+docker pull ghcr.io/remph/bannerfall:1.6.1 # or build it as in step 6
+nano .env                                  # BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.1
 bfa broadcast "Update in 5 minutes"        # wait, then:
 bf up -d
 bfa status                                 # shows the new version
 ```
-Since 1.4.1 one command does all of this: `ops/bannerfall-update 1.4.2` (the new version). It stops at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
 
-Read the release notes first: some updates switch new features on in a running world (the README's *Updating a running world* tables list the settings). The database migrates forward only, so going back means putting the old image back in `.env` **and** restoring the backup you took before the update. Keep old images until you are sure (`docker image prune` later).
+Read the release notes first (the [releases page](https://github.com/Remph/bannerfall/releases); look for *Heads-up for running worlds* and *For hosts*): some updates switch new features on in a running world (the README's *Feature switches* table lists the settings). The database migrates forward only, so going back means putting the old image back in `.env` **and** restoring the backup you took before the update. Keep old images until you are sure (`docker image prune` later).
 
 ## 11. When something is wrong
 
@@ -200,10 +218,12 @@ Read the release notes first: some updates switch new features on in a running w
 |---|---|
 | `bf up -d` says `set POSTGRES_PASSWORD in .env` (or the token) | `.env` is not in `/opt/bannerfall` or the value is empty. |
 | `bf up -d` tries to pull `bannerfall:…` and fails | The image is not built on this server, or `.env` names another tag: `docker images bannerfall`. |
+| `docker pull` says `no matching manifest` or warns about the platform, or the app log says `exec format error` | The published image is for x86-64 only: on an ARM server build it as in step 6. |
 | App keeps restarting | `bf logs app --tail 80`. Token shorter than 32 characters? Database password changed after the first start? |
 | Connection refused or timeout | `sudo ufw status` (80, 443), your provider's firewall, `bf ps`. |
 | Certificate error, `bf logs caddy` mentions `acme` | DNS must return the server's address and no stale AAAA; port 80 must be reachable from outside. Fix the cause, then `bf restart caddy` once (rate limits). |
 | Can't log in, or the page says disconnected | Use `https://` and the realm's exact name (cookies are `Secure`); `bf logs app` for WARN lines. Behind your own proxy see the README (*TrueNAS or another proxy instead of Caddy*). |
+| `bfa` says `Can't reach the server` | The app is still starting (after `up -d`, a restore or an update it takes about a minute): wait until `bf ps` shows it `healthy`. |
 | Backup cron silent | The `backups/` folder must exist and your user must be in the `docker` group; read `backups/backup.log`. |
 | Disk filling | `df -h`, `docker system df`, `docker builder prune`. |
 
@@ -221,7 +241,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-edge && sudo chown deploy:deploy /opt/bannerfall-edge
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-edge
-   cd /opt/bannerfall-edge && git checkout v1.5.0          # the tag your world runs
+   cd /opt/bannerfall-edge && git checkout v1.6.0          # the tag your world runs
    cd edge && cp sites.caddy.example sites.caddy && nano sites.caddy
    ```
    Keep one block, your first world's: its domain and its `APP_PORT` (8461 unless you changed it). Delete the second example block. `sites.caddy` is this server's list and stays out of git, like `.env`.
@@ -255,7 +275,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-two && sudo chown deploy:deploy /opt/bannerfall-two
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-two
-   cd /opt/bannerfall-two && git checkout v1.5.0
+   cd /opt/bannerfall-two && git checkout v1.6.0
    ```
 3. `.env` as in step 5, with new secrets, and these differences:
 
@@ -265,7 +285,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    | `COMPOSE_PROFILES` | empty (the shared Caddy serves the world) |
    | `APP_PORT` | a port of its own: `8462`, the next world `8463` (uncomment the line) |
    | `BANNERFALL_DOMAIN` | the new world's name |
-   | `BANNERFALL_IMAGE` | the same image as the first world; there's nothing to build again |
+   | `BANNERFALL_IMAGE` | the same image as the first world; there's nothing to pull or build again |
 4. Aliases for this world (`~/.bashrc`), then start it:
    ```
    alias bf2='docker compose -f /opt/bannerfall-two/compose.prod.yaml'
@@ -273,13 +293,13 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    Before the first start, `bf2 config | head -n 1` must print `name: bannerfall-two`, the name from `.env`. If it prints `name: bannerfall`, stop: `.env` lacks the line, and starting would take over the first world's containers. Then `bf2 up -d`, `bf2 ps`: `app` and `db` become healthy; there is no `caddy` in this world.
 5. Add its block to `/opt/bannerfall-edge/edge/sites.caddy` (its domain and `APP_PORT`), then `bfe-reload`. The new site gets its certificate within seconds; the other worlds are not interrupted.
-6. Steps 7 to 9 with this world's folder and aliases: the backup drill (`/opt/bannerfall-two/ops/bannerfall-backup`), a cron line a few minutes after the first world's (`27 3 * * * /opt/bannerfall-two/ops/bannerfall-backup >> /opt/bannerfall-two/backups/backup.log 2>&1`), and opening the world with `bfa2`.
+6. Steps 7 to 9 with this world's folder and aliases: the backup drill (`/opt/bannerfall-two/ops/bannerfall-backup`), a cron line a few minutes after the first world's (`27 3 * * * /opt/bannerfall-two/ops/bannerfall-backup >> /opt/bannerfall-two/backups/backup.log 2>&1`), and opening the world with `bfa2` (`bfa2 setup` prints this world's setup link).
 
 ### 12.3 Updating several worlds
 
 Update every world to the same release in one go, the newest world first and the first world last, so a problem shows up before it reaches your oldest world. In each world's folder it is step 10 as usual, with that world's aliases; build or pull the image only once. Then bring the shared Caddy to the same tag:
 ```
-cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v1.5.1
+cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v1.6.1
 bfe up -d && bfe-reload                    # picks up a changed Caddy image or Caddyfile
 ```
 
@@ -319,7 +339,7 @@ Then in the realm's `.env`:
 | `BANNERFALL_ACCOUNT_SERVER_MODE` | `OFF` (default: everything as before), `LINKING` (the button next to the usual login; existing players can link their account under "Change password", after which their password here no longer works) or `REQUIRED` (only the button; no passwords, no registration on the realm) |
 | `BANNERFALL_ACCOUNT_SERVER_CAREER` | `false` (default). `true` only for an account server that keeps careers across realms: every few minutes the realm then sends it, for each player who logs in through it, the name, points, villages, rank, achievements and, once the world has ended, the result (`POST <issuer>/realm-api/career`, HTTP Basic with the client id and secret). Ordinary OpenID Connect providers such as Keycloak don't take it, so leave it off for them. The realm's privacy page says so when it is on |
 
-`docker compose -f compose.prod.yaml up -d` to apply it. Things to know:
+`bf up -d` to apply it. Things to know:
 
 - A first login through the provider asks for the realm's invite code once, then creates the
   player. Links like `https://play.example.com/join?invite=CODE` fill it in.
@@ -347,6 +367,7 @@ world, and (if they switch it on) an empty build queue. They turn it on per devi
 The realm needs a key pair of its own, made once:
 
 ```
+cd /opt/bannerfall
 docker compose -f compose.prod.yaml exec -T app bannerfall-admin push keys >> .env
 docker compose -f compose.prod.yaml up -d
 ```

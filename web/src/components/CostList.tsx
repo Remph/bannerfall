@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { formatDuration, formatNumber } from '../game/format';
 import { resourceTypes, type ResourceAmounts } from '../game/resources';
 import { useI18n } from '../i18n';
@@ -21,6 +22,8 @@ interface CostListProps {
   hideZero?: boolean;
   /** Extra class, e.g. for the grid of the screen the list sits in. */
   className?: string;
+  /** Shown after the costs, in the same row (the noble's price factor, 1.6 UI review). */
+  extra?: ReactNode;
 }
 
 /**
@@ -39,6 +42,7 @@ export function CostList(props: CostListProps) {
     freePop,
     hideZero = false,
     className,
+    extra,
   } = props;
   const { t, language } = useI18n();
   return (
@@ -68,6 +72,7 @@ export function CostList(props: CostListProps) {
         />
       )}
       {seconds !== undefined && <Cost icon="clock" label={timeLabel} value={formatDuration(seconds)} short={false} />}
+      {extra !== undefined && <li className={styles.cost}>{extra}</li>}
     </ul>
   );
 }

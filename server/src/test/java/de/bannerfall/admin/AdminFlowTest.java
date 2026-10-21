@@ -13,6 +13,7 @@ import de.bannerfall.SentMessages;
 import de.bannerfall.TestPlayer;
 import de.bannerfall.chat.ChatService;
 import de.bannerfall.common.NotFoundException;
+import de.bannerfall.rules.Morale;
 import de.bannerfall.world.AdminWorldSettingsDto;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettingsUpdateRequest;
@@ -214,6 +215,37 @@ class AdminFlowTest {
                 .andExpect(status().isBadRequest());
         assertThat(worldService.settings().nightBonusStartHour()).isZero();
         assertThat(worldService.settings().nightBonusFactor()).isEqualTo(1.5);
+    }
+
+    @Test
+    void moraleIsOnByDefaultAtThirtyPercentChangedKeptAndChecked() throws Exception {
+        admin.get("/api/admin/world-settings")
+                .andExpect(jsonPath("$.moraleEnabled").value(true))
+                .andExpect(jsonPath("$.moraleFloor").value(30));
+        admin.get("/api/world").andExpect(jsonPath("$.moraleFloor").value(30));
+
+        admin.put("/api/admin/world-settings", withExtra(",\"moraleFloor\":50}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.moraleFloor").value(50));
+        admin.get("/api/world").andExpect(jsonPath("$.moraleFloor").value(50));
+        // an older client that leaves them out keeps them
+        admin.put("/api/admin/world-settings", settingsJson("Testland", 1, 5, 10, "c"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.moraleEnabled").value(true))
+                .andExpect(jsonPath("$.moraleFloor").value(50));
+
+        // switched off, the players see no floor
+        admin.put("/api/admin/world-settings", withExtra(",\"moraleEnabled\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.moraleEnabled").value(false));
+        admin.get("/api/world").andExpect(jsonPath("$.moraleFloor").isEmpty());
+
+        admin.put("/api/admin/world-settings", withExtra(",\"moraleFloor\":29}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+        admin.put("/api/admin/world-settings", withExtra(",\"moraleFloor\":101}"))
+                .andExpect(status().isBadRequest());
+        assertThat(worldService.settings().morale()).isEqualTo(new Morale(false, 0.5));
     }
 
     @Test
@@ -693,6 +725,7 @@ class AdminFlowTest {
                 null,
                 null,
                 null,
+                null,
                 s.barbarianWallsEnabled(),
                 s.barbarianWallStartDays(),
                 s.barbarianWallMaxLevel(),
@@ -704,6 +737,8 @@ class AdminFlowTest {
                 s.bannerDropFactor(),
                 s.standardTheftEnabled(),
                 s.npcBannersEnabled(),
+                s.npcLearningEnabled(),
+                s.npcShipmentsEnabled(),
                 s.marketExchangeRatio(),
                 s.victoryMode(),
                 s.dominationPercent(),
@@ -714,6 +749,12 @@ class AdminFlowTest {
                 s.nightBonusEnabled(),
                 s.nightBonusStartHour(),
                 s.nightBonusEndHour(),
-                s.nightBonusFactor());
+                s.nightBonusFactor(),
+                s.archersEnabled(),
+                s.moraleEnabled(),
+                s.moraleFloor(),
+                s.noblePriceStep(),
+                s.automationVillages(),
+                null);
     }
 }

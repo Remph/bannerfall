@@ -11,6 +11,7 @@ import de.bannerfall.IntegrationTest;
 import de.bannerfall.MutableClock;
 import de.bannerfall.SentMessages;
 import de.bannerfall.barbarian.BarbarianService;
+import de.bannerfall.common.Coordinates;
 import de.bannerfall.event.EventProcessor;
 import de.bannerfall.event.EventScheduler;
 import de.bannerfall.npc.NpcLordService;
@@ -98,7 +99,8 @@ class PregameFlowTest {
         jdbc.sql("delete from village where id > ?").param(newestVillageBefore).update();
         jdbc.sql(
                         "update world_settings set pregame = false, opens_at = null,"
-                                + " initialized_at = ?, barbarian_initial_count = ?")
+                                + " initialized_at = ?, barbarian_initial_count = ?,"
+                                + " map_spread = 'NORMAL'")
                 .param(initializedBefore)
                 .param(barbarianInitialBefore)
                 .update();
@@ -377,6 +379,53 @@ class PregameFlowTest {
     }
 
     @Test
+    void theSpreadIsStoredAsSentAndTheHostKeepsHisMapSizeAndNobleRange() throws Exception {
+        int nobleBefore = worldService.settings().nobleMaxDistance();
+        // the server fills nothing in: the clients send the size and range that go with a spread
+        host.put(
+                        "/api/admin/world-settings",
+                        spreadSettings("\"VAST\"", mapSizeBefore, nobleBefore))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapSpread").value("VAST"))
+                .andExpect(jsonPath("$.mapSize").value(mapSizeBefore))
+                .andExpect(jsonPath("$.nobleMaxDistance").value(nobleBefore));
+        assertThat(worldService.settings().mapSpread()).isEqualTo(MapSpread.VAST);
+
+        // the admin page filled in 130 and 91 for WIDE, the host typed the old range back
+        host.put("/api/admin/world-settings", spreadSettings("\"WIDE\"", 130, nobleBefore))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapSpread").value("WIDE"))
+                .andExpect(jsonPath("$.mapSize").value(130))
+                .andExpect(jsonPath("$.nobleMaxDistance").value(nobleBefore));
+
+        // without a spread it stays (an older client)
+        host.put("/api/admin/world-settings", spreadSettings(null, 130, nobleBefore))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapSpread").value("WIDE"));
+
+        // back to the shared values, then open: the spread is fixed from now on
+        host.put(
+                        "/api/admin/world-settings",
+                        spreadSettings("\"NORMAL\"", mapSizeBefore, nobleBefore))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mapSpread").value("NORMAL"));
+        host.post("/api/admin/world-opening/now", "").andExpect(status().isOk());
+        processor.processDue(clock.instant());
+        assertThat(worldService.phase()).isEqualTo(WorldPhase.OPEN);
+
+        host.put(
+                        "/api/admin/world-settings",
+                        spreadSettings("\"WIDE\"", mapSizeBefore, nobleBefore))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("WORLD_ALREADY_OPEN"));
+        host.put(
+                        "/api/admin/world-settings",
+                        spreadSettings("\"NORMAL\"", mapSizeBefore, nobleBefore))
+                .andExpect(status().isOk());
+        assertThat(worldService.settings().mapSpread()).isEqualTo(MapSpread.NORMAL);
+    }
+
+    @Test
     void theProductionStartPutsOnlyAFreshWorldIntoThePregame() {
         jdbc.sql("update world_settings set pregame = false").update();
         worldService.reload();
@@ -425,7 +474,105 @@ class PregameFlowTest {
         assertThat(jsonCount("select count(*) from game_event")).isZero();
     }
 
+    @Test
+    void guildMatesStartNextToEachOtherAndCanRespawnThere() throws Exception {
+        jdbc.sql("update world_settings set guilds_enabled = true").update();
+        worldService.reload();
+        try {
+            String leaderName = Browser.uniqueUsername();
+            Browser leader = Browser.open(mockMvc);
+            leader.register(leaderName);
+            leader.post("/api/guilds", "{\"name\":\"Start Together\",\"tag\":\"GST\"}")
+                    .andExpect(status().isCreated());
+            // a player in between: without the guild the mate would go to the next ring spot
+            String loner = Browser.uniqueUsername();
+            Browser lonerBrowser = Browser.open(mockMvc);
+            lonerBrowser.register(loner);
+            String mateName = Browser.uniqueUsername();
+            Browser mate = Browser.open(mockMvc);
+            mate.register(mateName);
+            leader.post("/api/guilds/mine/invitations", "{\"playerName\":\"" + mateName + "\"}")
+                    .andExpect(status().isCreated());
+            long invitation =
+                    JsonPath.<Number>read(
+                                    mate.get("/api/guilds/mine")
+                                            .andReturn()
+                                            .getResponse()
+                                            .getContentAsString(),
+                                    "$.invitations[0].id")
+                            .longValue();
+            mate.post("/api/guilds/invitations/" + invitation + "/accept", "")
+                    .andExpect(status().isOk());
+
+            host.post("/api/admin/world-opening/now", "").andExpect(status().isOk());
+            processor.processDue(clock.instant());
+            assertThat(worldService.phase()).isEqualTo(WorldPhase.OPEN);
+
+            // 02-game-rules §2 (1.6): 4 to 6 fields from the mate, a little more if those are taken
+            Coordinates leaderVillage = villageOf(leaderName);
+            assertThat(villageOf(mateName).distanceTo(leaderVillage)).isLessThanOrEqualTo(8);
+            assertThat(spawns.guildMateVillage(playerId(mateName))).contains(leaderVillage);
+            assertThat(spawns.guildMateVillage(playerId(loner))).isEmpty();
+
+            // the mate loses his village: the respawn screen offers the guild
+            loseVillages(mateName);
+            mate.get("/api/me")
+                    .andExpect(jsonPath("$.needsRespawn").value(true))
+                    .andExpect(jsonPath("$.respawnNearGuild").value(true));
+            mate.post("/api/me/respawn", "{\"nearGuild\":true}").andExpect(status().isCreated());
+            assertThat(villageOf(mateName).distanceTo(leaderVillage)).isLessThanOrEqualTo(8);
+
+            // the leader has no village left: the longest member with one is the one to start by
+            loseVillages(leaderName);
+            Coordinates mateVillage = villageOf(mateName);
+            assertThat(spawns.guildMateVillage(playerId(leaderName))).contains(mateVillage);
+            leader.get("/api/me").andExpect(jsonPath("$.respawnNearGuild").value(true));
+            leader.post("/api/me/respawn", "{\"nearGuild\":true}").andExpect(status().isCreated());
+            assertThat(villageOf(leaderName).distanceTo(mateVillage)).isLessThanOrEqualTo(8);
+
+            // without a guild there is nothing to offer
+            loseVillages(loner);
+            lonerBrowser
+                    .get("/api/me")
+                    .andExpect(jsonPath("$.needsRespawn").value(true))
+                    .andExpect(jsonPath("$.respawnNearGuild").value(false));
+            lonerBrowser.post("/api/me/respawn", "").andExpect(status().isCreated());
+
+            // the host can switch it off
+            jdbc.sql("update world_settings set guild_start_together = false").update();
+            worldService.reload();
+            assertThat(spawns.guildMateVillage(playerId(mateName))).isEmpty();
+            mate.get("/api/world").andExpect(jsonPath("$.guildStartTogether").value(false));
+        } finally {
+            jdbc.sql("delete from guild").update();
+            jdbc.sql(
+                            "update world_settings set guilds_enabled = false,"
+                                    + " guild_start_together = true")
+                    .update();
+            worldService.reload();
+        }
+    }
+
     // ---- helpers ----
+
+    /** The player's (only) village. */
+    private Coordinates villageOf(String username) {
+        return jdbc.sql(
+                        "select v.x, v.y from village v join player p on p.id = v.player_id"
+                                + " join account a on a.id = p.account_id where a.username = ?")
+                .param(username)
+                .query((rs, row) -> new Coordinates(rs.getInt("x"), rs.getInt("y")))
+                .single();
+    }
+
+    /** The player's villages turn barbarian, as if conquered by nobody. */
+    private void loseVillages(String username) {
+        long player = playerId(username);
+        jdbc.sql("update village set player_id = null where player_id = ?").param(player).update();
+        jdbc.sql("update player set village_count = 0, points = 0 where id = ?")
+                .param(player)
+                .update();
+    }
 
     private ResultActions setOpening(Instant opensAt) throws Exception {
         return host.put("/api/admin/world-opening", "{\"opensAt\":\"" + opensAt + "\"}");
@@ -479,5 +626,20 @@ class PregameFlowTest {
          "mapSize":%s,"barbarianInitialCount":%s,"npcLordCount":%s}
         """
                 .formatted(mapSize, barbarians, lords);
+    }
+
+    /**
+     * The whole form with a spread ({@code null} or a JSON string), a map size and a noble range.
+     */
+    private static String spreadSettings(String spread, int mapSize, int nobleMaxDistance) {
+        return """
+        {"name":"Bannerfall 1","speed":1.0,"unitSpeed":1.0,"startResources":500,
+         "luckRange":0.25,"beginnerProtectionHours":72,"nobleMaxDistance":%d,
+         "loyaltyRegenPerHour":1.0,"buildQueueSize":5,"buildQueueMax":10,"recruitQueueSize":5,
+         "cancelWindowSeconds":600,"barbariansPerNewPlayer":0,"barbarianGrowthEnabled":true,
+         "tradeMaxRatio":3.0,"inviteCode":"change-me","npcThinkMinutes":20,
+         "mapSize":%d,"mapSpread":%s}
+        """
+                .formatted(nobleMaxDistance, mapSize, spread);
     }
 }

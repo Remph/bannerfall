@@ -9,8 +9,8 @@ import java.util.Map;
  * in {@code gamedata/units.yml}; the first entry is level 2, the unit starts at level 1 with the
  * numbers of its {@link UnitDef}).
  *
- * @param attack, defenseInfantry, defenseCavalry the unit's stats on this level (whole numbers,
- *     never below the level before)
+ * @param attack, defenseInfantry, defenseCavalry, defenseArcher the unit's stats on this level
+ *     (whole numbers, never below the level before)
  * @param cost what the research costs
  * @param baseSeconds research time at Smithy level 1, world speed 1 (the smithy level and the speed
  *     shorten it, {@code ResearchRules})
@@ -21,6 +21,7 @@ public record UnitLevelDef(
         int attack,
         int defenseInfantry,
         int defenseCavalry,
+        int defenseArcher,
         ResourceAmounts cost,
         int baseSeconds,
         Map<BuildingType, Integer> requires) {
@@ -34,6 +35,6 @@ public record UnitLevelDef(
     }
 
     public UnitStats stats() {
-        return new UnitStats(attack, defenseInfantry, defenseCavalry);
+        return new UnitStats(attack, defenseInfantry, defenseCavalry, defenseArcher);
     }
 }
