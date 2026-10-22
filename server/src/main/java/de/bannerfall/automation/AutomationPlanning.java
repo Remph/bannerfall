@@ -49,7 +49,8 @@ public final class AutomationPlanning {
             if (line.startsRecruiting() || skipped(line, bannerHall)) {
                 continue;
             }
-            if (levels.get(line.building()) < line.level()) {
+            if (line.targets().entrySet().stream()
+                    .anyMatch(target -> levels.get(target.getKey()) < target.getValue())) {
                 return i;
             }
         }
@@ -75,16 +76,16 @@ public final class AutomationPlanning {
     }
 
     /**
-     * The building lines as the steps of {@code NpcPlanning.nextBuild}: one building each, so the
-     * first step not reached is the current line. Banner Hall lines are left out where the hall
-     * can't be built.
+     * The building lines as the steps of {@code NpcPlanning.nextBuild}: one building each (the
+     * mines line holds three, of which the lowest is built first), so the first step not reached is
+     * the current line. Banner Hall lines are left out where the hall can't be built.
      */
     public static List<Map<BuildingType, Integer>> steps(
             List<BuildPlanLine> lines, boolean bannerHall) {
         List<Map<BuildingType, Integer>> steps = new ArrayList<>();
         for (BuildPlanLine line : lines) {
             if (!line.startsRecruiting() && !skipped(line, bannerHall)) {
-                steps.add(Map.of(line.building(), line.level()));
+                steps.add(line.targets());
             }
         }
         return steps;

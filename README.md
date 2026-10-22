@@ -80,7 +80,7 @@ Not affiliated with any existing game. Own name, own numbers, own village pictur
 | `compose.yaml` | Local development database (PostgreSQL 18) |
 | `Dockerfile`, `compose.prod.yaml`, `Caddyfile`, `.env.example` | Production: the image, app + database + Caddy, settings template |
 | `edge/` | The shared Caddy for several worlds on one server (`docs/hosting.md`, section 12) |
-| `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore`, `bannerfall-update` |
+| `ops/` | `bannerfall-admin` (host console), `bannerfall-backup`, `bannerfall-restore`, `bannerfall-update`, `bannerfall-auto-update` |
 | `.run/` | Shared IntelliJ run configurations |
 
 ## Prerequisites
@@ -181,17 +181,17 @@ chmod 600 .env
 
 `openssl rand -hex 24` makes a good password and a good token (the token needs at least 32 characters). Keep `.env` private; it is not in git. The host cheats stay off (`BANNERFALL_CHEATS_ENABLED` is not passed to the container).
 
-**Build and ship** (on your PC, in the repo root; replace `1.6.1` by the version):
+**Build and ship** (on your PC, in the repo root; replace `1.6.2` by the version):
 
 ```
-docker build -t ghcr.io/your-name/bannerfall:1.6.1 --build-arg VERSION=1.6.1 .
+docker build -t ghcr.io/your-name/bannerfall:1.6.2 --build-arg VERSION=1.6.2 .
 docker login ghcr.io          # once, with a GitHub token that may write packages
-docker push ghcr.io/your-name/bannerfall:1.6.1
+docker push ghcr.io/your-name/bannerfall:1.6.2
 ```
 
-(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.1 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.1 --build-arg VERSION=1.6.1 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.1` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
+(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.2 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.2 --build-arg VERSION=1.6.2 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.2` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
 
-**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.1` in `.env`, then
+**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.2` in `.env`, then
 
 ```
 docker compose -f compose.prod.yaml pull        # skip this when the image was loaded or built on the server itself
@@ -202,6 +202,8 @@ docker compose -f compose.prod.yaml ps          # app and db "healthy"
 The database migrates itself at start (Flyway). Everybody is logged out by an update (sessions are in memory); announce it with `bannerfall-admin broadcast "Update in 5 minutes"`. Caddy asks Let's Encrypt for the certificate as soon as it starts, so the DNS record must already point to the server (check with `nslookup`; repeated failures run into Let's Encrypt's rate limit). `docker compose -f compose.prod.yaml logs caddy` shows `certificate obtained successfully`; <https://your-domain> should answer within a minute. Use the world's own name as `BANNERFALL_DOMAIN` (for example `play.example.com`), not the main domain of a landing page you may run beside it.
 
 **Updating in one command** (since 1.4.1, in a git checkout on the server): `ops/bannerfall-update 1.4.1` does the steps of an update in order and stops at the first one that fails. It checks that the checkout has no local changes, fetches the tags, pulls the image for exactly that version (the image `BANNERFALL_IMAGE` names now, with the new tag; `--repo` names another, `--build` builds `bannerfall:<version>` on the server instead), checks the tag out, checks that its `compose.prod.yaml` works with your `.env`, takes a backup with `ops/bannerfall-backup`, warns the players in the chat, waits a minute (`--wait <seconds>`, `0` for no warning), sets `BANNERFALL_IMAGE` in `.env`, restarts the app, waits until it is healthy and reports the new version, and runs `bannerfall-admin check`. It shows the plan and asks once first (`--yes` skips the question). Nothing changes for the players before the backup is done, and stopping it before the restart (Ctrl+C, or a dropped connection) puts the old checkout back. If the new version doesn't come up and ran no database migration, the script puts the old image and checkout back by itself. If it already migrated the database, it stops and prints how to restore the backup it took. Read the release notes first, since some releases add settings or need a step of their own. `ops/bannerfall-update --help` lists the options.
+
+**Patches by themselves** (optional): `ops/bannerfall-auto-update` in a nightly cron line installs the newest patch of the minor version the world runs (1.6.1 to 1.6.2, never to 1.7.0) with `ops/bannerfall-update`: backup, a five-minute warning in the chat, health check, and the automatic rollback described above. It then moves the shared Caddy checkout (`edge/`) to the same tag. A new minor version is only mentioned in its log; update to it by hand. A file `auto-update.hold` pauses it, a version that failed is not tried again, and an optional free healthchecks.io address tells you about failures and about runs that didn't happen. `docs/hosting.md`, section 10, has the cron line and the details.
 
 **Feature switches.** Some of the bigger features can be switched per world. A new world starts with banners, the paladin, morale and the rising noble price on, and with barbarian walls, unit levels, archers and learning NPC lords off. The guided setup asks for the important ones. What each release switches in a running world is in its release notes (`docs/releases/`, *Heads-up for running worlds*).
 

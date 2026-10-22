@@ -18,8 +18,9 @@ import {
   cameraAt,
   cameraOn,
   chunksFor,
-  dragViewRect,
   clampTile,
+  dragViewRect,
+  focusTile,
   hitRadius,
   KEY_PAN_FIELDS,
   middleField,
@@ -48,6 +49,7 @@ import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { DESKTOP_QUERY, PANEL_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { useEffectiveTheme, usePalette } from '../../theme/useEffectiveTheme';
+import { mapFocusFromSearch } from '../rally/rallyPaths';
 import { VillageError } from '../village/VillageError';
 import { DevBarbarianSpawn } from './DevBarbarianSpawn';
 import { LineBubble } from './LineBubble';
@@ -123,12 +125,25 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   // The function form runs only on the first render: later changes of the URL don't move the map.
-  const [camera, setCamera] = useState<Camera>(() => cameraOn(startField(searchParams, village, mapSize), loadTile()));
+  // A link to a village (`focus`, see mapPath) opens closer and outlines it, like "go to" does.
+  const [camera, setCamera] = useState<Camera>(() =>
+    cameraOn(
+      startField(searchParams, village, mapSize),
+      mapFocusFromSearch(searchParams, mapSize) === undefined ? loadTile() : focusTile(loadTile()),
+    ),
+  );
   // glides, smooth zoom and the drift after a drag (1.3); every direct move stops them first
   const cameraMotion = useCameraMotion(camera, setCamera, mapSize);
   const stopMotion = cameraMotion.stop;
   const [size, setSize] = useState<Size | null>(null);
-  const [selection, setSelection] = useState<Selection>(null);
+  const [selection, setSelectionState] = useState<Selection>(null);
+  // The field a village link points at is outlined, without the panel; the next thing the player
+  // picks (or closes) takes the outline away.
+  const [outlined, setOutlined] = useState<Coords | null>(() => mapFocusFromSearch(searchParams, mapSize) ?? null);
+  const setSelection = (next: Selection) => {
+    setOutlined(null);
+    setSelectionState(next);
+  };
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [crosshair, setCrosshair] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -209,6 +224,10 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
 
   const selected = selectedVillage(selection, villages);
   const marked = selection !== null && 'field' in selection && selected === undefined ? selection.field : null;
+  const outlinedVillage =
+    outlined === null ? undefined : villages.find((entry) => entry.x === outlined.x && entry.y === outlined.y);
+  // a field without a village (it was taken or the link is old) gets the plain marker
+  const drawnMark = marked ?? (outlined !== null && outlinedVillage === undefined ? outlined : null);
   const hovered = hoveredId === null ? undefined : villages.find((entry) => entry.id === hoveredId);
 
   // The canvas fills the viewport; its pixel size follows the viewport's size.
@@ -251,9 +270,9 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       lines,
       selectedLineId: highlightedLineId,
       ownPlayerId: me.playerId,
-      selectedId: selected?.id ?? null,
+      selectedId: selected?.id ?? outlinedVillage?.id ?? null,
       hoveredId,
-      marked,
+      marked: drawnMark,
       crosshair,
       colors: readMapColors(canvas),
       nowMs: gameTime(serverNow()),
@@ -269,8 +288,9 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     highlightedLineId,
     me.playerId,
     selected?.id,
+    outlinedVillage?.id,
     hoveredId,
-    marked,
+    drawnMark,
     crosshair,
     theme,
     palette,
@@ -307,10 +327,19 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   // Once the map stands still: put the middle into the URL (a reload or "back" from another screen
   // returns here) and remember the zoom.
   const middle = middleField(camera, mapSize);
+  // the zoom a village link chose isn't the player's own: it is remembered only once changed
+  const linkTile = useRef<number | null>(mapFocusFromSearch(searchParams, mapSize) === undefined ? null : camera.tile);
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      saveTile(camera.tile);
-      if (searchParams.get('x') !== String(middle.x) || searchParams.get('y') !== String(middle.y)) {
+      if (linkTile.current !== camera.tile) {
+        linkTile.current = null;
+        saveTile(camera.tile);
+      }
+      if (
+        searchParams.has('focus') ||
+        searchParams.get('x') !== String(middle.x) ||
+        searchParams.get('y') !== String(middle.y)
+      ) {
         setSearchParams({ x: String(middle.x), y: String(middle.y) }, { replace: true });
       }
     }, SETTLE_MS);

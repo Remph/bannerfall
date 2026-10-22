@@ -50,3 +50,8 @@ START.md
 
 # The shared proxy's list of worlds on a server (edge/sites.caddy.example is the template)
 /edge/sites.caddy
+
+# State of ops/bannerfall-auto-update on a server (pause file, failed version, lock)
+/auto-update.hold
+/auto-update.failed
+/.auto-update.lock

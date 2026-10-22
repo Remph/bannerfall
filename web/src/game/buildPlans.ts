@@ -15,6 +15,8 @@ export const MAX_PLAN_LINES = 80;
 
 export type PlanLine =
   | { readonly kind: 'build'; readonly building: BuildingType; readonly level: number }
+  /** All three mines to one level (1.6.2): the village builds whichever is lowest next. */
+  | { readonly kind: 'mines'; readonly level: number }
   | { readonly kind: 'recruit'; readonly template: TemplateLetter };
 
 export interface BuildPlan {
@@ -38,6 +40,8 @@ export interface ApiPlanLine {
   readonly building: BuildingType | null;
   readonly level: number;
   readonly recruit: TemplateLetter | null;
+  /** True on the mines line (1.6.2). */
+  readonly mines: boolean;
 }
 
 export type Levels = Readonly<Partial<Record<BuildingType, number>>>;
@@ -47,16 +51,24 @@ export function fromApiLines(lines: readonly ApiPlanLine[]): PlanLine[] {
     if (line.recruit !== null) {
       return [{ kind: 'recruit', template: line.recruit }];
     }
+    if (line.mines) {
+      return [{ kind: 'mines', level: line.level }];
+    }
     return line.building === null ? [] : [{ kind: 'build', building: line.building, level: line.level }];
   });
 }
 
 export function toApiLines(lines: readonly PlanLine[]): ApiPlanLine[] {
-  return lines.map((line) =>
-    line.kind === 'recruit'
-      ? { building: null, level: 0, recruit: line.template }
-      : { building: line.building, level: line.level, recruit: null },
-  );
+  return lines.map((line) => {
+    switch (line.kind) {
+      case 'recruit':
+        return { building: null, level: 0, recruit: line.template, mines: false };
+      case 'mines':
+        return { building: null, level: line.level, recruit: null, mines: true };
+      case 'build':
+        return { building: line.building, level: line.level, recruit: null, mines: false };
+    }
+  });
 }
 
 function infoOf(buildings: readonly PlanBuilding[], type: BuildingType): PlanBuilding | undefined {
@@ -72,7 +84,11 @@ function withLine(levels: Levels, line: PlanLine): Levels {
   if (line.kind === 'recruit') {
     return levels;
   }
-  return { ...levels, [line.building]: Math.max(levels[line.building] ?? 0, line.level) };
+  const built = line.kind === 'mines' ? MINES : [line.building];
+  return built.reduce<Levels>(
+    (acc, building) => ({ ...acc, [building]: Math.max(acc[building] ?? 0, line.level) }),
+    levels,
+  );
 }
 
 /** The levels the lines above `index` reach, from a new village on. */
@@ -85,6 +101,24 @@ export interface Requirement {
   readonly level: number;
 }
 
+/** What a building line (or the three mines of the mines line) requires, each requirement once. */
+function requirementsOf(
+  line: Exclude<PlanLine, { kind: 'recruit' }>,
+  buildings: readonly PlanBuilding[],
+): Requirement[] {
+  const types = line.kind === 'mines' ? MINES : [line.building];
+  return types
+    .flatMap((type) => infoOf(buildings, type)?.requires ?? [])
+    .reduce<Requirement[]>((acc, need) => {
+      const same = acc.find((other) => other.building === need.building);
+      return same === undefined
+        ? [...acc, need]
+        : acc.map((other) =>
+            other === same ? { building: same.building, level: Math.max(same.level, need.level) } : other,
+          );
+    }, []);
+}
+
 /**
  * Per line what it lacks: the requirements the lines above it don't reach (empty when it is
  * fine). The server refuses a plan with a line that lacks something.
@@ -95,8 +129,7 @@ export function missingPerLine(lines: readonly PlanLine[], buildings: readonly P
       return [];
     }
     const reached = reachedAbove(lines, index, buildings);
-    const requires = infoOf(buildings, line.building)?.requires ?? [];
-    return requires.filter((need) => (reached[need.building] ?? 0) < need.level);
+    return requirementsOf(line, buildings).filter((need) => (reached[need.building] ?? 0) < need.level);
   });
 }
 
@@ -122,18 +155,23 @@ export function appendBuilding(
   level: number,
   buildings: readonly PlanBuilding[],
 ): PlanLine[] {
-  const reached = reachedAbove(lines, lines.length, buildings);
   const requires = infoOf(buildings, building)?.requires ?? [];
-  const withRequirements = requires
-    .filter((need) => (reached[need.building] ?? 0) < need.level)
-    .reduce<PlanLine[]>(
-      (acc, need) => {
-        const now = reachedAbove(acc, acc.length, buildings);
-        return (now[need.building] ?? 0) < need.level ? appendBuilding(acc, need.building, need.level, buildings) : acc;
-      },
-      [...lines],
-    );
-  return [...withRequirements, { kind: 'build', building, level }];
+  return [...withRequirements(lines, requires, buildings), { kind: 'build', building, level }];
+}
+
+/** The lines with each of `requires` that the lines don't reach yet in front (their requirements first). */
+function withRequirements(
+  lines: readonly PlanLine[],
+  requires: readonly Requirement[],
+  buildings: readonly PlanBuilding[],
+): PlanLine[] {
+  return requires.reduce<PlanLine[]>(
+    (acc, need) => {
+      const now = reachedAbove(acc, acc.length, buildings);
+      return (now[need.building] ?? 0) < need.level ? appendBuilding(acc, need.building, need.level, buildings) : acc;
+    },
+    [...lines],
+  );
 }
 
 /**
@@ -153,12 +191,28 @@ export function appendNextLevel(
   return appendBuilding(lines, building, reached + 1, buildings);
 }
 
-/** The three mines, in the order "+ All three mines" adds them. */
+/** The three mines the mines line covers. */
 export const MINES: readonly BuildingType[] = ['WOODCUTTER', 'CLAY_PIT', 'IRON_MINE'];
 
-/** "+ All three mines": each mine's next level after the lines, the ones at their top level left out. */
+/** The highest level the mines line takes: the lowest top level of the three mines. */
+export function minesTopLevel(buildings: readonly PlanBuilding[]): number {
+  return Math.min(...MINES.map((mine) => infoOf(buildings, mine)?.maxLevel ?? 0));
+}
+
+/**
+ * "+ All mines": one line, all three mines to one level more than the lowest of them reaches after
+ * the lines (with their missing requirements in front); the lines unchanged when every mine is at
+ * the top.
+ */
 export function appendMines(lines: readonly PlanLine[], buildings: readonly PlanBuilding[]): PlanLine[] {
-  return MINES.reduce<PlanLine[]>((result, mine) => appendNextLevel(result, mine, buildings), [...lines]);
+  const reached = reachedAbove(lines, lines.length, buildings);
+  const top = minesTopLevel(buildings);
+  const lowest = Math.min(...MINES.map((mine) => reached[mine] ?? 0));
+  if (lowest >= top) {
+    return [...lines];
+  }
+  const requires = requirementsOf({ kind: 'mines', level: lowest + 1 }, buildings);
+  return [...withRequirements(lines, requires, buildings), { kind: 'mines', level: lowest + 1 }];
 }
 
 /** "+ Start recruiting": the recruit line at the end, or the one there is pointed at `template`. */
@@ -180,7 +234,8 @@ export function changeLevel(
     if (i !== index || line.kind === 'recruit') {
       return line;
     }
-    const max = infoOf(buildings, line.building)?.maxLevel ?? line.level;
+    const max =
+      line.kind === 'mines' ? minesTopLevel(buildings) : (infoOf(buildings, line.building)?.maxLevel ?? line.level);
     return { ...line, level: Math.min(max, Math.max(1, line.level + delta)) };
   });
 }

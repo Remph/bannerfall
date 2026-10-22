@@ -13,6 +13,7 @@ import { useT } from '../i18n';
 import { playerPath } from '../pages/ranking/rankingPaths';
 import { useChatUnread } from '../realtime/chatSeen';
 import styles from './navigation.module.css';
+import { OPENS_AT_TOP } from './opensAtTop';
 import { useNavEntry } from './useNavEntry';
 import {
   desktopSections,
@@ -85,6 +86,7 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
     <Link
       viewTransition={onNavigate === undefined && pathname !== target}
       to={target}
+      state={OPENS_AT_TOP}
       className={className}
       aria-current={current ? 'page' : undefined}
       onClick={onNavigate}

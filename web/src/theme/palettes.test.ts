@@ -58,6 +58,24 @@ describe('colour themes in palettes.css (1.6)', () => {
     expect(outside).toEqual([]);
   });
 
+  it('the OLED theme is black and gold in the light and pure black in the dark', () => {
+    const black = blocks('black');
+    const oled = blocks('oled');
+    expect(oled.light).toEqual(black.light);
+    for (const token of ['--color-bg', '--color-bar', '--map-outside']) {
+      expect(oled.chosenDark.get(token)).toBe('#000000');
+    }
+    // the gold stays, and the cards still lift off the black
+    for (const token of ['--color-accent', '--color-title', '--color-highlight', '--color-text']) {
+      expect(oled.chosenDark.get(token)).toBe(black.chosenDark.get(token));
+    }
+    expect(oled.chosenDark.get('--color-surface')).not.toBe('#000000');
+    // the bar edge is also the fill of the desktop tab row and the footer: nearly black too, still a line
+    const edge = oled.chosenDark.get('--color-bar-edge') ?? '';
+    expect(edge).not.toBe('#000000');
+    expect(Number.parseInt(edge.slice(1, 3), 16)).toBeLessThanOrEqual(0x18);
+  });
+
   it("green is tokens.css's own look, so the tiles and the plain page agree", () => {
     const { light, chosenDark } = blocks('green');
     const base = tokens(tokensCss.slice(0, tokensCss.indexOf('@media')), ':root');

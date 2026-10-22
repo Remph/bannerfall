@@ -147,7 +147,7 @@ describe('MenuSheet: colour themes (1.6)', () => {
     applyPalette('green');
   });
 
-  it('offers the five themes, green chosen by default, and switches the page on a tap', () => {
+  it('offers the six themes, green chosen by default, and switches the page on a tap', () => {
     open('settings', {});
     const group = screen.getByRole('radiogroup', { name: 'Colours' });
     const choices = within(group).getAllByRole('radio');
@@ -155,6 +155,7 @@ describe('MenuSheet: colour themes (1.6)', () => {
       'Green banner',
       'Royal blue',
       'Black and gold',
+      'Black and gold (OLED)',
       'Purple',
       'Leather and forest',
     ]);
@@ -165,5 +166,8 @@ describe('MenuSheet: colour themes (1.6)', () => {
     expect(document.documentElement.getAttribute('data-palette')).toBe('blue');
     expect(screen.getByRole('radio', { name: 'Royal blue' })).toHaveProperty('checked', true);
     expect(screen.getByText('Royal blue')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Black and gold (OLED)' }));
+    expect(document.documentElement.getAttribute('data-palette')).toBe('oled');
   });
 });

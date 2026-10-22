@@ -8,6 +8,7 @@ const TOP = 30;
 const buildings = [
   ...(fixture.buildings as PlanBuilding[]),
   { building: 'CLAY_PIT', startLevel: 0, maxLevel: TOP, requires: [], available: true },
+  { building: 'IRON_MINE', startLevel: 0, maxLevel: TOP, requires: [], available: true },
 ] satisfies PlanBuilding[];
 
 const lines: PlanLine[] = [
@@ -15,13 +16,14 @@ const lines: PlanLine[] = [
   { kind: 'build', building: 'BARRACKS', level: 1 },
   { kind: 'recruit', template: 'B' },
   { kind: 'build', building: 'CLAY_PIT', level: 10 },
+  { kind: 'mines', level: 12 },
 ];
 
 describe('encodePlan and decodePlan', () => {
   it('write a plan as one line of text and read it back', () => {
     const code = encodePlan('Wirtschaft', lines);
 
-    expect(code).toBe('BFP1|Wirtschaft|HEADQUARTERS:3,BARRACKS:1,RECRUIT:B,CLAY_PIT:10');
+    expect(code).toBe('BFP1|Wirtschaft|HEADQUARTERS:3,BARRACKS:1,RECRUIT:B,CLAY_PIT:10,MINES:12');
     expect(decodePlan(code, buildings)).toEqual({ ok: true, name: 'Wirtschaft', lines });
   });
 
@@ -68,6 +70,16 @@ describe('decodePlan with text from other players', () => {
     expect(error('BFP1|a%00b|HEADQUARTERS:3')).toBe('badName');
     expect(error('BFP1|a%0Ab|HEADQUARTERS:3')).toBe('badName');
     expect(error('BFP1|a%E2%80%AEb|HEADQUARTERS:3')).toBe('badName');
+  });
+
+  it('reads the mines line with a level up to the lowest top level of the three mines', () => {
+    expect(error('BFP1|Eco|MINES:1')).toBe('ok');
+    expect(error(`BFP1|Eco|MINES:${TOP}`)).toBe('ok');
+    expect(error('BFP1|Eco|MINES:0')).toBe('badLevel');
+    expect(error(`BFP1|Eco|MINES:${TOP + 1}`)).toBe('badLevel');
+    expect(error('BFP1|Eco|MINES:x')).toBe('badLevel');
+    expect(error('BFP1|Eco|MINES')).toBe('format');
+    expect(error('BFP1|Eco|mines:3')).toBe('unknownBuilding');
   });
 
   it('knows only the game’s buildings, by exact name', () => {

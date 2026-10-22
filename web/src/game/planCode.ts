@@ -1,10 +1,10 @@
 import { templateLetters } from './farmTemplates';
-import { MAX_PLAN_LINES, MAX_PLAN_NAME, type PlanBuilding, type PlanLine } from './buildPlans';
+import { MAX_PLAN_LINES, MAX_PLAN_NAME, minesTopLevel, type PlanBuilding, type PlanLine } from './buildPlans';
 import { buildingTypes } from './gameData';
 
 /**
  * A build plan as text (1.6.1): the player sends it in a message and another player (or the same
- * one on another world) pastes it into the plan editor. `BFP1|Name|HEADQUARTERS:3,BARRACKS:1,RECRUIT:B`:
+ * one on another world) pastes it into the plan editor. `BFP1|Name|HEADQUARTERS:3,MINES:5,RECRUIT:B`:
  * a version tag, the name URL-encoded (so no `|`, `,` or `:` in it), then the lines. Pasted text
  * comes from other players, so {@link decodePlan} checks everything a typed plan is checked for
  * (length, the building names the game has, levels up to the building's top, one recruit line, the
@@ -18,6 +18,8 @@ export const PLAN_CODE_TAG = 'BFP1';
 export const MAX_PLAN_CODE_LENGTH = 4000;
 
 const RECRUIT_KEY = 'RECRUIT';
+/** The mines line (1.6.2): all three mines to one level. */
+const MINES_KEY = 'MINES';
 const LEVEL = /^[0-9]{1,3}$/;
 const CONTROL_CHARS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
 
@@ -41,9 +43,16 @@ export type DecodedPlan =
 
 /** The plan as a code, e.g. `BFP1|Economy|HEADQUARTERS:3,RECRUIT:B,CLAY_PIT:10`. */
 export function encodePlan(name: string, lines: readonly PlanLine[]): string {
-  const body = lines.map((line) =>
-    line.kind === 'recruit' ? `${RECRUIT_KEY}:${line.template}` : `${line.building}:${line.level}`,
-  );
+  const body = lines.map((line) => {
+    switch (line.kind) {
+      case 'recruit':
+        return `${RECRUIT_KEY}:${line.template}`;
+      case 'mines':
+        return `${MINES_KEY}:${line.level}`;
+      case 'build':
+        return `${line.building}:${line.level}`;
+    }
+  });
   return [PLAN_CODE_TAG, encodeURIComponent(name.trim()), body.join(',')].join('|');
 }
 
@@ -71,6 +80,13 @@ function decodeLine(part: string, buildings: readonly PlanBuilding[]): PlanLine 
   if (key === RECRUIT_KEY) {
     const template = templateLetters.find((letter) => letter === value);
     return template === undefined ? 'badTemplate' : { kind: 'recruit', template };
+  }
+  if (key === MINES_KEY) {
+    if (!LEVEL.test(value)) {
+      return 'badLevel';
+    }
+    const level = Number(value);
+    return level >= 1 && level <= minesTopLevel(buildings) ? { kind: 'mines', level } : 'badLevel';
   }
   const building = buildingTypes.find((type) => type === key);
   const info = buildings.find((candidate) => candidate.building === building);

@@ -7,6 +7,7 @@ import {
   isSavable,
   lineState,
   linesFromLevels,
+  minesTopLevel,
   missingPerLine,
   moveLine,
   removeLine,
@@ -42,13 +43,14 @@ const wood = (level: number): PlanLine => build('WOODCUTTER', level);
 const hq = (level: number): PlanLine => build('HEADQUARTERS', level);
 
 describe('API lines', () => {
-  it('turn into plan lines and back, the recruit line with level 0', () => {
+  it('turn into plan lines and back, the recruit line with level 0, the mines line with mines set', () => {
     const api = [
-      { building: 'WOODCUTTER' as const, level: SOME, recruit: null },
-      { building: null, level: 0, recruit: 'B' as const },
+      { building: 'WOODCUTTER' as const, level: SOME, recruit: null, mines: false },
+      { building: null, level: 0, recruit: 'B' as const, mines: false },
+      { building: null, level: SOME, recruit: null, mines: true },
     ];
     const lines = fromApiLines(api);
-    expect(lines).toEqual([wood(SOME), { kind: 'recruit', template: 'B' }]);
+    expect(lines).toEqual([wood(SOME), { kind: 'recruit', template: 'B' }, { kind: 'mines', level: SOME }]);
     expect(toApiLines(lines)).toEqual(api);
   });
 });
@@ -84,19 +86,42 @@ describe('appendMines', () => {
     { building: 'CLAY_PIT', startLevel: 0, maxLevel: TOP, requires: [], available: true },
     { building: 'IRON_MINE', startLevel: 0, maxLevel: TOP, requires: [], available: true },
   ];
+  const mines = (level: number): PlanLine => ({ kind: 'mines', level });
 
-  it('appends the next level of each mine, in mine order', () => {
-    expect(appendMines([wood(SOME)], withMines)).toEqual([
-      wood(SOME),
-      wood(SOME + 1),
-      build('CLAY_PIT', 1),
-      build('IRON_MINE', 1),
+  it('appends one line with all mines one level above the lowest of them', () => {
+    expect(appendMines([], withMines)).toEqual([mines(1)]);
+    // the clay pit and the iron mine are at 0: the line says 1, the woodcutter is already past it
+    expect(appendMines([wood(SOME)], withMines)).toEqual([wood(SOME), mines(1)]);
+    expect(appendMines([mines(SOME)], withMines)).toEqual([mines(SOME), mines(SOME + 1)]);
+    expect(appendMines([mines(SOME), wood(SOME + 2)], withMines)).toEqual([
+      mines(SOME),
+      wood(SOME + 2),
+      mines(SOME + 1),
     ]);
   });
 
-  it('leaves out a mine at its top level', () => {
-    const lines = [wood(TOP)];
-    expect(appendMines(lines, withMines)).toEqual([wood(TOP), build('CLAY_PIT', 1), build('IRON_MINE', 1)]);
+  it('adds nothing once all three mines are at the top', () => {
+    expect(appendMines([mines(TOP)], withMines)).toEqual([mines(TOP)]);
+    expect(minesTopLevel(withMines)).toBe(TOP);
+  });
+
+  it('puts what the mines require in front, once', () => {
+    const needy: PlanBuilding[] = withMines.map((info) =>
+      info.building === 'CLAY_PIT' || info.building === 'IRON_MINE'
+        ? { ...info, requires: [{ building: 'HEADQUARTERS', level: HQ_FOR_BARRACKS }] }
+        : info,
+    );
+    const lines = appendMines([], needy);
+    expect(lines).toEqual([hq(HQ_FOR_BARRACKS), mines(1)]);
+    expect(missingPerLine(lines, needy).flat()).toEqual([]);
+    expect(missingPerLine([mines(1)], needy)).toEqual([[{ building: 'HEADQUARTERS', level: HQ_FOR_BARRACKS }]]);
+  });
+
+  it('counts for what the lines reach: a later wood line starts above the mines line', () => {
+    expect(appendNextLevel([mines(SOME)], 'WOODCUTTER', withMines)).toEqual([mines(SOME), wood(SOME + 1)]);
+    expect(changeLevel([mines(TOP)], 0, 1, withMines)).toEqual([mines(TOP)]);
+    expect(changeLevel([mines(1)], 0, -1, withMines)).toEqual([mines(1)]);
+    expect(changeLevel([mines(SOME)], 0, 1, withMines)).toEqual([mines(SOME + 1)]);
   });
 });
 

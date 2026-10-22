@@ -2763,6 +2763,7 @@ export interface components {
             level: number;
             /** @enum {string|null} */
             recruit: "A" | "B" | "C" | "D" | "E" | null;
+            mines: boolean;
         };
         BuildPlanRequest: {
             name: string;

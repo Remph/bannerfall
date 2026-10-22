@@ -232,8 +232,8 @@ public class AutomationService {
                         .stream()
                         .anyMatch(
                                 line ->
-                                        line.building() == event.building()
-                                                && line.level() > event.level());
+                                        line.targets().getOrDefault(event.building(), 0)
+                                                > event.level());
         if (wanted) {
             automation.pauseByCancel();
         }

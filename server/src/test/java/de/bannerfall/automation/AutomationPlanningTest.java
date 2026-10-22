@@ -81,6 +81,47 @@ class AutomationPlanningTest {
     }
 
     @Test
+    void theMinesLineIsCurrentUntilAllThreeMinesReachItAndBuildsTheLowestFirst() {
+        List<BuildPlanLine> plan =
+                List.of(BuildPlanLine.allMines(3), BuildPlanLine.build(BuildingType.FARM, 2));
+        assertThat(AutomationPlanning.currentLine(plan, levels(), true)).isZero();
+        assertThat(
+                        AutomationPlanning.currentLine(
+                                plan,
+                                levels(
+                                        BuildingType.WOODCUTTER,
+                                        3,
+                                        BuildingType.CLAY_PIT,
+                                        3,
+                                        BuildingType.IRON_MINE,
+                                        2),
+                                true))
+                .isZero();
+        assertThat(
+                        AutomationPlanning.currentLine(
+                                plan,
+                                levels(
+                                        BuildingType.WOODCUTTER,
+                                        3,
+                                        BuildingType.CLAY_PIT,
+                                        4,
+                                        BuildingType.IRON_MINE,
+                                        3),
+                                true))
+                .isEqualTo(1);
+        assertThat(AutomationPlanning.steps(plan, true))
+                .containsExactly(
+                        Map.of(
+                                BuildingType.WOODCUTTER,
+                                3,
+                                BuildingType.CLAY_PIT,
+                                3,
+                                BuildingType.IRON_MINE,
+                                3),
+                        Map.of(BuildingType.FARM, 2));
+    }
+
+    @Test
     void bannerHallLinesAreSkippedWhereTheHallCantBeBuilt() {
         assertThat(AutomationPlanning.currentLine(PLAN, levels(BuildingType.WOODCUTTER, 3), false))
                 .isEqualTo(3);

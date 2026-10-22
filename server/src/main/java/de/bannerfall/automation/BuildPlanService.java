@@ -110,10 +110,11 @@ public class BuildPlanService {
 
     /**
      * The lines as they are stored: a building line names a building and a level of 1 … its max
-     * level; the recruit line names a recruit template and nothing else (its level is stored as 0),
-     * and there is at most one. Each building's requirements must be met by the lines in front of
-     * it, starting from the levels of a new village, so the plan never waits on a building it
-     * doesn't build itself.
+     * level; the mines line (1.6.2) names a level of 1 … the lowest top level of the three mines
+     * and no building; the recruit line names a recruit template and nothing else (its level is
+     * stored as 0), and there is at most one. Each building's requirements must be met by the lines
+     * in front of it, starting from the levels of a new village, so the plan never waits on a
+     * building it doesn't build itself.
      */
     static List<BuildPlanLine> checked(List<BuildPlanLine> lines, GameData data) {
         if (lines.isEmpty() || lines.size() > MAX_LINES) {
@@ -128,7 +129,7 @@ public class BuildPlanService {
         for (int i = 0; i < lines.size(); i++) {
             BuildPlanLine line = lines.get(i);
             if (line.startsRecruiting()) {
-                if (line.building() != null) {
+                if (line.building() != null || line.mines()) {
                     throw invalid("Line " + (i + 1) + " names a building and a recruit template");
                 }
                 if (recruit) {
@@ -138,6 +139,25 @@ public class BuildPlanService {
                 result.add(BuildPlanLine.recruit(line.recruit()));
                 continue;
             }
+            if (line.mines()) {
+                if (line.building() != null) {
+                    throw invalid("Line " + (i + 1) + " names a building and the mines");
+                }
+                int top =
+                        BuildPlanLine.MINES.stream()
+                                .mapToInt(mine -> data.building(mine).maxLevel())
+                                .min()
+                                .orElseThrow();
+                if (line.level() < 1 || line.level() > top) {
+                    throw invalid("Line " + (i + 1) + ": the level must be 1 … " + top);
+                }
+                for (BuildingType mine : BuildPlanLine.MINES) {
+                    requireAbove(i, mine, data, reached);
+                    reached.merge(mine, line.level(), Math::max);
+                }
+                result.add(BuildPlanLine.allMines(line.level()));
+                continue;
+            }
             if (line.building() == null) {
                 throw invalid("Line " + (i + 1) + " names no building");
             }
@@ -145,20 +165,26 @@ public class BuildPlanService {
             if (line.level() < 1 || line.level() > def.maxLevel()) {
                 throw invalid("Line " + (i + 1) + ": the level must be 1 … " + def.maxLevel());
             }
-            if (!BuildRules.missingRequirements(def.requires(), reached).isEmpty()) {
-                throw invalid(
-                        "Line "
-                                + (i + 1)
-                                + ": "
-                                + line.building()
-                                + " needs "
-                                + def.requires()
-                                + " in a line above it");
-            }
+            requireAbove(i, line.building(), data, reached);
             reached.merge(line.building(), line.level(), Math::max);
             result.add(BuildPlanLine.build(line.building(), line.level()));
         }
         return result;
+    }
+
+    private static void requireAbove(
+            int index, BuildingType type, GameData data, Map<BuildingType, Integer> reached) {
+        BuildingDef def = data.building(type);
+        if (!BuildRules.missingRequirements(def.requires(), reached).isEmpty()) {
+            throw invalid(
+                    "Line "
+                            + (index + 1)
+                            + ": "
+                            + type
+                            + " needs "
+                            + def.requires()
+                            + " in a line above it");
+        }
     }
 
     private static ApiException invalid(String detail) {

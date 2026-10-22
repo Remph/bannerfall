@@ -252,6 +252,20 @@
   height: 1.5rem;
 }
 
+/* the mines line: the three mine icons side by side instead of one */
+.lineIcon:has(.minesIcons) {
+  width: auto;
+}
+
+.minesIcons {
+  display: inline-flex;
+}
+
+.minesIcons svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 .lineName {
   flex: 1;
   min-width: 0;

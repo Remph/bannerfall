@@ -492,6 +492,40 @@ class AutomationFlowTest {
     }
 
     @Test
+    void aMinesLineBuildsAllThreeMinesTheLowestFirst() throws Exception {
+        unlock();
+        setStock(900);
+        setLevel(BuildingType.CLAY_PIT, 2);
+        savePlan("A", "[{\"building\":null,\"level\":3,\"recruit\":null,\"mines\":true}]");
+        player.browser
+                .get(PLANS)
+                .andExpect(jsonPath("$[0].lines[0].mines").value(true))
+                .andExpect(jsonPath("$[0].lines[0].building").doesNotExist());
+        switchOn("A");
+
+        look();
+        // the clay pit (level 2) waits while the other two (level 1) catch up, lowest first
+        player.village()
+                .andExpect(jsonPath("$.buildQueue", hasSize(2)))
+                .andExpect(jsonPath("$.buildQueue[0].building").value("WOODCUTTER"))
+                .andExpect(jsonPath("$.buildQueue[0].targetLevel").value(2))
+                .andExpect(jsonPath("$.buildQueue[1].building").value("IRON_MINE"))
+                .andExpect(jsonPath("$.buildQueue[1].targetLevel").value(2));
+        player.browser.get(automation()).andExpect(jsonPath("$.line").value(0));
+
+        clock.advance(Duration.ofDays(1));
+        look();
+        clock.advance(Duration.ofDays(1));
+        look();
+        clock.advance(Duration.ofDays(1));
+        look();
+        player.browser
+                .get(automation())
+                .andExpect(jsonPath("$.state").value("DONE"))
+                .andExpect(jsonPath("$.line").value(1));
+    }
+
+    @Test
     void demolishingALevelThePlanBuildsPausesItOtherDemolitionsDont() throws Exception {
         unlock();
         setLevel(BuildingType.WOODCUTTER, 4);
@@ -511,6 +545,21 @@ class AutomationFlowTest {
                 .get(automation())
                 .andExpect(jsonPath("$.state").value("PAUSED"))
                 .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.pausedByCancel").value(true));
+    }
+
+    @Test
+    void demolishingALevelOfTheMinesLinePausesItToo() throws Exception {
+        unlock();
+        setLevel(BuildingType.IRON_MINE, 4);
+        savePlan("A", "[{\"building\":null,\"level\":3,\"recruit\":null,\"mines\":true}]");
+        switchOn("A");
+        player.demolishOk(BuildingType.IRON_MINE); // 4 → 3: the line wants level 3, not more
+        player.browser.get(automation()).andExpect(jsonPath("$.enabled").value(true));
+        player.demolishOk(BuildingType.IRON_MINE); // 3 → 2: the line builds it again
+        player.browser
+                .get(automation())
+                .andExpect(jsonPath("$.state").value("PAUSED"))
                 .andExpect(jsonPath("$.pausedByCancel").value(true));
     }
 

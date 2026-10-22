@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { initialRallyPart, mapPath, rallyPath, simulatorPath, targetFromSearch } from './rallyPaths';
+import {
+  initialRallyPart,
+  mapFocusFromSearch,
+  mapPath,
+  rallyPath,
+  simulatorPath,
+  targetFromSearch,
+} from './rallyPaths';
 
 describe('rallyPath', () => {
   it('links to the rally point, with or without a target', () => {
@@ -9,8 +16,28 @@ describe('rallyPath', () => {
 });
 
 describe('mapPath', () => {
-  it('centres the map on the field', () => {
-    expect(mapPath(7, { x: 0, y: 99 })).toBe('/v/7/map?x=0&y=99');
+  it('zooms the map in on the field and outlines it', () => {
+    expect(mapPath(7, { x: 0, y: 99 })).toBe('/v/7/map?x=0&y=99&focus=1');
+  });
+});
+
+describe('mapFocusFromSearch', () => {
+  const MAP = 100;
+
+  it('reads the field of a village link', () => {
+    expect(mapFocusFromSearch(new URLSearchParams('x=48&y=52&focus=1'), MAP)).toEqual({ x: 48, y: 52 });
+    expect(mapFocusFromSearch(new URLSearchParams(mapPath(7, { x: 0, y: 99 }).split('?')[1]), MAP)).toEqual({
+      x: 0,
+      y: 99,
+    });
+  });
+
+  it('is nothing for the map’s own address updates, a field off the map or a broken one', () => {
+    expect(mapFocusFromSearch(new URLSearchParams('x=48&y=52'), MAP)).toBeUndefined();
+    expect(mapFocusFromSearch(new URLSearchParams('x=48&y=52&focus=0'), MAP)).toBeUndefined();
+    expect(mapFocusFromSearch(new URLSearchParams('x=100&y=52&focus=1'), MAP)).toBeUndefined();
+    expect(mapFocusFromSearch(new URLSearchParams('x=a&y=52&focus=1'), MAP)).toBeUndefined();
+    expect(mapFocusFromSearch(new URLSearchParams('focus=1'), MAP)).toBeUndefined();
   });
 });
 

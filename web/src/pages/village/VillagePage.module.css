@@ -338,6 +338,19 @@
   gap: var(--space-2);
 }
 
+/* the support of other villages under the own troops: a divider and a small heading */
+.supportGroup {
+  border-top: 1px solid var(--color-divider);
+}
+
+.supportTitle {
+  margin: 0;
+  padding: var(--space-2) var(--space-3) 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
 /* a round well like the building icons: the icons stay readable in dark mode */
 .unitIcon {
   width: 1.75rem;

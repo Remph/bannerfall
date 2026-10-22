@@ -5391,9 +5391,12 @@
           "recruit" : {
             "type" : [ "string", "null" ],
             "enum" : [ "A", "B", "C", "D", "E" ]
+          },
+          "mines" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "building", "level", "recruit" ]
+        "required" : [ "building", "level", "mines", "recruit" ]
       },
       "BuildPlanRequest" : {
         "type" : "object",

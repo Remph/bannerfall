@@ -152,6 +152,11 @@ function sumUnits(maps: readonly UnitMap[]): UnitMap {
   return sum;
 }
 
+/** The support of other villages standing here (`supportsHere`), added up per unit type (village overview, 1.6.2). */
+export function supportTotals(supportsHere: readonly { units: UnitMap }[]): UnitMap {
+  return sumUnits(supportsHere.map((stack) => stack.units));
+}
+
 /**
  * The troop overview of the rally point (M33): per unit type, how many of the village's own units
  * are at home, away (`unitsAway`) and in all, and how much support of other villages stands here.
@@ -159,7 +164,7 @@ function sumUnits(maps: readonly UnitMap[]): UnitMap {
  */
 export function troopOverview(troops: TroopLists): TroopOverviewRow[] {
   const away = unitsAway(troops);
-  const supports = sumUnits(troops.supportsHere.map((stack) => stack.units));
+  const supports = supportTotals(troops.supportsHere);
   return unitTypes.flatMap((type): TroopOverviewRow[] => {
     const home = troops.home[type] ?? 0;
     const outside = away[type] ?? 0;

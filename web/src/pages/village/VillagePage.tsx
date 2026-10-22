@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useRecruitment, useRefreshWhenUnitsDone } from '../../api/queries/recruitment';
+import { useTroops } from '../../api/queries/troops';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { BuildOrderLine, BuildOrderList } from '../../components/BuildOrderLine';
@@ -15,8 +16,9 @@ import { SegmentedControl } from '../../components/SegmentedControl';
 import { useFinishedOrders } from '../../components/useFinishedOrders';
 import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
 import { bannerHallAvailable } from '../../game/banners';
-import { buildingTypes, unitTypes } from '../../game/gameData';
+import { buildingTypes, type UnitType } from '../../game/gameData';
 import { useGameNow } from '../../game/serverTime';
+import { presentUnits, supportTotals } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
 import { DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
@@ -263,27 +265,47 @@ function VillageFacts({ village }: { village: Village }) {
   );
 }
 
-function TroopsAtHome({ village }: { village: Village }) {
+/** The units of a list as rows of the card: icon and name left, the count right. */
+function UnitRows({ units }: { units: [UnitType, number][] }) {
   const { t, language } = useI18n();
-  const present = unitTypes.filter((type) => (village.unitsHome[type] ?? 0) > 0);
+  return (
+    <dl className={styles.facts}>
+      {units.map(([type, count]) => (
+        <div key={type}>
+          <dt className={styles.unit}>
+            <span className={styles.unitIcon}>
+              <Icon name={type} />
+            </span>
+            {t.units[type]}
+          </dt>
+          <dd>{formatNumber(count, language)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/**
+ * The village's own troops at home and, below them as a separate total, the support of other
+ * villages standing here (1.6.2): the rally point has them by village; this is only how many.
+ */
+export function TroopsAtHome({ village }: { village: Village }) {
+  const t = useT();
+  const troops = useTroops(village.id);
+  const own = presentUnits(village.unitsHome);
+  const support = presentUnits(supportTotals(troops.data?.supportsHere ?? []));
   return (
     <Card title={t.village.troopsTitle}>
-      {present.length === 0 ? (
+      {/* not before the troops are loaded: the support may still turn up */}
+      {own.length === 0 && support.length === 0 && !troops.isPending && (
         <p className={styles.empty}>{t.village.noTroops}</p>
-      ) : (
-        <dl className={styles.facts}>
-          {present.map((type) => (
-            <div key={type}>
-              <dt className={styles.unit}>
-                <span className={styles.unitIcon}>
-                  <Icon name={type} />
-                </span>
-                {t.units[type]}
-              </dt>
-              <dd>{formatNumber(village.unitsHome[type] ?? 0, language)}</dd>
-            </div>
-          ))}
-        </dl>
+      )}
+      {own.length > 0 && <UnitRows units={own} />}
+      {support.length > 0 && (
+        <section className={own.length > 0 ? styles.supportGroup : undefined}>
+          <h3 className={styles.supportTitle}>{t.village.supportTitle}</h3>
+          <UnitRows units={support} />
+        </section>
       )}
     </Card>
   );

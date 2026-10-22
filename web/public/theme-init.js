@@ -5,7 +5,13 @@ try {
   var theme = localStorage.getItem('bannerfall.theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
   var palette = localStorage.getItem('bannerfall.palette');
-  if (palette === 'blue' || palette === 'black' || palette === 'purple' || palette === 'leather') {
+  if (
+    palette === 'blue' ||
+    palette === 'black' ||
+    palette === 'oled' ||
+    palette === 'purple' ||
+    palette === 'leather'
+  ) {
     document.documentElement.setAttribute('data-palette', palette);
   }
 } catch (e) {}

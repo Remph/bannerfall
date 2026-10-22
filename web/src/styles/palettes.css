@@ -79,6 +79,29 @@
   --map-outside: #e2d9c4;
 }
 
+/* Black and gold, OLED: the same in the light; in the dark the pages are pure black (below) */
+[data-palette='oled'] {
+  --color-bg: #f1eee7;
+  --color-surface: #fdfbf6;
+  --color-well: #eae5da;
+  --color-border: #d1c9b8;
+  --color-divider: #eae4d8;
+  --color-stain: rgba(40, 35, 25, 0.06);
+  --color-text: #24211d;
+  --color-text-muted: #69635a;
+  --color-title: #3b3127;
+  --color-accent: #7d5a12;
+  --color-on-accent: #fffaf0;
+  --color-bar: #272522;
+  --color-bar-edge: #1a1917;
+  --color-on-bar: #f1ead9;
+  --color-on-bar-muted: #b4ab99;
+  --color-highlight: #e2b54a;
+  --map-edge: #272522;
+  --map-axis: rgba(26, 25, 23, 0.9);
+  --map-outside: #e2d9c4;
+}
+
 /* Purple: plum bars, plum main buttons; lilac in the dark */
 [data-palette='purple'] {
   --color-bg: #f2ede7;
@@ -192,6 +215,28 @@
     --map-axis: rgba(0, 0, 0, 0.9);
     --map-outside: #141413;
   }
+  :root:not([data-theme='light'])[data-palette='oled'],
+  :root:not([data-theme='light']) [data-palette='oled'] {
+    --color-bg: #000000;
+    --color-surface: #0c0b0a;
+    --color-well: #181715;
+    --color-border: #38342d;
+    --color-divider: #1a1917;
+    --color-stain: rgba(0, 0, 0, 0.3);
+    --color-text: #ece6d8;
+    --color-text-muted: #a8a093;
+    --color-title: #e2b54a;
+    --color-accent: #e2b54a;
+    --color-on-accent: #141210;
+    --color-bar: #000000;
+    --color-bar-edge: #12110f;
+    --color-on-bar: #e8e0cc;
+    --color-on-bar-muted: #9c9483;
+    --color-highlight: #e2b54a;
+    --map-edge: #9c9483;
+    --map-axis: rgba(0, 0, 0, 0.9);
+    --map-outside: #000000;
+  }
   :root:not([data-theme='light'])[data-palette='purple'],
   :root:not([data-theme='light']) [data-palette='purple'] {
     --color-bg: #17141a;
@@ -303,6 +348,28 @@
   --map-edge: #9c9483;
   --map-axis: rgba(0, 0, 0, 0.9);
   --map-outside: #141413;
+}
+:root[data-theme='dark'][data-palette='oled'],
+:root[data-theme='dark'] [data-palette='oled'] {
+  --color-bg: #000000;
+  --color-surface: #0c0b0a;
+  --color-well: #181715;
+  --color-border: #38342d;
+  --color-divider: #1a1917;
+  --color-stain: rgba(0, 0, 0, 0.3);
+  --color-text: #ece6d8;
+  --color-text-muted: #a8a093;
+  --color-title: #e2b54a;
+  --color-accent: #e2b54a;
+  --color-on-accent: #141210;
+  --color-bar: #000000;
+  --color-bar-edge: #12110f;
+  --color-on-bar: #e8e0cc;
+  --color-on-bar-muted: #9c9483;
+  --color-highlight: #e2b54a;
+  --map-edge: #9c9483;
+  --map-axis: rgba(0, 0, 0, 0.9);
+  --map-outside: #000000;
 }
 :root[data-theme='dark'][data-palette='purple'],
 :root[data-theme='dark'] [data-palette='purple'] {

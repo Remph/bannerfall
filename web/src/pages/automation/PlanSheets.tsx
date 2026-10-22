@@ -17,6 +17,7 @@ import {
   changeLevel,
   isSavable,
   linesFromLevels,
+  minesTopLevel,
   missingPerLine,
   moveLine,
   reachedAbove,
@@ -331,8 +332,11 @@ function LineControls({ line, index, count, reorder, buildings, onChange }: Line
       </span>
     );
   }
-  const name = t.buildings[line.building];
-  const maxLevel = buildings.find((info) => info.building === line.building)?.maxLevel ?? line.level;
+  const name = line.kind === 'mines' ? t.automation.allMines : t.buildings[line.building];
+  const maxLevel =
+    line.kind === 'mines'
+      ? minesTopLevel(buildings)
+      : (buildings.find((info) => info.building === line.building)?.maxLevel ?? line.level);
   return (
     <span className={styles.stepper}>
       <button

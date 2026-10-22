@@ -7,6 +7,7 @@ import {
   nextArrivalMs,
   presentUnits,
   sendableUnits,
+  supportTotals,
   trainAttacks,
   travelProgress,
   troopOverview,
@@ -199,5 +200,17 @@ describe('travelProgress', () => {
     expect(travelProgress(movement, Date.parse('2026-10-16T11:59:00Z'))).toBe(0);
     expect(travelProgress(movement, Date.parse('2026-10-16T12:11:00Z'))).toBe(1);
     expect(travelProgress({ departAt: movement.departAt, arriveAt: movement.departAt }, 0)).toBe(1);
+  });
+});
+
+describe('supportTotals', () => {
+  it('adds the support of every village up per unit type, not split by village', () => {
+    expect(supportTotals([])).toEqual({});
+    expect(
+      supportTotals([{ units: { SPEARMAN: 30, HEAVY_CAVALRY: 8 } }, { units: { SPEARMAN: 2, ARCHER: 0 } }]),
+    ).toEqual({
+      SPEARMAN: 32,
+      HEAVY_CAVALRY: 8,
+    });
   });
 });

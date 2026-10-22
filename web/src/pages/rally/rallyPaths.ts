@@ -1,14 +1,27 @@
 import type { IncomingMovement } from '../../api/queries/troops';
-import { parseCoords, type Coords } from '../../game/coords';
+import { isOnMap, parseCoords, type Coords } from '../../game/coords';
 
 /** `/v/1/rally?x=48&y=52`: the rally point, with a target to fill in (05-frontend §3). */
 export function rallyPath(villageId: number, target?: Coords): string {
   return target === undefined ? `/v/${villageId}/rally` : `/v/${villageId}/rally?x=${target.x}&y=${target.y}`;
 }
 
-/** `/v/1/map?x=48&y=52`: the map centred on a field (the coordinates in the rally point's lists). */
+/**
+ * `/v/1/map?x=48&y=52&focus=1`: the map zoomed in on a field with that field outlined (the village
+ * links of the rally point, the farm list, profiles; `focus` since 1.6.2). The map drops `focus` from
+ * the address once it has opened, so a reload keeps the player's own view.
+ */
 export function mapPath(villageId: number, field: Coords): string {
-  return `/v/${villageId}/map?x=${field.x}&y=${field.y}`;
+  return `/v/${villageId}/map?x=${field.x}&y=${field.y}&focus=1`;
+}
+
+/** The field a village link ({@link mapPath}) points at: `?x=&y=&focus=1` and a field of the map; else nothing. */
+export function mapFocusFromSearch(params: URLSearchParams, mapSize: number): Coords | undefined {
+  if (params.get('focus') !== '1') {
+    return undefined;
+  }
+  const field = parseCoords(`${params.get('x') ?? ''}|${params.get('y') ?? ''}`);
+  return field !== undefined && isOnMap(field, mapSize) ? field : undefined;
 }
 
 /** The target field's first text from `?x=&y=`: "48|52", or '' if they are missing or no coordinates. */

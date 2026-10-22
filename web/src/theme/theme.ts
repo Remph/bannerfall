@@ -45,7 +45,7 @@ export function applyThemeMode(mode: ThemeMode): void {
  * data-palette on <html>. Stored per device like the light/dark choice, applied before the first
  * paint by public/theme-init.js (same key, same list!).
  */
-export const palettes = ['green', 'blue', 'black', 'purple', 'leather'] as const;
+export const palettes = ['green', 'blue', 'black', 'oled', 'purple', 'leather'] as const;
 export type Palette = (typeof palettes)[number];
 
 export const PALETTE_STORAGE_KEY = 'bannerfall.palette';

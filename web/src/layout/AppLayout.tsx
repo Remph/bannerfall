@@ -32,6 +32,8 @@ import { DesktopNav, TabBar } from './navigation';
 import { loadResourceDetails, saveResourceDetails } from './resourceDetails';
 import { useCurrentVillageId } from './useCurrentVillageId';
 import { useNavEntry } from './useNavEntry';
+import { OPENS_AT_TOP } from './opensAtTop';
+import { ScrollToTop } from './ScrollToTop';
 import { DESKTOP_QUERY, useMediaQuery } from './useMediaQuery';
 import { VillageSwitcher } from './VillageSwitcher';
 import { isOpenWithoutVillage } from './withoutVillage';
@@ -124,10 +126,16 @@ function GameFrame() {
 
   return (
     <div ref={appRef} className={fullScreen || wide ? `${styles.app} ${styles.appFull}` : styles.app}>
+      <ScrollToTop />
       <header ref={headerRef} className={styles.header}>
         <div className={styles.topBar}>
           {/* desktop only: back to the village overview */}
-          <Link className={styles.brand} to={villageId === undefined ? '/' : `/v/${villageId}`} title={t.nav.village}>
+          <Link
+            className={styles.brand}
+            to={villageId === undefined ? '/' : `/v/${villageId}`}
+            state={OPENS_AT_TOP}
+            title={t.nav.village}
+          >
             {t.common.appName}
           </Link>
           <div className={styles.switcher}>

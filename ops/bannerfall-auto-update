@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# bannerfall-auto-update – installs a new patch release of the version this world runs, by itself
+# (docs/hosting.md §10, README "Deploying"). Meant for a nightly cron line:
+#   0 4 * * * /opt/bannerfall/ops/bannerfall-auto-update >> /opt/bannerfall/backups/auto-update.log 2>&1
+#
+# It asks the origin for the release tags, and when a higher patch of the running minor version
+# exists (1.6.1 -> 1.6.2, never 1.6.x -> 1.7.0) and its image is published, it runs
+# ops/bannerfall-update for it: backup, warning in the chat, restart, health check and automatic
+# rollback as described there. Then it moves the shared Caddy checkout (EDGE_DIR) to the same tag
+# and reloads it. A new minor or major version is only mentioned in the log; update to it by hand
+# with ops/bannerfall-update after reading its release notes.
+#
+# It does nothing when
+#   - the file auto-update.hold exists next to compose.prod.yaml (touch it to pause, rm it to go on),
+#   - the app doesn't answer (it never updates a world that is not running),
+#   - the new version's image is not published yet (it tries again the next night),
+#   - an earlier try of exactly that version failed (see below).
+# A release that needs a new .env line, or a pull or backup that fails, stops before the restart
+# and changes nothing: that is tried again the next night (and reported each time). A version that
+# was restarted and didn't come up is written to auto-update.failed and not tried again; delete
+# that file to try again, or a newer patch replaces it. The command exits 1 in both cases.
+#
+# Options:
+#   --dry-run   only print what it would do (no update, no ping)
+#
+# AUTO_UPDATE_PING_URL: optional, the address of a free "dead man's switch" check (healthchecks.io).
+#   Every run that ends well requests it (also "nothing to do"), a failed run requests it with
+#   /fail added and sends the log, so you are told both when an update broke and when the nightly
+#   run stopped happening. Put it in front of the command in cron, like BACKUP_PING_URL.
+# AUTO_UPDATE_WAIT: seconds between the chat warning and the restart (default 300).
+# EDGE_DIR: the shared Caddy checkout (default /opt/bannerfall-edge); skipped when it doesn't exist
+#   or is set empty (EDGE_DIR= in front of the command).
+#
+# Like bannerfall-update, the script is functions plus one last line: the update checks a new tag
+# out, which replaces this very file while it is running.
+set -euo pipefail
+
+# "1.6.1" and the release tags (one per line) -> the highest higher patch of the same minor
+# version, or nothing.
+pick_patch() {
+  local current="$1" prefix best
+  prefix="v${current%.*}."
+  best="$(grep -E "^${prefix//./\\.}[0-9]+$" | sed 's/^v//' | sort -V | tail -n 1)" || true
+  if [ -n "$best" ] && [ "$best" != "$current" ] \
+    && [ "$(printf '%s\n%s\n' "$current" "$best" | sort -V | tail -n 1)" = "$best" ]; then
+    echo "$best"
+  fi
+}
+
+# "1.6.1" and the release tags -> the highest version of all when it is higher than the current
+# one, or nothing.
+pick_latest() {
+  local current="$1" best
+  best="$(grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" | sed 's/^v//' | sort -V | tail -n 1)" || true
+  if [ -n "$best" ] && [ "$best" != "$current" ] \
+    && [ "$(printf '%s\n%s\n' "$current" "$best" | sort -V | tail -n 1)" = "$best" ]; then
+    echo "$best"
+  fi
+}
+
+main() {
+  local dry=false
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dry-run) dry=true ;;
+      -h | --help) sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0"; return 0 ;;
+      *) echo "$0: unknown option $1" >&2; echo "usage: $0 [--dry-run]" >&2; return 2 ;;
+    esac
+    shift
+  done
+
+  cd "$(dirname "$0")/.."
+  compose=(docker compose -f compose.prod.yaml)
+  local result=0
+  log="$(mktemp)" # global: the EXIT trap runs after main has returned
+  trap 'rm -f "$log"' EXIT
+
+  # Two runs of this script must not overlap (a hand-started update isn't guarded: don't start one
+  # around the cron time, or put auto-update.hold in place first).
+  exec 9> .auto-update.lock
+  flock -n 9 || { echo "$(date -Is) another run is going; nothing to do"; return 0; }
+
+  echo "$(date -Is) bannerfall-auto-update"
+  run "$dry" 2>&1 | tee "$log" || result=$?
+  if ! $dry; then
+    if [ "$result" -eq 0 ]; then ping "" "$log"; else ping /fail "$log"; fi
+  fi
+  return "$result"
+}
+
+# Tells the check service how it went; never makes the run itself fail.
+ping() {
+  [ -z "${AUTO_UPDATE_PING_URL:-}" ] \
+    || curl -fsS -m 10 --retry 2 -o /dev/null --data-binary "@$2" "${AUTO_UPDATE_PING_URL%/}$1" || true
+}
+
+run() {
+  local dry="$1" wait="${AUTO_UPDATE_WAIT:-300}"
+  local edge="${EDGE_DIR-/opt/bannerfall-edge}"
+  [[ "$wait" =~ ^[0-9]+$ ]] || { echo "AUTO_UPDATE_WAIT takes a number of seconds" >&2; return 1; }
+
+  if [ -e auto-update.hold ]; then
+    echo "auto-update.hold exists: paused, nothing done"
+    return 0
+  fi
+
+  local current
+  current="$("${compose[@]}" exec -T app bannerfall-admin status --json < /dev/null \
+    | sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' | head -n 1 | grep .)" \
+    || { echo "bannerfall-admin status doesn't answer: the app is not running, no update tried" >&2; return 1; }
+  [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+    || { echo "this world reports the version '$current', not X.Y.Z: no update tried" >&2; return 1; }
+
+  local tags
+  tags="$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||')" \
+    || { echo "can't read the tags from origin" >&2; return 1; }
+
+  local newer
+  newer="$(pick_latest "$current" <<< "$tags")"
+  if [ -n "$newer" ] && [ -z "$(pick_patch "$current" <<< "$tags")" ]; then
+    echo "$newer is out; this world runs $current. Not a patch of ${current%.*}.x, so update by hand:"
+    echo "  ops/bannerfall-update $newer"
+  fi
+
+  local version
+  version="$(pick_patch "$current" <<< "$tags")"
+  if [ -z "$version" ]; then
+    echo "this world runs $current; no newer patch of ${current%.*}.x"
+    return 0
+  fi
+  if [ "$(cat auto-update.failed 2> /dev/null || true)" = "$version" ]; then
+    echo "$version failed on an earlier night and is not tried again (rm auto-update.failed to try)"
+    return 0
+  fi
+
+  local image repo
+  image="$(sed -n 's/^BANNERFALL_IMAGE=//p' .env | tail -n 1)"
+  repo="${image%:*}"
+  [[ "$repo" == */* ]] \
+    || { echo "$image was built on this server; automatic updates need an image from a registry" >&2; return 1; }
+  # The tag exists before the tag's run has published the image.
+  if ! docker manifest inspect "$repo:$version" > /dev/null 2>&1; then
+    echo "$version is tagged but $repo:$version is not published (yet); trying again next time"
+    return 0
+  fi
+
+  if $dry; then
+    echo "would update $current -> $version (warning ${wait} s ahead), then the edge checkout in $edge"
+    return 0
+  fi
+
+  echo "updating $current -> $version"
+  local out
+  out="$(mktemp)"
+  if ! ops/bannerfall-update "$version" --yes --wait "$wait" 2>&1 | tee "$out"; then
+    # A stop before the restart (the pull or the backup failed, a Ctrl+C) changed nothing: that is
+    # tried again the next night. Anything later is a version that broke and is not tried again.
+    if grep -qE '^(UPDATE STOPPED:|Stopped before the restart)' "$out"; then
+      rm -f "$out"
+      echo "THE UPDATE TO $version STOPPED BEFORE THE RESTART; nothing changed, tried again next night. See the output above." >&2
+      return 1
+    fi
+    rm -f "$out"
+    echo "$version" > auto-update.failed
+    echo "UPDATE TO $version FAILED; not tried again. See the output above, 'bf ps' and 'bfa status'." >&2
+    return 1
+  fi
+  rm -f "$out"
+  rm -f auto-update.failed
+
+  if [ -d "$edge/.git" ]; then
+    # The shared Caddy only ever moves forward: with worlds on different minor versions, the world
+    # that updates last must not put it back to an older tag.
+    local edge_now
+    edge_now="$(git -C "$edge" describe --tags --exact-match 2> /dev/null || true)"
+    if [[ "$edge_now" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$edge_now" != "v$version" ] \
+      && [ "$(printf '%s\n%s\n' "$edge_now" "v$version" | sort -V | tail -n 1)" = "$edge_now" ]; then
+      echo "the edge checkout $edge is on $edge_now, newer than v$version: left alone"
+    else
+      echo "== the edge checkout $edge to v$version"
+      # shellcheck disable=SC2015  # the || is the failure branch of the whole chain, on purpose
+      git -C "$edge" fetch --tags --quiet origin && git -C "$edge" -c advice.detachedHead=false checkout --quiet "v$version" \
+        && docker compose -f "$edge/edge/compose.yaml" up -d \
+        && docker compose -f "$edge/edge/compose.yaml" exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null \
+        || { echo "THE WORLD RUNS $version, but moving the edge checkout to v$version failed; do it by hand (bfe up -d && bfe-reload)." >&2; return 1; }
+    fi
+  fi
+  echo "done: this world runs $version"
+}
+
+[[ "${BASH_SOURCE[0]}" != "$0" ]] || { main "$@"; exit $?; }

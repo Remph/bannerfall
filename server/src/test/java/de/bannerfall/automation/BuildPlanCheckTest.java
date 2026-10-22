@@ -31,7 +31,7 @@ class BuildPlanCheckTest {
         List<BuildPlanLine> lines =
                 checked(
                         BuildPlanLine.build(BuildingType.WOODCUTTER, 5),
-                        new BuildPlanLine(null, 7, RecruitTemplateLetter.A),
+                        new BuildPlanLine(null, 7, RecruitTemplateLetter.A, false),
                         BuildPlanLine.build(BuildingType.HEADQUARTERS, 3),
                         BuildPlanLine.build(BuildingType.BARRACKS, 1));
         // the recruit line's level is stored as 0
@@ -63,8 +63,8 @@ class BuildPlanCheckTest {
         refused(BuildPlanLine.build(BuildingType.WOODCUTTER, 0));
         refused(BuildPlanLine.build(BuildingType.WOODCUTTER, 31));
         refused(BuildPlanLine.build(BuildingType.RALLY_POINT, 2));
-        refused(new BuildPlanLine(null, 3, null));
-        refused(new BuildPlanLine(BuildingType.FARM, 3, RecruitTemplateLetter.A));
+        refused(new BuildPlanLine(null, 3, null, false));
+        refused(new BuildPlanLine(BuildingType.FARM, 3, RecruitTemplateLetter.A, false));
         refused(
                 BuildPlanLine.recruit(RecruitTemplateLetter.A),
                 BuildPlanLine.recruit(RecruitTemplateLetter.B));
@@ -77,5 +77,38 @@ class BuildPlanCheckTest {
         many.add(BuildPlanLine.build(BuildingType.FARM, 2));
         assertThatThrownBy(() -> BuildPlanService.checked(many, DATA))
                 .isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    void theMinesLineCoversThreeBuildingsAndIsStoredAsGiven() {
+        List<BuildPlanLine> lines =
+                checked(BuildPlanLine.allMines(5), BuildPlanLine.build(BuildingType.WOODCUTTER, 6));
+        assertThat(lines)
+                .containsExactly(
+                        BuildPlanLine.allMines(5), BuildPlanLine.build(BuildingType.WOODCUTTER, 6));
+        assertThat(lines.getFirst().targets())
+                .containsOnlyKeys(
+                        BuildingType.WOODCUTTER, BuildingType.CLAY_PIT, BuildingType.IRON_MINE)
+                .containsValues(5);
+        refused(BuildPlanLine.allMines(0));
+        refused(BuildPlanLine.allMines(31));
+        refused(new BuildPlanLine(BuildingType.FARM, 3, null, true));
+        refused(new BuildPlanLine(null, 0, RecruitTemplateLetter.A, true));
+    }
+
+    @Test
+    void plansSavedBeforeTheMinesLineReadAsLinesWithoutMines() {
+        BuildPlanLinesConverter converter = new BuildPlanLinesConverter();
+        List<BuildPlanLine> old =
+                converter.convertToEntityAttribute(
+                        "[{\"building\":\"FARM\",\"level\":6,\"recruit\":null},"
+                                + "{\"building\":null,\"level\":0,\"recruit\":\"B\"}]");
+        assertThat(old)
+                .containsExactly(
+                        BuildPlanLine.build(BuildingType.FARM, 6),
+                        BuildPlanLine.recruit(RecruitTemplateLetter.B));
+        List<BuildPlanLine> withMines = List.of(BuildPlanLine.allMines(4));
+        assertThat(converter.convertToEntityAttribute(converter.convertToDatabaseColumn(withMines)))
+                .isEqualTo(withMines);
     }
 }

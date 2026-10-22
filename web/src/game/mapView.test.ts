@@ -25,6 +25,8 @@ import {
   pinch,
   revealField,
   steppedTile,
+  focusTile,
+  TILE_FOCUS,
   TILE_MAX,
   TILE_MIN,
   toMap,
@@ -146,6 +148,14 @@ describe('pinch', () => {
   it('only pans when both fingers are on one spot', () => {
     const spot = { x: 100, y: 100 };
     expect(pinch(camera, size, [spot, spot], [spot, { x: 300, y: 100 }], 100).tile).toBe(40);
+  });
+});
+
+describe('focusTile', () => {
+  it('opens a village link at least TILE_FOCUS close, closer if the player’s own zoom already is', () => {
+    expect(focusTile(TILE_MIN)).toBe(TILE_FOCUS);
+    expect(focusTile(48)).toBe(TILE_FOCUS);
+    expect(focusTile(TILE_MAX)).toBe(TILE_MAX);
   });
 });
 

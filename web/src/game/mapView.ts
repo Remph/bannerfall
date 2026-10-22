@@ -13,6 +13,8 @@ export const TILE_MIN = 8;
 /** Below this field size villages are drawn as simple squares instead of houses. */
 export const HOUSES_MIN_TILE = 20;
 export const TILE_MAX = 64;
+/** A link to a village opens the map at least this close (1.6.2): its house and name are easy to see. */
+export const TILE_FOCUS = 56;
 /** One press of + / − changes the size of a field by this factor. */
 export const ZOOM_STEP = 1.25;
 /** The server is asked for 20 × 20 fields at a time (query key ['mapChunk', cx, cy]). */
@@ -66,6 +68,11 @@ export type VillageKind = 'own' | 'player' | 'npc' | 'barbarian';
 
 export function clampTile(tile: number): number {
   return Math.min(TILE_MAX, Math.max(TILE_MIN, tile));
+}
+
+/** The zoom a map opened by a village link starts with: the player's own, if that is closer already. */
+export function focusTile(stored: number): number {
+  return clampTile(Math.max(stored, TILE_FOCUS));
 }
 
 /** The middle of the canvas on the middle of a field. */

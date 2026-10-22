@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
-import type { LineState, PlanLine } from '../../game/buildPlans';
+import { MINES, type LineState, type PlanLine } from '../../game/buildPlans';
 import type { RecruitTemplate } from '../../game/recruitTemplates';
 import { useT } from '../../i18n';
 import styles from './AutomationPage.module.css';
@@ -51,6 +51,21 @@ function LineContent({ line, templates }: { line: PlanLine; templates: readonly 
         </span>
         <span className={styles.lineName}>{t.automation.startRecruiting}</span>
         <span className={styles.chip}>{t.automation.recruitChip(line.template, template?.name ?? '–')}</span>
+      </>
+    );
+  }
+  if (line.kind === 'mines') {
+    return (
+      <>
+        <span className={styles.lineIcon}>
+          <span className={styles.minesIcons} aria-hidden="true">
+            {MINES.map((mine) => (
+              <Icon key={mine} name={mine} />
+            ))}
+          </span>
+        </span>
+        <span className={styles.lineName}>{t.automation.allMines}</span>
+        <span className={styles.badge}>{t.village.level(line.level)}</span>
       </>
     );
   }
