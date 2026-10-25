@@ -149,8 +149,16 @@ public class NpcRound {
 
     /** One step in a transaction of its own; a failure is rolled back and logged at WARN. */
     private void step(long playerId, String what, Runnable body) {
+        long started = System.nanoTime();
         try {
             tx.executeWithoutResult(status -> body.run());
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "NPC lord {}: {} took {} ms",
+                        playerId,
+                        what,
+                        (System.nanoTime() - started) / 1_000_000);
+            }
         } catch (RuntimeException e) {
             log.warn("NPC lord {}: {} failed and was rolled back", playerId, what, e);
         }

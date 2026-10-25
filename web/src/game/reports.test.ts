@@ -9,6 +9,7 @@ import {
   groupByDay,
   hasSupporters,
   isScouting,
+  ownLosses,
   pageCount,
   resultFor,
   shareNames,
@@ -237,5 +238,44 @@ describe('groupByDay', () => {
     const days = groupByDay([at(2, '2026-10-16T00:30:00+02:00'), at(1, '2026-10-15T23:30:00Z')], 'Europe/Berlin');
     expect(days).toHaveLength(1);
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe('ownLosses', () => {
+  const village = (id: number, playerId: number | null) => ({ id, playerId });
+  const battle = {
+    attacker: village(1, 7),
+    attackerLosses: { AXEMAN: 12, SPEARMAN: 0 },
+    defender: village(2, 8),
+    defenderSide: {
+      losses: { SPEARMAN: 30, SWORDSMAN: 5 },
+      stacks: [
+        { home: village(2, 8), losses: { SPEARMAN: 20 } },
+        { home: village(3, 7), losses: { SWORDSMAN: 5 } },
+        { home: village(4, 7), losses: {} },
+      ],
+    },
+  };
+
+  it('offers the sending village of the reader’s own attack, with the units it lost', () => {
+    expect(ownLosses('ATTACK', battle, [1])).toEqual([{ village: village(1, 7), losses: { AXEMAN: 12 } }]);
+  });
+
+  it('offers the reader’s stacks of a defence: the defended village and the villages his supports came from', () => {
+    expect(ownLosses('DEFENSE', battle, [3, 4])).toEqual([{ village: village(3, 7), losses: { SWORDSMAN: 5 } }]);
+    expect(ownLosses('DEFENSE', { ...battle, defender: village(3, 7) }, [3])).toHaveLength(1);
+  });
+
+  it('leaves out villages the reader does not own (any more), and kinds without a battle of the reader', () => {
+    expect(ownLosses('ATTACK', battle, [])).toEqual([]);
+    expect(ownLosses('CONQUEST', battle, [1, 3])).toEqual([]);
+  });
+
+  it('falls back to the defended village when the report has no stacks', () => {
+    const old = { ...battle, defender: village(2, 7), defenderSide: { ...battle.defenderSide, stacks: [] } };
+
+    expect(ownLosses('DEFENSE', old, [2])).toEqual([
+      { village: village(2, 7), losses: { SPEARMAN: 30, SWORDSMAN: 5 } },
+    ]);
   });
 });

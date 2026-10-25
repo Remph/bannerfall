@@ -166,7 +166,13 @@ export function readMapColors(element: Element): MapColors {
     gridStrong: color('grid-strong'),
     outside: color('outside'),
     edge: color('edge'),
-    kinds: { own: color('own'), player: color('player'), npc: color('npc'), barbarian: color('barbarian') },
+    kinds: {
+      own: color('own'),
+      mate: color('mate'),
+      player: color('player'),
+      npc: color('npc'),
+      barbarian: color('barbarian'),
+    },
     outline: color('outline'),
     marker: color('marker'),
     label: color('label'),
@@ -203,6 +209,8 @@ export interface MapScene {
   /** The tapped line (its bubble is open) or the one under the mouse. */
   selectedLineId: number | null;
   ownPlayerId: number;
+  /** The player's guild (1.6.3): its other members' villages get the mate colour; null without one. */
+  ownGuildId: number | null;
   selectedId: number | null;
   hoveredId: number | null;
   /** A field to point out without a village on it (the target of "go to"). */
@@ -701,7 +709,7 @@ function drawVillages(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fie
   const tile = camera.tile;
   for (const village of villagesOnScreen(scene, range)) {
     const middle = toScreen(camera, size, { x: village.x + 0.5, y: village.y + 0.5 });
-    const kind = villageKind(village, scene.ownPlayerId);
+    const kind = villageKind(village, scene.ownPlayerId, scene.ownGuildId);
     if (village.id === scene.selectedId) {
       drawFieldRing(ctx, middle, tile, colors, 'selected');
     } else if (village.id === scene.hoveredId) {

@@ -64,7 +64,8 @@ export interface Chunk {
   cy: number;
 }
 
-export type VillageKind = 'own' | 'player' | 'npc' | 'barbarian';
+/** `mate` (1.6.3): a village of another player in the viewer's own guild. */
+export type VillageKind = 'own' | 'mate' | 'player' | 'npc' | 'barbarian';
 
 export function clampTile(tile: number): number {
   return Math.min(TILE_MAX, Math.max(TILE_MIN, tile));
@@ -247,14 +248,21 @@ export function axisValues(min: number, max: number, step = AXIS_STEP): number[]
 }
 
 /** Who a village belongs to, from the player's point of view (decides its colour). */
-export function villageKind(village: { playerId: number | null; npc: boolean }, ownPlayerId: number): VillageKind {
+export function villageKind(
+  village: { playerId: number | null; npc: boolean; guildId?: number | null },
+  ownPlayerId: number,
+  ownGuildId: number | null = null,
+): VillageKind {
   if (village.playerId === null) {
     return 'barbarian';
   }
   if (village.playerId === ownPlayerId) {
     return 'own';
   }
-  return village.npc ? 'npc' : 'player';
+  if (village.npc) {
+    return 'npc';
+  }
+  return ownGuildId !== null && village.guildId === ownGuildId ? 'mate' : 'player';
 }
 
 /**

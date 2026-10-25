@@ -292,6 +292,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/debug-logging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setDebugLogging"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/villages/{villageId}/transports": {
         parameters: {
             query?: never;
@@ -3093,6 +3109,12 @@ export interface components {
             farmLootShare: number;
             farmRest: boolean;
         };
+        DebugLoggingRequest: {
+            enabled: boolean;
+        };
+        DebugLoggingDto: {
+            enabled: boolean;
+        };
         Coordinates: {
             /** Format: int32 */
             x: number;
@@ -4725,6 +4747,7 @@ export interface components {
             cheatsEnabled: boolean;
             abuse: components["schemas"]["AbuseStatusDto"];
             push: components["schemas"]["PushStatusDto"];
+            debugLogging: boolean;
         };
         EventQueueDto: {
             /** Format: int64 */
@@ -5635,6 +5658,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Difficulty"];
+                };
+            };
+        };
+    };
+    setDebugLogging: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DebugLoggingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DebugLoggingDto"];
                 };
             };
         };

@@ -47,6 +47,8 @@ function Headquarters({ look, step }: Growth) {
       {look > 0 && <path className={s.timber} d={`M${hall.x0} -24 H ${hall.x0 + hall.w} M-30 -36 V 0 M30 -36 V 0`} />}
       <Windows xs={windows} y={-hall.h + 16} />
       <RoofLong x0={hall.x0} w={hall.w} h={hall.h} rise={hall.rise} />
+      <Box x0={hall.x0 + hall.w - 22} w={7} h={14} y={-hall.h - 4} front={s.stone} side={s.stoneSide} />
+      <Smoke x={hall.x0 + hall.w - 18} y={-hall.h - 18} size={0.7} />
       <Box x0={tower.x0} w={tower.w} h={tower.h} front={s.stone} side={s.stoneSide} />
       <Arch x={0} w={look === 0 ? 12 : 14} h={20} />
       <rect className={s.dark} x={-4} y={-tower.h + 16} width={8} height={11} rx={4} />
@@ -200,6 +202,17 @@ function Academy() {
   );
 }
 
+/** Smoke above a chimney whose top is at x, y: three puffs that swell and fade (still with reduced motion). */
+function Smoke({ x, y, size = 1 }: { x: number; y: number; size?: number }) {
+  return (
+    <g className={s.smoke}>
+      <circle className={s.puff1} cx={x} cy={y - 6 * size} r={5 * size} />
+      <circle className={s.puff2} cx={x + 4 * size} cy={y - 16 * size} r={6 * size} />
+      <circle className={s.puff3} cx={x - 1 * size} cy={y - 28 * size} r={7 * size} />
+    </g>
+  );
+}
+
 function Smithy({ look, step }: Growth) {
   const b = look === 0 ? { x0: -26, w: 44, h: 24, rise: 14 } : { x0: -34, w: 60, h: 28, rise: 16 };
   const chimney = b.x0 + b.w - 18;
@@ -211,11 +224,7 @@ function Smithy({ look, step }: Growth) {
       <Box x0={b.x0} w={b.w} h={b.h} front={s.stone} side={s.stoneSide} />
       <RoofLong x0={b.x0} w={b.w} h={b.h} rise={b.rise} />
       <Box x0={chimney} w={10} h={-chimneyTop - b.h} y={-b.h} front={s.stone} side={s.stoneSide} />
-      <g className={s.smoke}>
-        <circle className={s.puff1} cx={chimney + 5} cy={chimneyTop - 6} r={5} />
-        <circle className={s.puff2} cx={chimney + 9} cy={chimneyTop - 16} r={6} />
-        <circle className={s.puff3} cx={chimney + 4} cy={chimneyTop - 28} r={7} />
-      </g>
+      <Smoke x={chimney + 5} y={chimneyTop} />
       <rect className={s.dark} x={b.x0 + 8} y={-20} width={22} height={20} />
       <rect className={s.glow} x={b.x0 + 12} y={-12} width={14} height={8} rx={3} />
       {look === 2 && (
@@ -423,6 +432,8 @@ function Farm({ look, step }: Growth) {
       )}
       <Shadow x0={0} w={38} />
       <GableHouse x0={0} w={38} h={24} rise={18} wall={s.plaster} wallSide={s.plasterSide} tone="thatch" />
+      <Box x0={27} w={6} h={13} y={-31} front={s.stone} side={s.stoneSide} />
+      <Smoke x={30} y={-44} size={0.7} />
       <rect className={s.dark} x={6} y={-14} width={9} height={14} />
       <rect className={s.window} x={24} y={-18} width={8} height={7} />
       {(look === 2 || step >= 3) && (

@@ -1,6 +1,6 @@
 import { buildingTypes, unitTypes, type BuildingType, type UnitType } from './gameData';
 import { calendarDay } from './format';
-import type { UnitMap } from './troops';
+import { presentUnits, type UnitMap } from './troops';
 
 /**
  * Helpers for reports (02-game-rules §14) – pure. The kinds and outcomes are the server enums
@@ -282,4 +282,39 @@ export function sharePicks(recentRecipients: string[], inbox: string[], max: num
  */
 export function viewerOf(sharedBy: { viewOfPlayerId: number } | null, readerId: number): number {
   return sharedBy === null ? readerId : sharedBy.viewOfPlayerId;
+}
+
+/** Units a battle cost one of the reader's villages. */
+export interface VillageLosses<V> {
+  readonly village: V;
+  readonly losses: UnitMap;
+}
+
+/**
+ * The reader's own villages that lost units in a battle (1.6.3), for "Re-recruit losses": the
+ * attacker's sending village in the reader's own attack, the reader's stacks (the defended village
+ * and the villages his supports came from) in a defence. A village counts once the player owns it
+ * (`ownVillageIds`), so a conquered one is left out.
+ */
+export function ownLosses<V extends { id: number; playerId: number | null }>(
+  kind: ReportKind,
+  battle: {
+    attacker: V;
+    attackerLosses: UnitMap;
+    defender: V;
+    defenderSide: { losses: UnitMap; stacks: readonly { home: V; losses: UnitMap }[] } | null;
+  },
+  ownVillageIds: readonly number[],
+): VillageLosses<V>[] {
+  const candidates: VillageLosses<V>[] =
+    kind === 'ATTACK' || kind === 'SCOUT'
+      ? [{ village: battle.attacker, losses: battle.attackerLosses }]
+      : kind === 'DEFENSE' && battle.defenderSide !== null
+        ? battle.defenderSide.stacks.length > 0
+          ? battle.defenderSide.stacks.map((stack) => ({ village: stack.home, losses: stack.losses }))
+          : [{ village: battle.defender, losses: battle.defenderSide.losses }]
+        : [];
+  return candidates
+    .map(({ village, losses }) => ({ village, losses: Object.fromEntries(presentUnits(losses)) as UnitMap }))
+    .filter(({ village, losses }) => ownVillageIds.includes(village.id) && presentUnits(losses).length > 0);
 }

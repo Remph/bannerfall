@@ -752,6 +752,34 @@
         }
       }
     },
+    "/api/admin/debug-logging" : {
+      "put" : {
+        "tags" : [ "admin-controller" ],
+        "operationId" : "setDebugLogging",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DebugLoggingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DebugLoggingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/villages/{villageId}/transports" : {
       "post" : {
         "tags" : [ "market-controller" ],
@@ -6255,6 +6283,24 @@
         },
         "required" : [ "attacksPerHumanPerDay", "attacksPerPlayerPerDay", "boostBelow", "boostFactor", "buildQuietFrom", "buildQuietTo", "farmLootShare", "farmRest", "leadMargin", "productionFactor", "quietHours", "spareLastVillage" ]
       },
+      "DebugLoggingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled" ]
+      },
+      "DebugLoggingDto" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled" ]
+      },
       "Coordinates" : {
         "type" : "object",
         "properties" : {
@@ -10567,9 +10613,12 @@
           },
           "push" : {
             "$ref" : "#/components/schemas/PushStatusDto"
+          },
+          "debugLogging" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "abuse", "barbarianVillages", "cheatsEnabled", "databaseOk", "events", "humanPlayers", "npcLords", "push", "serverTime", "uptimeSeconds", "version", "villages" ]
+        "required" : [ "abuse", "barbarianVillages", "cheatsEnabled", "databaseOk", "debugLogging", "events", "humanPlayers", "npcLords", "push", "serverTime", "uptimeSeconds", "version", "villages" ]
       },
       "EventQueueDto" : {
         "type" : "object",

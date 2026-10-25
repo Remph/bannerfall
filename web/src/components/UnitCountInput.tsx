@@ -24,6 +24,8 @@ interface UnitCountInputProps {
    * units at home while its chip says "all 20" (D12).
    */
   stepMax?: number;
+  /** Enter in the field (a valid number typed): the recruit page starts the order. */
+  onEnter?: () => void;
 }
 
 /**
@@ -32,7 +34,7 @@ interface UnitCountInputProps {
  * be recruited), only `limit` is a hard stop.
  */
 export function UnitCountInput(props: UnitCountInputProps) {
-  const { value, onChange, max, limit, label, maxLabel, disabled = false, step = 1, stepMax } = props;
+  const { value, onChange, max, limit, label, maxLabel, disabled = false, step = 1, stepMax, onEnter } = props;
   const { t, language } = useI18n();
   const { chip: top, plus } = countBounds(max, limit, stepMax);
   return (
@@ -54,6 +56,13 @@ export function UnitCountInput(props: UnitCountInputProps) {
         value={value === 0 ? '' : String(value)}
         disabled={disabled}
         onChange={(event) => onChange(parseCount(event.target.value, limit))}
+        onKeyDown={(event) => {
+          // not while an input method is still composing the number
+          if (event.key === 'Enter' && onEnter !== undefined && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            onEnter();
+          }
+        }}
       />
       <IconButton
         icon="plus"

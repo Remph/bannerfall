@@ -461,6 +461,36 @@ public class AdminCli implements Callable<Integer> {
         return EXIT_OK;
     }
 
+    @Command(
+            name = "debug-log",
+            description =
+                    "Debug logs of the game: on, off, or without a word what they are now. Slows"
+                            + " the server down; not kept over a restart")
+    int debugLog(
+            @Parameters(arity = "0..1", paramLabel = "on|off", description = "Switch them")
+                    String state) {
+        if (state == null) {
+            boolean on = client().get("/api/admin/status").path("debugLogging").asBoolean();
+            out.println("Debug logs are " + (on ? "ON" : "off") + ".");
+            return EXIT_OK;
+        }
+        if (!state.equalsIgnoreCase("on") && !state.equalsIgnoreCase("off")) {
+            throw new CliException("Say on or off.");
+        }
+        JsonNode answer =
+                client().put(
+                                "/api/admin/debug-logging",
+                                Map.of("enabled", state.equalsIgnoreCase("on")));
+        if (!printedJson(answer)) {
+            out.println(
+                    answer.path("enabled").asBoolean()
+                            ? "Debug logs are ON until the server restarts. They slow it down:"
+                                    + " switch them off again when you have what you need."
+                            : "Debug logs are off.");
+        }
+        return EXIT_OK;
+    }
+
     @Command(name = "audit", description = "The newest admin actions")
     int audit(
             @Option(

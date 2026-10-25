@@ -8,6 +8,7 @@ import {
   type PointerEvent,
 } from 'react';
 import { Link } from 'react-router';
+import { useMyGuild } from '../../api/queries/guilds';
 import { useMapVillages } from '../../api/queries/map';
 import { useWorld } from '../../api/queries/world';
 import { IconButton } from '../../components/IconButton';
@@ -80,6 +81,7 @@ interface Drag {
 export function OverviewMap(props: OverviewMapProps) {
   const { centre, onCentreChange, camera, cameraSize, mapSize, ownPlayerId, currentVillage, variant } = props;
   const t = useT();
+  const ownGuildId = useMyGuild().data?.guild?.id ?? null;
   const theme = useEffectiveTheme();
   const palette = usePalette(); // only a trigger for the redraw, like `theme`
   const pixelRatio = useDevicePixelRatio();
@@ -132,13 +134,27 @@ export function OverviewMap(props: OverviewMapProps) {
       mapSize,
       villages: map.villages,
       ownPlayerId,
+      ownGuildId,
       currentVillage,
       view,
       colors: readMapColors(canvas),
       layer,
       theme,
     });
-  }, [overview, size, pixelRatio, mapSize, map.villages, ownPlayerId, currentVillage, view, theme, palette, layer]);
+  }, [
+    overview,
+    size,
+    pixelRatio,
+    mapSize,
+    map.villages,
+    ownPlayerId,
+    ownGuildId,
+    currentVillage,
+    view,
+    theme,
+    palette,
+    layer,
+  ]);
 
   // The detailed map went somewhere the overview doesn't show (go to, centre, panned far): follow
   // it. Only on changes of the camera – the player may move the overview away on purpose.

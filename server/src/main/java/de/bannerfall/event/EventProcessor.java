@@ -163,8 +163,20 @@ public class EventProcessor {
         if (endedAt != null && event.getDueAt().isAfter(endedAt)) {
             return false;
         }
+        long started = System.nanoTime();
         handlers.get(event.getKind()).handle(event);
         event.markDone(clock.instant());
+        // Debug logging (the admin switch, 08-host-console §2a): what the worker did and how long
+        // it took.
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Event {} ({}, ref {}) due {} handled in {} ms",
+                    id,
+                    event.getKind(),
+                    event.getRefId(),
+                    event.getDueAt(),
+                    (System.nanoTime() - started) / 1_000_000);
+        }
         return true;
     }
 

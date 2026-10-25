@@ -38,6 +38,7 @@ export function mapActions(
             { key: 'support', to: rally },
             { key: 'sendResources', to: market },
           ];
+    case 'mate':
     case 'player':
     case 'npc':
       return [

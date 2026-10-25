@@ -54,6 +54,7 @@ class AdminController {
     private final BarbarianService barbarians;
     private final AdminAuditService audit;
     private final NpcAdminService npcAdmin;
+    private final DebugLogging debugLogging;
 
     AdminController(
             AdminStatusService status,
@@ -64,7 +65,8 @@ class AdminController {
             EventAdminService eventAdmin,
             BarbarianService barbarians,
             AdminAuditService audit,
-            NpcAdminService npcAdmin) {
+            NpcAdminService npcAdmin,
+            DebugLogging debugLogging) {
         this.status = status;
         this.world = world;
         this.opening = opening;
@@ -74,11 +76,27 @@ class AdminController {
         this.barbarians = barbarians;
         this.audit = audit;
         this.npcAdmin = npcAdmin;
+        this.debugLogging = debugLogging;
     }
 
     @GetMapping("/status")
     AdminStatusDto status() {
         return status.status();
+    }
+
+    /**
+     * Switches the game's debug logs on or off while the server runs (1.6.3, 08-host-console §2a).
+     * Not stored: a restart is back at INFO. The audit row says who switched it.
+     */
+    @PutMapping("/debug-logging")
+    DebugLoggingDto setDebugLogging(@Valid @RequestBody DebugLoggingRequest body) {
+        return audit.inTransaction(
+                () -> {
+                    boolean enabled = Boolean.TRUE.equals(body.enabled());
+                    debugLogging.set(enabled);
+                    audit.record("DEBUG_LOGGING", "server", null, Map.of("enabled", enabled));
+                    return new DebugLoggingDto(enabled);
+                });
     }
 
     @GetMapping("/world-settings")

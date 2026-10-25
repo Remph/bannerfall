@@ -49,3 +49,29 @@ export function saveShowLines(show: boolean): void {
     // ignore: the choice still holds until the page is reloaded
   }
 }
+
+/**
+ * Whether the markers and lines show only the movements of the village the player is in (1.6.3),
+ * stored per device. On by default: only the choice to see all of them is stored.
+ */
+const VILLAGE_ONLY_STORAGE_KEY = 'bannerfall.mapMovementsAllVillages';
+
+export function loadVillageOnly(): boolean {
+  try {
+    return localStorage.getItem(VILLAGE_ONLY_STORAGE_KEY) !== 'on';
+  } catch {
+    return true; // storage blocked (private mode)
+  }
+}
+
+export function saveVillageOnly(villageOnly: boolean): void {
+  try {
+    if (villageOnly) {
+      localStorage.removeItem(VILLAGE_ONLY_STORAGE_KEY);
+    } else {
+      localStorage.setItem(VILLAGE_ONLY_STORAGE_KEY, 'on');
+    }
+  } catch {
+    // ignore: the choice still holds until the page is reloaded
+  }
+}

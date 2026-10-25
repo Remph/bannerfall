@@ -10,7 +10,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { useInListDetail } from '../../components/listDetailContext';
 import { formatDateTimeExact } from '../../game/format';
-import { farmCandidate, farmListVillageId, viewerOf } from '../../game/reports';
+import { farmCandidate, farmListVillageId, ownLosses, viewerOf } from '../../game/reports';
 import { useI18n, useT } from '../../i18n';
 import { useCurrentVillageId } from '../../layout/useCurrentVillageId';
 import { simulatorPath } from '../rally/rallyPaths';
@@ -20,7 +20,8 @@ import { ConquestDetails } from './ConquestDetails';
 import { DeleteReportButton } from './DeleteReportButton';
 import { filterFromSearch, pageFromSearch, parseReportId, reportsPath } from './reportPaths';
 import styles from './ReportsPage.module.css';
-import { reportTitle } from './reportText';
+import { RecruitLossesButton } from '../recruit/RecruitLosses';
+import { reportTitle, villageName } from './reportText';
 import { SendReportButton } from './SendReportButton';
 import { SupportDetails } from './SupportDetails';
 import { TradeDetails } from './TradeDetails';
@@ -116,6 +117,15 @@ function ReportContent({ report, back, onDeleted }: ReportContentProps) {
   const title = reportTitle(t, kind, summary, viewerOf(sharedBy, me.playerId));
   const farmVillage =
     payload?.type === 'BATTLE' ? farmCandidate(kind, payload.attacker, payload.defender, me.playerId) : null;
+  // the reader's villages that lost units (1.6.3); a copy someone sent is not the reader's battle
+  const lossesOf =
+    payload?.type === 'BATTLE' && sharedBy === null
+      ? ownLosses(
+          kind,
+          payload,
+          me.villages.map((own) => own.id),
+        )
+      : [];
   const farmListOf =
     payload?.type === 'BATTLE'
       ? farmListVillageId(
@@ -177,6 +187,15 @@ function ReportContent({ report, back, onDeleted }: ReportContentProps) {
               sent={kind === 'ATTACK' && sharedBy === null ? payload.attackerUnits : undefined}
             />
           )}
+          {lossesOf.map(({ village, losses }) => (
+            <RecruitLossesButton
+              key={village.id}
+              reportId={report.id}
+              villageId={village.id}
+              losses={losses}
+              villageName={lossesOf.length > 1 ? villageName(t, village) : undefined}
+            />
+          ))}
           <BattleDetails kind={kind} battle={payload} villageId={villageId} />
           {villageId !== undefined && (
             // the numbers of this battle in the attack simulator (M23)

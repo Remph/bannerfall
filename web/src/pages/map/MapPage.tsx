@@ -1,7 +1,24 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react';
 import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useMapMovementLines, useMapMovements, useMapVillages, type MapVillage } from '../../api/queries/map';
+import { useMyGuild } from '../../api/queries/guilds';
+import {
+  NO_LINES,
+  NO_MOVEMENTS,
+  useMapMovementLines,
+  useMapMovements,
+  useMapVillages,
+  type MapVillage,
+} from '../../api/queries/map';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
@@ -13,7 +30,7 @@ import { nextBannerRollBackIn } from '../../game/farm';
 import { formatCoords, formatNumber } from '../../game/format';
 import { bracketTag } from '../../game/guilds';
 import { badgeWins, foldedBadges, lineAnchor, lineMarkerNear, lineNear, linePosition } from '../../game/mapLines';
-import { markerKinds } from '../../game/mapMovements';
+import { lineOfVillage, markerKinds, movementsOfLines } from '../../game/mapMovements';
 import {
   cameraAt,
   cameraOn,
@@ -57,7 +74,14 @@ import { LinePanel } from './LinePanel';
 import { AXIS_TOP, badgeRadius, drawMap, readMapColors } from './mapDraw';
 import { loadLegendOpen, saveLegendOpen } from './mapLegendStorage';
 import styles from './MapPage.module.css';
-import { loadShowLines, loadShowMovements, saveShowLines, saveShowMovements } from './mapMovementsStorage';
+import {
+  loadShowLines,
+  loadShowMovements,
+  loadVillageOnly,
+  saveShowLines,
+  saveShowMovements,
+  saveVillageOnly,
+} from './mapMovementsStorage';
 import { MarkerIcon, NoteIcon, UsedBannerIcon } from './MarkerIcon';
 import { OverviewMap } from './OverviewMap';
 import { useDevicePixelRatio } from './useDevicePixelRatio';
@@ -69,7 +93,7 @@ import { VillagePanel } from './VillagePanel';
 const TILE_STORAGE_KEY = 'bannerfall.mapTile';
 /** The URL (?x=&y=) and the stored zoom follow the map once it has stood still this long. */
 const SETTLE_MS = 400;
-const legendKinds: readonly VillageKind[] = ['own', 'player', 'npc', 'barbarian'];
+const legendKinds: readonly VillageKind[] = ['own', 'mate', 'player', 'npc', 'barbarian'];
 /** The movement lines are drawn again this often while any are shown, so the troops move on. */
 const LINE_REDRAW_MS = 1000;
 /** How close a tap or the mouse must come to a troop badge or a line to pick it (CSS px). */
@@ -119,6 +143,7 @@ function MapScreen({ villageId }: { villageId: number }) {
 function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const t = useT();
   const me = useCurrentAccount();
+  const ownGuildId = useMyGuild().data?.guild?.id ?? null;
   const theme = useEffectiveTheme();
   const palette = usePalette();
   const pixelRatio = useDevicePixelRatio();
@@ -183,10 +208,23 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const villages = map.villages;
   // the movement markers (M26), on unless switched off on this device
   const [showMovements, setShowMovements] = useState(loadShowMovements);
-  const movements = useMapMovements(showMovements);
   // the movement lines (v1.3), off unless switched on on this device; a tapped line opens its panel
   const [showLines, setShowLines] = useState(loadShowLines);
-  const lines = useMapMovementLines(showLines);
+  // Only the village the player is in (1.6.3), unless he asks for all. The lines say which village
+  // a movement belongs to, so then the markers are made from them, and the markers' own answer
+  // (all villages, grouped on the target) is not asked for.
+  const [villageOnly, setVillageOnly] = useState(loadVillageOnly);
+  const allMovements = useMapMovements(showMovements && !villageOnly);
+  const allLines = useMapMovementLines(showLines || (showMovements && villageOnly));
+  const ownLines = useMemo(
+    () => (villageOnly ? allLines.filter((line) => lineOfVillage(line, village.id)) : allLines),
+    [villageOnly, allLines, village.id],
+  );
+  const movements = useMemo(
+    () => (villageOnly ? (showMovements ? movementsOfLines(ownLines) : NO_MOVEMENTS) : allMovements),
+    [villageOnly, showMovements, ownLines, allMovements],
+  );
+  const lines = showLines ? ownLines : NO_LINES;
   const [pickedLineId, setPickedLineId] = useState<number | null>(null);
   const [hoveredLineId, setHoveredLineId] = useState<number | null>(null);
   const pickedLine = lines.find((line) => line.id === pickedLineId);
@@ -270,6 +308,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       lines,
       selectedLineId: highlightedLineId,
       ownPlayerId: me.playerId,
+      ownGuildId,
       selectedId: selected?.id ?? outlinedVillage?.id ?? null,
       hoveredId,
       marked: drawnMark,
@@ -287,6 +326,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     lines,
     highlightedLineId,
     me.playerId,
+    ownGuildId,
     selected?.id,
     outlinedVillage?.id,
     hoveredId,
@@ -530,6 +570,15 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     },
   };
 
+  const villageOnlyToggle = {
+    shown: villageOnly,
+    onToggle: () => {
+      setVillageOnly(!villageOnly);
+      saveVillageOnly(!villageOnly);
+      setPickedLineId(null);
+    },
+  };
+
   const linesToggle = {
     shown: showLines,
     onToggle: () => {
@@ -543,7 +592,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     <VillagePanel
       village={selected}
       movement={movements.find((entry) => entry.villageId === selected.id)}
-      kind={villageKind(selected, me.playerId)}
+      kind={villageKind(selected, me.playerId, ownGuildId)}
       currentVillage={village}
       onClose={closePanel}
       docked={!panelOnMap}
@@ -593,6 +642,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
           overview={{ open: overviewOpen, onToggle: () => setOverviewOpen(!overviewOpen) }}
           movements={movementsToggle}
           lines={linesToggle}
+          villageOnly={villageOnlyToggle}
         />
       )}
       <div ref={viewportRef} className={styles.viewport}>
@@ -688,6 +738,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
             onCentre={centre}
             movements={movementsToggle}
             lines={linesToggle}
+            villageOnly={villageOnlyToggle}
             side
           />
         </aside>
@@ -704,6 +755,7 @@ function MapToolbar({
   overview,
   movements,
   lines,
+  villageOnly,
   side = false,
 }: {
   mapSize: number;
@@ -715,11 +767,15 @@ function MapToolbar({
   movements: { shown: boolean; onToggle: () => void };
   /** The switch for the movement lines (v1.3). */
   lines: { shown: boolean; onToggle: () => void };
+  /** "Only this village" (1.6.3): markers and lines of the village the player is in, or of all. */
+  villageOnly: { shown: boolean; onToggle: () => void };
   /** In the desktop side column: stacked, with the legend as a list below. */
   side?: boolean;
 }) {
   const t = useT();
   const world = useWorld().data;
+  // guild mates have a colour of their own, listed for players who have a guild
+  const inGuild = useMyGuild().data?.guild != null;
   // the faded banner only appears while banners can drop (the server sends no used chances otherwise)
   const bannerDrops = world !== undefined && world.bannersEnabled && world.bannerDropFactor > 0;
   const inputId = useId();
@@ -747,12 +803,14 @@ function MapToolbar({
 
   const legend = (
     <ul className={styles.legend} aria-label={t.map.legend}>
-      {legendKinds.map((kind) => (
-        <li key={kind}>
-          <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
-          {t.map.legendKinds[kind]}
-        </li>
-      ))}
+      {legendKinds
+        .filter((kind) => kind !== 'mate' || inGuild)
+        .map((kind) => (
+          <li key={kind}>
+            <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
+            {t.map.legendKinds[kind]}
+          </li>
+        ))}
       {movements.shown &&
         markerKinds.map((kind) => (
           <li key={kind}>
@@ -843,6 +901,13 @@ function MapToolbar({
             className={styles.movementsToggle}
             onClick={lines.onToggle}
           />
+          <IconButton
+            icon="village"
+            label={t.map.lines.villageOnlyToggle}
+            aria-pressed={villageOnly.shown}
+            className={styles.movementsToggle}
+            onClick={villageOnly.onToggle}
+          />
         </>
       ) : (
         // phones and tablets: one layers button; its sheet has the two switches and the legend, which
@@ -862,6 +927,12 @@ function MapToolbar({
                 hint={t.map.lines.linesHint}
                 on={lines.shown}
                 onToggle={lines.onToggle}
+              />
+              <LayerRow
+                label={t.map.lines.villageOnlyRow}
+                hint={t.map.lines.villageOnlyHint}
+                on={villageOnly.shown}
+                onToggle={villageOnly.onToggle}
               />
               <h3 className={styles.layersTitle}>{t.map.lines.legendTitle}</h3>
               {legend}

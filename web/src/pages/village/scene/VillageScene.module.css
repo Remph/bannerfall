@@ -461,13 +461,106 @@
   }
 }
 
+/* a level just rose: the building swells once and flashes */
+.pop {
+  animation: pop 0.7s ease-out;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.12);
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* weather: slow cloud shadows (the plates stay above them) and birds; taps pass through */
+.weather {
+  pointer-events: none;
+}
+
+.cloud {
+  fill: rgb(0 0 0 / 7%);
+}
+
+.cloudA,
+.cloudB {
+  animation: drift 90s linear infinite;
+}
+
+.cloudB {
+  animation-duration: 120s;
+  animation-delay: -45s;
+}
+
+@keyframes drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: var(--drift) 0;
+  }
+}
+
+.birds {
+  animation: cross 70s linear infinite;
+  animation-delay: -12s;
+}
+
+@keyframes cross {
+  0% {
+    translate: 0 0;
+  }
+  30%,
+  100% {
+    translate: var(--drift) -24px;
+  }
+}
+
+.bird {
+  fill: none;
+  stroke: var(--village-dark);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  animation: flap 0.5s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes flap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(-0.5);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wave,
   .puff1,
   .puff2,
   .puff3,
-  .hammer {
+  .hammer,
+  .pop,
+  .cloudA,
+  .cloudB,
+  .birds,
+  .bird {
     animation: none;
+  }
+
+  .weather {
+    display: none;
   }
 
   .lift,

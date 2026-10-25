@@ -73,6 +73,44 @@ class AdminFlowTest {
         player.browser.delete("/api/admin/chat/1").andExpect(status().isForbidden());
         player.browser.get("/api/admin/events/failed").andExpect(status().isForbidden());
         player.browser.post("/api/admin/events/1/retry", "").andExpect(status().isForbidden());
+        player.browser
+                .put("/api/admin/debug-logging", "{\"enabled\":true}")
+                .andExpect(status().isForbidden());
+    }
+
+    // ---- debug logs ----
+
+    @Test
+    void anAdminSwitchesTheGamesDebugLogsOnAndOffAndTheAuditLogKnows() throws Exception {
+        org.slf4j.Logger game = org.slf4j.LoggerFactory.getLogger("de.bannerfall");
+        boolean before = game.isDebugEnabled();
+        long audited = debugLoggingAuditRows();
+        try {
+            admin.get("/api/admin/status").andExpect(jsonPath("$.debugLogging").value(before));
+
+            admin.put("/api/admin/debug-logging", "{\"enabled\":true}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(true));
+            assertThat(game.isDebugEnabled()).isTrue();
+            admin.get("/api/admin/status").andExpect(jsonPath("$.debugLogging").value(true));
+
+            admin.put("/api/admin/debug-logging", "{\"enabled\":false}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(false));
+            assertThat(game.isDebugEnabled()).isFalse();
+            admin.get("/api/admin/status").andExpect(jsonPath("$.debugLogging").value(false));
+            assertThat(debugLoggingAuditRows()).isEqualTo(audited + 2);
+
+            admin.put("/api/admin/debug-logging", "{}").andExpect(status().isBadRequest());
+        } finally {
+            admin.put("/api/admin/debug-logging", "{\"enabled\":" + before + "}");
+        }
+    }
+
+    private long debugLoggingAuditRows() {
+        return jdbc.sql("select count(*) from admin_action where action = 'DEBUG_LOGGING'")
+                .query(Long.class)
+                .single();
     }
 
     // ---- world settings ----

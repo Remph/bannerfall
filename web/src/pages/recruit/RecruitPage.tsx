@@ -530,6 +530,12 @@ function UnitRow(props: UnitRowProps) {
               limit={MAX_RECRUIT_COUNT}
               label={t.recruit.countLabel(t.units[unit.unit])}
               disabled={queueFull}
+              // Enter does what the row's button does, when that button could
+              onEnter={() => {
+                if (canRecruit && !pending) {
+                  onRecruit(count);
+                }
+              }}
             />
             <div className={styles.action}>
               {hint !== null && <p className={styles.hint}>{hint}</p>}

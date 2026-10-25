@@ -12,6 +12,7 @@ export type EndReason = WorldResult['reason'];
 
 export const worldQueryKey = ['world'] as const;
 export const publicWorldQueryKey = ['world', 'status'] as const;
+export const serverVersionQueryKey = ['world', 'version'] as const;
 /** Under ['world'], so whatever reloads the world reloads this too. */
 export const victoryQueryKey = ['world', 'victory'] as const;
 
@@ -67,5 +68,23 @@ export function useWorldOperator() {
     queryKey: ['world', 'operator'] as const,
     queryFn: () => expectData(api.GET('/api/world/operator')),
     staleTime: Infinity,
+  });
+}
+
+/** How often an open tab asks the server which version it runs (the new-version strip, 1.6.3). */
+const VERSION_REFRESH_MS = 10 * 60_000;
+
+/**
+ * Keeps asking the server something small, every 10 minutes and whenever the tab comes back to the
+ * front: a tab that slept through an update has no other reason to send a request, and the API
+ * client sees the new version in the answer (api/newVersion.ts). Its own key under ['world'].
+ */
+export function usePollServerVersion() {
+  return useQuery({
+    queryKey: serverVersionQueryKey,
+    queryFn: async () => (await fetchPublicWorld()).version,
+    staleTime: 30_000,
+    refetchInterval: VERSION_REFRESH_MS,
+    refetchOnWindowFocus: 'always',
   });
 }

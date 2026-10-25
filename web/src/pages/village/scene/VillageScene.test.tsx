@@ -98,6 +98,34 @@ describe('VillageScene', () => {
   });
 });
 
+describe('VillageScene level pop', () => {
+  afterEach(cleanup);
+
+  function sceneOf(data: Village) {
+    return (
+      <I18nContext value={{ language: 'en', t: en, setLanguage: () => {} }}>
+        <MemoryRouter>
+          <VillageScene village={data} layout={COMPACT} bannersOn hallOn />
+        </MemoryRouter>
+      </I18nContext>
+    );
+  }
+
+  it('pops a building whose level rose, not when a village opens or another one is shown', () => {
+    const { container, rerender } = render(sceneOf(village({ ...allBuilt, HEADQUARTERS: 3 })));
+    expect(container.querySelector('[class*="pop"]')).toBeNull();
+
+    rerender(sceneOf(village({ ...allBuilt, HEADQUARTERS: 4 })));
+    expect(container.querySelectorAll('[class*="pop"]')).toHaveLength(1);
+
+    // another village: levels differ, nothing pops
+    cleanup();
+    const other = render(sceneOf(village({ ...allBuilt, HEADQUARTERS: 3 })));
+    other.rerender(sceneOf({ ...village({ ...allBuilt, HEADQUARTERS: 9 }), id: 8 }));
+    expect(other.container.querySelector('[class*="pop"]')).toBeNull();
+  });
+});
+
 describe('palisade', () => {
   it('is a dashed oval (no stakes) while the wall is at level 0', () => {
     expect(palisade(WIDE, 0)).toBeUndefined();

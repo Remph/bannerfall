@@ -3,7 +3,8 @@
   Logging (docs/plan/01-architecture.md §7, §8; M4d). Spring Boot's Logback, no extra library.
 
   - Console: Spring Boot's default, as before.
-  - ${LOG_DIR}/server.log: INFO and up, with stack traces.
+  - ${LOG_DIR}/server.log: INFO and up, with stack traces. No filter of its own: the logger levels
+    decide, so the debug lines of the host's switch (1.6.3, bfa debug-log) land here too.
   - ${LOG_DIR}/server.err: WARN and ERROR only, with stack traces. Empty in normal play.
   Both roll daily and at 10 MB (server.2026-10-03.0.log, server.2026-10-03.0.err) and are kept
   14 days; at most 400 MB of old .log and 100 MB of old .err files (500 MB together).
@@ -26,9 +27,6 @@
     <springProperty name="LOG_DIR" source="bannerfall.logging.dir" defaultValue="logs"/>
 
     <appender name="LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>INFO</level>
-        </filter>
         <encoder>
             <pattern>${FILE_LOG_PATTERN}</pattern>
             <charset>${FILE_LOG_CHARSET}</charset>

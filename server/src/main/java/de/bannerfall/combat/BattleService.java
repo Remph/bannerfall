@@ -56,6 +56,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -67,6 +69,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class BattleService {
+
+    private static final Logger log = LoggerFactory.getLogger(BattleService.class);
 
     /** Puts the village's own units first, then the supports in the order they came. */
     private static final Comparator<UnitStack> HOME_FIRST =
@@ -244,6 +248,24 @@ public class BattleService {
                         .morale(morale(world, home.getPlayer(), target.getPlayer()))
                         .build();
         BattleResult result = Combat.fight(gameData, input);
+        if (log.isDebugEnabled()) {
+            BattleResult.MainBattle main = result.mainBattle();
+            log.debug(
+                    "Battle: movement {} from village {} on village {} (owner {}): {}",
+                    attack.getId(),
+                    home.getId(),
+                    target.getId(),
+                    defenderPlayerId,
+                    main == null
+                            ? "scouts only"
+                            : String.format(
+                                    "%s, attack %.0f against %.0f, losses %.2f / %.2f",
+                                    main.attackerWon() ? "attacker won" : "defender won",
+                                    main.attack(),
+                                    main.defense(),
+                                    main.attackerLossRatio(),
+                                    main.defenderLossRatio()));
+        }
         // what good scouts see outside the village (§7.1), as it was when they arrived
         Map<UnitType, Integer> away =
                 result.scouting() != null && BattleReports.seesAway(result.scouting())

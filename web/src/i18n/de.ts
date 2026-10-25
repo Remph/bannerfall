@@ -200,6 +200,13 @@ export const de: Dictionary = {
     text: (version: string) => `Bannerfall ${version} ist da.`,
     link: 'Das ist neu',
   },
+  // Ein Update, während der Tab offen war (1.6.3)
+  newVersion: {
+    label: 'Neue Version',
+    text: (version: string) =>
+      `Eine neue Version von Bannerfall (${version}) ist da. Lade die Seite neu, um sie zu nutzen.`,
+    reload: 'Neu laden',
+  },
   // Das Ende einer Welt (v1.3): der angehaltene Zustand und der Endbildschirm
   worldEnd: {
     paused: 'angehalten',
@@ -780,6 +787,15 @@ export const de: Dictionary = {
         : `Nur noch ${free} freie Plätze in der Schleife: fülle weniger Felder aus.`,
     enterCount: 'Gib bei einer Einheit eine Anzahl ein.',
   },
+  // „Verluste nachrekrutieren“ im Kampfbericht (1.6.3): der Planbogen, gefüllt mit dem, was der Kampf gekostet hat
+  recruitLosses: {
+    button: 'Verluste nachrekrutieren',
+    buttonFor: (village: string) => `Verluste von ${village} nachrekrutieren`,
+    title: 'Verluste nachrekrutieren',
+    hint: 'Rekrutiert die Einheiten, die dieser Kampf gekostet hat, so viel wie die Rohstoffe jetzt hergeben. Ändere ein Ziel, wenn du weniger oder mehr willst.',
+    goalLabel: (unit: string) => `Ziel für ${unit}`,
+    failed: 'Dieses Dorf konnte nicht geladen werden.',
+  },
   /** Rekrutier-Vorlagen (1.4, 02-game-rules §5.2b): die Zeile über den Gebäude-Tabs und ihre Sheets. */
   recruitTemplates: {
     title: 'Vorlagen',
@@ -1160,7 +1176,13 @@ export const de: Dictionary = {
     loadError: 'Ein Teil der Karte konnte nicht geladen werden.',
     legend: 'Farben auf der Karte',
     legendFold: 'Legende',
-    legendKinds: { own: 'Deine Dörfer', player: 'Spieler', npc: 'NPC-Fürsten', barbarian: 'Barbaren' },
+    legendKinds: {
+      own: 'Deine Dörfer',
+      mate: 'Gildenmitglieder',
+      player: 'Spieler',
+      npc: 'NPC-Fürsten',
+      barbarian: 'Barbaren',
+    },
     barbarianVillage: 'Barbarendorf',
     owner: 'Besitzer',
     noOwner: 'niemand (Barbaren)',
@@ -1247,6 +1269,9 @@ export const de: Dictionary = {
       legend: 'Linien: durchgezogen hinter den Truppen, gepunktet vor ihnen',
       legendHostile: 'Angriff auf dich: gestrichelt',
       layers: 'Kartenebenen',
+      villageOnlyToggle: 'Nur die Bewegungen dieses Dorfes zeigen',
+      villageOnlyRow: 'Nur dieses Dorf',
+      villageOnlyHint: 'Bewegungen deiner anderen Dörfer weglassen',
       markersRow: 'Truppen an Dörfern',
       markersHint: 'Ein Zeichen an jedem Dorf, zu dem deine Truppen unterwegs sind',
       linesRow: 'Linien der Bewegungen',
@@ -2434,6 +2459,9 @@ export const de: Dictionary = {
       lag: (duration: string) => `${duration} im Rückstand`,
       noLag: 'kommt hinterher',
       failed: (count: number) => `${count} fehlgeschlagen`,
+      debugLog: 'Debug-Logs',
+      debugLogHint:
+        'Schreibt eine Zeile für jedes Ereignis, jeden Kampf und jeden Schritt der NPC-Fürsten ins Server-Log. Das bremst den Server und füllt die Log-Dateien: schalte es nur an, um etwas zu untersuchen. Beim Neustart des Servers geht es von selbst wieder aus.',
       refresh: 'Aktualisieren',
     },
     broadcast: {

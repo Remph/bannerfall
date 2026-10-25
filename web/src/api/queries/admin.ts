@@ -261,6 +261,15 @@ export function useAdminStatus() {
   });
 }
 
+/** PUT /api/admin/debug-logging (1.6.3): the game's debug logs on or off until the server restarts. */
+export function useSetDebugLogging() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => expectData(api.PUT('/api/admin/debug-logging', { body: { enabled } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: statusKey }),
+  });
+}
+
 /** GET /api/admin/players: the human players with their villages, by name. */
 export function useAdminPlayers() {
   return useQuery({

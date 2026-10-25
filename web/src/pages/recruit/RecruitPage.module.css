@@ -595,3 +595,25 @@
 .editLabel {
   font-weight: 600;
 }
+
+/* the goal of a unit in the plan of lost units (1.6.3): a field in the table cell */
+.goalInput {
+  width: 4.75rem;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  /* 16px or more stops iOS Safari from zooming into the field */
+  font-size: max(1rem, 16px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.goalInput:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}

@@ -16,6 +16,8 @@ import java.time.Instant;
  * @param events the event queue
  * @param cheatsEnabled {@code bannerfall.cheats.enabled}: the host cheats exist (08 §3)
  * @param abuse the abuse protection (M14e)
+ * @param push push notifications (1.5)
+ * @param debugLogging the game logs at DEBUG until the server restarts (1.6.3)
  */
 public record AdminStatusDto(
         String version,
@@ -29,7 +31,8 @@ public record AdminStatusDto(
         EventQueueDto events,
         boolean cheatsEnabled,
         AbuseStatusDto abuse,
-        PushStatusDto push) {
+        PushStatusDto push,
+        boolean debugLogging) {
 
     /**
      * Push notifications (1.5).

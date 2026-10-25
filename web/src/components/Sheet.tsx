@@ -52,8 +52,13 @@ export function Sheet({ open, onClose, title, fullScreen = false, children }: Sh
       ref={ref}
       className={fullScreen ? `${styles.sheet} ${styles.full}` : styles.sheet}
       aria-labelledby={titleId}
-      // fires for Escape and dialog.close() alike; the closed sheet lets its content go
-      onClose={() => {
+      // fires for Escape and dialog.close() alike; the closed sheet lets its content go. React
+      // passes a `close` up the component tree although the DOM event doesn't bubble: a sheet
+      // inside a sheet (the code sheet in the plan editor) must not close the sheet around it.
+      onClose={(event) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
         setShown(null);
         onClose();
       }}

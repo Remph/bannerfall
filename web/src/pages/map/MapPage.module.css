@@ -232,6 +232,10 @@
   background: var(--map-own);
 }
 
+.swatch[data-kind='mate'] {
+  background: var(--map-mate);
+}
+
 .swatch[data-kind='player'] {
   background: var(--map-player);
 }

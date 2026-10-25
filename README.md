@@ -181,17 +181,17 @@ chmod 600 .env
 
 `openssl rand -hex 24` makes a good password and a good token (the token needs at least 32 characters). Keep `.env` private; it is not in git. The host cheats stay off (`BANNERFALL_CHEATS_ENABLED` is not passed to the container).
 
-**Build and ship** (on your PC, in the repo root; replace `1.6.2` by the version):
+**Build and ship** (on your PC, in the repo root; replace `1.6.3` by the version):
 
 ```
-docker build -t ghcr.io/your-name/bannerfall:1.6.2 --build-arg VERSION=1.6.2 .
+docker build -t ghcr.io/your-name/bannerfall:1.6.3 --build-arg VERSION=1.6.3 .
 docker login ghcr.io          # once, with a GitHub token that may write packages
-docker push ghcr.io/your-name/bannerfall:1.6.2
+docker push ghcr.io/your-name/bannerfall:1.6.3
 ```
 
-(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.2 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.2 --build-arg VERSION=1.6.2 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.2` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
+(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.3 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.3 --build-arg VERSION=1.6.3 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.3` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
 
-**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.2` in `.env`, then
+**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.3` in `.env`, then
 
 ```
 docker compose -f compose.prod.yaml pull        # skip this when the image was loaded or built on the server itself

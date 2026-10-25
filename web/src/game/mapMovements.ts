@@ -1,4 +1,4 @@
-import type { MapMovement } from '../api/queries/map';
+import type { MapMovement, MapMovementLine } from '../api/queries/map';
 
 /*
  * The movement markers of the map (M26, M36, 02-game-rules §6, 05-frontend §6): which badges a
@@ -89,3 +89,49 @@ export const MARKER_PATHS: Record<MarkerKind, string> = {
 
 /** The order of the legend. */
 export const markerKinds: readonly MarkerKind[] = ['attack', 'noble', 'support', 'return'];
+
+/** Whether a movement leaves from or arrives at the village: what "only this village" keeps (1.6.3). */
+export function lineOfVillage(line: MapMovementLine, villageId: number): boolean {
+  return line.from.id === villageId || line.to.id === villageId;
+}
+
+/**
+ * The markers of some movements, from their lines: the same entries the server sends for all of
+ * them (GET /api/map/movements groups on the target village the same way), so the map can show the
+ * markers of one village only.
+ */
+export function movementsOfLines(lines: readonly MapMovementLine[]): MapMovement[] {
+  const byTarget = new Map<number, MapMovement>();
+  for (const line of lines) {
+    const earlier = byTarget.get(line.to.id);
+    const next: MapMovement = earlier ?? {
+      villageId: line.to.id,
+      x: line.to.x,
+      y: line.to.y,
+      attacks: 0,
+      nobleAttacks: 0,
+      supports: 0,
+      returns: 0,
+      nextArriveAt: null,
+      nextReturnAt: null,
+    };
+    if (line.kind === 'RETURN') {
+      next.returns += 1;
+      next.nextReturnAt = earliest(next.nextReturnAt, line.arriveAt);
+    } else {
+      if (line.kind === 'ATTACK') {
+        next.attacks += 1;
+        next.nobleAttacks += line.nobles ? 1 : 0;
+      } else {
+        next.supports += 1;
+      }
+      next.nextArriveAt = earliest(next.nextArriveAt, line.arriveAt);
+    }
+    byTarget.set(line.to.id, next);
+  }
+  return [...byTarget.values()].sort((a, b) => a.villageId - b.villageId);
+}
+
+function earliest(current: string | null, time: string): string {
+  return current === null || Date.parse(time) < Date.parse(current) ? time : current;
+}

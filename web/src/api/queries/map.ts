@@ -108,7 +108,7 @@ export function useMapMovements(enabled: boolean) {
 }
 
 // One empty list for every render, so the map's drawing effect doesn't run again for a new [].
-const NO_MOVEMENTS: MapMovement[] = [];
+export const NO_MOVEMENTS: MapMovement[] = [];
 
 /**
  * The lines of the map, under the markers' key: everything that reloads the markers (sending,
@@ -146,4 +146,4 @@ export function useMapMovementLines(enabled: boolean) {
   return enabled ? (query.data ?? NO_LINES) : NO_LINES;
 }
 
-const NO_LINES: MapMovementLine[] = [];
+export const NO_LINES: MapMovementLine[] = [];

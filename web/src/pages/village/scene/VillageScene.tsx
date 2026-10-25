@@ -1,4 +1,4 @@
-import { useMemo, useState, type FocusEvent } from 'react';
+import { useMemo, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { BuildOrder } from '../../../api/queries/buildings';
 import type { Village } from '../../../api/queries/villages';
@@ -75,7 +75,9 @@ export function VillageScene({
           <g className={s.lift}>
             {/* an invisible tap area, so a tap between the parts of a drawing still hits it */}
             <rect className={s.hit} x={-40} y={-66} width={80} height={72} />
-            {level === 0 ? <Plot /> : <BuildingDrawing type={type} growth={growthOf(type, level)} />}
+            <Pop scope={village.id} level={level}>
+              {level === 0 ? <Plot /> : <BuildingDrawing type={type} growth={growthOf(type, level)} />}
+            </Pop>
             {running?.building === type && <ScaffoldWhileRunning order={running} type={type} onPlot={level === 0} />}
           </g>
         </g>
@@ -125,6 +127,7 @@ export function VillageScene({
         </>
       )}
       {shown.includes('WALL') && place('WALL')}
+      <Weather width={layout.width} height={layout.height} />
       <g>
         {shown.map((type) => {
           const level = levelOf(type);
@@ -146,6 +149,52 @@ export function VillageScene({
         })}
       </g>
     </svg>
+  );
+}
+
+/**
+ * A building whose level just rose pops once (a short swell and a flash). Only a rise while the
+ * picture is on screen counts: opening a village, or switching to another one, shows no pop.
+ */
+function Pop({ scope, level, children }: { scope: number; level: number; children: ReactNode }) {
+  const [seen, setSeen] = useState({ scope, level });
+  const [popping, setPopping] = useState(false);
+  if (seen.scope !== scope) {
+    setSeen({ scope, level });
+    setPopping(false);
+  } else if (seen.level !== level) {
+    setSeen({ scope, level });
+    setPopping(level > seen.level);
+  }
+  return (
+    <g className={popping ? s.pop : undefined} onAnimationEnd={() => setPopping(false)}>
+      {children}
+    </g>
+  );
+}
+
+/** Cloud shadows drifting over the village and a pair of birds crossing now and then: pure decoration. */
+function Weather({ width, height }: { width: number; height: number }) {
+  const drift = { '--drift': `${width + 240}px` } as CSSProperties;
+  return (
+    <g className={s.weather} style={drift} aria-hidden="true">
+      <g className={s.cloudA} transform={`translate(-120 ${height * 0.3})`}>
+        <ellipse className={s.cloud} cx={0} cy={0} rx={70} ry={22} />
+        <ellipse className={s.cloud} cx={46} cy={10} rx={46} ry={16} />
+        <ellipse className={s.cloud} cx={-40} cy={12} rx={38} ry={13} />
+      </g>
+      <g className={s.cloudB} transform={`translate(-120 ${height * 0.72})`}>
+        <ellipse className={s.cloud} cx={0} cy={0} rx={56} ry={18} />
+        <ellipse className={s.cloud} cx={38} cy={8} rx={36} ry={13} />
+      </g>
+      <g className={s.birds} transform={`translate(-30 ${height * 0.16})`}>
+        {/* drawn small, then enlarged: at a phone's width they would be a dot otherwise */}
+        <g transform="scale(1.8)">
+          <path className={s.bird} d="M-5 0 Q-2.5 -4 0 0 Q2.5 -4 5 0" />
+          <path className={s.bird} d="M9 7 Q11.5 3 14 7 Q16.5 3 19 7" style={{ animationDelay: '-0.2s' }} />
+        </g>
+      </g>
+    </g>
   );
 }
 

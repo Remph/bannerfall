@@ -48,25 +48,50 @@ export function changelogUrl(version: string, language: Language): string {
  */
 export const SOURCE_URL = 'https://github.com/Remph/bannerfall';
 
+/** What a version in an API answer means for the page. */
+export type VersionVerdict =
+  /** Nothing new: the version the page was loaded with, or no version in the answer. */
+  | { readonly kind: 'same' }
+  /** A patch of the same 1.x: the old code still fits the new server, so the player may choose when to reload. */
+  | { readonly kind: 'patch'; readonly version: string }
+  /** Anything else (a new 1.x.0, development builds): the old code may not fit, so the page loads again at once. */
+  | { readonly kind: 'reload' };
+
+/** The release line of a version, "1.6" for "1.6.3". */
+function releaseLine(version: string): string {
+  return version.split('.').slice(0, 2).join('.');
+}
+
 /**
  * Watches the `X-Server-Version` header of the API answers. The first one is the version this page
  * was loaded with; a different one later means the host deployed an update while the page was
- * open. The old code would then run against the new server's data (unit, building or report types
- * it doesn't know) and can break, so the page has to load again. A missing header changes nothing.
+ * open. A patch (1.6.2 to 1.6.3, which never changes the API: no migration) is only announced
+ * (1.6.3, the new-version strip with its reload button). Any other update would run the old code
+ * against data it doesn't know (unit, building or report types) and can break it, so the page
+ * has to load again at once. A missing header changes nothing.
  */
 export class ServerVersionWatch {
   private first: string | null = null;
 
-  /** Records the version of one answer; true if it differs from the first one. */
-  changed(header: string | null): boolean {
+  /** Judges the version of one answer. */
+  check(header: string | null): VersionVerdict {
     const version = header?.trim() ?? '';
     if (version === '') {
-      return false;
+      return { kind: 'same' };
     }
     if (this.first === null) {
       this.first = version;
-      return false;
+      return { kind: 'same' };
     }
-    return version !== this.first;
+    if (version === this.first) {
+      return { kind: 'same' };
+    }
+    const before = parseVersion(this.first);
+    const now = parseVersion(version);
+    return before.kind === 'release' &&
+      now.kind === 'release' &&
+      releaseLine(before.version) === releaseLine(now.version)
+      ? { kind: 'patch', version: now.version }
+      : { kind: 'reload' };
   }
 }

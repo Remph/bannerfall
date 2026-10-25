@@ -228,6 +228,12 @@ export const en = {
     text: (version: string) => `Bannerfall ${version} is live.`,
     link: 'See what is new',
   },
+  /** An update while the tab was open (1.6.3). */
+  newVersion: {
+    label: 'New version',
+    text: (version: string) => `A new version of Bannerfall (${version}) is available. Reload to use it.`,
+    reload: 'Reload',
+  },
   /** The end of a world (v1.3, 02-game-rules §22): the frozen look and the end screen. */
   worldEnd: {
     paused: 'stopped',
@@ -854,6 +860,15 @@ export const en = {
     /** Why "Recruit all" is grey while no field has a number (1.3). */
     enterCount: 'Enter a number for a unit first.',
   },
+  /** "Re-recruit losses" on a battle report (1.6.3): the plan sheet filled with what the battle cost. */
+  recruitLosses: {
+    button: 'Re-recruit losses',
+    buttonFor: (village: string) => `Re-recruit losses of ${village}`,
+    title: 'Re-recruit losses',
+    hint: 'Recruits the units this battle cost, as far as the resources go right now. Change a goal if you want fewer or more.',
+    goalLabel: (unit: string) => `Goal for ${unit}`,
+    failed: 'This village could not be loaded.',
+  },
   /** Recruit templates (1.4, 02-game-rules §5.2b): the row above the building tabs and its sheets. */
   recruitTemplates: {
     title: 'Templates',
@@ -1257,6 +1272,7 @@ export const en = {
     legendFold: 'Legend',
     legendKinds: {
       own: 'Your villages',
+      mate: 'Guild mates',
       player: 'Players',
       npc: 'NPC lords',
       barbarian: 'Barbarians',
@@ -1359,6 +1375,9 @@ export const en = {
       legend: 'Lines: solid behind the troops, dotted ahead',
       legendHostile: 'Attack on you: dashed',
       layers: 'Map layers',
+      villageOnlyToggle: 'Show only the movements of this village',
+      villageOnlyRow: 'Only this village',
+      villageOnlyHint: 'Leave out the movements of your other villages',
       markersRow: 'Troops at villages',
       markersHint: 'A badge on each village your troops are heading to',
       linesRow: 'Movement lines',
@@ -2634,6 +2653,9 @@ export const en = {
       lag: (duration: string) => `behind by ${duration}`,
       noLag: 'keeping up',
       failed: (count: number) => (count === 1 ? '1 failed' : `${count} failed`),
+      debugLog: 'Debug logs',
+      debugLogHint:
+        'Writes a line for every event, battle and NPC step to the server log. This slows the server down and fills the log files, so switch it on only to look into something. It switches itself off when the server restarts.',
       refresh: 'Refresh',
     },
     broadcast: {

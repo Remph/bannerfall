@@ -32,6 +32,7 @@ class AdminStatusService {
     private final AbuseService abuseService;
     private final InvariantCheck invariants;
     private final PushSettings pushSettings;
+    private final DebugLogging debugLogging;
 
     AdminStatusService(
             JdbcClient jdbc,
@@ -40,7 +41,8 @@ class AdminStatusService {
             @Value("${bannerfall.cheats.enabled:false}") boolean cheatsEnabled,
             AbuseService abuseService,
             InvariantCheck invariants,
-            PushSettings pushSettings) {
+            PushSettings pushSettings,
+            DebugLogging debugLogging) {
         this.jdbc = jdbc;
         this.clock = clock;
         this.version = appVersion.get();
@@ -49,6 +51,7 @@ class AdminStatusService {
         this.abuseService = abuseService;
         this.invariants = invariants;
         this.pushSettings = pushSettings;
+        this.debugLogging = debugLogging;
     }
 
     /** No transaction: a database that is down must still give an answer (with zeros). */
@@ -74,7 +77,8 @@ class AdminStatusService {
                     new PushStatusDto(
                             pushSettings.enabled(),
                             count("select count(*) from push_subscription"),
-                            count("select count(distinct player_id) from push_subscription")));
+                            count("select count(distinct player_id) from push_subscription")),
+                    debugLogging.enabled());
         } catch (DataAccessException e) {
             log.warn("Status: the database doesn't answer: {}", e.getMessage());
             return new AdminStatusDto(
@@ -89,7 +93,8 @@ class AdminStatusService {
                     new EventQueueDto(0, null, 0, 0),
                     cheatsEnabled,
                     new AbuseStatusDto(0, 0, 0, invariants.last()),
-                    new PushStatusDto(pushSettings.enabled(), 0, 0));
+                    new PushStatusDto(pushSettings.enabled(), 0, 0),
+                    debugLogging.enabled());
         }
     }
 

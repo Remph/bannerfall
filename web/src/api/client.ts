@@ -2,6 +2,7 @@ import createClient, { type Middleware } from 'openapi-fetch';
 import { serverClock } from '../game/serverTime';
 import { ServerVersionWatch } from '../game/version';
 import { readCookie } from './cookies';
+import { announceNewVersion } from './newVersion';
 import { ApiError, networkError, responseToApiError } from './errors';
 import type { paths } from './schema';
 
@@ -51,11 +52,16 @@ const middleware: Middleware = {
   },
   async onResponse({ response }) {
     serverClock.record(response.headers.get('X-Server-Time'), Date.now());
-    if (serverVersion.changed(response.headers.get('X-Server-Version'))) {
+    const verdict = serverVersion.check(response.headers.get('X-Server-Version'));
+    if (verdict.kind === 'reload') {
       // An update went live while this page was open: load the new version. The answer is never
       // handed on, so the old code doesn't render the new server's data in the meantime.
       window.location.reload();
       return new Promise<never>(() => {});
+    }
+    if (verdict.kind === 'patch') {
+      // a patch keeps the API: the page works on, and a strip offers the reload (1.6.3)
+      announceNewVersion(verdict.version);
     }
     if (!response.ok) {
       throw await responseToApiError(response);

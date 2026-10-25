@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  goalForLosses,
   linePrice,
   ordersOf,
   planSeconds,
@@ -161,5 +162,26 @@ describe('ordersOf and planSeconds', () => {
     // barracks 10 × 100 s, stable 3 × 200 s
     expect(planSeconds(lines)).toBe(1000);
     expect(planSeconds([])).toBe(0);
+  });
+});
+
+describe('goalForLosses', () => {
+  it('adds the loss to what the village owns of the unit: at home, away and in training', () => {
+    const goal = goalForLosses(
+      { AXEMAN: 40, SPEARMAN: 10 },
+      [{ ...barracks, queue: [{ unit: 'AXEMAN', count: 30, completedCount: 10 }] }, stable],
+      { AXEMAN: 50, LIGHT_CAVALRY: 7 },
+      { AXEMAN: 5 },
+    );
+
+    expect(goal).toEqual({ AXEMAN: 50 + 5 + 20 + 40, SPEARMAN: 10 });
+  });
+
+  it('makes the plan recruit exactly the loss while the village is rich', () => {
+    const losses = { AXEMAN: 40 };
+    const home = { AXEMAN: 50 };
+    const lines = planTemplate(input({ goal: goalForLosses(losses, [barracks], home, {}), home }));
+
+    expect(ordersOf(lines)).toEqual([{ unit: 'AXEMAN', count: 40 }]);
   });
 });

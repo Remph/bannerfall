@@ -1,7 +1,8 @@
 import { errorMessage } from '../../api/errors';
-import { useAdminStatus } from '../../api/queries/admin';
+import { useAdminStatus, useSetDebugLogging } from '../../api/queries/admin';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { SwitchRow } from '../../components/SwitchRow';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { formatDateTime, formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
@@ -14,6 +15,7 @@ export function StatusCard() {
   const labels = t.admin.status;
   const status = useAdminStatus();
   const s = status.data;
+  const debugLogging = useSetDebugLogging();
 
   return (
     <Card title={labels.title}>
@@ -56,6 +58,14 @@ export function StatusCard() {
                 )}
               </dd>
             </dl>
+            <SwitchRow
+              label={labels.debugLog}
+              checked={s.debugLogging}
+              disabled={debugLogging.isPending}
+              onChange={(enabled) => debugLogging.mutate(enabled)}
+            />
+            <p className={s.debugLogging ? styles.bad : styles.meta}>{labels.debugLogHint}</p>
+            {debugLogging.isError && <ErrorMessage>{errorMessage(t, debugLogging.error)}</ErrorMessage>}
           </>
         )}
         <div>

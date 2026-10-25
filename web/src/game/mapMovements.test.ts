@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { MapMovement } from '../api/queries/map';
-import { markerCount, movementMarkers, nextMovementArrivalMs, returnMarker } from './mapMovements';
+import type { MapMovement, MapMovementLine } from '../api/queries/map';
+import {
+  lineOfVillage,
+  markerCount,
+  movementMarkers,
+  movementsOfLines,
+  nextMovementArrivalMs,
+  returnMarker,
+} from './mapMovements';
 
 function movement(attacks: number, nobleAttacks: number, supports: number, nextArriveAt = '2026-10-13T10:00:00Z') {
   return {
@@ -92,5 +99,69 @@ describe('nextMovementArrivalMs', () => {
 
   it('is undefined without movements', () => {
     expect(nextMovementArrivalMs([])).toBeUndefined();
+  });
+});
+
+function ref(id: number) {
+  return { id, name: `V${id}`, x: id, y: id * 2, playerId: 7, playerName: 'ben' };
+}
+
+function line(
+  id: number,
+  kind: MapMovementLine['kind'],
+  from: number,
+  to: number,
+  arriveAt: string,
+  extra: Partial<MapMovementLine> = {},
+): MapMovementLine {
+  return { id, kind, own: true, nobles: false, from: ref(from), to: ref(to), departAt: null, arriveAt, ...extra };
+}
+
+describe('lineOfVillage', () => {
+  it('keeps what leaves from or arrives at the village', () => {
+    expect(lineOfVillage(line(1, 'ATTACK', 1, 9, '2026-10-13T10:00:00Z'), 1)).toBe(true);
+    expect(lineOfVillage(line(2, 'ATTACK', 9, 1, '2026-10-13T10:00:00Z'), 1)).toBe(true);
+    expect(lineOfVillage(line(3, 'ATTACK', 2, 9, '2026-10-13T10:00:00Z'), 1)).toBe(false);
+  });
+});
+
+describe('movementsOfLines', () => {
+  it('counts the lines per target village like the server’s markers', () => {
+    const lines = [
+      line(1, 'ATTACK', 1, 9, '2026-10-13T12:00:00Z', { nobles: true }),
+      line(2, 'ATTACK', 3, 9, '2026-10-13T11:00:00Z'),
+      line(3, 'SUPPORT', 1, 9, '2026-10-13T13:00:00Z'),
+      line(4, 'RETURN', 9, 1, '2026-10-13T09:00:00Z'),
+      line(5, 'RETURN', 9, 1, '2026-10-13T08:00:00Z'),
+    ];
+
+    expect(movementsOfLines(lines)).toEqual([
+      {
+        villageId: 1,
+        x: 1,
+        y: 2,
+        attacks: 0,
+        nobleAttacks: 0,
+        supports: 0,
+        returns: 2,
+        nextArriveAt: null,
+        nextReturnAt: '2026-10-13T08:00:00Z',
+      },
+      {
+        villageId: 9,
+        x: 9,
+        y: 18,
+        attacks: 2,
+        nobleAttacks: 1,
+        supports: 1,
+        returns: 0,
+        nextArriveAt: '2026-10-13T11:00:00Z',
+        nextReturnAt: null,
+      },
+    ]);
+  });
+
+  it('has nothing for no lines', () => {
+    expect(movementsOfLines([])).toEqual([]);
   });
 });

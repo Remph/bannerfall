@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { errorMessage } from '../../api/errors';
 import { useNoble } from '../../api/queries/noble';
 import { usePaladin } from '../../api/queries/paladin';
@@ -34,6 +34,8 @@ import {
 import { projectResources } from '../../game/resources';
 import { useGameNow } from '../../game/serverTime';
 import type { UnitMap } from '../../game/troops';
+import { parseCount } from '../../game/unitCount';
+import type { UnitType } from '../../game/gameData';
 import { useI18n, useT } from '../../i18n';
 import farm from '../farm/Farm.module.css';
 import { TemplateLetterBadge } from '../farm/TemplateButtons';
@@ -132,9 +134,21 @@ export function RecruitTemplates(props: RecruitTemplatesProps) {
   );
 }
 
+interface PlanSheetProps extends RecruitTemplatesProps {
+  template: RecruitTemplate | undefined;
+  onClose: () => void;
+  /** Another title and hint than a template's (re-recruiting losses, 1.6.3). */
+  title?: string;
+  hint?: string;
+  /** Makes the goal of these units editable; a goal of 0 keeps the row, recruiting nothing. */
+  goalEdit?: { units: readonly UnitType[]; onChange: (unit: UnitType, goal: number) => void };
+  /** The orders were accepted (before the sheet closes). */
+  onRecruited?: () => void;
+}
+
 /** A template's plan for this village (goal, have, now per unit) and the one button that recruits it. */
-function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | undefined; onClose: () => void }) {
-  const { village, buildings, away, queueSize, template, onClose } = props;
+export function PlanSheet(props: PlanSheetProps) {
+  const { village, buildings, away, queueSize, template, onClose, goalEdit, onRecruited } = props;
   const t = useT();
   const now = useGameNow();
   const enqueue = useEnqueueRecruitAll(village.id);
@@ -183,12 +197,12 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
     <Sheet
       open={template !== undefined}
       onClose={close}
-      title={template === undefined ? '' : `${template.letter} · ${template.name}`}
+      title={props.title ?? (template === undefined ? '' : `${template.letter} · ${template.name}`)}
     >
       <div className={farm.body}>
-        <p className={farm.hint}>{t.recruitTemplates.planHint}</p>
+        <p className={farm.hint}>{props.hint ?? t.recruitTemplates.planHint}</p>
         {!ready && <p className={farm.hint}>{t.recruitTemplates.loading}</p>}
-        {lines.length > 0 && (
+        {(lines.length > 0 || (goalEdit !== undefined && ready)) && (
           <table className={styles.planTable}>
             <thead>
               <tr>
@@ -201,9 +215,23 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => (
-                <PlanRow key={line.unit.unit} line={line} />
-              ))}
+              {goalEdit === undefined
+                ? lines.map((line) => <PlanRow key={line.unit.unit} line={line} />)
+                : goalEdit.units.map((type) => {
+                    const line = lines.find((candidate) => candidate.unit.unit === type);
+                    const goalCell = (
+                      <GoalInput
+                        unit={type}
+                        value={template?.units[type] ?? 0}
+                        onChange={(goal) => goalEdit.onChange(type, goal)}
+                      />
+                    );
+                    return line === undefined ? (
+                      <PlanGoalRow key={type} unit={type} goalCell={goalCell} />
+                    ) : (
+                      <PlanRow key={type} line={line} goalCell={goalCell} />
+                    );
+                  })}
             </tbody>
           </table>
         )}
@@ -232,7 +260,14 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
           <Button
             type="button"
             disabled={orders.length === 0 || enqueue.isPending}
-            onClick={() => enqueue.mutate(orders, { onSuccess: close })}
+            onClick={() =>
+              enqueue.mutate(orders, {
+                onSuccess: () => {
+                  onRecruited?.();
+                  close();
+                },
+              })
+            }
           >
             {enqueue.isPending ? t.recruit.recruiting : t.recruitTemplates.recruit(orders.length)}
           </Button>
@@ -243,7 +278,7 @@ function PlanSheet(props: RecruitTemplatesProps & { template: RecruitTemplate | 
 }
 
 /** One unit of the plan: name, goal, what the village has and what it recruits now (or why not). */
-function PlanRow({ line }: { line: PlanLine }) {
+function PlanRow({ line, goalCell }: { line: PlanLine; goalCell?: ReactNode }) {
   const { t, language } = useI18n();
   return (
     <tr className={line.now > 0 ? undefined : styles.planSkipped}>
@@ -255,12 +290,49 @@ function PlanRow({ line }: { line: PlanLine }) {
           {t.units[line.unit.unit]}
         </span>
       </th>
-      <td>{formatNumber(line.goal, language)}</td>
+      <td>{goalCell ?? formatNumber(line.goal, language)}</td>
       <td>{formatNumber(line.have, language)}</td>
       <td className={styles.planNow}>
         {line.skip === null ? formatNumber(line.now, language) : t.recruitTemplates.skip[line.skip]}
       </td>
     </tr>
+  );
+}
+
+/** An editable plan's unit with a goal of 0: nothing to recruit (the goal can be raised again). */
+function PlanGoalRow({ unit, goalCell }: { unit: UnitType; goalCell: ReactNode }) {
+  const t = useT();
+  return (
+    <tr className={styles.planSkipped}>
+      <th scope="row">
+        <span className={styles.planUnit}>
+          <span className={farm.unitIcon}>
+            <Icon name={unit} />
+          </span>
+          {t.units[unit]}
+        </span>
+      </th>
+      <td>{goalCell}</td>
+      <td aria-hidden="true">·</td>
+      <td className={styles.planNow}>·</td>
+    </tr>
+  );
+}
+
+/** The goal of one unit as a small number field (the plan of lost units, 1.6.3). */
+function GoalInput({ unit, value, onChange }: { unit: UnitType; value: number; onChange: (goal: number) => void }) {
+  const t = useT();
+  return (
+    <input
+      className={styles.goalInput}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      aria-label={t.recruitLosses.goalLabel(t.units[unit])}
+      value={String(value)}
+      onChange={(event) => onChange(parseCount(event.target.value, MAX_RECRUIT_COUNT))}
+    />
   );
 }
 

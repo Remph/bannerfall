@@ -22,6 +22,7 @@ import { RealtimeProvider } from '../realtime/RealtimeProvider';
 import { ActionsStayOn } from './ActionsStayOn';
 import styles from './AppLayout.module.css';
 import { ChangelogBanner } from './ChangelogBanner';
+import { NewVersionBanner } from './NewVersionBanner';
 import { VictoryClockStrip } from './VictoryClockStrip';
 import { WorldEndedBanner } from './WorldEndedBanner';
 import { WorldEndScreen } from './WorldEndScreen';
@@ -177,6 +178,7 @@ function GameFrame() {
       <WorldEndedBanner />
       <VictoryClockStrip />
       <WorldEndScreen />
+      <NewVersionBanner />
       <ChangelogBanner />
       <main className={[styles.main, fullScreen && styles.mainFull, wide && styles.mainWide].filter(Boolean).join(' ')}>
         <ActionsStayOn open={isOpenWhenEnded(pathname)}>

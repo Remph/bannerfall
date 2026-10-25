@@ -36,6 +36,8 @@ export interface OverviewScene {
   mapSize: number;
   villages: readonly MapVillage[];
   ownPlayerId: number;
+  /** The player's guild: its members' villages get the mate colour (1.6.3). */
+  ownGuildId: number | null;
   currentVillage: Coords;
   /** The part the detailed map shows; null while it hasn't been measured yet. */
   view: Rect | null;
@@ -90,7 +92,7 @@ export function drawOverview(ctx: CanvasRenderingContext2D, scene: OverviewScene
   }
   for (const village of visible) {
     const middle = toScreen(overview, size, { x: village.x + 0.5, y: village.y + 0.5 });
-    const kind = villageKind(village, scene.ownPlayerId);
+    const kind = villageKind(village, scene.ownPlayerId, scene.ownGuildId);
     const guild = political && village.guildId != null ? guildColor(village.guildId, scene.theme) : undefined;
     ctx.fillStyle = guild ?? colors.kinds[kind];
     // players without a guild fade back so the guilds stand out

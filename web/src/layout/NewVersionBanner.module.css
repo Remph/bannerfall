@@ -1,0 +1,20 @@
+/* A slim strip under the top bar, like the changelog banner; the stronger border says "act now". */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: calc(100% - 2 * var(--space-3));
+  max-width: var(--content-width);
+  margin: var(--space-2) auto 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: 1px solid var(--color-accent);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.text {
+  flex: 1;
+  margin: 0;
+}

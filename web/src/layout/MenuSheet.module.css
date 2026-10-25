@@ -48,6 +48,40 @@
   overflow: hidden;
 }
 
+/* the rows come in one after another when the menu opens (1.6.3); off with reduced motion */
+.rows li {
+  animation: row-in 0.26s ease-out both;
+}
+
+.rows li:nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+.rows li:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+.rows li:nth-child(4) {
+  animation-delay: 0.09s;
+}
+
+.rows li:nth-child(n + 5) {
+  animation-delay: 0.12s;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rows li {
+    animation: none;
+  }
+}
+
 .rows li + li {
   border-top: 1px solid var(--color-divider);
 }

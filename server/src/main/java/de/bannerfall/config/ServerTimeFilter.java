@@ -17,8 +17,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Adds {@code X-Server-Time} (ISO-8601 UTC, milliseconds) to every response; the web client
  * computes its clock offset from it (web/src/game/serverTime.ts). Also adds {@code
  * X-Server-Version} ({@link AppVersion}): a page that was open across an update sees the new
- * version on its next request and reloads, instead of running the old code against the new server's
- * data (web/src/game/version.ts). Runs before Spring Security, so 401 and 403 answers carry both.
+ * version on its next request: after a patch it shows a "reload" strip, after a minor or major
+ * update it reloads on its own, instead of running the old code against the new server's data
+ * (web/src/game/version.ts). Runs before Spring Security, so 401 and 403 answers carry both.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

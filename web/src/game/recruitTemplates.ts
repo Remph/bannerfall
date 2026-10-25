@@ -3,7 +3,7 @@ import type { BuildingType, UnitType } from './gameData';
 import { nobleUnitPrice, type NoblePricing } from './noblePrice';
 import { MAX_RECRUIT_COUNT, totalOf } from './recruitment';
 import { resourceTypes, type ResourceAmounts } from './resources';
-import type { UnitMap } from './troops';
+import { presentUnits, type UnitMap } from './troops';
 
 /**
  * A recruit template (02-game-rules §5.2b, 1.4): a name and the army a village should have, one of
@@ -71,6 +71,27 @@ export interface PlanInput {
  */
 export function linePrice(input: Pick<PlanInput, 'noble'>, unit: PlanUnit, count: number): ResourceAmounts {
   return unit.unit === 'NOBLE' && input.noble !== undefined ? nobleUnitPrice(input.noble, count) : unit.cost;
+}
+
+/**
+ * The goal that makes a plan re-recruit lost units (1.6.3): what the village owns of each lost unit
+ * (at home, away and still in its recruit orders, the same "have" the plan counts) plus the loss.
+ */
+export function goalForLosses(
+  losses: UnitMap,
+  buildings: readonly PlanBuilding[],
+  home: UnitMap,
+  away: UnitMap,
+): UnitMap {
+  return Object.fromEntries(
+    presentUnits(losses).map(([type, lost]) => {
+      const training = buildings
+        .flatMap((building) => building.queue)
+        .filter((order) => order.unit === type)
+        .reduce((sum, order) => sum + order.count - order.completedCount, 0);
+      return [type, (home[type] ?? 0) + (away[type] ?? 0) + training + lost];
+    }),
+  );
 }
 
 type Draft = Omit<PlanLine, 'now'>;

@@ -229,6 +229,17 @@ describe('villageKind', () => {
     expect(villageKind({ playerId: 9, npc: true }, 7)).toBe('npc');
     expect(villageKind({ playerId: null, npc: false }, 7)).toBe('barbarian');
   });
+
+  it('shows the villages of guild mates in their own colour (1.6.3)', () => {
+    expect(villageKind({ playerId: 8, npc: false, guildId: 3 }, 7, 3)).toBe('mate');
+    expect(villageKind({ playerId: 8, npc: false, guildId: 4 }, 7, 3)).toBe('player');
+    expect(villageKind({ playerId: 8, npc: false, guildId: null }, 7, 3)).toBe('player');
+    // without a guild of one's own nobody is a mate, even a player without a guild
+    expect(villageKind({ playerId: 8, npc: false, guildId: null }, 7, null)).toBe('player');
+    // the own villages and the lords keep their colours
+    expect(villageKind({ playerId: 7, npc: false, guildId: 3 }, 7, 3)).toBe('own');
+    expect(villageKind({ playerId: 9, npc: true, guildId: 3 }, 7, 3)).toBe('npc');
+  });
 });
 
 describe('mediumLabels', () => {
