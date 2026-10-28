@@ -243,6 +243,13 @@ const icons = {
     </>,
   ],
   shield: [16, <path d="M8 2 L13 4 V8 C13 11 10.5 13 8 14 C5.5 13 3 11 3 8 V4 Z" {...stroke} />],
+  tag: [
+    16,
+    <>
+      <path d="M2.5 8.2 V3.5 A1 1 0 0 1 3.5 2.5 H8.2 L13.5 7.8 L8.3 13 Z" {...stroke} strokeWidth={1.5} />
+      <circle cx="5.6" cy="5.6" r="1" fill="currentColor" />
+    </>,
+  ],
   pencil: [16, <path d="M3 13 L3.5 10.5 L10.5 3.5 L12.5 5.5 L5.5 12.5 Z" {...stroke} strokeWidth={1.5} />],
   clock: [
     16,
@@ -418,6 +425,24 @@ const icons = {
       {...stroke}
       strokeWidth={1.8}
     />,
+  ],
+  // the guild banner's three effects and its fund (1.7)
+  effectProduction: [
+    16,
+    <path
+      d="M8 14 V7 M8 8.5 C8 5.5 5.5 4 3 4 C3 6.5 5 8.5 8 8.5 M8 7 C8 4.5 10 3 13 3 C13 5.5 11 7 8 7"
+      {...stroke}
+      strokeWidth={1.5}
+    />,
+  ],
+  effectSupport: [16, <path d="M2.5 4 L7 8 L2.5 12 M8.5 4 L13 8 L8.5 12" {...stroke} strokeWidth={1.8} />],
+  effectDefence: [16, <path d="M3 2.5 H13 V8 C13 11 10.5 13 8 14 C5.5 13 3 11 3 8 Z M3 5.5 H13" {...stroke} />],
+  coins: [
+    16,
+    <>
+      <circle cx="6" cy="9.5" r="3.6" {...stroke} strokeWidth={1.4} />
+      <path d="M8.6 6.6 A3.6 3.6 0 1 1 11 11.5" {...stroke} strokeWidth={1.4} />
+    </>,
   ],
 } satisfies Record<string, [number, ReactNode]>;
 

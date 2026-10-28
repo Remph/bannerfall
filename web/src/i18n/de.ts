@@ -545,6 +545,15 @@ export const de: Dictionary = {
     switcherTitle: 'Deine Dörfer',
     mainVillage: 'Hauptdorf',
     rename: 'Dorf umbenennen',
+    tagAdd: 'Kürzel hinzufügen',
+    tagEdit: (tag: string) => `Kürzel ${tag}. Ändern`,
+    tagTitle: (village: string) => `Kürzel · ${village}`,
+    tagLabel: 'Kürzel',
+    tagHint: (max: number) => `Bis zu ${max} Buchstaben oder Ziffern, z. B. OFF oder DEF. Nur du siehst es.`,
+    tagPlaceholder: 'OFF',
+    tagRemove: 'Entfernen',
+    tagFilter: 'Dörfer mit dem Kürzel zeigen',
+    tagAll: 'Alle',
     nameLabel: 'Dorfname',
     nameHint: '1–32 Zeichen',
     nameEmpty: 'Bitte gib einen Namen ein.',
@@ -1475,6 +1484,7 @@ export const de: Dictionary = {
       tier === 0 ? 'Ohne Bannerhalle schläft das Banner.' : `Die Halle lässt es wie Stufe ${tierName(tier)} wirken.`,
     warBonus: 'Kriegsbanner',
     bulwarkBonus: 'Bollwerkbanner',
+    guildBannerBonus: 'Gildenbanner',
     plunderBonus: 'Beutebanner',
     oathBonus: 'Treuebanner',
     thievesSurvive: 'Überlebende Bannerdiebe',
@@ -1496,6 +1506,8 @@ export const de: Dictionary = {
     moraleHint: (floor: string) =>
       `100, außer der Verteidiger hat weniger als etwa ein Viertel der Punkte des Angreifers; die niedrigste Moral dieser Welt ist ${floor}.`,
     moraleResult: 'Moral',
+    guildBannerLevel: 'Stufe des Gildenbanners',
+    guildBannerLevelHint: 'Stufe 3 gibt +5 % Verteidigung. Zählt nur, wo die Welt Gildenbanner hat.',
     defenderThievesSurvive: 'Überlebende Bannerdiebe der Verteidiger',
     standardTheftChance: 'Chance, dass sie die Standarte nehmen',
   },
@@ -1749,6 +1761,7 @@ export const de: Dictionary = {
     bannersTitle: 'Banner',
     warBonus: 'Kriegsbanner des Angreifers',
     bulwarkBonus: 'Bollwerkbanner des Verteidigers',
+    guildBannerBonus: 'Gildenbanner des Verteidigers',
     bonus: (percent: string) => `+${percent}`,
     bannerFound: 'Du hast ein Banner gefunden',
     thieves: 'Bannerdiebe',
@@ -1811,6 +1824,7 @@ export const de: Dictionary = {
     victoryClockStoppedYours: 'Deine Gilde erfüllt die Siegbedingung nicht mehr. Die Siegesuhr steht.',
     victoryClockStoppedYou: 'Du erfüllst die Siegbedingung nicht mehr. Die Siegesuhr steht.',
     guildInvited: (guild: string) => `${guild} hat dich in ihre Gilde eingeladen`,
+    guildBannerRaised: (level: number) => `Deine Gilde hat ihr Banner auf Stufe ${level} angehoben`,
     messageReceived: (player: string) => `Neue Nachricht von ${player}`,
     achievementEarned: (name: string, level: string | null) =>
       level === null ? `Erfolg erreicht: ${name}` : `Erfolg erreicht: ${name} (${level})`,
@@ -2017,6 +2031,11 @@ export const de: Dictionary = {
     host: 'Spielleitung',
     broadcastToast: (text: string) => `Spielleitung: ${text}`,
   },
+  /** Das Hinweisfenster mit einer Nachricht der Spielleitung (1.7). */
+  broadcast: {
+    title: 'Nachricht der Spielleitung',
+    ok: 'OK',
+  },
   /** Gilden (M15a): Gründen, Einladungen, Mitglieder, die Werkzeuge der Anführer. */
   guild: {
     title: 'Gilde',
@@ -2052,7 +2071,7 @@ export const de: Dictionary = {
       accept: 'Beitreten',
       decline: 'Ablehnen',
     },
-    roles: { LEADER: 'Anführer', MEMBER: 'Mitglied' } as Record<'LEADER' | 'MEMBER', string>,
+    roles: { LEADER: 'Anführer', MEMBER: 'Mitglied' } satisfies Record<'LEADER' | 'MEMBER', string>,
     description: 'Über die Gilde',
     noDescription: 'Noch keine Beschreibung.',
     members: 'Mitglieder',
@@ -2086,6 +2105,59 @@ export const de: Dictionary = {
     leaveLastText: (name: string) => `Du bist das letzte Mitglied: ${name} endet, wenn du gehst.`,
     leaderMustHandOver:
       'Du führst diese Gilde. Gib die Führung an ein Mitglied ab, bevor du gehst, oder löse die Gilde auf.',
+    /** 1.7: die Feindmarkierungen der Gilde (02-game-rules §16.3) */
+    enemies: {
+      title: 'Feinde',
+      pill: 'Feind',
+      none: 'Keine Feinde markiert.',
+      noneLeader:
+        'Keine Feinde markiert. Markiere eine Gilde, einen Spieler oder ein Dorf auf seiner Seite oder auf der Karte.',
+      hint: 'Die Markierungen gelten für die ganze Gilde und ändern keine Regeln. Nur der Anführer markiert und hebt auf.',
+      count: (count: number, max: number) => `${count} von ${max} Markierungen belegt`,
+      guilds: 'Gilden',
+      players: 'Spieler',
+      villages: 'Dörfer',
+      mark: (name: string) => `${name} als Feind markieren`,
+      more: (name: string) => `Feindmarkierungen für ${name}`,
+      remove: (name: string) => `Feindmarkierung von ${name} entfernen`,
+      ownedBy: (name: string) => `von ${name}`,
+    },
+    /** The guild banner (1.7, 02-game-rules §16.4): three levels, paid with donated resources. */
+    banner: {
+      title: 'Gildenbanner',
+      hint: 'Die Mitglieder bezahlen das Gildenbanner mit Holz, Lehm und Eisen. Jede Stufe wirkt in jedem Dorf jedes Mitglieds.',
+      level: (level: number, max: number) => `Stufe ${level} von ${max}`,
+      levelOf: (level: number) => `Stufe ${level}`,
+      effects: {
+        PRODUCTION: (bonus: string) => `Produktion von Holz, Lehm und Eisen ${bonus}`,
+        SUPPORT: (bonus: string) => `Unterstützung für Gildenmitglieder kommt ${bonus} früher an`,
+        DEFENCE: (bonus: string) => `Verteidigung ${bonus} in jedem Dorf`,
+      },
+      pricePerMember: (price: string) => `${price} pro Mitglied`,
+      fund: 'Kasse',
+      fundOf: (fund: string, price: string) => `${fund} / ${price}`,
+      priceSum: (perMember: string, members: number) =>
+        `${perMember} × ${members} ${members === 1 ? 'Mitglied' : 'Mitglieder'}`,
+      full: 'Das Gildenbanner hat die höchste Stufe erreicht.',
+      fundFull: 'Die Kasse deckt die nächste Stufe.',
+      locked: (when: string) =>
+        `Das Anheben ist bis ${when} gesperrt: Ein Mitglied hat die Gilde verlassen. Spenden geht weiter.`,
+      donate: 'Spenden',
+      raise: 'Stufe anheben',
+      raiseTitle: (level: number) => `Gildenbanner auf Stufe ${level} anheben?`,
+      raiseText: (price: string) =>
+        `${price} werden der Kasse entnommen, der Rest bleibt darin. Der Preis richtet sich nach den Mitgliedern, die die Gilde jetzt hat.`,
+      donateTitle: 'Für das Gildenbanner spenden',
+      donateHint: (missing: string) =>
+        `Holz, Lehm und Eisen zählen eins zu eins. Für die nächste Stufe fehlen noch ${missing}.`,
+      village: 'Aus dem Dorf',
+      stock: (amount: string) => `${amount} im Lager`,
+      total: (amount: string) => `Du spendest ${amount}`,
+      amountLabel: (resource: string) => `Spendenmenge: ${resource}`,
+      donors: 'Spender',
+      noDonors: 'Noch niemand hat gespendet.',
+      publicLevel: (level: number, max: number) => `Gildenbanner Stufe ${level} von ${max}`,
+    },
   },
   /** Die Seite des Hosts (04-api, „Admin“). */
   ranking: {
@@ -2466,10 +2538,17 @@ export const de: Dictionary = {
     },
     broadcast: {
       title: 'Nachricht an alle',
-      hint: 'Erscheint im Chat aller Spieler und als Hinweis, z. B. „Neustart in 5 Minuten“.',
+      hint: 'Erscheint als Hinweisfenster bei allen, die gerade spielen, und bei jedem, der sich in den nächsten zehn Minuten anmeldet. Nicht im Chat, z. B. „Neustart in 5 Minuten“.',
       label: 'Nachricht',
       send: 'Senden',
       sent: 'Gesendet.',
+    },
+    chatSay: {
+      title: 'Nachricht im Chat',
+      hint: 'Erscheint im Chat aller Spieler als Nachricht der Spielleitung und als Hinweis bei denen, die gerade spielen.',
+      label: 'Nachricht',
+      send: 'Posten',
+      sent: 'Gepostet.',
     },
     barbarian: {
       title: 'Barbarendorf setzen',
@@ -2625,6 +2704,10 @@ export const de: Dictionary = {
       archersHint:
         'Sie greifen als eigene Klasse an, gegen die die Verteidigung gegen Bogenschützen jeder Einheit zählt. Auch NPC-Fürsten setzen sie ein.',
       archersOff: 'Vorhandene Bogenschützen bleiben und kämpfen weiter; neue kann niemand ausbilden oder erforschen.',
+      tutorialHint:
+        'Neue Spieler bekommen auf der Dorfseite ein kurzes Tutorial, Schritt für Schritt; manche Schritte erstatten, was sie gekostet haben, einmal pro Spieler. Aus: keine Karte, keine Menüzeile, keine Erstattung.',
+      guildBannersHint:
+        'Braucht Gilden. Eine Gilde bezahlt drei Stufen ihres Banners mit gespendetem Holz, Lehm und Eisen; sie geben +5 % Produktion, 10 % schnellere Unterstützung zu Gildenmitgliedern und +5 % Verteidigung in jedem Dorf jedes Mitglieds. Aus: keine Wirkung und kein Spenden; Stufe und Kasse bleiben.',
       guildStartTogetherHint:
         'Wer zur Eröffnung in einer Gilde ist, bekommt sein Dorf ein paar Felder neben seinen Gildenmitgliedern; wer sein letztes Dorf verloren hat, darf neben seiner Gilde neu anfangen.',
       npcGuildsHint:
@@ -2693,6 +2776,7 @@ export const de: Dictionary = {
         name: 'Weltname',
         inviteCode: 'Einladungscode',
         villageNameLanguage: 'Dorfnamen',
+        tutorial: 'Tutorial',
         speed: 'Weltgeschwindigkeit',
         unitSpeed: 'Einheitengeschwindigkeit',
         beginnerProtectionHours: 'Anfängerschutz',
@@ -2715,6 +2799,7 @@ export const de: Dictionary = {
         npcThinkMinutes: 'NPC-Runde',
         guilds: 'Gilden',
         guildStartTogether: 'Gildenmitglieder starten nebeneinander',
+        guildBanners: 'Gildenbanner',
         morale: 'Moral',
         nightBonus: 'Nachtbonus',
         unitLevels: 'Einheitenstufen',
@@ -2800,7 +2885,7 @@ export const de: Dictionary = {
     },
     difficulty: {
       title: 'NPC-Fürsten: Schwierigkeit',
-      names: { EASY: 'Leicht', NORMAL: 'Normal', HARD: 'Schwer', CUSTOM: 'Eigene' } as Record<
+      names: { EASY: 'Leicht', NORMAL: 'Normal', HARD: 'Schwer', CUSTOM: 'Eigene' } satisfies Record<
         'EASY' | 'NORMAL' | 'HARD' | 'CUSTOM',
         string
       >,
@@ -2829,7 +2914,7 @@ export const de: Dictionary = {
       empty: 'Es gibt keine NPC-Fürsten.',
       pregame:
         'Die Fürsten entstehen, wenn die Welt eröffnet wird; ihre Anzahl stellst du in den Welteinstellungen ein.',
-      personalities: { BALANCED: 'Ausgewogen', OFFENSIVE: 'Offensiv', DEFENSIVE: 'Defensiv' } as Record<
+      personalities: { BALANCED: 'Ausgewogen', OFFENSIVE: 'Offensiv', DEFENSIVE: 'Defensiv' } satisfies Record<
         'BALANCED' | 'OFFENSIVE' | 'DEFENSIVE',
         string
       >,
@@ -2885,6 +2970,91 @@ export const de: Dictionary = {
     finishMovements: 'Alle Truppenbewegungen und Händler jetzt ankommen lassen',
     spawnBarbarian: (coords: string) => `Barbarendorf auf ${coords}`,
   },
+  /** Das Tutorial (1.7, 02-game-rules §27): eine schmale Karte auf der Dorfseite, ein Schritt nach dem anderen. */
+  tutorial: {
+    label: 'Tutorial',
+    stepOf: (index: number, total: number) => `Schritt ${index} von ${total}`,
+    lessonTag: 'Gut zu wissen',
+    showMe: 'Zeig’s mir',
+    gotIt: 'Verstanden',
+    moreLabel: 'Mehr zum Tutorial',
+    skipStep: 'Diesen Schritt überspringen',
+    skipLesson: 'Diesen Tipp überspringen',
+    skipTutorial: 'Tutorial überspringen',
+    allSteps: 'Alle Schritte',
+    refundWhenDone: (amounts: string) => `Gibt es zurück: ${amounts}`,
+    refundToast: (amounts: string) => `Tutorial-Erstattung: ${amounts}`,
+    sheetTitle: 'Tutorial',
+    stepsHeading: 'Schritte',
+    lessonsHeading: 'Gut zu wissen',
+    status: { DONE: 'Erledigt', SKIPPED: 'Übersprungen', OPEN: 'Offen', UPCOMING: 'Später' },
+    next: 'Als Nächstes',
+    menuTitle: 'Tutorial',
+    menuHint:
+      'Kurze Tipps, wenn etwas Neues freigeschaltet wird. Erledigte Schritte erstatten, was sie gekostet haben.',
+    steps: {
+      WOODCUTTER: {
+        title: 'Holzfäller ausbauen',
+        text: 'Gebäude kosten Holz, Lehm und Eisen. Baue einen Holzfäller im Rathaus auf Stufe 2 aus; er produziert auch, wenn du nicht da bist.',
+      },
+      HEADQUARTERS: {
+        title: 'Rathaus ausbauen',
+        text: 'Ein höheres Rathaus baut schneller und schaltet weitere Gebäude frei. Bring es auf Stufe 3.',
+      },
+      BARRACKS: {
+        title: 'Kaserne bauen',
+        text: 'Hier werden Truppen ausgebildet. Baue sie im Rathaus.',
+      },
+      SPEARMEN: {
+        title: '5 Speerkämpfer ausbilden',
+        text: 'Speerkämpfer verteidigen dein Dorf und holen Beute bei Barbaren. Bilde 5 in der Kaserne aus; der Schritt ist erledigt, wenn sie fertig sind.',
+      },
+      MAP_BARBARIAN: {
+        title: 'Ein Barbarendorf finden',
+        text: 'Barbarendörfer gehören niemandem und sind Freiwild, auch solange du geschützt bist. Öffne eines auf der Karte.',
+      },
+      ATTACK: {
+        title: 'Den ersten Angriff schicken',
+        text: 'Schick einige Truppen gegen ein Dorf auf der Karte. Barbarendörfer sind das sichere erste Ziel, und die Truppen kommen mit Beute zurück.',
+      },
+      REPORT: {
+        title: 'Den Bericht lesen',
+        text: 'Jeder Kampf hat einen Bericht mit Verlusten und Beute. Öffne den deines Angriffs.',
+      },
+      SIMULATOR: {
+        title: 'Den Angriffssimulator ausprobieren',
+        text: 'Stell zwei Heere gegeneinander und sieh, wer gewinnt, bevor du Truppen riskierst. Es wird nichts geschickt.',
+      },
+      FARM_LIST: {
+        title: 'Ein Ziel in die Farmliste legen',
+        text: 'Die Farmliste wiederholt einen Angriff mit einem Tipp. Leg das Dorf hinein, das du gerade geplündert hast.',
+      },
+      MARKET: {
+        title: 'Marktplatz bauen',
+        text: 'Handle Rohstoffe mit anderen Spielern. Er braucht einen Speicher auf Stufe 2.',
+      },
+      GUILD: {
+        title: 'Einer Gilde beitreten oder eine gründen',
+        text: 'Gildenmitglieder haben einen eigenen Chat und stehen auf einer Seite.',
+      },
+      LESSON_UNIT_LEVELS: {
+        title: 'Einheitenstufen',
+        text: 'In der Schmiede kannst du eine Einheit auf Stufe 2 und 3 bringen: etwas mehr Angriff und Verteidigung in allen deinen Dörfern.',
+      },
+      LESSON_CONQUEST: {
+        title: 'Dörfer erobern',
+        text: 'Adlige aus der Akademie erobern Dörfer. Jeder überlebende Adlige senkt die Zustimmung eines Dorfes; bei 0 gehört es dir. Ein Adliger wird dabei verbraucht. Die Zustimmung eines Dorfes siehst du nur von deinem letzten Angriff darauf.',
+      },
+      LESSON_AUTOMATION: {
+        title: 'Dorf-Automatik',
+        text: 'Mit genug Dörfern kann ein Dorf nach einem Plan bauen, während du weg bist. Speichere einen Plan und schalte ihn pro Dorf ein.',
+      },
+      LESSON_BANNER_HALL: {
+        title: 'Banner',
+        text: 'Banner fallen in Kämpfen, die du gewinnst: etwa jedes zehnte Mal gegen Spieler und Fürsten, selten gegen Barbaren. Hisse eines pro Dorf; die Stufe der Halle begrenzt seine Stärke; drei gleiche werden zu einem besseren.',
+      },
+    },
+  },
   errors: {
     VALIDATION: 'Bitte überprüfe deine Eingaben.',
     UNAUTHENTICATED: 'Bitte melde dich an.',
@@ -2919,6 +3089,14 @@ export const de: Dictionary = {
     ALREADY_INVITED: 'Dieser Spieler wurde schon eingeladen.',
     GUILD_MEMBER_NOT_FOUND: 'Dieser Spieler gehört nicht zu deiner Gilde.',
     INVITATION_RATE_LIMIT: 'Dieser Spieler wurde gerade erst eingeladen. Versuche es in einer Minute wieder.',
+    ENEMY_NOT_ALLOWED: 'Die eigene Gilde, ihre Mitglieder und Barbarendörfer können nicht als Feinde markiert werden.',
+    ENEMY_LIMIT: 'Die Gilde hat so viele Feinde markiert, wie möglich ist. Entferne zuerst eine Markierung.',
+    GUILD_BANNERS_DISABLED: 'In dieser Welt sind Gildenbanner ausgeschaltet.',
+    BANNER_MAX_LEVEL: 'Das Gildenbanner hat die höchste Stufe erreicht.',
+    DONATION_TOO_LARGE: 'Die Kasse braucht für die nächste Stufe weniger. Spende nicht mehr, als noch fehlt.',
+    BANNER_FUND_LOW: 'Die Kasse deckt die nächste Stufe noch nicht.',
+    GUILD_BANNER_LOCKED:
+      'Vor kurzem hat ein Mitglied die Gilde verlassen. Die Stufe kann nach 24 Stunden wieder angehoben werden.',
     FARM_TARGET_NOT_FOUND: 'Dieses Ziel steht nicht mehr auf der Liste.',
     ALREADY_IN_FARM_LIST: 'Dieses Dorf steht schon auf der Liste.',
     FARM_LIST_FULL: 'Die Farmliste ist voll. Entferne zuerst ein Ziel.',
@@ -2959,6 +3137,8 @@ export const de: Dictionary = {
     RECRUIT_TEMPLATE_NOT_FOUND: 'Diese Vorlage gibt es nicht (mehr).',
     BUILD_PLAN_NOT_FOUND: 'Diesen Bauplan gibt es nicht (mehr).',
     AUTOMATION_LOCKED: 'Die Automatik ist für dich noch nicht freigeschaltet.',
+    TUTORIAL_STEP_NOT_FOUND: 'Diesen Tutorial-Schritt gibt es nicht.',
+    TUTORIAL_STEP_NOT_OPEN: 'Dieser Tutorial-Schritt ist noch nicht dran.',
     DISMISS_ORDER_NOT_FOUND: 'Diese Entlassung gibt es nicht mehr. Vielleicht sind die Einheiten schon weg.',
     DISMISS_LOCKED:
       'Ein Angriff ist unterwegs, deshalb lässt sich die Entlassung jetzt nicht stoppen. Versuche es nach seiner Ankunft erneut.',
@@ -2997,6 +3177,7 @@ export const de: Dictionary = {
     LAST_ADMIN: 'Der letzte Admin kann nicht aufhören, Admin zu sein. Mach zuerst jemand anderen zum Admin.',
     TOO_MANY_ADMIN_ATTEMPTS: 'Zu viele falsche Host-Tokens. Warte eine Minute.',
     WRONG_PASSWORD: 'Das aktuelle Passwort ist falsch.',
+    PASSWORD_TOO_COMMON: 'Dieses Passwort ist zu leicht zu erraten. Nimm ein anderes.',
     LOCAL_LOGIN_OFF: 'Auf dieser Welt meldest du dich über den Kontoserver an.',
     ACCOUNT_LINKED: 'Dieses Konto meldet sich über den Kontoserver an. Ändere das Passwort dort.',
     EXTERNAL_LOGIN_MISSING: 'Deine Anmeldung ist abgelaufen. Bitte melde dich noch einmal an.',

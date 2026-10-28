@@ -1,5 +1,6 @@
 package de.bannerfall.admin;
 
+import de.bannerfall.abuse.ClientNetwork;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,8 +17,8 @@ import org.springframework.stereotype.Component;
  * <p>Counted per remote address (M14d review): with one counter for everyone, anybody on the
  * internet could lock the host out of his own CLI for good with five bad requests a minute. Behind
  * the reverse proxy all outside requests share Caddy's address, while the CLI calls {@code
- * localhost:8080} inside the container, so it keeps working while the outside door is blocked. In
- * memory; a restart forgets it.
+ * localhost:8080} inside the container, so it keeps working while the outside door is blocked. An
+ * IPv6 address counts by its /64 network ({@link ClientNetwork}). In memory; a restart forgets it.
  */
 @Component
 public class AdminTokenLimiter {
@@ -36,11 +37,12 @@ public class AdminTokenLimiter {
     }
 
     synchronized boolean isBlocked(String address) {
-        Failures entry = failures.get(address);
+        Failures entry = failures.get(ClientNetwork.of(address));
         return entry != null && entry.count >= MAX_FAILURES && !expired(entry);
     }
 
     synchronized void recordFailure(String address) {
+        address = ClientNetwork.of(address);
         if (failures.size() > CLEANUP_SIZE) {
             failures.values().removeIf(this::expired);
         }
@@ -50,7 +52,7 @@ public class AdminTokenLimiter {
     }
 
     synchronized void recordSuccess(String address) {
-        failures.remove(address);
+        failures.remove(ClientNetwork.of(address));
     }
 
     /** Forgets every address (tests). */

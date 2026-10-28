@@ -10,7 +10,7 @@ export type VillageAutomation = components['schemas']['VillageAutomationDto'];
 export type AutomationState = VillageAutomation['state'];
 
 export const buildPlansQueryKey = ['build-plans'] as const;
-const planBuildingsQueryKey = ['plan-buildings'] as const;
+export const planBuildingsQueryKey = ['plan-buildings'] as const;
 /** The prefix of every village's automation status. */
 export const automationPrefix = ['automation'] as const;
 

@@ -141,9 +141,13 @@ class Menu {
 
     private void broadcast() {
         String text = ask("Message to everybody (Enter = back)");
-        if (!blank(text)) {
-            cli.execute("broadcast", text.strip());
+        if (blank(text)) {
+            return;
         }
+        String where = ask("1 = popup (Enter), 2 = chat");
+        cli.execute(
+                !blank(where) && where.strip().equals("2") ? "chat-say" : "broadcast",
+                text.strip());
     }
 
     private void cheats(boolean enabled) {

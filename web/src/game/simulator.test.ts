@@ -75,6 +75,7 @@ describe('toRequest', () => {
       defenderStandardTier: null,
       night: null,
       morale: null,
+      guildBannerLevel: null,
     });
   });
 
@@ -84,6 +85,12 @@ describe('toRequest', () => {
     expect(toRequest({ ...attack, morale: 48 }).morale).toBe(48);
     expect(toRequest({ ...attack, morale: 0 }).morale).toBeNull();
     expect(toRequest({ ...attack, morale: 4 }).morale).toBe(30);
+  });
+
+  it('sends the guild banner level only above 0 (1.7)', () => {
+    const attack = { ...emptyForm, attacker: { AXEMAN: 1 } };
+    expect(toRequest(attack).guildBannerLevel).toBeNull();
+    expect(toRequest({ ...attack, guildBannerLevel: 3 }).guildBannerLevel).toBe(3);
   });
 
   it('sends a paladin standard only with a paladin on that side (1.4)', () => {
@@ -183,7 +190,7 @@ describe('canSimulate', () => {
 });
 
 /** A report's banner part without the paladin standards of 1.4. */
-const noStandards = { attackStandard: null, foundStandard: null, standardTheft: null };
+const noStandards = { attackStandard: null, foundStandard: null, standardTheft: null, guildDefenceBonus: null };
 
 describe('reportToForm with banners (M32c)', () => {
   const effects = { WAR: [0.03, 0.06, 0.1], BULWARK: [0.03, 0.06, 0.1] };
@@ -439,6 +446,7 @@ describe('reportToForm with paladin standards (1.4)', () => {
       battle({
         banners: {
           attackBonus: null,
+          guildDefenceBonus: null,
           defenceBonus: null,
           found: null,
           theft: null,

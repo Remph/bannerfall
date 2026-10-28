@@ -1,6 +1,7 @@
 package de.bannerfall.guild;
 
 import de.bannerfall.account.AccountPrincipal;
+import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.player.PlayerService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -19,17 +20,27 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Guilds (04-api <i>Guilds</i>). Everybody who is logged in may read every guild; the changes are
  * the player's own (his guild, his invitations) and the leader's. All of them answer with the new
- * {@link MyGuildDto}. Open in the pre-game ({@code PregameGateFilter}).
+ * {@link MyGuildDto}, except the enemy marks (1.7), which answer with {@link EnemiesDto}, and the
+ * guild banner (1.7), which answers with {@link GuildBannerDto}. Open in the pre-game ({@code
+ * PregameGateFilter}).
  */
 @RestController
 @RequestMapping("/api/guilds")
 class GuildController {
 
     private final GuildService guildService;
+    private final GuildEnemyService enemies;
+    private final GuildBannerService banner;
     private final PlayerService playerService;
 
-    GuildController(GuildService guildService, PlayerService playerService) {
+    GuildController(
+            GuildService guildService,
+            GuildEnemyService enemies,
+            GuildBannerService banner,
+            PlayerService playerService) {
         this.guildService = guildService;
+        this.enemies = enemies;
+        this.banner = banner;
         this.playerService = playerService;
     }
 
@@ -103,6 +114,49 @@ class GuildController {
     MyGuildDto handLeadershipOver(
             @Valid @RequestBody LeaderRequest body, @AuthenticationPrincipal AccountPrincipal me) {
         return guildService.transferLeadership(playerOf(me), body.playerId());
+    }
+
+    /** The enemies the leader has marked (1.7); every member reads them. */
+    /** The guild banner (1.7): fund, level and donors; every member reads it. */
+    @GetMapping("/mine/banner")
+    GuildBannerDto guildBanner(@AuthenticationPrincipal AccountPrincipal me) {
+        return banner.get(playerOf(me));
+    }
+
+    /** Gives resources of one village to the guild fund (any member). */
+    @PostMapping("/mine/banner/donations")
+    GuildBannerDto donateToBanner(
+            @Valid @RequestBody GuildBannerDonationRequest body,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return banner.donate(
+                playerOf(me),
+                body.villageId(),
+                new ResourceAmounts(body.wood(), body.clay(), body.iron()));
+    }
+
+    /** Raises the banner by one level when the fund covers it (any member). */
+    @PostMapping("/mine/banner/raise")
+    GuildBannerDto raiseBanner(@AuthenticationPrincipal AccountPrincipal me) {
+        return banner.raise(playerOf(me));
+    }
+
+    @GetMapping("/mine/enemies")
+    EnemiesDto enemies(@AuthenticationPrincipal AccountPrincipal me) {
+        return enemies.list(playerOf(me));
+    }
+
+    @PutMapping("/mine/enemies")
+    EnemiesDto markEnemy(
+            @Valid @RequestBody EnemyRequest body, @AuthenticationPrincipal AccountPrincipal me) {
+        return enemies.add(playerOf(me), body.kind(), body.targetId());
+    }
+
+    @DeleteMapping("/mine/enemies/{kind}/{targetId}")
+    EnemiesDto unmarkEnemy(
+            @PathVariable EnemyKind kind,
+            @PathVariable long targetId,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return enemies.remove(playerOf(me), kind, targetId);
     }
 
     @DeleteMapping("/mine")

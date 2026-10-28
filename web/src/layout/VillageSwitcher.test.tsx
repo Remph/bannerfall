@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { meQueryKey, type Me } from '../api/queries/auth';
 import { renderPage } from '../testing/renderPage';
 import { VillageSwitcher } from './VillageSwitcher';
@@ -17,8 +17,8 @@ const me: Me = {
   respawnNearGuild: false,
   // as the server sends them: the village held longest first
   villages: [
-    { id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 200, incomingAttacks: 0 },
-    { id: 3, name: 'Tomburg', x: 50, y: 50, points: 100, incomingAttacks: 0 },
+    { id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 200, incomingAttacks: 0, tag: null },
+    { id: 3, name: 'Tomburg', x: 50, y: 50, points: 100, incomingAttacks: 0, tag: null },
   ],
 };
 
@@ -40,6 +40,8 @@ describe('VillageSwitcher', () => {
     };
   });
 
+  beforeEach(() => sessionStorage.clear());
+
   afterEach(cleanup);
 
   it('lists the villages in the server’s order and tags the first as the main village', () => {
@@ -55,5 +57,55 @@ describe('VillageSwitcher', () => {
     open(me.villages.slice(0, 1));
 
     expect(screen.queryByText('Main village')).toBeNull();
+  });
+
+  describe('with village tags', () => {
+    const tagged: Me['villages'] = [
+      { id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 200, incomingAttacks: 0, tag: 'OFF' },
+      { id: 3, name: 'Tomburg', x: 50, y: 50, points: 100, incomingAttacks: 0, tag: 'DEF' },
+      { id: 4, name: 'Eschenau', x: 51, y: 50, points: 90, incomingAttacks: 0, tag: null },
+    ];
+
+    it('shows no chips while no village has a tag', () => {
+      open(me.villages);
+
+      expect(screen.queryByRole('group', { name: 'Show villages with the tag' })).toBeNull();
+    });
+
+    it('shows the tag next to the name in the top bar and on the rows', () => {
+      open(tagged);
+
+      // the trigger, then the row of the same village
+      expect(screen.getAllByText('OFF')).toHaveLength(3); // trigger, chip, row
+      expect(screen.getAllByText('DEF')).toHaveLength(2); // chip, row
+    });
+
+    it('filters the list by the chip, keeps the main village tag, and remembers the chip', () => {
+      open(tagged);
+      const chips = screen.getByRole('group', { name: 'Show villages with the tag' });
+      expect(chips.textContent).toBe('AllDEFOFF');
+
+      fireEvent.click(screen.getByRole('button', { name: 'DEF', pressed: false }));
+
+      expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/v/3']);
+      expect(screen.getByRole('button', { name: 'DEF' }).getAttribute('aria-pressed')).toBe('true');
+      expect(sessionStorage.getItem('bannerfall.villageTagFilter')).toBe('DEF');
+
+      fireEvent.click(screen.getByRole('button', { name: 'All' }));
+
+      expect(screen.getAllByRole('link')).toHaveLength(3);
+      expect(sessionStorage.getItem('bannerfall.villageTagFilter')).toBeNull();
+    });
+
+    it('opens on the chip of this session, and on "All" when nobody uses that tag any more', () => {
+      sessionStorage.setItem('bannerfall.villageTagFilter', 'OFF');
+      open(tagged);
+      expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/v/9']);
+      cleanup();
+
+      sessionStorage.setItem('bannerfall.villageTagFilter', 'GONE');
+      open(tagged);
+      expect(screen.getAllByRole('link')).toHaveLength(3);
+    });
   });
 });

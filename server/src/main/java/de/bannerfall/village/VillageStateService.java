@@ -199,6 +199,6 @@ public class VillageStateService {
         return BannerRules.production(
                 Production.perHour(
                         village.getBuildings().get(resource.producer()), world.speed(), factor),
-                banner.harvest());
+                banner.production());
     }
 }

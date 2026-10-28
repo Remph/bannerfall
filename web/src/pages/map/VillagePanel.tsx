@@ -1,9 +1,15 @@
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { useCurrentAccount } from '../../api/queries/auth';
 import type { MapMovement, MapVillage } from '../../api/queries/map';
 import type { Village } from '../../api/queries/villages';
+import { errorMessage } from '../../api/errors';
+import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon, type IconName } from '../../components/Icon';
+import { MoreMenu } from '../../components/MoreMenu';
+import { useTutorialAck } from '../../components/useTutorialAck';
 import { IconButton } from '../../components/IconButton';
+import { VillageTag } from '../../components/VillageTag';
 import { distance } from '../../game/coords';
 import { bannerRollBackAt } from '../../game/farm';
 import {
@@ -16,6 +22,7 @@ import {
 } from '../../game/format';
 import { bracketTag } from '../../game/guilds';
 import type { Cover, VillageKind } from '../../game/mapView';
+import { tagOfVillage } from '../../game/villageTags';
 import { useI18n } from '../../i18n';
 import { movementMarkers } from '../../game/mapMovements';
 import { gameTime, serverNow } from '../../game/serverTime';
@@ -25,6 +32,8 @@ import { FarmLine } from './FarmLine';
 import { KeepRow } from './KeepRow';
 import { MarkerIcon } from './MarkerIcon';
 import { NoteBox, NoteSheet } from './VillageNote';
+import { EnemyPill } from '../guild/EnemyPill';
+import { useEnemyItems } from '../guild/useEnemyItems';
 
 const ACTION_ICONS: Record<MapActionKey, IconName> = {
   open: 'village',
@@ -40,6 +49,8 @@ interface VillagePanelProps {
   /** The player's own movements to this village (M26), if any and if the markers are shown. */
   movement?: MapMovement;
   kind: VillageKind;
+  /** The village belongs to an enemy of the player's guild, or is marked itself (1.7). */
+  enemy?: boolean;
   /** The village of the URL: distances are measured from it, attacks will start there. */
   currentVillage: Village;
   onClose: () => void;
@@ -58,15 +69,32 @@ export function VillagePanel({
   village,
   movement,
   kind,
+  enemy = false,
   currentVillage,
   onClose,
   onCover,
   docked = false,
 }: VillagePanelProps) {
   const { t, language } = useI18n();
+  // the tutorial's "open a barbarian village" step (1.7) is done by opening one on the map
+  useTutorialAck('MAP_BARBARIAN', kind === 'barbarian');
   const titleId = useId();
   const ref = useRef<HTMLElement>(null);
   const isCurrent = village.id === currentVillage.id;
+  // the player's own tag (1.7), on his own villages only; /api/me carries it
+  const myVillages = useCurrentAccount().villages;
+  const ownTag = kind === 'own' ? tagOfVillage(myVillages, village.id) : null;
+  // the guild leader's "…" (1.7): the village, its owner and the owner's guild
+  const villageName = village.name ?? (village.keep ? t.map.keep : t.map.barbarianVillage);
+  const enemyMenu = useEnemyItems([
+    { kind: 'VILLAGE', targetId: village.id, name: villageName, ownerId: village.playerId },
+    ...(village.playerId === null
+      ? []
+      : [{ kind: 'PLAYER' as const, targetId: village.playerId, name: village.playerName ?? '' }]),
+    ...(village.guildId === null || village.guildTag === null
+      ? []
+      : [{ kind: 'GUILD' as const, targetId: village.guildId, name: bracketTag(village.guildTag) }]),
+  ]);
   const actions = mapActions(village, kind, currentVillage.id);
   // the farm list has its own line in the panel (1.4)
   const ready = actions.filter(
@@ -114,12 +142,19 @@ export function VillagePanel({
       <header className={styles.panelHead}>
         <span className={styles.swatch} data-kind={kind} aria-hidden="true" />
         <h2 id={titleId} className={styles.panelTitle}>
-          {village.name ?? (village.keep ? t.map.keep : t.map.barbarianVillage)}{' '}
+          {villageName}{' '}
+          {ownTag !== null && (
+            <>
+              <VillageTag tag={ownTag} />{' '}
+            </>
+          )}
           <span className={styles.coords}>{formatCoords(village.x, village.y)}</span>
         </h2>
         {village.note === null && <IconButton icon="pencil" label={t.map.note.write} onClick={openNote} />}
+        {enemyMenu.items.length > 0 && <MoreMenu label={t.guild.enemies.more(villageName)} items={enemyMenu.items} />}
         <IconButton icon="close" label={t.common.close} onClick={onClose} />
       </header>
+      {enemyMenu.error !== null && <ErrorMessage>{errorMessage(t, enemyMenu.error)}</ErrorMessage>}
       {village.note !== null && <NoteBox note={village.note} onOpen={openNote} />}
       <dl className={styles.facts}>
         <div>
@@ -129,6 +164,7 @@ export function VillagePanel({
             {village.playerName ?? t.map.noOwner}
             {kind === 'own' && <span className={styles.tag}>{t.map.youTag}</span>}
             {kind === 'npc' && <span className={styles.tag}>{t.map.npcTag}</span>}
+            {enemy && <EnemyPill />}
           </dd>
         </div>
         {village.keep && <KeepRow village={village} />}

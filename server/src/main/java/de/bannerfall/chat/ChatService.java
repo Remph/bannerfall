@@ -139,13 +139,14 @@ public class ChatService {
     }
 
     /**
-     * A message from the host to everybody (M14d, 08-host-console §2), e.g. "restart in 5 minutes":
-     * stored and sent like a chat message, without an author. No rate limit.
+     * A message from the host in everybody's chat (M14d, 08-host-console §2): stored and sent like
+     * a chat message, without an author. No rate limit. Since 1.7 not what {@code broadcast} does
+     * (a popup, {@link BroadcastService}).
      *
      * @throws ApiException 400 {@code VALIDATION} as for {@link #send}
      */
     @Transactional
-    public ChatMessageDto broadcast(String text) {
+    public ChatMessageDto postAsHost(String text) {
         String trimmed = ChatText.checked(text);
         ChatMessage saved = messages.save(new ChatMessage(null, trimmed, clock.instant()));
         ChatMessageDto dto =

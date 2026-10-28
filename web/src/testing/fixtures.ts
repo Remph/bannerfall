@@ -1,9 +1,12 @@
 import type { AdminWorldSettings } from '../api/queries/admin';
+import type { Me } from '../api/queries/auth';
 import type { Banners } from '../api/queries/banners';
 import type { Noble } from '../api/queries/noble';
 import type { Paladin } from '../api/queries/paladin';
 import type { HallTraining, Smithy } from '../api/queries/smithy';
+import type { Tutorial } from '../api/queries/tutorial';
 import type { Village } from '../api/queries/villages';
+import type { World } from '../api/queries/world';
 
 /*
  * Answers of a real dev server (1.3), for the render tests: player Aldric with one village (59),
@@ -65,6 +68,83 @@ export const village: Village = {
     tier: 2,
     effectiveTier: 2,
   },
+};
+
+/** The logged-in player who owns {@link village}; the beginner protection is long over. */
+export const me: Me = {
+  accountId: 1,
+  username: 'aldric',
+  role: 'PLAYER',
+  playerId: 5,
+  points: 39,
+  protectedUntil: '2026-10-10T00:00:00Z',
+  needsRespawn: false,
+  linked: false,
+  respawnNearGuild: false,
+  villages: [
+    {
+      id: village.id,
+      name: village.name,
+      x: village.x,
+      y: village.y,
+      points: village.points,
+      incomingAttacks: 0,
+      tag: null,
+    },
+  ],
+};
+
+/** The running world the fixture village belongs to (a 100 × 100 map, banners and paladin on). */
+export const world: World = {
+  name: 'Bannerfall 1',
+  speed: 3,
+  unitSpeed: 1,
+  mapSize: 100,
+  mapSpread: 'NORMAL',
+  buildQueueSize: 5,
+  buildQueueMax: 10,
+  recruitQueueSize: 5,
+  tradeMaxRatio: 3,
+  startedAt: '2026-10-10T12:00:00Z',
+  startResources: 500,
+  luckRange: 0.25,
+  beginnerProtectionHours: 72,
+  nobleMaxDistance: 70,
+  loyaltyRegenPerHour: 1,
+  cancelWindowSeconds: 600,
+  barbarianGrowthEnabled: true,
+  npcLordCount: 4,
+  npcDifficulty: 'NORMAL',
+  guildsEnabled: false,
+  guildMaxMembers: 10,
+  guildStartTogether: true,
+  guildBannersEnabled: false,
+  npcGuildMaxMembers: 3,
+  barbarianWallsEnabled: false,
+  barbarianWallStartDays: 3,
+  barbarianWallMaxLevel: 5,
+  barbarianWallsRebuild: false,
+  unitLevelsEnabled: true,
+  paladinVillagesPerSlot: 4,
+  paladinMaxSlots: 5,
+  bannersEnabled: true,
+  bannerDropFactor: 1,
+  marketExchangeRatio: 1.5,
+  victoryMode: 'DOMINATION',
+  dominationPercent: 60,
+  victoryHoldHours: 48,
+  keepCount: 5,
+  keepPercent: 51,
+  endsAt: null,
+  endedAt: null,
+  phase: 'OPEN',
+  opensAt: null,
+  registeredPlayers: 6,
+  version: '1.7.0',
+  nightBonus: null,
+  archersEnabled: false,
+  moraleFloor: 30,
+  noblePriceStep: 0.25,
 };
 
 export const banners: Banners = {
@@ -647,8 +727,15 @@ export const noble: Noble = {
   costAfter: { wood: 60_000, clay: 75_000, iron: 75_000 },
 };
 
-/** The admin's world settings of a fresh pre-game world, before the guided setup (1.6). */
-export const pregameWorldSettings: AdminWorldSettings = {
+/**
+ * The admin's world settings of a fresh pre-game world, before the guided setup (1.6). A new world
+ * setting is added here once; tests pass only the fields they care about.
+ */
+export function adminSettingsFixture(overrides: Partial<AdminWorldSettings> = {}): AdminWorldSettings {
+  return { ...pregameDefaults, ...overrides };
+}
+
+const pregameDefaults: AdminWorldSettings = {
   name: 'Bannerfall 1',
   speed: 3,
   unitSpeed: 1,
@@ -674,6 +761,8 @@ export const pregameWorldSettings: AdminWorldSettings = {
   guildsEnabled: false,
   guildMaxMembers: 10,
   guildStartTogether: true,
+  guildBannersEnabled: false,
+  tutorialEnabled: true,
   npcGuildsEnabled: false,
   npcGuildMaxMembers: 3,
   unitLevelsEnabled: false,
@@ -710,4 +799,29 @@ export const pregameWorldSettings: AdminWorldSettings = {
   opensAt: null,
   endsAt: null,
   endedAt: null,
+};
+
+export const pregameWorldSettings: AdminWorldSettings = adminSettingsFixture();
+
+/** A new player's tutorial (1.7): the first of 11 steps is up, the world has no unit levels. */
+export const tutorial: Tutorial = {
+  enabled: true,
+  active: true,
+  current: { key: 'WOODCUTTER', kind: 'STEP', index: 1, total: 11, refund: { wood: 63, clay: 75, iron: 50 } },
+  steps: [
+    { key: 'WOODCUTTER', kind: 'STEP', status: 'OPEN' },
+    { key: 'HEADQUARTERS', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'BARRACKS', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'SPEARMEN', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'MAP_BARBARIAN', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'ATTACK', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'REPORT', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'SIMULATOR', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'FARM_LIST', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'MARKET', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'GUILD', kind: 'STEP', status: 'UPCOMING' },
+    { key: 'LESSON_CONQUEST', kind: 'LESSON', status: 'UPCOMING' },
+    { key: 'LESSON_AUTOMATION', kind: 'LESSON', status: 'UPCOMING' },
+  ],
+  refunds: [],
 };

@@ -39,8 +39,8 @@ const me: Me = {
   linked: false,
   respawnNearGuild: false,
   villages: [
-    { id: 59, name: "Aldric's village", x: 61, y: 58, points: 200, incomingAttacks: 0 },
-    { id: 3, name: 'Tomburg', x: 70, y: 58, points: 100, incomingAttacks: 0 },
+    { id: 59, name: "Aldric's village", x: 61, y: 58, points: 200, incomingAttacks: 0, tag: null },
+    { id: 3, name: 'Tomburg', x: 70, y: 58, points: 100, incomingAttacks: 0, tag: null },
   ],
 };
 

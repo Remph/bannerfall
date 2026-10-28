@@ -166,7 +166,7 @@ class NpcShipments {
             Village receiver, Coordinates from, WorldSettings world, Instant now) {
         int capacity = villageBanners.warehouseCapacity(receiver);
         double factor = receiver.getPlayer().getProductionFactor();
-        double harvest = villageBanners.effectOf(receiver).harvest();
+        double harvest = villageBanners.effectOf(receiver).production();
         double travelHours =
                 Merchants.travelSeconds(from.distanceTo(receiver.coordinates()), world) / 3600.0;
         double[] stored = {receiver.getWood(), receiver.getClay(), receiver.getIron()};

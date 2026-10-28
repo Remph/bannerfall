@@ -21,6 +21,7 @@ import { Icon } from '../../components/Icon';
 import { ListDetail } from '../../components/ListDetail';
 import { Pagination } from '../../components/Pagination';
 import { UnitSummary } from '../../components/UnitSummary';
+import { TutorialHint } from '../../components/TutorialHint';
 import { calendarDay, formatDateTime, formatDay, formatNumber, formatTime } from '../../game/format';
 import {
   groupByDay,
@@ -171,6 +172,7 @@ function ReportList({
       <header className={styles.listHead}>
         <div className={styles.headText}>
           <h1>{t.reports.title}</h1>
+          <TutorialHint steps={['REPORT']} />
           {total > 0 && (
             <p className={styles.meta}>
               {unread > 0 && `${t.reports.unreadCount(unread)} · `}

@@ -151,9 +151,11 @@ class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         static final Set<String> SUBSCRIPTIONS =
                 Set.of(
                         "/topic/chat",
+                        "/topic/broadcast",
                         "/user/queue/events",
                         "/user/queue/errors",
-                        "/user/queue/guild-chat");
+                        "/user/queue/guild-chat",
+                        "/user/queue/chat-seen");
 
         @Override
         public Message<?> preSend(Message<?> message, MessageChannel channel) {

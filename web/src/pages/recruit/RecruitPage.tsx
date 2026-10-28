@@ -22,6 +22,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { InfoRow } from '../../components/InfoRow';
 import { UnitCountInput } from '../../components/UnitCountInput';
+import { TutorialHint } from '../../components/TutorialHint';
 import { formatFactor, formatNumber, formatUpcoming } from '../../game/format';
 import { recruitingBuildings, type RecruitingBuilding, type UnitType } from '../../game/gameData';
 import { nobleUnitPrice } from '../../game/noblePrice';
@@ -105,6 +106,7 @@ function Recruit({ villageId, building }: { villageId: number; building: Recruit
       <header className={styles.head}>
         <h1>{t.recruit.title}</h1>
         <p className={styles.meta}>{village.data.name}</p>
+        <TutorialHint steps={['SPEARMEN']} />
       </header>
       {/* recruit templates (1.4): the same row above every building's tab */}
       <RecruitTemplates village={village.data} buildings={recruitment.data} away={away} queueSize={queueSize} />

@@ -51,6 +51,7 @@ export type GameNotification =
   | Schemas['VictoryClock']
   | Schemas['GuildInvited']
   | Schemas['GuildChanged']
+  | Schemas['GuildBannerRaised']
   | Schemas['MessageReceived']
   | Schemas['AchievementEarned']
   | Schemas['BannerFound']
@@ -71,6 +72,7 @@ const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'VICTORY_CLOCK',
   'GUILD_INVITED',
   'GUILD_CHANGED',
+  'GUILD_BANNER_RAISED',
   'MESSAGE_RECEIVED',
   'ACHIEVEMENT_EARNED',
   'BANNER_FOUND',
@@ -187,6 +189,9 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
     case 'GUILD_CHANGED':
       // members, leader, description or tag changed: the guild pages, and wherever tags are shown
       return [guildsQueryKey, rankingQueryKey, playerQueryKey, mapQueryKey];
+    case 'GUILD_BANNER_RAISED':
+      // 1.7: the level changes the production and the defence of every village of the guild's members
+      return [guildsQueryKey, ['village'], ['buildings']];
     case 'BANNER_FOUND':
       // M32b: a new banner in the stash
       return [bannersQueryKey];
@@ -279,6 +284,8 @@ export function notificationToast(
       return victoryClockToast(notification, t, language);
     case 'GUILD_INVITED':
       return { text: t.realtime.guildInvited(notification.guildName), tone: 'info', to: { pathname: '/guild' } };
+    case 'GUILD_BANNER_RAISED':
+      return { text: t.realtime.guildBannerRaised(notification.level), tone: 'success', to: { pathname: '/guild' } };
     case 'MESSAGE_RECEIVED':
       return {
         text: t.realtime.messageReceived(notification.fromPlayerName),

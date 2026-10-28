@@ -1,7 +1,9 @@
 package de.bannerfall.notify;
 
+import de.bannerfall.chat.BroadcastDto;
 import de.bannerfall.chat.ChatHiddenDto;
 import de.bannerfall.chat.ChatMessageDto;
+import de.bannerfall.chat.ChatSeenUpdate;
 import de.bannerfall.chat.GuildChatDelivery;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -35,8 +37,14 @@ class NotificationPublisher {
 
     static final String CHAT = "/topic/chat";
 
+    /** The host's popup messages (1.7). */
+    static final String BROADCAST = "/topic/broadcast";
+
     /** Per member, so a player who left or was kicked hears nothing more (M15b). */
     static final String GUILD_CHAT = "/queue/guild-chat";
+
+    /** The player's read marker moved on another device (1.7). */
+    static final String CHAT_SEEN = "/queue/chat-seen";
 
     private final SimpMessageSendingOperations messaging;
 
@@ -66,6 +74,15 @@ class NotificationPublisher {
     }
 
     @TransactionalEventListener
+    void send(BroadcastDto broadcast) {
+        try {
+            messaging.convertAndSend(BROADCAST, broadcast);
+        } catch (RuntimeException e) {
+            log.error("Could not send broadcast {}", broadcast.id(), e);
+        }
+    }
+
+    @TransactionalEventListener
     void send(ChatHiddenDto hidden) {
         try {
             messaging.convertAndSend(CHAT, hidden);
@@ -82,6 +99,15 @@ class NotificationPublisher {
             } catch (RuntimeException e) {
                 log.error("Could not send a guild chat message to player {}", playerId, e);
             }
+        }
+    }
+
+    @TransactionalEventListener
+    void send(ChatSeenUpdate update) {
+        try {
+            sendToPlayer(update.playerId(), CHAT_SEEN, update.seen());
+        } catch (RuntimeException e) {
+            log.error("Could not send the chat marker to player {}", update.playerId(), e);
         }
     }
 

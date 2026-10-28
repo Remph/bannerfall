@@ -65,6 +65,11 @@ public record CommandBanner(double attack, double carry, double haste, Standard 
         };
     }
 
+    /** The same banners with {@code extra} more travel time bonus (the guild banner, §16.4). */
+    public CommandBanner plusHaste(double extra) {
+        return new CommandBanner(attack, carry, haste + extra, standard);
+    }
+
     /** The same banners for an army with or without a paladin: only paladins carry a standard. */
     public CommandBanner forUnits(boolean withPaladin) {
         return withPaladin || standard == null

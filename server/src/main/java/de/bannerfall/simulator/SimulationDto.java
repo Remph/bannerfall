@@ -16,6 +16,8 @@ import java.util.Map;
  * @param scenarios ordered from the worst luck to the best
  * @param attackBonus the War banner the battles were fought with, as a fraction (M32c); 0 without
  * @param defenceBonus the Bulwark banner, as a fraction, after the hall's cap; 0 without
+ * @param guildDefenceBonus the defence the target's guild banner added (1.7, §16.4), as a fraction;
+ *     0 without
  * @param plunderBonus the Plunder banner the loot capacity was counted with, as a fraction (code
  *     review 1.2); 0 without
  * @param oathBonus the Oath banner the loyalty outlook was counted with, as a fraction, after the
@@ -32,6 +34,7 @@ public record SimulationDto(
         List<Scenario> scenarios,
         double attackBonus,
         double defenceBonus,
+        double guildDefenceBonus,
         double plunderBonus,
         double oathBonus,
         @Schema(nullable = true) Standard attackerStandard,

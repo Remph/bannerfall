@@ -191,3 +191,9 @@
 .paletteName {
   color: var(--color-text-muted);
 }
+
+/* the tutorial switch (1.7) with its short hint under it */
+.tutorial {
+  display: grid;
+  gap: var(--space-1);
+}

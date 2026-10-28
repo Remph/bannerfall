@@ -105,6 +105,39 @@ class AuthControllerTest {
     }
 
     @Test
+    void aCommonPasswordIsRefusedAtRegistration() throws Exception {
+        String name = uniqueName();
+
+        browser.register(name, "Password123")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PASSWORD_TOO_COMMON"));
+        browser.register(name, name)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PASSWORD_TOO_COMMON"));
+        browser.register(name, "zzzzzzzz")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PASSWORD_TOO_COMMON"));
+
+        assertThat(accounts.existsByUsernameKey(Account.keyOf(name))).isFalse();
+    }
+
+    @Test
+    void aCommonPasswordIsRefusedWhenChangingTheOwn() throws Exception {
+        String name = uniqueName();
+        browser.register(name, PASSWORD).andExpect(status().isCreated());
+
+        browser.post(
+                        "/api/me/password",
+                        "{\"currentPassword\":\"%s\",\"newPassword\":\"qwertz123\"}"
+                                .formatted(PASSWORD))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PASSWORD_TOO_COMMON"));
+
+        // the old password still works
+        Browser.open(mockMvc).login(name, PASSWORD).andExpect(status().isOk());
+    }
+
+    @Test
     void malformedJsonIsAValidationError() throws Exception {
         browser.post("/api/auth/register", "{not json")
                 .andExpect(status().isBadRequest())

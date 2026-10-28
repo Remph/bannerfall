@@ -4,6 +4,7 @@ import { useRefreshWhenMovementsArrive, useTroops, type Troops } from '../../api
 import { useVillage, type Village } from '../../api/queries/villages';
 import { DevCheats } from '../../components/DevCheats';
 import { SegmentedControl } from '../../components/SegmentedControl';
+import { TutorialHint } from '../../components/TutorialHint';
 import { formatCoords } from '../../game/format';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -94,6 +95,7 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
         <p className={styles.meta}>
           {village.name} {formatCoords(village.x, village.y)}
         </p>
+        <TutorialHint steps={['ATTACK']} />
         <Link className={styles.simulatorLink} to={simulatorPath(village.id)}>
           {t.simulator.title}
         </Link>

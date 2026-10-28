@@ -14,4 +14,12 @@ describe('destinations', () => {
     expect(destinations.guildChat).toBe('/user/queue/guild-chat');
     expect(destinations.guildChatSend).toBe('/app/guild-chat.send');
   });
+
+  it("names the topic of the host's popups", () => {
+    expect(destinations.broadcast).toBe('/topic/broadcast');
+  });
+
+  it('names the queue of the read markers', () => {
+    expect(destinations.chatSeen).toBe('/user/queue/chat-seen');
+  });
 });

@@ -12,11 +12,35 @@ import de.bannerfall.gamedata.BannerType;
  * @param tier the banner's own tier (1–3)
  * @param effectiveTier the tier it works at; 0 = dormant
  * @param bonus the effect of {@code effectiveTier}, as a fraction; 0 when dormant
+ * @param guild what the owner's guild banner adds in this village (1.7, §16.4); {@link
+ *     GuildEffect#NONE} without one. It is separate from the village's own banner: the two add up
+ *     where they touch the same number
  */
-public record BannerEffect(BannerType type, int tier, int effectiveTier, double bonus) {
+public record BannerEffect(
+        BannerType type, int tier, int effectiveTier, double bonus, GuildEffect guild) {
 
     /** No effect. */
     public static final BannerEffect NONE = new BannerEffect(null, 0, 0, 0);
+
+    /** A village banner without a guild banner behind it. */
+    public BannerEffect(BannerType type, int tier, int effectiveTier, double bonus) {
+        this(type, tier, effectiveTier, bonus, GuildEffect.NONE);
+    }
+
+    /** The same banner with the owner's guild banner added. */
+    public BannerEffect withGuild(GuildEffect guild) {
+        return new BannerEffect(type, tier, effectiveTier, bonus, guild);
+    }
+
+    /** Production of wood, clay and iron +: the Harvest banner and the guild banner's level 1. */
+    public double production() {
+        return harvest() + guild.production();
+    }
+
+    /** Defence of the village +: the Bulwark banner and the guild banner's level 3. */
+    public double defence() {
+        return bulwark() + guild.defence();
+    }
 
     /** The fraction this banner adds if it is of {@code wanted} type, otherwise 0. */
     public double of(BannerType wanted) {

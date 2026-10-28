@@ -95,6 +95,7 @@ public class AdminCli implements Callable<Integer> {
                     "guildsEnabled",
                     "guildMaxMembers",
                     "guildStartTogether",
+                    "guildBannersEnabled",
                     "npcGuildsEnabled",
                     "npcGuildMaxMembers",
                     "barbarianWallsEnabled",
@@ -125,7 +126,8 @@ public class AdminCli implements Callable<Integer> {
                     "moraleEnabled",
                     "moraleFloor",
                     "noblePriceStep",
-                    "automationVillages");
+                    "automationVillages",
+                    "tutorialEnabled");
 
     /** Only in the pre-game (M14g): fixed once the world's content exists. */
     static final List<String> PREGAME_SETTINGS =
@@ -449,14 +451,28 @@ public class AdminCli implements Callable<Integer> {
         return EXIT_OK;
     }
 
-    @Command(name = "broadcast", description = "A message from the host to everybody's chat")
+    @Command(
+            name = "broadcast",
+            description = "A popup with a message from the host, for everybody who is playing")
     int broadcast(
             @Parameters(arity = "1..*", paramLabel = "TEXT", description = "The message")
                     List<String> words) {
         JsonNode message =
                 client().post("/api/admin/broadcast", Map.of("text", String.join(" ", words)));
         if (!printedJson(message)) {
-            out.println("Sent to everybody: " + Json.show(message, "text"));
+            out.println("Popup sent to everybody: " + Json.show(message, "text"));
+        }
+        return EXIT_OK;
+    }
+
+    @Command(name = "chat-say", description = "A message from the host in everybody's chat")
+    int chatSay(
+            @Parameters(arity = "1..*", paramLabel = "TEXT", description = "The message")
+                    List<String> words) {
+        JsonNode message =
+                client().post("/api/admin/chat", Map.of("text", String.join(" ", words)));
+        if (!printedJson(message)) {
+            out.println("Posted in the chat: " + Json.show(message, "text"));
         }
         return EXIT_OK;
     }

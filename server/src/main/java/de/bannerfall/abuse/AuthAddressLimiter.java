@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>The address is the real client's: {@code server.forward-headers-strategy: native} takes it
  * from Caddy's {@code X-Forwarded-For}. Players behind one router share it, which these numbers
- * allow for.
+ * allow for. An IPv6 address counts by its /64 network ({@link ClientNetwork}): per full address a
+ * client with an IPv6 connection would have no limit at all (security review of 1.7).
  */
 @Component
 public class AuthAddressLimiter {
@@ -39,17 +40,17 @@ public class AuthAddressLimiter {
 
     /** False if this address has used up its logins for now. */
     public boolean tryLogin(String address) {
-        return logins.tryTake(address);
+        return logins.tryTake(ClientNetwork.of(address));
     }
 
     /** False if this address has used up its registrations for now. */
     public boolean tryRegister(String address) {
-        return registrations.tryTake(address);
+        return registrations.tryTake(ClientNetwork.of(address));
     }
 
     /** False if this address has used up its steps of the login through the account server. */
     public boolean tryExternal(String address) {
-        return external.tryTake(address);
+        return external.tryTake(ClientNetwork.of(address));
     }
 
     /**

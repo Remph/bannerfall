@@ -18,6 +18,7 @@ import java.time.Instant;
  * @param guildMaxMembers the most members a guild may have
  * @param guildStartTogether guild mates start next to each other at the opening and on a respawn
  *     (1.6, 02-game-rules §2); the pre-game world info says so
+ * @param guildBannersEnabled whether guilds can raise a banner (1.7, 02-game-rules §16.4)
  * @param npcGuildMaxMembers the most lords a guild of NPC lords may have (09-npc-lords §13), never
  *     above {@code guildMaxMembers}
  * @param barbarianWallsEnabled whether barbarian villages build walls (M29)
@@ -77,6 +78,7 @@ public record WorldDto(
         boolean guildsEnabled,
         int guildMaxMembers,
         boolean guildStartTogether,
+        boolean guildBannersEnabled,
         int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
         int barbarianWallStartDays,

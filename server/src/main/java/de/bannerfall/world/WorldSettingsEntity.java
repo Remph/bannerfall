@@ -62,6 +62,9 @@ public class WorldSettingsEntity {
     /** Guild mates start next to each other at the opening and on a respawn (1.6). */
     private boolean guildStartTogether;
 
+    /** Guilds can raise a guild banner (1.7). */
+    private boolean guildBannersEnabled;
+
     /** NPC lords form guilds (09-npc-lords §13). */
     private boolean npcGuildsEnabled;
 
@@ -136,6 +139,9 @@ public class WorldSettingsEntity {
     /** Village automation from this many villages on, 0 = off (1.6, 02-game-rules §25). */
     private int automationVillages;
 
+    /** The tutorial card, its menu row and its refunds (1.7, 02-game-rules §27). */
+    private boolean tutorialEnabled;
+
     /** The CUSTOM difficulty's values; null until the admin first picks CUSTOM. */
     @Convert(converter = NpcDifficultyConverter.class)
     @JdbcTypeCode(SqlTypes.JSON)
@@ -199,6 +205,7 @@ public class WorldSettingsEntity {
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
                 .guildStartTogether(guildStartTogether)
+                .guildBannersEnabled(guildBannersEnabled)
                 .npcGuildsEnabled(npcGuildsEnabled)
                 .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
@@ -230,6 +237,7 @@ public class WorldSettingsEntity {
                 .moraleFloor(moraleFloor)
                 .noblePriceStep(noblePriceStep)
                 .automationVillages(automationVillages)
+                .tutorialEnabled(tutorialEnabled)
                 .build();
     }
 
@@ -353,6 +361,9 @@ public class WorldSettingsEntity {
         if (u.guildStartTogether() != null) {
             guildStartTogether = u.guildStartTogether();
         }
+        if (u.guildBannersEnabled() != null) {
+            guildBannersEnabled = u.guildBannersEnabled();
+        }
         if (u.npcGuildsEnabled() != null) {
             npcGuildsEnabled = u.npcGuildsEnabled();
         }
@@ -445,6 +456,9 @@ public class WorldSettingsEntity {
         }
         if (u.automationVillages() != null) {
             automationVillages = u.automationVillages();
+        }
+        if (u.tutorialEnabled() != null) {
+            tutorialEnabled = u.tutorialEnabled();
         }
     }
 

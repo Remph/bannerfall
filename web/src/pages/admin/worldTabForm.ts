@@ -38,6 +38,7 @@ export const worldRows = {
   name: { section: 'basics', keys: ['name'] },
   inviteCode: { section: 'basics', keys: ['inviteCode'] },
   villageNameLanguage: { section: 'basics', keys: ['villageNameLanguage'] },
+  tutorial: { section: 'basics', keys: ['tutorialEnabled'] },
   speed: { section: 'pace', keys: ['speed'] },
   unitSpeed: { section: 'pace', keys: ['unitSpeed'] },
   beginnerProtectionHours: { section: 'pace', keys: ['beginnerProtectionHours'] },
@@ -63,6 +64,7 @@ export const worldRows = {
   npcThinkMinutes: { section: 'map', keys: ['npcThinkMinutes'] },
   guilds: { section: 'rules', keys: ['guildsEnabled', 'guildMaxMembers'] },
   guildStartTogether: { section: 'rules', keys: ['guildStartTogether'] },
+  guildBanners: { section: 'rules', keys: ['guildBannersEnabled'] },
   morale: { section: 'rules', keys: ['moraleEnabled', 'moraleFloor'] },
   nightBonus: {
     section: 'rules',

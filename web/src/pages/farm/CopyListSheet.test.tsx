@@ -39,8 +39,8 @@ const me: Me = {
   linked: false,
   respawnNearGuild: false,
   villages: [
-    { id: HERE, name: 'Dorf von Ben', x: 50, y: 60, points: 300, incomingAttacks: 0 },
-    { id: THERE, name: 'Zweitdorf', x: 52, y: 61, points: 120, incomingAttacks: 0 },
+    { id: HERE, name: 'Dorf von Ben', x: 50, y: 60, points: 300, incomingAttacks: 0, tag: null },
+    { id: THERE, name: 'Zweitdorf', x: 52, y: 61, points: 120, incomingAttacks: 0, tag: null },
   ],
 };
 

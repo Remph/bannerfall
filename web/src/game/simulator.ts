@@ -53,6 +53,8 @@ export interface SimulatorForm {
   night: boolean;
   /** 1.6 (02-game-rules §8.2): the attacker's morale in percent, 30 to 100; counts only in a world that has it. */
   morale: number;
+  /** 1.7 (02-game-rules §16.4): the defender's guild banner level, 0 to 3; counts only in a world that has it. */
+  guildBannerLevel: number;
 }
 
 export const emptyForm: SimulatorForm = {
@@ -75,6 +77,7 @@ export const emptyForm: SimulatorForm = {
   defenderStandardTier: 0,
   night: false,
   morale: 100,
+  guildBannerLevel: 0,
 };
 
 /** The banner fields of the form; a village flies one banner, so each side has two that exclude each other. */
@@ -146,6 +149,7 @@ export interface SimulatorBody {
   defenderStandardTier: number | null;
   night: boolean | null;
   morale: number | null;
+  guildBannerLevel: number | null;
 }
 
 export function hasUnit(units: UnitMap, type: UnitType): boolean {
@@ -190,6 +194,8 @@ export function toRequest(form: SimulatorForm): SimulatorBody {
     // full strength is the default; the server ignores it in a world without morale
     // an empty field (0) is full strength too; below the lowest the server takes counts as the lowest
     morale: form.morale > 0 && form.morale < 100 ? Math.max(MIN_MORALE, form.morale) : null,
+    // the server ignores it in a world without guild banners
+    guildBannerLevel: form.guildBannerLevel > 0 ? form.guildBannerLevel : null,
   };
 }
 

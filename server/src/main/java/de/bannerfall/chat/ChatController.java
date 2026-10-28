@@ -4,6 +4,7 @@ import de.bannerfall.account.AccountPrincipal;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.player.PlayerPrincipal;
 import de.bannerfall.player.PlayerService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,11 +31,27 @@ import org.springframework.web.bind.annotation.RestController;
 class ChatController {
 
     private final ChatService chatService;
+    private final ChatSeenService chatSeenService;
+    private final BroadcastService broadcastService;
     private final PlayerService playerService;
 
-    ChatController(ChatService chatService, PlayerService playerService) {
+    ChatController(
+            ChatService chatService,
+            ChatSeenService chatSeenService,
+            BroadcastService broadcastService,
+            PlayerService playerService) {
         this.chatService = chatService;
+        this.chatSeenService = chatSeenService;
+        this.broadcastService = broadcastService;
         this.playerService = playerService;
+    }
+
+    /**
+     * The host's popups of the last ten minutes, oldest first (1.7); the live ones come on STOMP.
+     */
+    @GetMapping("/api/broadcasts")
+    List<BroadcastDto> broadcasts() {
+        return broadcastService.recent();
     }
 
     /** The last 100 messages, oldest first; {@code before} = a message id pages further back. */
@@ -47,6 +66,24 @@ class ChatController {
             @RequestParam(required = false) @Min(1) Long before,
             @AuthenticationPrincipal AccountPrincipal me) {
         return chatService.guildHistory(playerService.idOf(me.accountId()), before);
+    }
+
+    /** The player's seen markers, one per channel he has read (1.7). */
+    @GetMapping("/api/chat/seen")
+    List<ChatSeenDto> seen(@AuthenticationPrincipal AccountPrincipal me) {
+        return chatSeenService.markers(playerService.idOf(me.accountId()));
+    }
+
+    /**
+     * He has read a channel up to a message; moves forward only, answers the marker as it stands
+     * (1.7).
+     */
+    @PutMapping("/api/chat/seen")
+    ChatSeenDto markSeen(
+            @Valid @RequestBody ChatSeenRequest request,
+            @AuthenticationPrincipal AccountPrincipal me) {
+        return chatSeenService.markSeen(
+                playerService.idOf(me.accountId()), request.guildId(), request.id());
     }
 
     /** The leader hides a message of his guild's chat (M15b). */

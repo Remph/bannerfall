@@ -1,0 +1,22 @@
+.popup {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* the host may write line breaks; the text is plain */
+.text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* several broadcasts in one popup: a thin line keeps them apart */
+.text + .text {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+}

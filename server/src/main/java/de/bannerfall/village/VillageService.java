@@ -13,6 +13,7 @@ import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class VillageService {
     private final BuildService buildService;
     private final MovementRepository movements;
     private final VillageBanners villageBanners;
+    private final VillageTagService villageTags;
     private final WorldService worldService;
     private final Clock clock;
 
@@ -38,6 +40,7 @@ public class VillageService {
             BuildService buildService,
             MovementRepository movements,
             VillageBanners villageBanners,
+            VillageTagService villageTags,
             WorldService worldService,
             Clock clock) {
         this.villages = villages;
@@ -47,6 +50,7 @@ public class VillageService {
         this.buildService = buildService;
         this.movements = movements;
         this.villageBanners = villageBanners;
+        this.villageTags = villageTags;
         this.worldService = worldService;
         this.clock = clock;
     }
@@ -73,7 +77,10 @@ public class VillageService {
 
     @Transactional(readOnly = true)
     public List<VillageSummaryDto> summariesOf(long playerId) {
-        return villages.findSummariesByPlayerId(playerId);
+        Map<Long, String> tags = villageTags.tagsOf(playerId);
+        return villages.findSummariesByPlayerId(playerId).stream()
+                .map(summary -> summary.withTag(tags.get(summary.id())))
+                .toList();
     }
 
     /** {@code recruiting}: the open recruit orders the catch-up returned. */

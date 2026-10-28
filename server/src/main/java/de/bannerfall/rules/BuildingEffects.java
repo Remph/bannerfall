@@ -52,9 +52,10 @@ public final class BuildingEffects {
                             pair(
                                     Kind.PRODUCTION_PER_HOUR,
                                     BannerRules.production(
-                                            Production.perHour(fromLevel, world), banner.harvest()),
+                                            Production.perHour(fromLevel, world),
+                                            banner.production()),
                                     BannerRules.production(
-                                            Production.perHour(to, world), banner.harvest())));
+                                            Production.perHour(to, world), banner.production())));
             case FARM ->
                     List.of(
                             new BuildingEffect(

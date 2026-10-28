@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TemplateLetter } from '../../game/farmTemplates';
 import type { RecruitTemplate } from '../../game/recruitTemplates';
-import type { UnitMap } from '../../game/troops';
+import { toUnitMap } from '../../game/troops';
 import { api, expectData } from '../client';
 
 export const recruitTemplatesQueryKey = ['recruit-templates'] as const;
@@ -15,7 +15,7 @@ export function useRecruitTemplates() {
       templates.map((template) => ({
         letter: template.letter,
         name: template.name,
-        units: template.units as UnitMap,
+        units: toUnitMap(template.units),
       })),
   });
 }

@@ -64,6 +64,7 @@ class WorldController {
                 settings.guildsEnabled(),
                 settings.guildMaxMembers(),
                 settings.guildStartTogether(),
+                settings.guildBannersEnabled(),
                 Math.min(settings.npcGuildMaxMembers(), settings.guildMaxMembers()),
                 settings.barbarianWallsEnabled(),
                 settings.barbarianWallStartDays(),

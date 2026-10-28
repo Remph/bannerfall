@@ -53,6 +53,9 @@ import java.util.Map;
  *     simulator doesn't know whether the target is a barbarian village (which never gets it)
  * @param morale the attacker's morale in percent (1.6, 02-game-rules §8.2), 30 to 100; null means
  *     100. Below the world's floor it counts as the floor; ignored while the world has morale off
+ * @param guildBannerLevel the level of the target village owner's guild banner (1.7, 02-game-rules
+ *     §16.4), 0 to 3; null means none. Only level 3 counts (its defence bonus), and only while the
+ *     world has guild banners on
  */
 public record SimulatorRequest(
         @NotNull Map<UnitType, @NotNull @Min(0) @Max(MAX_UNITS) Integer> attacker,
@@ -75,7 +78,8 @@ public record SimulatorRequest(
         @Schema(nullable = true) BannerType defenderStandard,
         @Schema(nullable = true) @Min(0) @Max(MAX_BANNER_TIER) Integer defenderStandardTier,
         @Schema(nullable = true) Boolean night,
-        @Schema(nullable = true) @Min(30) @Max(100) Integer morale) {
+        @Schema(nullable = true) @Min(30) @Max(100) Integer morale,
+        @Schema(nullable = true) @Min(0) @Max(3) Integer guildBannerLevel) {
 
     /** A simulation by day. */
     public SimulatorRequest(
@@ -114,6 +118,7 @@ public record SimulatorRequest(
                 attackerStandardTier,
                 defenderStandard,
                 defenderStandardTier,
+                null,
                 null,
                 null);
     }

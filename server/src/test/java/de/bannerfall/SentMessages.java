@@ -53,9 +53,26 @@ public class SentMessages implements ChannelInterceptor {
                 .toList();
     }
 
+    /** Everything sent to {@code /topic/broadcast} so far, oldest first (1.7). */
+    public List<String> broadcasts() {
+        return sent.stream()
+                .filter(message -> message.destination().equals("/topic/broadcast"))
+                .map(Sent::json)
+                .toList();
+    }
+
     /** Everything sent to the player's guild chat queue so far, oldest first (M15b). */
     public List<String> guildChat(long playerId) {
         String destination = "/user/" + playerId + "/queue/guild-chat";
+        return sent.stream()
+                .filter(message -> message.destination().equals(destination))
+                .map(Sent::json)
+                .toList();
+    }
+
+    /** Everything sent to the player's chat-marker queue so far, oldest first (1.7). */
+    public List<String> chatSeen(long playerId) {
+        String destination = "/user/" + playerId + "/queue/chat-seen";
         return sent.stream()
                 .filter(message -> message.destination().equals(destination))
                 .map(Sent::json)

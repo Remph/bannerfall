@@ -11,9 +11,11 @@ import {
   newestId,
   olderPageBefore,
   prependOlder,
+  serverSeenId,
   startsGroup,
   unreadCount,
   withoutMessage,
+  withSeenMarker,
   type ChatLine,
 } from './chat';
 
@@ -184,5 +186,39 @@ describe('withoutMessage', () => {
     expect(ids(cut)).toEqual([1, 3]);
     expect(cut.complete).toBe(true);
     expect(ids(withoutMessage(log, 99))).toEqual([1, 2, 3]);
+  });
+});
+
+describe('serverSeenId', () => {
+  const markers = [
+    { guildId: null, id: 40 },
+    { guildId: 3, id: 25 },
+  ];
+
+  it('finds the marker of the world and of a guild', () => {
+    expect(serverSeenId(markers)).toBe(40);
+    expect(serverSeenId(markers, 3)).toBe(25);
+  });
+
+  it('is null for a channel nobody has read', () => {
+    expect(serverSeenId(markers, 4)).toBeNull();
+    expect(serverSeenId([])).toBeNull();
+  });
+});
+
+describe('withSeenMarker', () => {
+  it('adds a marker and moves one forward', () => {
+    expect(withSeenMarker([], { guildId: null, id: 5 })).toEqual([{ guildId: null, id: 5 }]);
+    expect(withSeenMarker([{ guildId: null, id: 5 }], { guildId: null, id: 9 })).toEqual([{ guildId: null, id: 9 }]);
+  });
+
+  it('never goes back to an older id and leaves the other channels alone', () => {
+    const markers = [
+      { guildId: null, id: 9 },
+      { guildId: 3, id: 4 },
+    ];
+    const result = withSeenMarker(markers, { guildId: null, id: 5 });
+    expect(serverSeenId(result)).toBe(9);
+    expect(serverSeenId(result, 3)).toBe(4);
   });
 });

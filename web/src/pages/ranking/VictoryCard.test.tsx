@@ -44,6 +44,7 @@ const world: World = {
   guildsEnabled: true,
   guildMaxMembers: 10,
   guildStartTogether: true,
+  guildBannersEnabled: false,
   npcGuildMaxMembers: 3,
   barbarianWallsEnabled: false,
   barbarianWallStartDays: 3,

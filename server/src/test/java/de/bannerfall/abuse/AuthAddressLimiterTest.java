@@ -38,4 +38,16 @@ class AuthAddressLimiterTest {
 
         assertThat(limiter.tryRegister("198.51.100.7")).isFalse();
     }
+
+    @Test
+    void anIpv6NetworkSharesOneBucket() {
+        for (int i = 0; i < 3; i++) {
+            assertThat(limiter.tryRegister("2001:db8:1:2::" + (i + 1))).isTrue();
+        }
+
+        // a fourth address of the same /64 is out of tokens; the next network is not
+        assertThat(limiter.tryRegister("2001:db8:1:2:dead:beef:0:1")).isFalse();
+        assertThat(limiter.tryRegister("2001:db8:1:3::1")).isTrue();
+        assertThat(limiter.addressesHeld()).isEqualTo(2);
+    }
 }

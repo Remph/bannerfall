@@ -9,6 +9,7 @@ import { Card } from '../../components/Card';
 import { MoreMenu } from '../../components/MoreMenu';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { SegmentedControl } from '../../components/SegmentedControl';
+import { TutorialHint } from '../../components/TutorialHint';
 import {
   FARM_LIST_MAX,
   bannerRollBackAt,
@@ -106,6 +107,7 @@ function Farm({ villageId }: { villageId: number }) {
       <header className={styles.head}>
         <h1>{t.farm.title}</h1>
         <p className={styles.hint}>{t.farm.explainer}</p>
+        <TutorialHint steps={['FARM_LIST']} />
       </header>
       {/* desktop: the targets left, the form at the right (1.3); phones: one column, the form first
           when coming from "Add to farm list" on the map or a report (first in the page too, so the

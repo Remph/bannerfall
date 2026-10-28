@@ -5,6 +5,7 @@ import { useBuildings, useEnqueueBuild, type BuildingInfo, type NextLevel } from
 import { useVillage, type Village } from '../../api/queries/villages';
 import { useWorld } from '../../api/queries/world';
 import { BackLink } from '../../components/BackLink';
+import { TutorialHint } from '../../components/TutorialHint';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { CostList } from '../../components/CostList';
@@ -85,6 +86,7 @@ function TownHall({ villageId }: { villageId: number }) {
         <p className={styles.meta}>
           {village.data.name} · {t.village.level(hqLevel)}
         </p>
+        <TutorialHint steps={['WOODCUTTER', 'HEADQUARTERS', 'BARRACKS', 'MARKET']} />
       </header>
       <div className={styles.layout}>
         <div className={styles.queue}>

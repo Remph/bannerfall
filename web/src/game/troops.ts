@@ -6,6 +6,18 @@ import { unitTypes, type UnitType } from './gameData';
  */
 export type UnitMap = Partial<Record<UnitType, number>>;
 
+/** A unit map from the API, where the keys are plain strings: only the known unit types stay. */
+export function toUnitMap(units: Readonly<Record<string, number>>): UnitMap {
+  const map: UnitMap = {};
+  for (const type of unitTypes) {
+    const count = units[type];
+    if (count !== undefined) {
+      map[type] = count;
+    }
+  }
+  return map;
+}
+
 /** The units that are there, in unit order: [['SPEARMAN', 120], ['AXEMAN', 30]]. */
 export function presentUnits(units: UnitMap): [UnitType, number][] {
   // the return type on the arrow function tells flatMap that each entry is a [type, count] pair

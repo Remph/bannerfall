@@ -478,6 +478,8 @@ public record BattleReport(
      * @param standardTheft the defenders' thieves' roll for the attack's standard after a lost
      *     attack: the full roll in the village owner's copy, in the attacker's copy only when they
      *     took it
+     * @param guildDefenceBonus the defence the village's guild banner gave (1.7, 02-game-rules
+     *     §16.4), as a fraction; seen like {@code defenceBonus}
      */
     public record BannerReport(
             @Schema(nullable = true) Double attackBonus,
@@ -487,7 +489,30 @@ public record BattleReport(
             @Schema(nullable = true) ScoutedBanner stolen,
             @Schema(nullable = true) StandardReport attackStandard,
             @Schema(nullable = true) ScoutedBanner foundStandard,
-            @Schema(nullable = true) StandardTheftReport standardTheft) {
+            @Schema(nullable = true) StandardTheftReport standardTheft,
+            @Schema(nullable = true) Double guildDefenceBonus) {
+
+        /** A banner block without a guild banner. */
+        public BannerReport(
+                Double attackBonus,
+                Double defenceBonus,
+                ScoutedBanner found,
+                TheftReport theft,
+                ScoutedBanner stolen,
+                StandardReport attackStandard,
+                ScoutedBanner foundStandard,
+                StandardTheftReport standardTheft) {
+            this(
+                    attackBonus,
+                    defenceBonus,
+                    found,
+                    theft,
+                    stolen,
+                    attackStandard,
+                    foundStandard,
+                    standardTheft,
+                    null);
+        }
 
         /** A banner block without paladin standards. */
         public BannerReport(
@@ -519,6 +544,29 @@ public record BattleReport(
                 StandardReport attackStandard,
                 ScoutedBanner foundStandard,
                 StandardTheftReport standardTheft) {
+            return orNull(
+                    attackBonus,
+                    defenceBonus,
+                    found,
+                    theft,
+                    stolen,
+                    attackStandard,
+                    foundStandard,
+                    standardTheft,
+                    null);
+        }
+
+        /** Null instead of a block that says nothing, with standards and the guild banner. */
+        public static BannerReport orNull(
+                Double attackBonus,
+                Double defenceBonus,
+                ScoutedBanner found,
+                TheftReport theft,
+                ScoutedBanner stolen,
+                StandardReport attackStandard,
+                ScoutedBanner foundStandard,
+                StandardTheftReport standardTheft,
+                Double guildDefenceBonus) {
             if (attackBonus == null
                     && defenceBonus == null
                     && found == null
@@ -526,7 +574,8 @@ public record BattleReport(
                     && stolen == null
                     && attackStandard == null
                     && foundStandard == null
-                    && standardTheft == null) {
+                    && standardTheft == null
+                    && guildDefenceBonus == null) {
                 return null;
             }
             return new BannerReport(
@@ -537,7 +586,8 @@ public record BattleReport(
                     stolen,
                     attackStandard,
                     foundStandard,
-                    standardTheft);
+                    standardTheft,
+                    guildDefenceBonus);
         }
     }
 

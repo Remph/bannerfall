@@ -42,6 +42,7 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) Boolean guildsEnabled,
         @Schema(nullable = true) @Min(2) @Max(50) Integer guildMaxMembers,
         @Schema(nullable = true) Boolean guildStartTogether,
+        @Schema(nullable = true) Boolean guildBannersEnabled,
         @Schema(nullable = true) Boolean npcGuildsEnabled,
         @Schema(nullable = true) @Min(2) @Max(50) Integer npcGuildMaxMembers,
         @Schema(nullable = true) Boolean barbarianWallsEnabled,
@@ -73,4 +74,5 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @Min(30) @Max(100) Integer moraleFloor,
         @Schema(nullable = true) @DecimalMin("0") @DecimalMax("1") Double noblePriceStep,
         @Schema(nullable = true) @Min(0) @Max(100) Integer automationVillages,
+        @Schema(nullable = true) Boolean tutorialEnabled,
         @Schema(nullable = true) MapSpread mapSpread) {}

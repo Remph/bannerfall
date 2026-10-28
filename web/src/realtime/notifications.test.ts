@@ -24,7 +24,7 @@ function me(villages: { id: number; name: string; incomingAttacks: number }[]): 
     needsRespawn: false,
     linked: false,
     respawnNearGuild: false,
-    villages: villages.map((village) => ({ ...village, x: 50, y: 50, points: 100 })),
+    villages: villages.map((village) => ({ ...village, x: 50, y: 50, points: 100, tag: null })),
   };
 }
 
@@ -149,6 +149,10 @@ describe('staleQueries', () => {
 
   it('refreshes the invitations when a guild invites the player', () => {
     expect(staleQueries({ type: 'GUILD_INVITED', guildId: 3, guildName: 'Iron Wolves' })).toEqual([['guilds', 'mine']]);
+  });
+
+  it('refreshes the guild and every village when the guild raises its banner', () => {
+    expect(staleQueries({ type: 'GUILD_BANNER_RAISED', level: 2 })).toEqual([['guilds'], ['village'], ['buildings']]);
   });
 
   it('refreshes the inbox, the counter and open conversations when a message arrives', () => {
@@ -379,6 +383,14 @@ describe('notificationToast', () => {
     ).toEqual({ text: 'Iron Wolves invited you to join their guild', tone: 'info', to: { pathname: '/guild' } });
   });
 
+  it('toasts the guild banner level and links to the guild page', () => {
+    expect(notificationToast({ type: 'GUILD_BANNER_RAISED', level: 2 }, en, ben, now, 'en')).toEqual({
+      text: 'Your guild raised its banner to level 2',
+      tone: 'success',
+      to: { pathname: '/guild' },
+    });
+  });
+
   it('toasts a private message and links to the conversation', () => {
     expect(
       notificationToast({ type: 'MESSAGE_RECEIVED', fromPlayerId: 7, fromPlayerName: 'Anna' }, en, ben, now, 'en'),
@@ -444,6 +456,7 @@ describe('every query key and the events', () => {
     clock(null, null, false, false),
     { type: 'GUILD_INVITED', guildId: 3, guildName: 'Iron Wolves' },
     { type: 'GUILD_CHANGED' },
+    { type: 'GUILD_BANNER_RAISED', level: 1 },
     { type: 'MESSAGE_RECEIVED', fromPlayerId: 7, fromPlayerName: 'Anna' },
     { type: 'ACHIEVEMENT_EARNED', achievement: 'VICTOR', leveled: true, level: 1 },
     { type: 'BANNER_FOUND', bannerType: 'WAR', tier: 2, village: tomburg },
@@ -458,14 +471,18 @@ describe('every query key and the events', () => {
     banNoticeKey: 'set by a refused login, not fetched',
     chatQueryKey: 'the chat topics on the socket update it (RealtimeProvider)',
     guildChatQueryKey: 'the chat topics on the socket update it (RealtimeProvider)',
+    broadcastsQueryKey: 'the broadcast topic on the socket updates it (RealtimeProvider)',
+    chatSeenQueryKey: 'its own queue on the socket updates it (RealtimeProvider, chat-seen)',
     pushQueryKey: 'this device’s own push setting',
     worldStatisticsQueryKey: 'world totals, no event for them; loaded when the page opens',
     recruitTemplatesQueryKey: 'only the player changes them, on this page',
     buildPlansQueryKey: 'only the player changes them, on the automation page',
+    planBuildingsQueryKey: 'fixed for the world, never changes while the app is open',
     farmTemplatesQueryKey: 'only the player changes them, on this page',
     recentRecipientsQueryKey: 'only the player changes them, by sharing',
     blocksQueryKey: 'only the player changes them, on this page',
     reportQueryKey: 'a report doesn’t change once written',
+    tutorialQueryKey: 'follows the village on screen (useTutorialSync)',
   };
 
   const modules: Record<string, Record<string, unknown>> = import.meta.glob(

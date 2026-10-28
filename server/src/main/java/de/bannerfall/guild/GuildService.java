@@ -47,6 +47,7 @@ public class GuildService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final AchievementService achievements;
+    private final GuildBannerService banner;
 
     /**
      * When each player was last invited by any guild (in memory, per instance, like the chat's
@@ -66,7 +67,8 @@ public class GuildService {
             WorldService worldService,
             ApplicationEventPublisher events,
             Clock clock,
-            AchievementService achievements) {
+            AchievementService achievements,
+            GuildBannerService banner) {
         this.guilds = guilds;
         this.members = members;
         this.invitations = invitations;
@@ -76,6 +78,7 @@ public class GuildService {
         this.events = events;
         this.clock = clock;
         this.achievements = achievements;
+        this.banner = banner;
     }
 
     // ---- reading ----
@@ -294,6 +297,7 @@ public class GuildService {
         List<Long> everybody = members.playerIdsOf(locked.guild.getId());
         members.delete(target);
         members.flush();
+        banner.memberLeft(locked.guild.getId());
         notifyAll(everybody);
         return myGuild(leaderId);
     }
@@ -367,6 +371,7 @@ public class GuildService {
                 // The old leader goes first, the one-leader index would refuse two.
                 members.delete(locked.me);
                 members.flush();
+                banner.memberLeft(locked.guild.getId());
                 GuildMember successor = others.getFirst();
                 successor.setRole(GuildRole.LEADER);
                 members.saveAndFlush(successor);
@@ -567,6 +572,7 @@ public class GuildService {
         } else {
             members.delete(locked.me);
             members.flush();
+            banner.memberLeft(guildId);
             notifyAll(everybody);
         }
     }
@@ -647,6 +653,7 @@ public class GuildService {
                 guild.getDescription(),
                 guild.getCreatedAt(),
                 points,
+                banner.levelOf(guild.getId()),
                 list,
                 withInvitations ? invitations.findOfGuild(guild.getId()) : null);
     }

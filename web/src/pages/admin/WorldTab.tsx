@@ -506,6 +506,7 @@ function BasicsSection({ editor }: { editor: Editor }) {
           <p className={styles.hint}>{t.admin.world.villageNameLanguageHint}</p>
         </div>
       </Plain>
+      <Toggle editor={editor} row="tutorial" name="tutorialEnabled" hint={t.admin.world.tutorialHint} />
     </Group>
   );
 }
@@ -824,6 +825,7 @@ function RulesSection({ editor }: { editor: Editor }) {
         </Fields>
       </Toggle>
       <Toggle editor={editor} row="guildStartTogether" name="guildStartTogether" hint={world.guildStartTogetherHint} />
+      <Toggle editor={editor} row="guildBanners" name="guildBannersEnabled" hint={world.guildBannersHint} />
     </Group>
   );
   const combat = (

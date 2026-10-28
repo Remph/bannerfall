@@ -350,11 +350,20 @@ export function useResetPassword() {
   });
 }
 
-/** POST /api/admin/broadcast: a chat message from the host to everybody. */
+/** POST /api/admin/broadcast: a popup with a message of the host for everybody connected (1.7). */
 export function useBroadcast() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (text: string) => expectData(api.POST('/api/admin/broadcast', { body: { text } })),
+    onSuccess: () => invalidateAudit(queryClient),
+  });
+}
+
+/** POST /api/admin/chat: a chat message from the host to everybody, without an author. */
+export function useChatSay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (text: string) => expectData(api.POST('/api/admin/chat', { body: { text } })),
     onSuccess: () => invalidateAudit(queryClient),
   });
 }

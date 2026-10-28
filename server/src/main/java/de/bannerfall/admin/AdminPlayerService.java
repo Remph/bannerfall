@@ -17,6 +17,7 @@ import de.bannerfall.note.VillageNoteService;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerRepository;
 import de.bannerfall.village.ProfileVillageDto;
+import de.bannerfall.village.VillageTagService;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -53,6 +54,7 @@ public class AdminPlayerService {
     private final AchievementService achievements;
     private final BannerService banners;
     private final VillageNoteService notes;
+    private final VillageTagService villageTags;
     private final AdminAuditService audit;
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -67,6 +69,7 @@ public class AdminPlayerService {
             AchievementService achievements,
             BannerService banners,
             VillageNoteService notes,
+            VillageTagService villageTags,
             AdminAuditService audit,
             JdbcClient jdbc,
             Clock clock) {
@@ -78,6 +81,7 @@ public class AdminPlayerService {
         this.achievements = achievements;
         this.banners = banners;
         this.notes = notes;
+        this.villageTags = villageTags;
         this.audit = audit;
         this.jdbc = jdbc;
         this.clock = clock;
@@ -186,8 +190,9 @@ public class AdminPlayerService {
     /**
      * The player's villages become barbarian ({@link BarbarianService#convertVillagesOf}); a
      * human's account is disabled (no login, no respawn), so the player leaves the ranking and
-     * can't come back. The rows stay: reports and chat messages point at them. His village notes go
-     * (1.4): nobody can read them any more. An NPC lord ends up out of the game with no villages.
+     * can't come back. The rows stay: reports and chat messages point at them. His village notes
+     * (1.4) and tags (1.7) go: nobody can read them any more. An NPC lord ends up out of the game
+     * with no villages.
      *
      * @param adminAccountId the caller; an admin can't delete himself. Null for the host token.
      * @throws GameRuleException {@code LAST_ADMIN} for the last admin who can log in (M14d review)
@@ -217,6 +222,7 @@ public class AdminPlayerService {
         guilds.removeBecauseGone(playerId);
         banners.destroyAllOf(playerId, "player deleted");
         notes.deleteAllOf(playerId);
+        villageTags.deleteAllOf(playerId);
         audit.record(
                 "DELETE_PLAYER",
                 "player",

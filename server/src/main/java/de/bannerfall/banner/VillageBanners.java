@@ -2,11 +2,13 @@ package de.bannerfall.banner;
 
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.guild.GuildBannerLevels;
 import de.bannerfall.movement.CommandBanner;
 import de.bannerfall.player.Player;
 import de.bannerfall.research.UnitLevelService;
 import de.bannerfall.rules.BannerEffect;
 import de.bannerfall.rules.BannerRules;
+import de.bannerfall.rules.GuildEffect;
 import de.bannerfall.rules.StandardEffect;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.village.Village;
@@ -34,20 +36,41 @@ public class VillageBanners {
     private final BannerCatalog catalog;
     private final WorldService worldService;
     private final UnitLevelService unitLevels;
+    private final GuildBannerLevels guildBanners;
 
     VillageBanners(
             BannerRepository banners,
             BannerCatalog catalog,
             WorldService worldService,
-            UnitLevelService unitLevels) {
+            UnitLevelService unitLevels,
+            GuildBannerLevels guildBanners) {
         this.banners = banners;
         this.catalog = catalog;
         this.worldService = worldService;
         this.unitLevels = unitLevels;
+        this.guildBanners = guildBanners;
     }
 
-    /** The effect of the banner in {@code village}; the caller has locked the village. */
+    /**
+     * The effect of the banner in {@code village} with the owner's guild banner added (1.7,
+     * 02-game-rules §16.4); the caller has locked the village.
+     */
     public BannerEffect effectOf(Village village) {
+        BannerEffect own = ownEffectOf(village);
+        GuildEffect guild = guildBanners.effectOf(village.getPlayer());
+        return guild.equals(GuildEffect.NONE) ? own : own.withGuild(guild);
+    }
+
+    /**
+     * The guild banner's bonus on a support sent from a village of {@code from} to one of {@code
+     * to} (1.7, 02-game-rules §16.4, level 2): travel time −, only between two guild mates.
+     */
+    public double guildSupportHaste(Player from, Player to) {
+        return guildBanners.supportHaste(from, to);
+    }
+
+    /** The effect of the banner that flies in {@code village} itself (§21). */
+    private BannerEffect ownEffectOf(Village village) {
         Player owner = village.getPlayer();
         int hall = village.getBuildings().get(BuildingType.BANNER_HALL);
         if (owner == null || hall < 1 || !worksFor(owner)) {
@@ -157,13 +180,14 @@ public class VillageBanners {
     /** Warehouse capacity per resource with the Treasury bonus (02-game-rules §3, §21.2). */
     public int warehouseCapacity(Village village) {
         return Storage.warehouseCapacity(
-                village.getBuildings().get(BuildingType.WAREHOUSE), effectOf(village).treasury());
+                village.getBuildings().get(BuildingType.WAREHOUSE),
+                ownEffectOf(village).treasury());
     }
 
     /** Hiding place capacity per resource with the Treasury bonus. */
     public int hidingCapacity(Village village) {
         return Storage.hidingCapacity(
                 village.getBuildings().get(BuildingType.HIDING_PLACE),
-                effectOf(village).treasury());
+                ownEffectOf(village).treasury());
     }
 }

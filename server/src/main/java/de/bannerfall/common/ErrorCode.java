@@ -152,6 +152,8 @@ public enum ErrorCode {
     TOO_MANY_ADMIN_ATTEMPTS,
     /** Changing your own password with a wrong current password (409). */
     WRONG_PASSWORD,
+    /** A new password that is among the most used ones, or is the account's own name (409). */
+    PASSWORD_TOO_COMMON,
 
     // Abuse protection (M14e)
     /** The account is banned (403): login, or a session of an account banned meanwhile. */
@@ -216,6 +218,25 @@ public enum ErrorCode {
     GUILD_MEMBER_NOT_FOUND,
     /** The invited player got another invitation less than a minute ago (429). */
     INVITATION_RATE_LIMIT,
+    /**
+     * Marking as an enemy a guild mate, the own guild, a barbarian village or yourself (409; 1.7,
+     * 02-game-rules §16.3).
+     */
+    ENEMY_NOT_ALLOWED,
+    /** The guild has marked as many enemies as {@code ENEMY_MAX} allows (409). */
+    ENEMY_LIMIT,
+    /** Guild banners are switched off in this world (409; 1.7, 02-game-rules §16.4). */
+    GUILD_BANNERS_DISABLED,
+    /** The guild banner has its last level already (409). */
+    BANNER_MAX_LEVEL,
+    /**
+     * A donation that is larger than what the next level still lacks, or the fund is full (409).
+     */
+    DONATION_TOO_LARGE,
+    /** The fund doesn't cover the next level's price (409). */
+    BANNER_FUND_LOW,
+    /** No guild banner level can be raised for 24 h after a member left or was removed (409). */
+    GUILD_BANNER_LOCKED,
 
     // Private messages (M17)
     /** Messaging or blocking yourself (409). */
@@ -251,6 +272,12 @@ public enum ErrorCode {
     BUILD_PLAN_NOT_FOUND,
     /** The player owns fewer villages than the world's automationVillages, or it is off (409). */
     AUTOMATION_LOCKED,
+
+    // Tutorial (1.7)
+    /** A tutorial step or lesson with that key doesn't exist (404). */
+    TUTORIAL_STEP_NOT_FOUND,
+    /** Ticking off a step whose turn has not come (409). */
+    TUTORIAL_STEP_NOT_OPEN,
 
     // Unit levels (M30)
     /** Researching a unit level while the host has unit levels switched off (409). */

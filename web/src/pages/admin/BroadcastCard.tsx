@@ -1,6 +1,7 @@
+import { type UseMutationResult } from '@tanstack/react-query';
 import { useState } from 'react';
 import { errorMessage } from '../../api/errors';
-import { useBroadcast } from '../../api/queries/admin';
+import { useBroadcast, useChatSay } from '../../api/queries/admin';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -9,11 +10,25 @@ import { chatLength, CHAT_MAX_LENGTH } from '../../game/chat';
 import { useT } from '../../i18n';
 import styles from './AdminPage.module.css';
 
-/** POST /api/admin/broadcast: a chat message without author that everybody also gets as a toast. */
+/** POST /api/admin/broadcast: a popup for everybody who is playing (1.7), nothing in the chat. */
 export function BroadcastCard() {
   const t = useT();
-  const labels = t.admin.broadcast;
-  const broadcast = useBroadcast();
+  return <MessageCard labels={t.admin.broadcast} broadcast={useBroadcast()} />;
+}
+
+/** POST /api/admin/chat: a chat message without author that everybody also gets as a toast. */
+export function ChatSayCard() {
+  const t = useT();
+  return <MessageCard labels={t.admin.chatSay} broadcast={useChatSay()} />;
+}
+
+interface MessageCardProps {
+  labels: { title: string; hint: string; label: string; send: string; sent: string };
+  broadcast: UseMutationResult<unknown, Error, string>;
+}
+
+function MessageCard({ labels, broadcast }: MessageCardProps) {
+  const t = useT();
   const [text, setText] = useState('');
   const trimmed = text.trim();
   const valid = trimmed !== '' && chatLength(trimmed) <= CHAT_MAX_LENGTH;

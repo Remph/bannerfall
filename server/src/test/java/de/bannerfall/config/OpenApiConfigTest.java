@@ -105,6 +105,7 @@ class OpenApiConfigTest {
                 .containsEntry("WORLD_OPENED", "#/components/schemas/WorldOpened")
                 .containsEntry("GUILD_INVITED", "#/components/schemas/GuildInvited")
                 .containsEntry("GUILD_CHANGED", "#/components/schemas/GuildChanged")
+                .containsEntry("GUILD_BANNER_RAISED", "#/components/schemas/GuildBannerRaised")
                 .containsEntry("MESSAGE_RECEIVED", "#/components/schemas/MessageReceived")
                 .containsEntry("ACHIEVEMENT_EARNED", "#/components/schemas/AchievementEarned")
                 .containsEntry("BANNER_FOUND", "#/components/schemas/BannerFound")
@@ -113,7 +114,7 @@ class OpenApiConfigTest {
                 .containsEntry("VICTORY_CLOCK", "#/components/schemas/VictoryClock")
                 .containsEntry("ATTACKS_RETURNED", "#/components/schemas/AttacksReturned")
                 .containsEntry("STORAGE_FULL", "#/components/schemas/StorageFull")
-                .hasSize(18);
+                .hasSize(19);
         // treated like every other DTO: required properties, nullable where it can be null
         assertThat(
                         JsonPath.<List<String>>read(

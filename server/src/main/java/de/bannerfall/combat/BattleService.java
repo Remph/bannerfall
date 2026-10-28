@@ -239,7 +239,7 @@ public class BattleService {
                                                                 at))
                                         .toList())
                         .attackBonus(trip.attack())
-                        .defenceBonus(targetBanner.bulwark())
+                        .defenceBonus(targetBanner.defence())
                         .attackerStandard(attackStandard)
                         .defenderStandards(defenderStandards)
                         // the night bonus (1.4, §8.1) at the arrival, for an owned village
@@ -365,7 +365,8 @@ public class BattleService {
                                 BattleReports.standardOf(attackStandard),
                                 found.attackerStandard(),
                                 found.defenderStandard(),
-                                standardTheft),
+                                standardTheft,
+                                targetBanner.guild().defence()),
                         haulCapacity,
                         away,
                         standardBefore),

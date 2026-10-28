@@ -3,7 +3,7 @@ spring:
     name: bannerfall
   config:
     # Game numbers (buildings, units, NPC lords) live in their own files; see docs/plan/01-architecture.md §4.2.
-    import: classpath:gamedata/buildings.yml,classpath:gamedata/units.yml,classpath:gamedata/achievements.yml,classpath:gamedata/banners.yml,classpath:gamedata/npc/offensive.yml,classpath:gamedata/npc/balanced.yml,classpath:gamedata/npc/defensive.yml,classpath:gamedata/npc/balance.yml
+    import: classpath:gamedata/buildings.yml,classpath:gamedata/units.yml,classpath:gamedata/achievements.yml,classpath:gamedata/banners.yml,classpath:gamedata/guild-banner.yml,classpath:gamedata/npc/offensive.yml,classpath:gamedata/npc/balanced.yml,classpath:gamedata/npc/defensive.yml,classpath:gamedata/npc/balance.yml
   jackson:
     deserialization:
       # 1.5 as a unit count is refused instead of cut to 1 (M14e, 01 §4.12).

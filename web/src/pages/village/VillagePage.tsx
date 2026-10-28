@@ -29,6 +29,7 @@ import { buildingTarget } from './buildingTarget';
 import { COMPACT, WIDE } from './scene/layouts';
 import { VillageScene } from './scene/VillageScene';
 import { VillageError } from './VillageError';
+import { TutorialCard } from './TutorialCard';
 import { VillageName } from './VillageName';
 import { loadVillageView, saveVillageView, type VillageView } from './villageView';
 import styles from './VillagePage.module.css';
@@ -66,6 +67,7 @@ function VillageOverview({ villageId }: { villageId: number }) {
         <ProtectionNotice />
         <IncomingAttacksNotice village={data} />
       </header>
+      <TutorialCard villageId={data.id} />
       {/* desktop: buildings over troops | training, queue and facts at the side (1.3); phones and
           tablets: one column in the order buildings, queue, facts, troops, training. Two trees
           rather than CSS order, so the reading and tab order is the order on the screen. */}

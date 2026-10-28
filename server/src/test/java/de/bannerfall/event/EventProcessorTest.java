@@ -18,8 +18,11 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -300,6 +303,43 @@ class EventProcessorTest {
         assertThat(handler.handled())
                 .last()
                 .satisfies(handled -> assertThat(handled.dueAt()).isEqualTo(later));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void aTickThatHandlesALateEventWritesAWarning(CapturedOutput output) {
+        schedule(1, start);
+        clock.advance(EventProcessor.LATE_EVENT.plusSeconds(30));
+
+        processor.tick();
+
+        assertThat(handler.handledRefs()).containsExactly(1L);
+        assertThat(output)
+                .contains("Event tick is behind: 1 events")
+                .contains("the oldest was 90 s late");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void aTickThatKeepsUpWritesNoWarning(CapturedOutput output) {
+        schedule(1, start);
+        clock.advance(EventProcessor.LATE_EVENT.minusSeconds(1));
+
+        processor.tick();
+
+        assertThat(handler.handledRefs()).containsExactly(1L);
+        assertThat(output).doesNotContain("Event tick is behind");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void aSlowTickWritesAWarningEvenWithoutLateEvents(CapturedOutput output) {
+        processor.warnIfBehind(3, null, start, EventProcessor.SLOW_TICK.minusMillis(1));
+        assertThat(output).doesNotContain("Event tick is behind");
+
+        processor.warnIfBehind(3, null, start, EventProcessor.SLOW_TICK);
+        assertThat(output)
+                .contains("Event tick is behind: 3 events in 5000 ms, the oldest was 0 s late");
     }
 
     private long schedule(long refId, Instant dueAt) {

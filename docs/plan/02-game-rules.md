@@ -58,6 +58,7 @@ One world per deployment (a new world = a fresh database). Stored in the single 
 | `moraleFloor` | 30 | 30–100: the lowest morale in percent (§8.2) |
 | `archersEnabled` | false | 1.6: archers (§5.6): on = the archer (barracks) and the mounted archer (stable) can be recruited and researched, by players and NPC lords; off = they are listed nowhere. Archers that exist when the host switches it off stay and keep fighting |
 | `noblePriceStep` | 0.25 | 0–1: how much dearer each village and noble beyond the first four makes a player's next noble, as a share of the base price (1.6, §5.7); **0 = the flat price** of before 1.6. Realm 1 got 0.25 with the 1.6 update (decided 2026-10-20) |
+| `tutorialEnabled` | true | 1.7: the in-game tutorial (§27): a new player gets the "Next step" card; off = no card, no hints, no refunds, nobody can start it |
 | `automationVillages` | 3 | 0–100: village automation (1.6, §25) from a player's N-th village on; **0 = no automation in this world** |
 | `tradeMaxRatio` | 3.0 | Market offers: `1/ratio ≤ want/offer ≤ ratio` |
 | `marketExchangeRatio` | 1.5 | Trading with the market itself (v1.3, §12.1): what 1 of another resource costs; 0 = off, otherwise 1–10 |
@@ -750,7 +751,7 @@ NPC lords fight each other by the same rules.
 
 **Learning lords** (1.6, world setting `npcLearningEnabled`, off by default; 09 §15): lords adapt to how they are attacked and to what wins. From the attacks on their own villages (what their defence reports show, as for a human) they recruit more spearmen against cavalry, more swordsmen against infantry and more scouts when they are scouted often, and after rams or catapults they build their wall a few levels above what the attack left. From the human attacks that won against a player's or a lord's village anywhere in the world (not barbarians) (anonymous: no names, no villages) they blend that army's mix into their own attack units (cavalry, axemen, siege and scouts; their spearmen and swordsmen stay). Both lessons together move at most 35 % of a lord's troop mix and fade over about two real days, so its personality stays. They change what a lord recruits and when it builds its wall, never how much it produces or how often it may attack: production factor, farm limits, caps, quiet hours and the rubber band stay as above.
 
-**Testing balance:** a headless simulation (M12d, 09 §11) runs a world with only NPC lords (and once with two sleeping humans) for 50 days at speed 3 and prints points, villages and battles per personality. It's used to tune the templates before friends play.
+**Testing balance:** a headless simulation (M12d, 09 §11) runs a world with only NPC lords (and once with two sleeping humans) for 30 days at speed 3 and prints points, villages and battles per personality. It's used to tune the templates before friends play.
 
 **Later (not MVP):** NPC lords copying build orders of human players (learning from unit mixes is built in 1.6, above); chat lines from NPC lords. (Trading with the market is built since v1.3, 09 §5.4.)
 
@@ -801,6 +802,7 @@ Besides offers between players, a village can trade with **the market itself**: 
 - Message: 1–500 characters after trimming. Max 1 message per second per player (`CHAT_RATE_LIMIT`).
 - History: last 100 messages on load, new ones pushed live.
 - No editing; the admin can delete messages.
+- **Read state (1.7):** the newest message a player has read in each channel belongs to the player, not to a device: reading a chat on one device clears the unread badge on his others. It only moves forward. A channel nobody has read yet counts its whole history as read, so nobody starts with "99+".
 
 ## 14. Reports
 
@@ -885,6 +887,31 @@ A guild is a named group of players with a tag shown next to their names. (Calle
 - A guild's colour comes from its id (golden-ratio steps along the hues that are left after leaving out the greens, which vanish on the grass, and the purples, which are the NPC lords' colour; lightness per theme): the same for everybody and on every visit, no stored colour, nothing for the leader to choose. The first eight guilds are at least 15° apart on the colour wheel; beyond that colours start to look alike, which the legend and the guild pages resolve. (If leaders should pick colours, that needs a column and a rule against look-alikes.)
 - The discs of one guild are filled as one shape (they merge instead of darkening where they overlap) and are clipped at the map edge. Under the overview a legend lists the (up to eight) guilds with villages in the shown area, most villages first, each linking to the guild's page, and "and N more" when there are more.
 - The choice is remembered per device. The detailed map is unchanged.
+
+### 16.3 Enemies (1.7)
+
+The request (2026-10-23, picked 2026-10-26): "Designate targets as enemies, be it guilds, villages or players / NPC lords." A guild marks who its enemies are; every member sees the marks. **A mark changes no rule**: no combat, support, conquest, market or alert depends on it. It only shows.
+
+- **Targets:** a guild, a player (human or NPC lord) or one village. Not the own guild, a guild mate or the village of one, not yourself and not a barbarian village (`409 ENEMY_NOT_ALLOWED`); an unknown target is `404 GUILD_NOT_FOUND`, `PLAYER_NOT_FOUND` or `VILLAGE_NOT_FOUND`.
+- **Who:** only the **leader** marks and unmarks (`403 NOT_GUILD_LEADER`); every member reads the list. The marked side is not told. A guild has **at most 30 marks** (`409 ENEMY_LIMIT`; marking the same target again changes nothing). Needs `guildsEnabled` (`409 GUILDS_DISABLED`).
+- **What a mark covers:** a marked guild stands for all its members and all their villages, a marked player for all his villages. A village mark sticks to the field: it stays when the village is conquered, and then covers the new owner's village. A village is an enemy when it, its owner or its owner's guild is marked.
+- **What counts:** the list only holds marks that still apply. A target that is gone (a deleted player, a guild that ended), or that became a guild mate (a marked player who joins the guild), is left out; the stored mark is not deleted, so it counts again if he leaves. The marks of a guild end with it (`on delete cascade`).
+- **Where it shows (members only):** a red **Enemy** pill next to the name on the ranking line, the player's profile, a guild's page and the owner line of the map panel; a dashed red ring around the village on the detailed map (the overview map is unchanged); and an **Enemies** card on the guild page with the list (guilds, players, villages with their owner) and, for the leader, a remove button on each line. The leader marks from the "…" on a profile, a guild's page and the map panel (the village, its owner and his guild). Red is the colour of war, so no new colour role.
+- **Not in 1.7:** notes on a mark, alerts for attacks from an enemy, enemies in reports and the rally point, marks that members propose.
+
+### 16.4 Guild banner (1.7)
+
+The request (parked 2026-10-23, designed 2026-10-26): "Guild banners: a small boost for certain things, and guild mates have to work towards it." The first guild feature that changes a rule, so the host has a switch.
+
+- **What it is:** a guild owns one **guild banner** with **three levels**. Members pay for each level by donating wood, clay and iron into a **fund**. Not to be mixed up with the item banners (§21) or the paladin standards: the effects **add up** with them (Harvest III 15 % + guild 5 % = 20 %; Bulwark III 10 % + guild 5 % = 15 %; on a support trip to a guild mate the 10 % add to Haste).
+- **Levels** (`gamedata/guild-banner.yml`, a change needs a new image, no migration): level 1 production of wood, clay and iron **+5 %**; level 2 support troops sent to a village of a guild mate arrive **10 % sooner** (the travel time is 10 % shorter, added to a Haste banner's); level 3 defence **+5 %** (everybody standing in the village). A level adds to the one before. Each works in **every village of every member** while its owner is in the guild: joining switches it on at once, leaving or being removed switches it off at once; a conquered village counts for its new owner. NPC lord guilds get no banner (lords don't donate).
+- **Price:** per-member price × the members **at the moment of the raise**: 30,000 / 90,000 / 250,000 per member (a guild of 10 pays 300,000 / 900,000 / 2,500,000; a pair 60,000 / 180,000 / 500,000).
+- **Donating:** any member, from one of his own villages: any mix of wood, clay and iron, 1 : 1 towards the fund (`POST /api/guilds/mine/banner/donations`). The total can't exceed what the next level still lacks (`409 DONATION_TOO_LARGE`, so nothing is wasted), is refused at level 3 (`409 BANNER_MAX_LEVEL`) and needs the stock (`NOT_ENOUGH_RESOURCES`). Donations are not refunded, not when the donor leaves or the guild ends. Not in the pre-game (no villages). Donating goes on during the lock.
+- **Raising:** any member, when the fund covers the price at that moment (`409 BANNER_FUND_LOW` otherwise); the price is taken from the fund, a rest stays in it. A raise from level 0 to 1 first brings all member villages up to date, so the new production starts from the raise.
+- **24 hour lock:** whenever a member leaves, is kicked or is removed (the host deletes him) the guild can't raise its level for 24 hours of real time (`409 GUILD_BANNER_LOCKED`; a new departure restarts the 24 hours; `lockHours` in the YAML). This stops "kick or leave to make the price drop, raise, invite again". Joining has no lock (it only raises the price).
+- **Switch:** world setting `guildBannersEnabled` (default **off**; needs `guildsEnabled`; admin world tab, `bannerfall-admin`). Off: no effects and no donating (`409 GUILD_BANNERS_DISABLED`); level and fund stay.
+- **Where it shows:** a **Guild banner** card on the guild page for members (level, the three effects with the price of the next ones, the fund bar with "30,000 × 9 members", the lock note, Donate or Raise level, the donors); the public page of another guild shows its level. Members get the reload notice on every donation and raise and a toast on a raise (`GUILD_BANNER_RAISED`). Battle reports list the guild bonus with the defence bonuses (`guildDefenceBonus`); the attack simulator has a "Guild banner level" field (0–3) for the defender, shown only where the world has guild banners.
+- **Known simplifications:** a village's production rate changes from its last update (a join or leave does not recompute the past); the lock is the protection against price gaming through kick and re-invite.
 
 ## 17. Private messages and blocking (M17, branch `integration/v1-1-features`)
 
@@ -1446,3 +1473,28 @@ A village builds by a plan by itself, also while its owner is offline, and from 
 - **Plan codes (1.6.1):** a plan can be shared as text `BFP1|name|BUILDING:level,…,MINES:level,…,RECRUIT:letter` (the editor's "Share as code" / "Use a code"). The client parses it defensively and the server checks the lines again when the plan is saved; a code only fills the editor, nothing is saved until Save, and the recruit line keeps the letter of the code.
 - **Ownership:** a conquered village loses its automation (the new owner starts without one). Deleting a plan stops the villages on it until they get another.
 - Orders it placed carry a small cogwheel in the queue. Nothing else changes: an automatic order costs, builds and counts like a tapped one.
+
+## 26. Village tags (1.7)
+
+A player's own short tag on his villages ("OFF", "DEF"), to tell them apart and to find them in the village switcher. Decided 2026-10-26; the choices made then are in bold.
+
+- **Only its owner reads a tag.** No guild sharing; nobody else ever sees it, the host neither. One tag per village, on **his own villages only**.
+- **Form:** **1 to 5 letters or digits, always written in capitals** (the server trims, writes capitals and accepts A-Z and 0-9 only, like a guild tag but from 1 character on). Saving a blank tag removes it. No limit on how many villages share a tag.
+- **The tag belongs to the owner:** a conquest deletes it (the new owner starts without one, like the farm list and the automation, §10), and when the host deletes a player his tags are deleted. A row whose player no longer owns the village is never read.
+- **Where it shows:** as a small pill next to the village name in the **village switcher** (the top bar button and the rows), in the **village page's title** and in the **map panel of his own villages**. Nowhere else: not in the rally point, the market or the farm pickers, reports or the ranking.
+- **Set** with a button next to the rename pencil on the village page (a sheet with one field).
+- **Filter:** once one of his villages has a tag, the switcher sheet shows chips above the list ("All" and one per tag in use, alphabetical). The chosen chip is remembered for the browser session; a tag nobody uses any more falls back to "All".
+- No effect on the game.
+
+## 27. Tutorial (1.7)
+
+A short guide for new players that comes in small steps and shows the next lesson when a feature opens. Decided 2026-10-26; the choices made then are in bold.
+
+- **Card:** a slim "Next step" card on the village page shows the current step (one line, "Show me" leads to the page). Its menu: skip this step, skip the whole tutorial, all steps (a sheet with every step, its state and its refund). The page of the current step shows the same hint as one quiet line (`TutorialHint`). Everything is **skippable**.
+- **Steps (starter list, in this order, each after the one before it):** `WOODCUTTER` (Woodcutter to level 2), `HEADQUARTERS` (Town Hall to level 3), `BARRACKS` (Barracks level 1; needs Town Hall 3), `SPEARMEN` (5 trained spearmen; an order still in the queue does not count, because it can be cancelled and its cost comes back), `MAP_BARBARIAN` (open a barbarian village on the map; left out in a world without barbarian villages, i.e. no start count, none per new player and no growth, and the next step then follows `SPEARMEN` directly), `ATTACK` (send an attack), `REPORT` (read the battle report of an attack), `SIMULATOR` (open the battle simulator), `FARM_LIST` (put a village on the farm list). Not in the chain: `MARKET` (Market level 1; needs Town Hall 3 and Warehouse 2) and `GUILD` (join or found a guild; only in worlds with guilds).
+- **Done is read from the game, not from clicks** (`STATE` steps): the highest building level over all his villages, trained spearmen, an attack movement or an attack report, a farm list entry, a guild membership. `MAP_BARBARIAN` and `SIMULATOR` have no game fact, so the client reports them (`ACK`).
+- **Refund:** finishing `WOODCUTTER` (price of level 2), `BARRACKS` (level 1), `SPEARMEN` (5 spearmen) or `MARKET` (level 1) pays back what that step cost, **once per player and world**, into the player's village with the highest level of the building the step asked for (the spearmen step uses the Barracks level), capped by the warehouse. No units are given. A skipped step never pays, and steps that were already done when the player started the tutorial are ticked silently without a refund.
+- **Lessons** (no refund, no tasks, read once and closed with "Got it"): `LESSON_UNIT_LEVELS` (Smithy level 1, only with `unitLevelsEnabled`), `LESSON_CONQUEST` (Academy built), `LESSON_AUTOMATION` (he owns `automationVillages` villages), `LESSON_BANNER_HALL` (Banner Hall level 1, only with `bannersEnabled`). A lesson comes up **when the thing opens** and goes before the next step. A world that has switched the feature off never shows its lesson.
+- **Who gets it:** **new players only start it from the beginning** (registration). Everybody else finds a "Tutorial" row in the menu (start/stop); starting later ticks off what is done without paying. A player who skipped the tutorial can start it again.
+- **Switch:** world setting `tutorialEnabled` (default **on**, also for existing worlds; admin world tab, `bannerfall-admin`).
+- **Server:** `tutorial_state` (`active`) and `tutorial_progress` (one row per finished or skipped step, with the refund paid) in 03; `TutorialService.sync` records everything the game shows as done and pays the refunds in one transaction, so a refund cannot be paid twice. The client calls it when the village data changes.

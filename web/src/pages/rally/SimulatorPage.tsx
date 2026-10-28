@@ -16,6 +16,8 @@ import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { TextField } from '../../components/TextField';
+import { TutorialHint } from '../../components/TutorialHint';
+import { useTutorialAck } from '../../components/useTutorialAck';
 import { effectOfTier, effectiveTier, percentPoints } from '../../game/banners';
 import { formatFactor, formatShare, formatWhen } from '../../game/format';
 import {
@@ -119,6 +121,8 @@ interface SimulatorProps {
 function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   const { t, language } = useI18n();
   const s = t.simulator;
+  // the tutorial's "try the simulator" step (1.7) is done by opening it
+  useTutorialAck('SIMULATOR');
   const village = useVillage(villageId);
   const troops = useTroops(villageId);
   // M30: with unit levels the units get a level field; the smithy tells the player's own levels
@@ -128,6 +132,8 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
   const levelsOn = world?.unitLevelsEnabled === true;
   // M32c: with banners on, the War and Bulwark banners and the Banner Hall are inputs
   const bannersOn = world?.bannersEnabled === true;
+  // 1.7: the guild banner's level only where the world has guild banners (they need guilds)
+  const guildBannersOn = world?.guildsEnabled === true && world.guildBannersEnabled;
   const banners = useBanners(bannersOn);
   const own = ownBanner(banners.data, villageId);
   // 1.4: the paladin standards, in worlds with banners and paladins
@@ -238,6 +244,7 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
         <BackLink to={rallyPath(villageId)}>{s.back}</BackLink>
         <h1>{s.title}</h1>
         <p className={styles.intro}>{s.intro}</p>
+        <TutorialHint steps={['SIMULATOR']} />
         {levelsOn && <p className={styles.intro}>{s.levelsHint}</p>}
         {!levelsOn && Object.keys(maxLevels).length > 0 && <p className={styles.intro}>{s.hallLevelsHint}</p>}
       </header>
@@ -383,6 +390,7 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                     bannerHall: 0,
                     defenderStandard: null,
                     defenderStandardTier: 0,
+                    guildBannerLevel: 0,
                   });
                 }}
               >
@@ -430,6 +438,15 @@ function Simulator({ villageId, initial, initialNote = null }: SimulatorProps) {
                   max={simulatedMaxLevel(buildingMax, 'BANNER_HALL')}
                   value={form.bannerHall}
                   onChange={(bannerHall) => patch({ bannerHall })}
+                />
+              )}
+              {guildBannersOn && (
+                <LevelField
+                  label={s.guildBannerLevel}
+                  hint={s.guildBannerLevelHint}
+                  max={MAX_BANNER_LEVEL}
+                  value={form.guildBannerLevel}
+                  onChange={(guildBannerLevel) => patch({ guildBannerLevel })}
                 />
               )}
             </div>

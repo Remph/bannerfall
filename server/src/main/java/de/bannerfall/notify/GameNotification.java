@@ -38,6 +38,9 @@ import java.util.List;
     @JsonSubTypes.Type(value = GameNotification.VictoryClock.class, name = "VICTORY_CLOCK"),
     @JsonSubTypes.Type(value = GameNotification.GuildInvited.class, name = "GUILD_INVITED"),
     @JsonSubTypes.Type(value = GameNotification.GuildChanged.class, name = "GUILD_CHANGED"),
+    @JsonSubTypes.Type(
+            value = GameNotification.GuildBannerRaised.class,
+            name = "GUILD_BANNER_RAISED"),
     @JsonSubTypes.Type(value = GameNotification.MessageReceived.class, name = "MESSAGE_RECEIVED"),
     @JsonSubTypes.Type(
             value = GameNotification.AchievementEarned.class,
@@ -88,6 +91,9 @@ import java.util.List;
             @DiscriminatorMapping(
                     value = "GUILD_CHANGED",
                     schema = GameNotification.GuildChanged.class),
+            @DiscriminatorMapping(
+                    value = "GUILD_BANNER_RAISED",
+                    schema = GameNotification.GuildBannerRaised.class),
             @DiscriminatorMapping(
                     value = "MESSAGE_RECEIVED",
                     schema = GameNotification.MessageReceived.class),
@@ -203,6 +209,12 @@ public sealed interface GameNotification {
      * was withdrawn (M15a). The client loads the guild again.
      */
     record GuildChanged() implements GameNotification {}
+
+    /**
+     * The guild raised its banner to {@code level} (1.7, 02-game-rules §16.4); every member gets a
+     * toast, and {@link GuildChanged} comes with it so the pages reload.
+     */
+    record GuildBannerRaised(int level) implements GameNotification {}
 
     /**
      * Another player sent the player a private message (M17); the client shows a toast, bumps the

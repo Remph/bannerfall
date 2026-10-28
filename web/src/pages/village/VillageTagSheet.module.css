@@ -1,0 +1,33 @@
+/* The editor for a village's tag (1.7): one field in a sheet, like the map's note sheet. */
+.form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.remove {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-danger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

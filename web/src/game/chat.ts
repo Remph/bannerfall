@@ -107,6 +107,24 @@ export function unreadCount(messages: readonly ChatLine[], seenId: number, myPla
   return messages.filter((message) => message.id > seenId && message.playerId !== myPlayerId).length;
 }
 
+/** A read marker as the server keeps it (`ChatSeenDto`): null `guildId` = the world chat. */
+export interface SeenMarker {
+  guildId: number | null;
+  id: number;
+}
+
+/** The id the server has for one channel (the world's with `guildId` undefined), null when it has none. */
+export function serverSeenId(markers: readonly SeenMarker[], guildId?: number): number | null {
+  return markers.find((marker) => marker.guildId === (guildId ?? null))?.id ?? null;
+}
+
+/** The markers with `marker` in them; a channel's marker never goes back to an older id. */
+export function withSeenMarker(markers: readonly SeenMarker[], marker: SeenMarker): SeenMarker[] {
+  const others = markers.filter((other) => other.guildId !== marker.guildId);
+  const old = markers.find((other) => other.guildId === marker.guildId);
+  return [...others, old !== undefined && old.id >= marker.id ? old : marker];
+}
+
 /** Whether a scrolled list is (almost) at its end: new messages scroll along only then. */
 export function isNearBottom(scrollTop: number, clientHeight: number, scrollHeight: number): boolean {
   return scrollHeight - scrollTop - clientHeight < 48;

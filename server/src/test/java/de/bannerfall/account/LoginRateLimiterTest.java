@@ -115,4 +115,18 @@ class LoginRateLimiterTest {
         limiter.forgetExpired();
         assertThat(limiter.entries()).isZero();
     }
+
+    @Test
+    void anIpv6NetworkIsOneClient() {
+        // five addresses of one /64 are one address ...
+        for (int i = 0; i < 5; i++) {
+            limiter.tryAttempt("ben", "2001:db8:1:2::" + Integer.toHexString(i + 1));
+        }
+
+        assertThat(limiter.isBlocked("ben", "2001:db8:1:2:aaaa:bbbb:cccc:dddd")).isTrue();
+        assertThat(limiter.tryAttempt("ben", "2001:db8:1:2:ffff::1")).isFalse();
+        // ... another network, and an IPv4 client, are not blocked with it
+        assertThat(limiter.isBlocked("ben", "2001:db8:1:3::1")).isFalse();
+        assertThat(limiter.isBlocked("ben", HOME)).isFalse();
+    }
 }

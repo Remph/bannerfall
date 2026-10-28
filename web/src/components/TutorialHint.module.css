@@ -1,0 +1,7 @@
+.hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: 0.9rem;
+}

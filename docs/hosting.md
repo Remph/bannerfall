@@ -2,7 +2,7 @@
 
 A step-by-step guide for running one Bannerfall world (a "realm") on a small Linux server of your own. It assumes Ubuntu 24.04 LTS on a rented virtual server, but any Linux host with Docker works the same way from step 4 on. The README has the reference for everything mentioned here (*Operating the server*, *Deploying*, *Backups*).
 
-Plan about two hours the first time, most of it waiting for DNS. The commands use `1.6.3` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
+Plan about two hours the first time, most of it waiting for DNS. The commands use `1.7.0` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
 
 ## 0. What you need
 
@@ -89,13 +89,13 @@ alias bfa='docker compose -f /opt/bannerfall/compose.prod.yaml exec app bannerfa
 
 ## 4. Get the code
 
-Each release is a tag (`v1.6.3`, …). Check out the newest one:
+Each release is a tag (`v1.7.0`, …). Check out the newest one:
 ```
 sudo mkdir -p /opt/bannerfall && sudo chown deploy:deploy /opt/bannerfall
 git clone https://github.com/Remph/bannerfall.git /opt/bannerfall
 cd /opt/bannerfall
 git tag --sort=-v:refname | head -3
-git checkout v1.6.3                        # the newest tag from the list
+git checkout v1.7.0                        # the newest tag from the list
 ```
 (`git checkout` of a tag says `You are in 'detached HEAD' state`: that is expected, the folder stays exactly on that release.)
 
@@ -108,7 +108,7 @@ chmod 600 .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_ADMIN_TOKEN=.*/BANNERFALL_ADMIN_TOKEN=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_DOMAIN=.*/BANNERFALL_DOMAIN=play.example.com/" .env
-sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.3|" .env
+sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.7.0|" .env
 nano .env
 ```
 Check in `nano` that these are filled:
@@ -119,7 +119,7 @@ Check in `nano` that these are filled:
 | `BANNERFALL_ADMIN_TOKEN` | the random value (at least 32 characters; compose and the server refuse to start without it) |
 | `COMPOSE_PROFILES` | `caddy` (the template's default) |
 | `BANNERFALL_DOMAIN` | your realm's name |
-| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:1.6.3`); `bannerfall:1.6.3` if you build it yourself in step 6 |
+| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:1.7.0`); `bannerfall:1.7.0` if you build it yourself in step 6 |
 | `TZ` | your time zone (for log times; the command line's dates are always Berlin time, see step 9) |
 | `BANNERFALL_OPERATOR_NAME`, `BANNERFALL_OPERATOR_CONTACT` | who runs the realm and how players reach you (usually an email address); shown on the privacy page (`/privacy`), linked under the login and register forms. Empty, the page only explains what the game stores |
 
@@ -131,12 +131,12 @@ Leave the port lines commented out unless you need them (README, *Ports*), and d
 
 Every release is published as a ready image, built from exactly the tagged code (x86-64 only). Pull it:
 ```
-docker pull ghcr.io/remph/bannerfall:1.6.3
+docker pull ghcr.io/remph/bannerfall:1.7.0
 ```
-**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:1.6.3` in `.env` for it:
+**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:1.7.0` in `.env` for it:
 ```
 cd /opt/bannerfall
-docker build -t bannerfall:1.6.3 --build-arg VERSION=1.6.3 .
+docker build -t bannerfall:1.7.0 --build-arg VERSION=1.7.0 .
 ```
 If it dies with `Killed`, check `free -h` (swap, step 2) and run it again; finished layers are cached.
 
@@ -194,9 +194,9 @@ Reboot once before the players arrive (`sudo reboot`): after two minutes `bf ps`
 Read the release notes first (below), then one command does the whole update:
 ```
 cd /opt/bannerfall
-ops/bannerfall-update 1.6.3                # the new version
+ops/bannerfall-update 1.7.0                # the new version
 ```
-It shows its plan and asks once, pulls the new image, checks the new tag out, takes a backup, warns the players in the chat and waits a minute, restarts the app and runs `bfa check`, stopping at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
+It shows its plan and asks once, pulls the new image, checks the new tag out, takes a backup, warns the players with a popup and waits a minute, restarts the app and runs `bfa check`, stopping at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
 
 The same by hand:
 ```
@@ -204,9 +204,9 @@ cd /opt/bannerfall
 ops/bannerfall-backup                      # always first; it must print "backup ok"
 git status --short                         # must print nothing
 git fetch --tags origin
-git checkout v1.6.3                        # the new release tag
-docker pull ghcr.io/remph/bannerfall:1.6.3 # or build it as in step 6
-nano .env                                  # BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.6.3
+git checkout v1.7.0                        # the new release tag
+docker pull ghcr.io/remph/bannerfall:1.7.0 # or build it as in step 6
+nano .env                                  # BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:1.7.0
 bfa broadcast "Update in 5 minutes"        # wait, then:
 bf up -d
 bfa status                                 # shows the new version
@@ -216,7 +216,7 @@ Read the release notes first (the [releases page](https://github.com/Remph/banne
 
 ### Patches by themselves (optional)
 
-`ops/bannerfall-auto-update` does the update of a patch release without you. It asks the origin for the release tags and, when the world runs 1.6.1 and `v1.6.2` exists (and its image is published), runs `ops/bannerfall-update 1.6.2 --yes --wait 300` for it: backup (the update stops if it fails), a five-minute warning in the chat, restart, health check, rollback when no migration ran. Afterwards it moves the shared Caddy checkout (`EDGE_DIR`, default `/opt/bannerfall-edge`, ignored when it doesn't exist) to the same tag and reloads Caddy (never back to an older tag than it is on). A **new minor or major version** (1.7.0, 2.0.0) is never installed by it: the log says it is out, and you update by hand after reading the release notes.
+`ops/bannerfall-auto-update` does the update of a patch release without you. It asks the origin for the release tags and, when the world runs 1.6.1 and `v1.6.2` exists (and its image is published), runs `ops/bannerfall-update 1.6.2 --yes --wait 300` for it: backup (the update stops if it fails), a five-minute warning popup, restart, health check, rollback when no migration ran. Afterwards it moves the shared Caddy checkout (`EDGE_DIR`, default `/opt/bannerfall-edge`, ignored when it doesn't exist) to the same tag and reloads Caddy (never back to an older tag than it is on). A **new minor or major version** (1.7.0, 2.0.0) is never installed by it: the log says it is out, and you update by hand after reading the release notes.
 
 Add it to the crontab, after the backup line, with a free check for the result (the same kind as for the backup, section 8):
 ```
@@ -261,7 +261,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-edge && sudo chown deploy:deploy /opt/bannerfall-edge
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-edge
-   cd /opt/bannerfall-edge && git checkout v1.6.3          # the tag your world runs
+   cd /opt/bannerfall-edge && git checkout v1.7.0          # the tag your world runs
    cd edge && cp sites.caddy.example sites.caddy && nano sites.caddy
    ```
    Keep one block, your first world's: its domain and its `APP_PORT` (8461 unless you changed it). Delete the second example block. `sites.caddy` is this server's list and stays out of git, like `.env`.
@@ -295,7 +295,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-two && sudo chown deploy:deploy /opt/bannerfall-two
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-two
-   cd /opt/bannerfall-two && git checkout v1.6.3
+   cd /opt/bannerfall-two && git checkout v1.7.0
    ```
 3. `.env` as in step 5, with new secrets, and these differences:
 
@@ -319,7 +319,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
 
 Update every world to the same release in one go, the newest world first and the first world last, so a problem shows up before it reaches your oldest world. In each world's folder it is step 10 as usual, with that world's aliases; build or pull the image only once. Then bring the shared Caddy to the same tag:
 ```
-cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v1.6.3
+cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v1.7.0
 bfe up -d && bfe-reload                    # picks up a changed Caddy image or Caddyfile
 ```
 

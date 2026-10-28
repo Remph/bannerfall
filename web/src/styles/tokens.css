@@ -94,6 +94,7 @@
   --map-badge-ink-noble: #2a231b;
   --map-banner-used: #8f8672; /* the faded banner on a village whose banner chance is used (v1.3) */
   --map-note: #fffaf0; /* the sheet of paper on a village with the player's own note (1.4) */
+  --map-enemy: #c22f24; /* the ring on an enemy village of the player's guild (1.7) */
   /* the landscape under the villages (v1.3) */
   --map-tree: #7f9b5b;
   --map-tree-shade: #4b6237;
@@ -223,6 +224,7 @@
     --chart-5: #d9693a;
     --map-banner-used: #cfc6b3;
     --map-note: #efe6d0;
+    --map-enemy: #e5484d;
     /* the landscape (v1.3) */
     --map-tree: #4c6139;
     --map-tree-shade: #1c2617;
@@ -352,6 +354,7 @@
   --chart-5: #d9693a;
   --map-banner-used: #cfc6b3;
   --map-note: #efe6d0;
+  --map-enemy: #e5484d;
   /* the landscape (v1.3) */
   --map-tree: #4c6139;
   --map-tree-shade: #1c2617;

@@ -8,6 +8,7 @@ import {
   presentUnits,
   sendableUnits,
   supportTotals,
+  toUnitMap,
   trainAttacks,
   travelProgress,
   troopOverview,
@@ -34,6 +35,13 @@ describe('withoutZeros', () => {
   it('drops the types without units', () => {
     expect(withoutZeros({ SPEARMAN: 5, AXEMAN: 0, RAM: 2 })).toEqual({ SPEARMAN: 5, RAM: 2 });
     expect(withoutZeros({ SPEARMAN: 0 })).toEqual({});
+  });
+});
+
+describe('toUnitMap', () => {
+  it('keeps the known unit types, zeros included, and leaves out anything else', () => {
+    expect(toUnitMap({ SPEARMAN: 5, AXEMAN: 0, DRAGON: 3 })).toEqual({ SPEARMAN: 5, AXEMAN: 0 });
+    expect(toUnitMap({})).toEqual({});
   });
 });
 

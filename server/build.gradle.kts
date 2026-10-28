@@ -84,14 +84,35 @@ tasks.register<Test>("simulationTest") {
     testLogging {
         showStandardStreams = true
     }
-    // -PsimJfr: a Flight Recorder profile of the run in build/simulation/sim.jfr
+    // -PsimJfr: a Flight Recorder profile per JVM in build/simulation/sim-<pid>.jfr (the two
+    // scenarios run in two JVMs, which would otherwise write the same file)
     if (findProperty("simJfr") != null) {
-        jvmArgs("-XX:StartFlightRecording=filename=build/simulation/sim.jfr,settings=profile")
+        // the JVM does not create the directory itself
+        doFirst {
+            layout.buildDirectory
+                .dir("simulation")
+                .get()
+                .asFile
+                .mkdirs()
+        }
+        jvmArgs("-XX:StartFlightRecording=filename=build/simulation/sim-%p.jfr,settings=profile")
+    }
+    // the simulation talks to its database without Docker's port proxy (see TestcontainersConfiguration)
+    if (findProperty("simDirectDatabase") != "false") {
+        systemProperty("simulation.directDatabase", "true")
+    }
+    // -PsimQuick: a short run for everyday checks (15 days, the balance targets that need the
+    // whole run are not judged); -PsimDays still wins
+    if (findProperty("simQuick") != null) {
+        systemProperty("simulation.quick", "true")
+        if (findProperty("simDays") == null) {
+            systemProperty("simulation.days", "15")
+        }
     }
     if (findProperty("simSql") != null) {
         systemProperty("simulation.sql", "1")
     }
-    // -PsimDays=50 -PsimThinkMinutes=20 -PsimSeed=1 (see NpcSimulationTest)
+    // -PsimDays=50 (default 30) -PsimThinkMinutes=20 -PsimSeed=1 (see NpcSimulationTest)
     for ((property, name) in mapOf(
         "simDays" to "simulation.days",
         "simThinkMinutes" to "simulation.thinkMinutes",
@@ -122,6 +143,10 @@ tasks.register<Test>("simulationTest") {
     )) {
         findProperty(property)?.let { systemProperty(name, it.toString()) }
     }
+    // the three scenarios (NpcSimulationLordsOnlyTest, NpcSimulationSleepingHumansTest,
+    // NpcSimulationActiveHumansTest) run side by side, each in its own JVM with its own database:
+    // the run waits mostly for the database
+    maxParallelForks = 3
     // the simulation is not up to date because the code changed, but because someone asked for it
     outputs.upToDateWhen { false }
 }

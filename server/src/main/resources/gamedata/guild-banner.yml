@@ -1,0 +1,10 @@
+# Guild banner numbers: docs/plan/02-game-rules.md §16.4 (the rulebook wins if they ever disagree).
+# First drafts; changing them needs a new image but no migration.
+guild-banner:
+  # What one level costs per member in the guild at the moment of the raise, in resources of any
+  # mix. The list is the number of levels; level N switches on the Nth effect below.
+  member-prices: [30000, 90000, 250000]
+  production: 0.05       # level 1: wood, clay and iron production of every member village +
+  support-haste: 0.10    # level 2: travel time of supports sent to a village of a guild mate -
+  defence: 0.05          # level 3: defence of every member village +
+  lock-hours: 24         # no level-up this long after a member left or was removed

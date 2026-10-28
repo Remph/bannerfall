@@ -8,6 +8,7 @@ import de.bannerfall.gamedata.BannerType;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.guild.GuildBannerCatalog;
 import de.bannerfall.report.BattleOutcome;
 import de.bannerfall.rules.BannerRules;
 import de.bannerfall.rules.BattleInput;
@@ -37,11 +38,22 @@ public class SimulatorService {
     private final GameData gameData;
     private final WorldService worldService;
     private final BannerCatalog banners;
+    private final GuildBannerCatalog guildBanner;
 
-    SimulatorService(GameData gameData, WorldService worldService, BannerCatalog banners) {
+    SimulatorService(
+            GameData gameData,
+            WorldService worldService,
+            BannerCatalog banners,
+            GuildBannerCatalog guildBanner) {
         this.gameData = gameData;
         this.worldService = worldService;
         this.banners = banners;
+        this.guildBanner = guildBanner;
+    }
+
+    private boolean guildBannersOn() {
+        var settings = worldService.settings();
+        return settings.guildsEnabled() && settings.guildBannersEnabled();
     }
 
     /**
@@ -95,6 +107,12 @@ public class SimulatorService {
         double defenceBonus =
                 bannersOn && positive(request.bulwarkTier())
                         ? banners.flying(BannerType.BULWARK, request.bulwarkTier(), hall).bonus()
+                        : 0;
+        // the target owner's guild banner (1.7, §16.4): level 3 adds its defence, nothing while the
+        // world has guild banners off
+        double guildDefence =
+                guildBannersOn() && request.guildBannerLevel() != null
+                        ? guildBanner.effect(request.guildBannerLevel()).defence()
                         : 0;
         // a village flies one banner (§21.1): the attack brings War or Plunder, the target has
         // Bulwark or Oath
@@ -160,7 +178,7 @@ public class SimulatorService {
                             .attackerLevels(attackerLevels)
                             .defenderLevels(List.of(defenderLevels))
                             .attackBonus(attackBonus)
-                            .defenceBonus(defenceBonus)
+                            .defenceBonus(defenceBonus + guildDefence)
                             .attackerStandard(attackStandard)
                             .defenderStandards(List.of(defenceStandard))
                             .nightFactor(nightFactor)
@@ -181,6 +199,7 @@ public class SimulatorService {
                 List.copyOf(scenarios),
                 attackBonus,
                 defenceBonus,
+                guildDefence,
                 plunderBonus,
                 oathBonus,
                 standardDto(attackStandard),

@@ -1,6 +1,8 @@
 package de.bannerfall.admin;
 
 import de.bannerfall.barbarian.BarbarianService;
+import de.bannerfall.chat.BroadcastDto;
+import de.bannerfall.chat.BroadcastService;
 import de.bannerfall.chat.ChatMessageDto;
 import de.bannerfall.chat.ChatService;
 import de.bannerfall.cheat.SpawnBarbarianRequest;
@@ -50,6 +52,7 @@ class AdminController {
     private final WorldOpeningService opening;
     private final VictoryService victory;
     private final ChatService chat;
+    private final BroadcastService broadcasts;
     private final EventAdminService eventAdmin;
     private final BarbarianService barbarians;
     private final AdminAuditService audit;
@@ -62,6 +65,7 @@ class AdminController {
             WorldOpeningService opening,
             VictoryService victory,
             ChatService chat,
+            BroadcastService broadcasts,
             EventAdminService eventAdmin,
             BarbarianService barbarians,
             AdminAuditService audit,
@@ -72,6 +76,7 @@ class AdminController {
         this.opening = opening;
         this.victory = victory;
         this.chat = chat;
+        this.broadcasts = broadcasts;
         this.eventAdmin = eventAdmin;
         this.barbarians = barbarians;
         this.audit = audit;
@@ -202,14 +207,27 @@ class AdminController {
                 });
     }
 
-    /** A message from the host to everybody, in the chat without an author (M14d). */
+    /** A message from the host that pops up for everybody connected (1.7); not in the chat. */
     @PostMapping("/broadcast")
     @ResponseStatus(HttpStatus.CREATED)
-    ChatMessageDto broadcast(@RequestBody BroadcastRequest body) {
+    BroadcastDto broadcast(@RequestBody BroadcastRequest body) {
         return audit.inTransaction(
                 () -> {
-                    ChatMessageDto message = chat.broadcast(body.text());
-                    audit.record("BROADCAST", "chat", message.id(), Map.of("text", message.text()));
+                    BroadcastDto message = broadcasts.send(body.text());
+                    audit.record(
+                            "BROADCAST", "broadcast", message.id(), Map.of("text", message.text()));
+                    return message;
+                });
+    }
+
+    /** A message from the host in everybody's chat, without an author (M14d). */
+    @PostMapping("/chat")
+    @ResponseStatus(HttpStatus.CREATED)
+    ChatMessageDto chatSay(@RequestBody BroadcastRequest body) {
+        return audit.inTransaction(
+                () -> {
+                    ChatMessageDto message = chat.postAsHost(body.text());
+                    audit.record("CHAT_SAY", "chat", message.id(), Map.of("text", message.text()));
                     return message;
                 });
     }

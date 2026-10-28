@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { FarmTemplate, TemplateLetter } from '../../game/farmTemplates';
-import type { UnitMap } from '../../game/troops';
+import { toUnitMap, type UnitMap } from '../../game/troops';
 import { api, expectData } from '../client';
 import { farmListsQueryKey } from './farm';
 
@@ -12,7 +12,7 @@ export function useFarmTemplates() {
     queryKey: farmTemplatesQueryKey,
     queryFn: () => expectData(api.GET('/api/farm-templates')),
     select: (templates): FarmTemplate[] =>
-      templates.map((template) => ({ letter: template.letter, units: template.units as UnitMap })),
+      templates.map((template) => ({ letter: template.letter, units: toUnitMap(template.units) })),
   });
 }
 

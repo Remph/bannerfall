@@ -5,6 +5,7 @@ import { useWorld } from '../../api/queries/world';
 import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { TutorialHint } from '../../components/TutorialHint';
 import { useI18n } from '../../i18n';
 import { CreateGuildCard } from './CreateGuildCard';
 import { InvitationsCard } from './InvitationsCard';
@@ -60,6 +61,7 @@ export function GuildPage() {
       <header className={styles.head}>
         <h1>{t.guild.title}</h1>
         <p className={styles.hint}>{world.data.guildsEnabled ? t.guild.explainer : t.guild.disabled}</p>
+        <TutorialHint steps={['GUILD']} />
         {/* 1.6 UI review: where guilds are founded and joined, say what joining before the opening does */}
         {world.data.phase === 'PREGAME' && world.data.guildsEnabled && world.data.guildStartTogether && (
           <p className={styles.startTogether}>{t.guild.startTogether}</p>

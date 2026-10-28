@@ -18,6 +18,7 @@ import { ChatDock } from '../pages/chat/ChatDock';
 import { ChatPanel } from '../pages/chat/ChatPanel';
 import { PregameFrame } from '../pages/pregame/PregameFrame';
 import { WorldInfo } from '../pages/pregame/WorldInfo';
+import { BroadcastPopup } from '../realtime/BroadcastPopup';
 import { RealtimeProvider } from '../realtime/RealtimeProvider';
 import { ActionsStayOn } from './ActionsStayOn';
 import styles from './AppLayout.module.css';
@@ -40,6 +41,7 @@ import { VillageSwitcher } from './VillageSwitcher';
 import { isOpenWithoutVillage } from './withoutVillage';
 import { isOpenWhenEnded, WorldEndContext } from './worldEnd';
 import { usePushRefresh } from '../push/usePushRefresh';
+import { useTutorialSync } from './useTutorialSync';
 
 /**
  * Frame of all game screens (05-frontend §3, §8). Phone: green strip on top (village switcher +
@@ -53,6 +55,7 @@ export function AppLayout() {
     <ToastProvider>
       <RealtimeProvider>
         <PhaseFrame />
+        <BroadcastPopup />
       </RealtimeProvider>
     </ToastProvider>
   );
@@ -107,6 +110,8 @@ function GameFrame() {
   // New levels and production show up by themselves when a build order ends, on every screen.
   useRefreshWhenBuildsEnd(village.data, village.dataUpdatedAt, village.errorUpdatedAt);
   usePushRefresh(me.accountId);
+  // the tutorial card follows the village (1.7)
+  useTutorialSync(village.dataUpdatedAt);
 
   // Remember the village once it loaded (it is the player's), so "/" opens it again in this session.
   useEffect(() => {

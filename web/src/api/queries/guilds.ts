@@ -9,11 +9,17 @@ export type Guild = components['schemas']['GuildDto'];
 export type GuildSummary = components['schemas']['GuildSummaryDto'];
 export type GuildMember = components['schemas']['GuildMemberDto'];
 export type GuildInvitation = components['schemas']['GuildInvitationDto'];
+export type Enemies = components['schemas']['EnemiesDto'];
+export type GuildBanner = components['schemas']['GuildBannerDto'];
+export type GuildBannerDonation = components['schemas']['GuildBannerDonationRequest'];
+export type EnemyKind = components['schemas']['EnemyRequest']['kind'];
 
 /** Prefix of everything about guilds: the list, single guilds and the player's own state. */
 export const guildsQueryKey = ['guilds'] as const;
 export const myGuildQueryKey = [...guildsQueryKey, 'mine'] as const;
 export const guildListQueryKey = [...guildsQueryKey, 'list'] as const;
+export const enemiesQueryKey = [...guildsQueryKey, 'enemies'] as const;
+export const guildBannerQueryKey = [...guildsQueryKey, 'banner'] as const;
 
 export function guildQueryKey(guildId: number) {
   return [...guildsQueryKey, guildId] as const;
@@ -134,4 +140,86 @@ export function useHandLeadOver() {
 /** DELETE /api/guilds/mine (leader): end the guild for everybody. */
 export function useDisbandGuild() {
   return useGuildMutation<void>(() => expectData(api.DELETE('/api/guilds/mine')));
+}
+
+/**
+ * GET /api/guilds/mine/enemies (1.7): what the leader has marked, for every member. Asked for only
+ * while the player is in a guild; a guild change reloads it with the rest of `guildsQueryKey`.
+ */
+export function useEnemies() {
+  const inGuild = useMyGuild().data?.guild != null;
+  const query = useQuery({
+    queryKey: enemiesQueryKey,
+    queryFn: () => expectData(api.GET('/api/guilds/mine/enemies')),
+    enabled: inGuild,
+  });
+  // a disabled query keeps what it had loaded: whoever left or was removed must not see the marks on
+  return inGuild ? query : { ...query, data: undefined };
+}
+
+/** PUT /api/guilds/mine/enemies (leader): mark a guild, a player or a village. */
+export function useMarkEnemy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (target: { kind: EnemyKind; targetId: number }) =>
+      expectData(api.PUT('/api/guilds/mine/enemies', { body: target })),
+    onSuccess: (enemies) => queryClient.setQueryData(enemiesQueryKey, enemies),
+    onError: () => queryClient.invalidateQueries({ queryKey: enemiesQueryKey }),
+  });
+}
+
+/** DELETE /api/guilds/mine/enemies/{kind}/{targetId} (leader). */
+export function useUnmarkEnemy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (target: { kind: EnemyKind; targetId: number }) =>
+      expectData(api.DELETE('/api/guilds/mine/enemies/{kind}/{targetId}', { params: { path: target } })),
+    onSuccess: (enemies) => queryClient.setQueryData(enemiesQueryKey, enemies),
+    onError: () => queryClient.invalidateQueries({ queryKey: enemiesQueryKey }),
+  });
+}
+
+/**
+ * GET /api/guilds/mine/banner (1.7): the guild banner of the player's guild. Asked for only while
+ * the player is in a guild; a guild change reloads it with the rest of `guildsQueryKey`.
+ */
+export function useGuildBanner(enabled: boolean) {
+  const inGuild = useMyGuild().data?.guild != null;
+  const query = useQuery({
+    queryKey: guildBannerQueryKey,
+    queryFn: () => expectData(api.GET('/api/guilds/mine/banner')),
+    enabled: enabled && inGuild,
+  });
+  // a disabled query keeps what it had loaded: whoever left the guild must not see its fund
+  return inGuild ? query : { ...query, data: undefined };
+}
+
+/**
+ * The answer of a donation or a raise is the new banner; it goes straight into the cache. A
+ * donation took resources from a village, a raise changed the production and the defence of all.
+ */
+function useGuildBannerMutation<Variables>(request: (variables: Variables) => Promise<GuildBanner>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: request,
+    onSuccess: (banner) => {
+      queryClient.setQueryData(guildBannerQueryKey, banner);
+      void queryClient.invalidateQueries({ queryKey: ['village'] });
+      void queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    },
+    // also after an error: the fund or the lock was probably out of date
+    onError: () => queryClient.invalidateQueries({ queryKey: guildBannerQueryKey }),
+  });
+}
+
+/** POST /api/guilds/mine/banner/donations: pay wood, clay and iron of one village into the fund. */
+export function useDonateToBanner() {
+  return useGuildBannerMutation((body: GuildBannerDonation) =>
+    expectData(api.POST('/api/guilds/mine/banner/donations', { body })),
+  );
+}
+
+/** POST /api/guilds/mine/banner/raise: take the next level from the full fund. */
+export function useRaiseBanner() {
+  return useGuildBannerMutation<void>(() => expectData(api.POST('/api/guilds/mine/banner/raise')));
 }

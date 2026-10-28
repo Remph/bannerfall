@@ -4,7 +4,7 @@ import { useT } from '../../i18n';
 import styles from './AdminPage.module.css';
 import { adminTabs, parseTab, visibleTabs, type AdminTab } from './adminTabs';
 import { AuditCard } from './AuditCard';
-import { BroadcastCard } from './BroadcastCard';
+import { BroadcastCard, ChatSayCard } from './BroadcastCard';
 import { CheatsCard } from './CheatsCard';
 import { FailedEventsCard } from './FailedEventsCard';
 import { NpcDifficultyCard } from './NpcDifficultyCard';
@@ -60,6 +60,7 @@ function TabContent({ tab }: { tab: (typeof adminTabs)[number] }) {
         <>
           <StatusCard />
           <BroadcastCard />
+          <ChatSayCard />
         </>
       );
     case 'players':

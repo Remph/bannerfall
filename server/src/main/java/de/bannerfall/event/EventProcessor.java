@@ -2,6 +2,7 @@ package de.bannerfall.event;
 
 import de.bannerfall.world.WorldService;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +39,12 @@ public class EventProcessor {
     /** After this many failed attempts an event is given up (FAILED). */
     static final int MAX_ATTEMPTS = 3;
 
+    /** A tick that takes longer than this is written to the log (WARN). */
+    static final Duration SLOW_TICK = Duration.ofSeconds(5);
+
+    /** An event handled this long after its due time is written to the log (WARN). */
+    static final Duration LATE_EVENT = Duration.ofMinutes(1);
+
     /** The MDC key for the event being handled; logback-spring.xml prints it. */
     static final String MDC_KEY = "event";
 
@@ -46,6 +53,17 @@ public class EventProcessor {
         /** Not pending or not due any more when we got to it: cancelled, handled or moved. */
         SKIPPED,
         FAILED
+    }
+
+    /** What one run of {@link #processDue} saw, for the lag line of {@link #tick()}. */
+    private static final class Run {
+        Instant oldestDue;
+
+        void handled(Instant dueAt) {
+            if (oldestDue == null || dueAt.isBefore(oldestDue)) {
+                oldestDue = dueAt;
+            }
+        }
     }
 
     private final GameEventRepository events;
@@ -76,16 +94,27 @@ public class EventProcessor {
     /**
      * Runs every 200 ms; switched off by {@code bannerfall.events.scheduler-enabled=false}. The
      * first tick that gets through after a start has handled everything due at that moment: then
-     * game requests are let in ({@link StartupGate}).
+     * game requests are let in ({@link StartupGate}). Later ticks write a WARN line when they took
+     * long or handled events that were due long before ({@link #SLOW_TICK}, {@link #LATE_EVENT}):
+     * the only sign that a larger world is getting too much for the worker.
      */
     @Scheduled(fixedDelay = 200)
     public void tick() {
         try {
-            int processed = processDue(clock.instant());
+            Instant now = clock.instant();
+            long started = System.nanoTime();
+            Run run = new Run();
+            int processed = processDue(now, run);
             if (!startupGate.isOpen()) {
                 startupGate.open();
                 log.info(
                         "Caught up after the start ({} events): game requests are open", processed);
+            } else {
+                warnIfBehind(
+                        processed,
+                        run.oldestDue,
+                        now,
+                        Duration.ofNanos(System.nanoTime() - started));
             }
         } catch (RuntimeException e) {
             // For example the database is down. The next tick tries again.
@@ -102,6 +131,22 @@ public class EventProcessor {
      * @return how many events were handled successfully
      */
     public int processDue(Instant until) {
+        return processDue(until, new Run());
+    }
+
+    /** The events that came due during a downtime are not late, so the first tick skips this. */
+    void warnIfBehind(int processed, Instant oldestDue, Instant now, Duration took) {
+        Duration late = oldestDue == null ? Duration.ZERO : Duration.between(oldestDue, now);
+        if (took.compareTo(SLOW_TICK) >= 0 || late.compareTo(LATE_EVENT) >= 0) {
+            log.warn(
+                    "Event tick is behind: {} events in {} ms, the oldest was {} s late",
+                    processed,
+                    took.toMillis(),
+                    late.toSeconds());
+        }
+    }
+
+    private int processDue(Instant until, Run run) {
         Instant endedAt = worldService.endedAt();
         if (endedAt != null && endedAt.isBefore(until)) {
             until = endedAt;
@@ -119,7 +164,7 @@ public class EventProcessor {
                 return processed;
             }
             for (long id : ids) {
-                switch (processOne(id, until)) {
+                switch (processOne(id, until, run)) {
                     case DONE -> processed++;
                     case FAILED -> failed.add(id);
                     case SKIPPED -> {}
@@ -128,12 +173,13 @@ public class EventProcessor {
         }
     }
 
-    private Outcome processOne(long id, Instant until) {
+    private Outcome processOne(long id, Instant until, Run run) {
         // Every log line written while this event runs (handler, failure) shows "event=<id>".
         try (MDC.MDCCloseable _ = MDC.putCloseable(MDC_KEY, Long.toString(id))) {
             try {
                 boolean handled =
-                        Boolean.TRUE.equals(transaction.execute(status -> handleLocked(id, until)));
+                        Boolean.TRUE.equals(
+                                transaction.execute(status -> handleLocked(id, until, run)));
                 return handled ? Outcome.DONE : Outcome.SKIPPED;
             } catch (RuntimeException e) {
                 recordFailure(id, e);
@@ -151,7 +197,7 @@ public class EventProcessor {
      *
      * @return false if there was nothing to do: the event is gone, no longer pending or not due
      */
-    private boolean handleLocked(long id, Instant until) {
+    private boolean handleLocked(long id, Instant until, Run run) {
         GameEvent event = events.findByIdForUpdate(id).orElse(null);
         if (event == null
                 || event.getStatus() != GameEventStatus.PENDING
@@ -166,6 +212,7 @@ public class EventProcessor {
         long started = System.nanoTime();
         handlers.get(event.getKind()).handle(event);
         event.markDone(clock.instant());
+        run.handled(event.getDueAt());
         // Debug logging (the admin switch, 08-host-console §2a): what the worker did and how long
         // it took.
         if (log.isDebugEnabled()) {

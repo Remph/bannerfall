@@ -1,17 +1,27 @@
 import { useState, type KeyboardEvent, type SubmitEvent } from 'react';
 import { errorMessage } from '../../api/errors';
+import { useCurrentAccount } from '../../api/queries/auth';
 import { useRenameVillage, type Village } from '../../api/queries/villages';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon } from '../../components/Icon';
 import { TextField } from '../../components/TextField';
+import { VillageTag } from '../../components/VillageTag';
+import { tagOfVillage } from '../../game/villageTags';
 import { useT } from '../../i18n';
+import { VillageTagSheet } from './VillageTagSheet';
 import { validateVillageName } from './validation';
 import styles from './VillagePage.module.css';
 
-/** The village name as page title; the pencil turns it into a small rename form. */
+/**
+ * The village name as page title; the pencil turns it into a small rename form. Next to it the
+ * player's own tag (1.7) and a button that opens its editor.
+ */
 export function VillageName({ village }: { village: Village }) {
   const t = useT();
+  const tag = tagOfVillage(useCurrentAccount().villages, village.id);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagOpenings, setTagOpenings] = useState(0);
   const rename = useRenameVillage(village.id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -59,6 +69,27 @@ export function VillageName({ village }: { village: Village }) {
         >
           <Icon name="pencil" />
         </button>
+        {tag !== null && <VillageTag tag={tag} />}
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => {
+            setTagOpenings((count) => count + 1);
+            setTagOpen(true);
+          }}
+          aria-label={tag === null ? t.village.tagAdd : t.village.tagEdit(tag)}
+          title={tag === null ? t.village.tagAdd : t.village.tagEdit(tag)}
+        >
+          <Icon name="tag" />
+        </button>
+        {/* every opening counts up, so the editor starts from the saved tag */}
+        <VillageTagSheet
+          key={tagOpenings}
+          open={tagOpen}
+          village={village}
+          tag={tag}
+          onClose={() => setTagOpen(false)}
+        />
       </div>
     );
   }

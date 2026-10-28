@@ -142,6 +142,8 @@ export interface MapColors {
   bannerUsed: string;
   /** The sheet of paper on a village with the player's own note (1.4). */
   note: string;
+  /** The ring on a village of an enemy of the player's guild (1.7). */
+  enemy: string;
   /** The landscape (v1.3): broadleaf crowns, their shade and light, and firs. */
   tree: string;
   treeShade: string;
@@ -184,6 +186,7 @@ export function readMapColors(element: Element): MapColors {
     badgeInkNoble: color('badge-ink-noble'),
     bannerUsed: color('banner-used'),
     note: color('note'),
+    enemy: color('enemy'),
     tree: color('tree'),
     treeShade: color('tree-shade'),
     treeLight: color('tree-light'),
@@ -211,6 +214,8 @@ export interface MapScene {
   ownPlayerId: number;
   /** The player's guild (1.6.3): its other members' villages get the mate colour; null without one. */
   ownGuildId: number | null;
+  /** The villages that belong to an enemy of the player's guild (1.7): a red ring each. */
+  enemyIds: ReadonlySet<number>;
   selectedId: number | null;
   hoveredId: number | null;
   /** A field to point out without a village on it (the target of "go to"). */
@@ -715,6 +720,9 @@ function drawVillages(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fie
     } else if (village.id === scene.hoveredId) {
       drawFieldRing(ctx, middle, tile, colors, 'hovered');
     }
+    if (scene.enemyIds.has(village.id)) {
+      drawEnemyRing(ctx, middle, tile, colors);
+    }
     if (village.keep) {
       drawKeepRing(ctx, middle, tile, colors);
     }
@@ -741,6 +749,33 @@ function drawVillages(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fie
       drawNoteMark(ctx, middle, tile, colors);
     }
   }
+}
+
+/** The red ring around an enemy village (1.7): radius in tiles (at least the minimum in px), fill and edge. */
+const ENEMY_RING = {
+  share: 0.5,
+  minRadius: 7,
+  fillAlpha: 0.14,
+  edgeAlpha: 0.9,
+  edgeShare: 0.06,
+  minEdge: 2,
+  dash: [5, 3],
+} as const;
+
+/** A dashed red ring on an enemy's field, at every zoom; dashed so it differs from the keeps' solid gold. */
+function drawEnemyRing(ctx: CanvasRenderingContext2D, middle: Point, tile: number, colors: MapColors): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(middle.x, middle.y, Math.max(ENEMY_RING.minRadius, tile * ENEMY_RING.share), 0, Math.PI * 2);
+  ctx.globalAlpha = ENEMY_RING.fillAlpha;
+  ctx.fillStyle = colors.enemy;
+  ctx.fill();
+  ctx.globalAlpha = ENEMY_RING.edgeAlpha;
+  ctx.lineWidth = Math.max(ENEMY_RING.minEdge, tile * ENEMY_RING.edgeShare);
+  ctx.setLineDash([...ENEMY_RING.dash]);
+  ctx.strokeStyle = colors.enemy;
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** The gold ring on a keep's field (1.3): its radius in tiles (at least the minimum in px), fill and edge. */

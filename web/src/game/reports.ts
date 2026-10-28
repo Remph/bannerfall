@@ -1,6 +1,6 @@
 import { buildingTypes, unitTypes, type BuildingType, type UnitType } from './gameData';
 import { calendarDay } from './format';
-import { presentUnits, type UnitMap } from './troops';
+import { presentUnits, withoutZeros, type UnitMap } from './troops';
 
 /**
  * Helpers for reports (02-game-rules §14) – pure. The kinds and outcomes are the server enums
@@ -315,6 +315,6 @@ export function ownLosses<V extends { id: number; playerId: number | null }>(
           : [{ village: battle.defender, losses: battle.defenderSide.losses }]
         : [];
   return candidates
-    .map(({ village, losses }) => ({ village, losses: Object.fromEntries(presentUnits(losses)) as UnitMap }))
+    .map(({ village, losses }) => ({ village, losses: withoutZeros(losses) }))
     .filter(({ village, losses }) => ownVillageIds.includes(village.id) && presentUnits(losses).length > 0);
 }

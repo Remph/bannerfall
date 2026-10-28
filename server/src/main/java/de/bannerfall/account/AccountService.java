@@ -9,6 +9,7 @@ import de.bannerfall.common.GameRuleException;
 import de.bannerfall.common.NotFoundException;
 import de.bannerfall.player.Player;
 import de.bannerfall.player.PlayerService;
+import de.bannerfall.tutorial.TutorialService;
 import de.bannerfall.village.SpawnService;
 import de.bannerfall.village.Village;
 import de.bannerfall.village.VillageService;
@@ -52,6 +53,7 @@ public class AccountService implements UserDetailsService {
     private final ApplicationEventPublisher events;
     private final AchievementService achievements;
     private final AccountServerSettings accountServer;
+    private final TutorialService tutorial;
 
     AccountService(
             AccountRepository accounts,
@@ -66,7 +68,8 @@ public class AccountService implements UserDetailsService {
             AccountStates states,
             ApplicationEventPublisher events,
             AchievementService achievements,
-            AccountServerSettings accountServer) {
+            AccountServerSettings accountServer,
+            TutorialService tutorial) {
         this.accounts = accounts;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
@@ -80,6 +83,7 @@ public class AccountService implements UserDetailsService {
         this.events = events;
         this.achievements = achievements;
         this.accountServer = accountServer;
+        this.tutorial = tutorial;
     }
 
     /**
@@ -96,6 +100,7 @@ public class AccountService implements UserDetailsService {
         }
         // Invite code first, so strangers can't probe which usernames exist.
         checkInviteCode(request.inviteCode());
+        requireNotCommon(request.password(), request.username());
         if (accounts.existsByUsernameKey(Account.keyOf(request.username()))) {
             throw usernameTaken();
         }
@@ -137,6 +142,7 @@ public class AccountService implements UserDetailsService {
             throw usernameTaken();
         }
         Player player = playerService.createForAccount(account.getId(), account.getUsername());
+        tutorial.startForNewPlayer(player.getId());
         if (pregame) {
             // registered before the opening (02-game-rules §19)
             achievements.grant(player, Achievement.PIONEER);
@@ -243,9 +249,24 @@ public class AccountService implements UserDetailsService {
             throw localLoginOff();
         }
         checkPassword(account, currentPassword, address);
+        requireNotCommon(newPassword, account.getUsername());
         account.changePasswordHash(passwordEncoder.encode(newPassword));
         sessionsEnded(account);
         return account;
+    }
+
+    /**
+     * A new password the player chooses may not be one of the most used ones (security review of
+     * 1.7, {@link CommonPasswords}). The host's reset ({@link #resetPassword}) is not checked: it
+     * is the host's own choice.
+     *
+     * @throws GameRuleException {@code PASSWORD_TOO_COMMON}
+     */
+    private static void requireNotCommon(String password, String username) {
+        if (CommonPasswords.refuses(password, username)) {
+            throw new GameRuleException(
+                    ErrorCode.PASSWORD_TOO_COMMON, "Choose a password that is harder to guess");
+        }
     }
 
     /**

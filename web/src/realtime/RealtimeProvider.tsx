@@ -4,19 +4,23 @@ import { meQueryKey } from '../api/queries/auth';
 import {
   addChatMessage,
   chatQueryKey,
+  chatSeenQueryKey,
   myGuildIdIn,
   removeChatMessage,
   guildChatQueryKey,
   type ChatError,
   type ChatHidden,
   type ChatMessage,
+  type ChatSeen,
 } from '../api/queries/chat';
+import { addBroadcast, broadcastsQueryKey, type Broadcast } from '../api/queries/broadcast';
 import { messagesQueryKey } from '../api/queries/messages';
 import { reportsQueryKey } from '../api/queries/reports';
 import { useShowToast } from '../components/toasts';
 import { useT } from '../i18n';
 import { RealtimeContext, type RealtimeValue } from './context';
 import { brokerUrl, connectRealtime, type RealtimeConnection } from './stomp';
+import { useChatSeenSync } from './chatSeen';
 import { useGameNotifications } from './useGameNotifications';
 
 function isChatMessage(body: unknown): body is ChatMessage {
@@ -26,6 +30,23 @@ function isChatMessage(body: unknown): body is ChatMessage {
 /** The admin hid a message (M14a): `{hiddenId}` on the same topic. */
 function isChatHidden(body: unknown): body is ChatHidden {
   return typeof body === 'object' && body !== null && 'hiddenId' in body && typeof body.hiddenId === 'number';
+}
+
+/** A read marker of another device (1.7): `{guildId, id}` on `/user/queue/chat-seen`. */
+function isChatSeen(body: unknown): body is ChatSeen {
+  return typeof body === 'object' && body !== null && 'id' in body && typeof body.id === 'number' && 'guildId' in body;
+}
+
+/** A popup message of the host (1.7): `{id, text, sentAt}` on `/topic/broadcast`. */
+function isBroadcast(body: unknown): body is Broadcast {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'id' in body &&
+    typeof body.id === 'number' &&
+    'text' in body &&
+    typeof body.text === 'string'
+  );
 }
 
 function isChatError(body: unknown): body is ChatError {
@@ -40,6 +61,7 @@ function isChatError(body: unknown): body is ChatError {
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const handleNotification = useGameNotifications();
+  const applyChatSeen = useChatSeenSync();
   const showToast = useShowToast();
   const t = useT();
   const [connected, setConnected] = useState(false);
@@ -51,12 +73,17 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const onChat = useEffectEvent((body: unknown) => {
     if (isChatMessage(body)) {
       addChatMessage(queryClient, body);
-      // a broadcast by the host (M14d), e.g. "restart in 5 minutes": also a toast, the chat may be closed
+      // a message of the host in the chat (M14d, `chat-say`): also a toast, the chat may be closed
       if (body.playerId === null) {
         showToast({ text: t.chat.broadcastToast(body.text), tone: 'info' });
       }
     } else if (isChatHidden(body)) {
       removeChatMessage(queryClient, body.hiddenId);
+    }
+  });
+  const onBroadcast = useEffectEvent((body: unknown) => {
+    if (isBroadcast(body)) {
+      addBroadcast(queryClient, body);
     }
   });
   // the guild's own channel (M15b): filed under the guild the cache says the player is in
@@ -71,6 +98,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       removeChatMessage(queryClient, body.hiddenId, guildChatQueryKey(guildId));
     }
   });
+  // the player read a chat on another device (or in another tab): the badges here follow
+  const onChatSeen = useEffectEvent((body: unknown) => {
+    if (isChatSeen(body)) {
+      applyChatSeen(body);
+    }
+  });
   const onConnected = useEffectEvent((again: boolean) => {
     setConnected(true);
     if (again) {
@@ -79,7 +112,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     } else {
       // the first answers may have been sent before the subscriptions were made: what was pushed
       // in between is lost, so fetch the chat and the counters (red counter, unread reports) again
-      for (const queryKey of [chatQueryKey, ['guildChat'], meQueryKey, reportsQueryKey, messagesQueryKey]) {
+      for (const queryKey of [
+        chatQueryKey,
+        ['guildChat'],
+        chatSeenQueryKey,
+        broadcastsQueryKey,
+        meQueryKey,
+        reportsQueryKey,
+        messagesQueryKey,
+      ]) {
         void queryClient.invalidateQueries({ queryKey });
       }
     }
@@ -100,7 +141,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const opened = connectRealtime(brokerUrl(window.location), {
       onEvent: (body) => onEvent(body),
       onChat: (body) => onChat(body),
+      onBroadcast: (body) => onBroadcast(body),
       onGuildChat: (body) => onGuildChat(body),
+      onChatSeen: (body) => onChatSeen(body),
       onChatError: (body) => {
         if (isChatError(body)) {
           listeners.forEach((listener) => listener(body));

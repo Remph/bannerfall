@@ -146,7 +146,7 @@ bannerfall-admin events failed          # and: events retry <id>
 bannerfall-admin npc list               # npc spawn <personality>, npc difficulty NORMAL
 bannerfall-admin barbarians spawn 40 52
 bannerfall-admin banner list Anna       # banner grant Anna WAR 1 --reason "…", banner revoke <id>
-bannerfall-admin broadcast "Restart in 5 minutes"
+bannerfall-admin broadcast "Restart in 5 minutes"   # a popup for everybody who is playing; chat-say "…" posts in the chat instead
 bannerfall-admin audit --limit 20
 bannerfall-admin suspicious             # who sent requests the game never sends (last 30 days)
 bannerfall-admin player Anna ban --reason "cheating" --days 7   # or --until <instant>; without either: permanent
@@ -181,17 +181,17 @@ chmod 600 .env
 
 `openssl rand -hex 24` makes a good password and a good token (the token needs at least 32 characters). Keep `.env` private; it is not in git. The host cheats stay off (`BANNERFALL_CHEATS_ENABLED` is not passed to the container).
 
-**Build and ship** (on your PC, in the repo root; replace `1.6.3` by the version):
+**Build and ship** (on your PC, in the repo root; replace `1.7.0` by the version):
 
 ```
-docker build -t ghcr.io/your-name/bannerfall:1.6.3 --build-arg VERSION=1.6.3 .
+docker build -t ghcr.io/your-name/bannerfall:1.7.0 --build-arg VERSION=1.7.0 .
 docker login ghcr.io          # once, with a GitHub token that may write packages
-docker push ghcr.io/your-name/bannerfall:1.6.3
+docker push ghcr.io/your-name/bannerfall:1.7.0
 ```
 
-(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.6.3 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.6.3 --build-arg VERSION=1.6.3 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.6.3` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
+(The Dockerfile builds the web app, the server jar and a small runtime image; the build takes a few minutes the first time. `VERSION` is shown by `bannerfall-admin status`. Without a registry: `docker save ghcr.io/your-name/bannerfall:1.7.0 | ssh server docker load`, or build on the server itself: `docker build -t bannerfall:1.7.0 --build-arg VERSION=1.7.0 .` in the cloned repo and `BANNERFALL_IMAGE=bannerfall:1.7.0` in `.env` (needs about 4 GB of memory including swap). A private package needs `docker login ghcr.io` on the server too.)
 
-**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.6.3` in `.env`, then
+**Start or update** (on the server): set `BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:1.7.0` in `.env`, then
 
 ```
 docker compose -f compose.prod.yaml pull        # skip this when the image was loaded or built on the server itself
@@ -271,7 +271,7 @@ A backup of the old server also moves the world to a new one: install the stack 
 cd server
 ./gradlew check           # the tests (needs Docker running) and spotlessCheck
 ./gradlew test            # the tests only
-./gradlew simulationTest  # the NPC lord simulation (~15 min, prints balance tables)
+./gradlew simulationTest  # the NPC lord simulation (30 days, the three scenarios side by side, prints balance tables; -PsimQuick for 15 days)
 ./gradlew spotlessApply   # format Java (google-java-format, AOSP style) and Gradle files
 ./gradlew spotlessCheck   # fails if something is not formatted (also part of ./gradlew check)
 

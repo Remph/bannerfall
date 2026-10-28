@@ -224,6 +224,7 @@ final class BattleReports {
      * @param attackerFoundStandard the standard the attacker found; null if none
      * @param defenderFoundStandard the standard the village owner found; null if none
      * @param standardTheft the defenders' thieves' roll for the attack's standard; null without
+     * @param guildDefence the defence the village's guild banner gave (1.7, §16.4); 0 without
      */
     record Banners(
             double attackBonus,
@@ -234,7 +235,8 @@ final class BattleReports {
             BattleReport.StandardReport attackStandard,
             BattleReport.ScoutedBanner attackerFoundStandard,
             BattleReport.ScoutedBanner defenderFoundStandard,
-            BattleReport.StandardTheftReport standardTheft) {
+            BattleReport.StandardTheftReport standardTheft,
+            double guildDefence) {
 
         static final Banners NONE = new Banners(0, 0, null, null, null);
 
@@ -254,7 +256,8 @@ final class BattleReports {
                     null,
                     null,
                     null,
-                    null);
+                    null,
+                    0);
         }
 
         /**
@@ -318,7 +321,8 @@ final class BattleReports {
                         null,
                         banners.attackStandard(),
                         banners.attackerFoundStandard(),
-                        banners.standardLost()),
+                        banners.standardLost(),
+                        sawBanner ? bonus(banners.guildDefence()) : null),
                 battle.haulCapacity());
     }
 
@@ -368,7 +372,8 @@ final class BattleReports {
                         owner ? banners.stolen() : null,
                         banners.attackStandard(),
                         owner ? banners.defenderFoundStandard() : null,
-                        owner ? banners.standardTheft() : null),
+                        owner ? banners.standardTheft() : null,
+                        bonus(banners.guildDefence())),
                 null);
     }
 

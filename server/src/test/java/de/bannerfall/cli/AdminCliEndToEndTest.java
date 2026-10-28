@@ -450,6 +450,7 @@ class AdminCliEndToEndTest {
                 null,
                 null,
                 null,
+                null,
                 s.barbarianWallsEnabled(),
                 s.barbarianWallStartDays(),
                 s.barbarianWallMaxLevel(),
@@ -479,6 +480,7 @@ class AdminCliEndToEndTest {
                 s.moraleFloor(),
                 s.noblePriceStep(),
                 s.automationVillages(),
+                s.tutorialEnabled(),
                 null);
     }
 }

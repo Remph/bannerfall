@@ -52,6 +52,7 @@ public class OwnerChange {
     private final EventScheduler scheduler;
     private final ApplicationEventPublisher events;
     private final ReturnWatchRepository returnWatches;
+    private final VillageTagService villageTags;
 
     OwnerChange(
             BuildOrderRepository buildOrders,
@@ -67,7 +68,8 @@ public class OwnerChange {
             MovementRepository movements,
             EventScheduler scheduler,
             ApplicationEventPublisher events,
-            ReturnWatchRepository returnWatches) {
+            ReturnWatchRepository returnWatches,
+            VillageTagService villageTags) {
         this.buildOrders = buildOrders;
         this.recruitOrders = recruitOrders;
         this.dismissOrders = dismissOrders;
@@ -82,14 +84,16 @@ public class OwnerChange {
         this.scheduler = scheduler;
         this.events = events;
         this.returnWatches = returnWatches;
+        this.villageTags = villageTags;
     }
 
     /**
      * Build orders (with their events), recruit, dismiss and running research orders, market
-     * offers, the farm list and the village automation are deleted; nothing is refunded (an offer's
-     * resources are lost, 02-game-rules §10). Transports on the way still arrive, and what comes to
-     * the village goes to its new owner; the merchants the village sent out were the old owner's
-     * and don't come back (code review 1.2, D8): they are no longer busy here or listed.
+     * offers, the farm list, the village automation and the owner's tag are deleted; nothing is
+     * refunded (an offer's resources are lost, 02-game-rules §10). Transports on the way still
+     * arrive, and what comes to the village goes to its new owner; the merchants the village sent
+     * out were the old owner's and don't come back (code review 1.2, D8): they are no longer busy
+     * here or listed.
      *
      * @param at when the village changes owner (a conquest: the battle's time, which the event
      *     worker may handle a little later)
@@ -116,6 +120,8 @@ public class OwnerChange {
         farmTargets.deleteAll(farmTargets.findByVillageIdOrderByIdAsc(villageId));
         // so is the automation (1.6, 02-game-rules §25); its pending look finds nothing to do
         automations.deleteForVillage(villageId);
+        // and the old owner's tag (1.7, §26)
+        villageTags.deleteForVillage(villageId);
     }
 
     /**

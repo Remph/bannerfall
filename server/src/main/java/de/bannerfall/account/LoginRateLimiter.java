@@ -1,5 +1,6 @@
 package de.bannerfall.account;
 
+import de.bannerfall.abuse.ClientNetwork;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Component;
  * <p>Per name and address, not per name alone (code review 1.2, D1): usernames are public in the
  * ranking, so a script could otherwise keep every player locked out of his own account. Spreading
  * guesses over many addresses is held back by the per-address limit ({@code AuthAddressLimiter}).
+ * An IPv6 address counts by its /64 network, the way that whole network is one client (security
+ * review of 1.7).
  */
 @Component
 class LoginRateLimiter {
@@ -38,8 +41,13 @@ class LoginRateLimiter {
         this.clock = clock;
     }
 
+    /** An IPv6 address counts by its /64 network ({@link ClientNetwork}). */
+    private static Key key(String usernameKey, String address) {
+        return new Key(usernameKey, ClientNetwork.of(address));
+    }
+
     boolean isBlocked(String usernameKey, String address) {
-        Failures failures = failuresByKey.get(new Key(usernameKey, address));
+        Failures failures = failuresByKey.get(key(usernameKey, address));
         return failures != null && failures.count() >= MAX_FAILURES && !isExpired(failures);
     }
 
@@ -55,7 +63,7 @@ class LoginRateLimiter {
         Instant now = clock.instant();
         boolean[] allowed = {true};
         failuresByKey.compute(
-                new Key(usernameKey, address),
+                key(usernameKey, address),
                 (key, old) -> {
                     if (old == null || isExpired(old)) {
                         return new Failures(1, now);
@@ -73,7 +81,7 @@ class LoginRateLimiter {
     }
 
     void recordSuccess(String usernameKey, String address) {
-        failuresByKey.remove(new Key(usernameKey, address));
+        failuresByKey.remove(key(usernameKey, address));
     }
 
     /**

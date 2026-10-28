@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useMyGuild } from '../../api/queries/guilds';
+import { useEnemies, useMyGuild } from '../../api/queries/guilds';
 import {
   NO_LINES,
   NO_MOVEMENTS,
@@ -61,6 +61,7 @@ import {
   type Size,
   type VillageKind,
 } from '../../game/mapView';
+import { enemySets, isEnemyVillage } from '../../game/enemies';
 import { gameTime, serverNow } from '../../game/serverTime';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
@@ -144,6 +145,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const t = useT();
   const me = useCurrentAccount();
   const ownGuildId = useMyGuild().data?.guild?.id ?? null;
+  const enemies = useEnemies().data;
   const theme = useEffectiveTheme();
   const palette = usePalette();
   const pixelRatio = useDevicePixelRatio();
@@ -206,6 +208,11 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
   const range = size === null ? undefined : visibleFields(camera, size, mapSize);
   const map = useMapVillages(range === undefined ? [] : chunksFor(range));
   const villages = map.villages;
+  // the villages of the guild's enemies (1.7): marked, or owned by a marked player or guild
+  const enemyIds = useMemo(() => {
+    const sets = enemySets(enemies);
+    return new Set(villages.filter((entry) => isEnemyVillage(sets, entry)).map((entry) => entry.id));
+  }, [villages, enemies]);
   // the movement markers (M26), on unless switched off on this device
   const [showMovements, setShowMovements] = useState(loadShowMovements);
   // the movement lines (v1.3), off unless switched on on this device; a tapped line opens its panel
@@ -309,6 +316,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       selectedLineId: highlightedLineId,
       ownPlayerId: me.playerId,
       ownGuildId,
+      enemyIds,
       selectedId: selected?.id ?? outlinedVillage?.id ?? null,
       hoveredId,
       marked: drawnMark,
@@ -327,6 +335,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
     highlightedLineId,
     me.playerId,
     ownGuildId,
+    enemyIds,
     selected?.id,
     outlinedVillage?.id,
     hoveredId,
@@ -593,6 +602,7 @@ function WorldMap({ village, mapSize }: { village: Village; mapSize: number }) {
       village={selected}
       movement={movements.find((entry) => entry.villageId === selected.id)}
       kind={villageKind(selected, me.playerId, ownGuildId)}
+      enemy={enemyIds.has(selected.id)}
       currentVillage={village}
       onClose={closePanel}
       docked={!panelOnMap}

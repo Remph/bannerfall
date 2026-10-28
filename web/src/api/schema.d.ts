@@ -52,7 +52,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/villages/{id}/note": {
+    "/api/villages/{id}/tag": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +68,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/recruit-templates/{letter}": {
+    "/api/villages/{id}/note": {
         parameters: {
             query?: never;
             header?: never;
@@ -77,6 +77,22 @@ export interface paths {
         };
         get?: never;
         put: operations["save_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recruit-templates/{letter}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["save_2"];
         post?: never;
         delete: operations["delete"];
         options?: never;
@@ -132,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guilds/mine/enemies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["enemies"];
+        put: operations["markEnemy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guilds/mine/description": {
         parameters: {
             query?: never;
@@ -156,9 +188,25 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["save_2"];
+        put: operations["save_3"];
         post?: never;
         delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seen"];
+        put: operations["markSeen"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -172,7 +220,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["save_3"];
+        put: operations["save_4"];
         post?: never;
         delete: operations["delete_2"];
         options?: never;
@@ -596,6 +644,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tutorial/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tutorial/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tutorial/steps/{key}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["skip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tutorial/steps/{key}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["done"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tutorial/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["start_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stacks/{stackId}/return": {
         parameters: {
             query?: never;
@@ -942,6 +1070,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["inviteToGuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guilds/mine/banner/raise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["raiseBanner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guilds/mine/banner/donations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["donateToBanner"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1438,6 +1598,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["finishMovements_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["chatSay"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2036,6 +2212,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guilds/mine/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["guildBanner"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/farm-templates": {
         parameters: {
             query?: never;
@@ -2108,6 +2300,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["buildings_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/broadcasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["broadcasts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2436,6 +2644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guilds/mine/enemies/{kind}/{targetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["unmarkEnemy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/guilds/mine/chat/{messageId}": {
         parameters: {
             query?: never;
@@ -2631,6 +2855,14 @@ export interface components {
                 [key: string]: components["schemas"]["Requirement"][];
             };
         };
+        VillageTagRequest: {
+            tag: string;
+        };
+        VillageTagDto: {
+            /** Format: int64 */
+            villageId: number;
+            tag: string | null;
+        };
         VillageNoteRequest: {
             text: string;
         };
@@ -2710,6 +2942,47 @@ export interface components {
             /** Format: int32 */
             iron: number;
         };
+        EnemyRequest: {
+            /** @enum {string} */
+            kind: "GUILD" | "PLAYER" | "VILLAGE";
+            /** Format: int64 */
+            targetId: number;
+        };
+        EnemiesDto: {
+            guilds: components["schemas"]["EnemyGuildDto"][];
+            players: components["schemas"]["EnemyPlayerDto"][];
+            villages: components["schemas"]["EnemyVillageDto"][];
+            /** Format: int32 */
+            max: number;
+        };
+        EnemyGuildDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            tag: string;
+        };
+        EnemyPlayerDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            npc: boolean;
+            /** Format: int64 */
+            guildId: number | null;
+            guildTag: string | null;
+        };
+        EnemyVillageDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            x: number;
+            /** Format: int32 */
+            y: number;
+            /** Format: int64 */
+            ownerId: number;
+            ownerName: string;
+            npc: boolean;
+        };
         DescriptionRequest: {
             description: string;
         };
@@ -2723,6 +2996,8 @@ export interface components {
             createdAt: string;
             /** Format: int64 */
             points: number;
+            /** Format: int32 */
+            bannerLevel: number;
             members: components["schemas"]["GuildMemberDto"][];
             invitations: components["schemas"]["GuildInvitationDto"][] | null;
         };
@@ -2771,6 +3046,18 @@ export interface components {
             units: {
                 [key: string]: number;
             };
+        };
+        ChatSeenRequest: {
+            /** Format: int64 */
+            guildId: number | null;
+            /** Format: int64 */
+            id: number;
+        };
+        ChatSeenDto: {
+            /** Format: int64 */
+            guildId: number | null;
+            /** Format: int64 */
+            id: number;
         };
         BuildPlanLine: {
             /** @enum {string|null} */
@@ -2833,6 +3120,7 @@ export interface components {
             /** Format: int32 */
             guildMaxMembers: number | null;
             guildStartTogether: boolean | null;
+            guildBannersEnabled: boolean | null;
             npcGuildsEnabled: boolean | null;
             /** Format: int32 */
             npcGuildMaxMembers: number | null;
@@ -2883,6 +3171,7 @@ export interface components {
             noblePriceStep: number | null;
             /** Format: int32 */
             automationVillages: number | null;
+            tutorialEnabled: boolean | null;
             /** @enum {string|null} */
             mapSpread: "CLOSE" | "NORMAL" | "WIDE" | "VAST" | null;
         };
@@ -2932,6 +3221,7 @@ export interface components {
             /** Format: int32 */
             guildMaxMembers: number;
             guildStartTogether: boolean;
+            guildBannersEnabled: boolean;
             npcGuildsEnabled: boolean;
             /** Format: int32 */
             npcGuildMaxMembers: number;
@@ -2982,6 +3272,7 @@ export interface components {
             noblePriceStep: number;
             /** Format: int32 */
             automationVillages: number;
+            tutorialEnabled: boolean;
             /** @enum {string} */
             phase: "PREGAME" | "OPEN" | "ENDED";
             setupDone: boolean;
@@ -3339,7 +3630,7 @@ export interface components {
             notifyReturn: boolean | null;
         };
         TrainAttackPreviewDto: {
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
         };
         TrainPreviewDto: {
             targetVillage: components["schemas"]["VillageRefDto"];
@@ -3361,13 +3652,46 @@ export interface components {
             travelSeconds: number | null;
             /** Format: date-time */
             arriveAt: string | null;
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
             /** Format: double */
             morale: number | null;
         };
         BuildOrderMoveRequest: {
             /** Format: int32 */
             position: number;
+        };
+        TutorialCurrentDto: {
+            /** @enum {string} */
+            key: "WOODCUTTER" | "HEADQUARTERS" | "BARRACKS" | "SPEARMEN" | "MAP_BARBARIAN" | "ATTACK" | "REPORT" | "SIMULATOR" | "FARM_LIST" | "MARKET" | "GUILD" | "LESSON_UNIT_LEVELS" | "LESSON_CONQUEST" | "LESSON_AUTOMATION" | "LESSON_BANNER_HALL";
+            /** @enum {string} */
+            kind: "STEP" | "LESSON";
+            /** Format: int32 */
+            index: number;
+            /** Format: int32 */
+            total: number;
+            refund: components["schemas"]["ResourceAmounts"] | null;
+        };
+        TutorialDto: {
+            enabled: boolean;
+            active: boolean;
+            current: components["schemas"]["TutorialCurrentDto"] | null;
+            steps: components["schemas"]["TutorialStepDto"][];
+            refunds: components["schemas"]["TutorialRefundDto"][];
+        };
+        TutorialRefundDto: {
+            /** @enum {string} */
+            key: "WOODCUTTER" | "HEADQUARTERS" | "BARRACKS" | "SPEARMEN" | "MAP_BARBARIAN" | "ATTACK" | "REPORT" | "SIMULATOR" | "FARM_LIST" | "MARKET" | "GUILD" | "LESSON_UNIT_LEVELS" | "LESSON_CONQUEST" | "LESSON_AUTOMATION" | "LESSON_BANNER_HALL";
+            /** Format: int64 */
+            villageId: number;
+            amount: components["schemas"]["ResourceAmounts"];
+        };
+        TutorialStepDto: {
+            /** @enum {string} */
+            key: "WOODCUTTER" | "HEADQUARTERS" | "BARRACKS" | "SPEARMEN" | "MAP_BARBARIAN" | "ATTACK" | "REPORT" | "SIMULATOR" | "FARM_LIST" | "MARKET" | "GUILD" | "LESSON_UNIT_LEVELS" | "LESSON_CONQUEST" | "LESSON_AUTOMATION" | "LESSON_BANNER_HALL";
+            /** @enum {string} */
+            kind: "STEP" | "LESSON";
+            /** @enum {string} */
+            status: "DONE" | "SKIPPED" | "OPEN" | "UPCOMING";
         };
         StackReturnRequest: {
             units: {
@@ -3416,6 +3740,8 @@ export interface components {
             night: boolean | null;
             /** Format: int32 */
             morale: number | null;
+            /** Format: int32 */
+            guildBannerLevel: number | null;
         };
         LoyaltyOutlook: {
             /** Format: int32 */
@@ -3484,6 +3810,8 @@ export interface components {
             attackBonus: number;
             /** Format: double */
             defenceBonus: number;
+            /** Format: double */
+            guildDefenceBonus: number;
             /** Format: double */
             plunderBonus: number;
             /** Format: double */
@@ -3564,6 +3892,7 @@ export interface components {
             points: number;
             /** Format: int32 */
             incomingAttacks: number;
+            tag: string | null;
         };
         ChangePasswordRequest: {
             currentPassword: string;
@@ -3582,6 +3911,51 @@ export interface components {
         };
         InviteRequest: {
             playerName: string;
+        };
+        DonorDto: {
+            /** Format: int64 */
+            playerId: number;
+            name: string;
+            /** Format: int64 */
+            amount: number;
+        };
+        EffectDto: {
+            /** Format: int32 */
+            level: number;
+            /** @enum {string} */
+            kind: "PRODUCTION" | "SUPPORT" | "DEFENCE";
+            /** Format: double */
+            bonus: number;
+        };
+        GuildBannerDto: {
+            enabled: boolean;
+            /** Format: int32 */
+            level: number;
+            /** Format: int32 */
+            maxLevel: number;
+            /** Format: int64 */
+            fund: number;
+            /** Format: int64 */
+            price: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int32 */
+            members: number;
+            memberPrices: number[];
+            /** Format: date-time */
+            lockedUntil: string | null;
+            effects: components["schemas"]["EffectDto"][];
+            donors: components["schemas"]["DonorDto"][];
+        };
+        GuildBannerDonationRequest: {
+            /** Format: int64 */
+            villageId: number;
+            /** Format: int32 */
+            wood: number;
+            /** Format: int32 */
+            clay: number;
+            /** Format: int32 */
+            iron: number;
         };
         AddUnitsRequest: {
             units: {
@@ -3805,6 +4179,13 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        BroadcastDto: {
+            /** Format: int64 */
+            id: number;
+            text: string;
+            /** Format: date-time */
+            sentAt: string;
+        };
         BannerRevokeRequest: {
             reason: string | null;
         };
@@ -3861,6 +4242,7 @@ export interface components {
             /** Format: int32 */
             guildMaxMembers: number;
             guildStartTogether: boolean;
+            guildBannersEnabled: boolean;
             /** Format: int32 */
             npcGuildMaxMembers: number;
             barbarianWallsEnabled: boolean;
@@ -4133,7 +4515,7 @@ export interface components {
             locksBuildings: ("HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL")[];
             locksUnits: ("SPEARMAN" | "SWORDSMAN" | "AXEMAN" | "SCOUT" | "LIGHT_CAVALRY" | "HEAVY_CAVALRY" | "RAM" | "CATAPULT" | "NOBLE" | "PALADIN" | "BANNER_THIEF" | "ARCHER" | "MOUNTED_ARCHER")[];
             /** @enum {string|null} */
-            blocker: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE" | null;
+            blocker: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE" | null;
         };
         NextLevelDto: {
             /** Format: int32 */
@@ -4256,6 +4638,8 @@ export interface components {
             attackStandard: components["schemas"]["StandardReport"] | null;
             foundStandard: components["schemas"]["ScoutedBanner"] | null;
             standardTheft: components["schemas"]["StandardTheftReport"] | null;
+            /** Format: double */
+            guildDefenceBonus: number | null;
         };
         BattleReport: Omit<components["schemas"]["ReportPayload"], "type"> & {
             attacker: components["schemas"]["VillageRefDto"];
@@ -4884,6 +5268,16 @@ export interface components {
         GameNotification: {
             type: string;
         };
+        GuildBannerRaised: Omit<components["schemas"]["GameNotification"], "type"> & {
+            /** Format: int32 */
+            level: number;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GUILD_BANNER_RAISED";
+        };
         GuildChanged: Omit<components["schemas"]["GameNotification"], "type"> & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -5025,7 +5419,7 @@ export interface components {
         };
         ChatErrorDto: {
             /** @enum {string} */
-            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE";
+            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE";
             detail: string;
         };
     };
@@ -5167,6 +5561,32 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "application/json": components["schemas"]["VillageTagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VillageTagDto"];
+                };
+            };
+        };
+    };
+    save_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
                 "application/json": components["schemas"]["VillageNoteRequest"];
             };
         };
@@ -5182,7 +5602,7 @@ export interface operations {
             };
         };
     };
-    save_1: {
+    save_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5300,6 +5720,50 @@ export interface operations {
             };
         };
     };
+    enemies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnemiesDto"];
+                };
+            };
+        };
+    };
+    markEnemy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnemyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnemiesDto"];
+                };
+            };
+        };
+    };
     describeGuild: {
         parameters: {
             query?: never;
@@ -5324,7 +5788,7 @@ export interface operations {
             };
         };
     };
-    save_2: {
+    save_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5370,7 +5834,51 @@ export interface operations {
             };
         };
     };
-    save_3: {
+    seen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChatSeenDto"][];
+                };
+            };
+        };
+    };
+    markSeen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatSeenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChatSeenDto"];
+                };
+            };
+        };
+    };
+    save_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6173,6 +6681,110 @@ export interface operations {
             };
         };
     };
+    sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TutorialDto"];
+                };
+            };
+        };
+    };
+    stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TutorialDto"];
+                };
+            };
+        };
+    };
+    skip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TutorialDto"];
+                };
+            };
+        };
+    };
+    done: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TutorialDto"];
+                };
+            };
+        };
+    };
+    start_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TutorialDto"];
+                };
+            };
+        };
+    };
     returnStack: {
         parameters: {
             query?: never;
@@ -6709,6 +7321,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MyGuildDto"];
+                };
+            };
+        };
+    };
+    raiseBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GuildBannerDto"];
+                };
+            };
+        };
+    };
+    donateToBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuildBannerDonationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GuildBannerDto"];
                 };
             };
         };
@@ -7466,7 +8122,7 @@ export interface operations {
             };
         };
     };
-    broadcast: {
+    chatSay: {
         parameters: {
             query?: never;
             header?: never;
@@ -7486,6 +8142,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ChatMessageDto"];
+                };
+            };
+        };
+    };
+    broadcast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BroadcastRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BroadcastDto"];
                 };
             };
         };
@@ -8325,6 +9005,26 @@ export interface operations {
             };
         };
     };
+    guildBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GuildBannerDto"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query?: never;
@@ -8421,6 +9121,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PlanBuildingDto"][];
+                };
+            };
+        };
+    };
+    broadcasts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BroadcastDto"][];
                 };
             };
         };
@@ -8835,6 +9555,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MyGuildDto"];
+                };
+            };
+        };
+    };
+    unmarkEnemy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "GUILD" | "PLAYER" | "VILLAGE";
+                targetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnemiesDto"];
                 };
             };
         };

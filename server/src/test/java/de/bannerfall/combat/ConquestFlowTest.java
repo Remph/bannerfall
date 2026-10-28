@@ -412,6 +412,9 @@ class ConquestFlowTest {
         // "still runs" at the battle's time, also when the worker gets to it a little later
         insertResearch(defender, 3, conquest.plusSeconds(3));
         insertResearch(defender, 2, conquest.minusSeconds(3600));
+        defender.browser
+                .put("/api/villages/" + defender.villageId + "/tag", "{\"tag\":\"off\"}")
+                .andExpect(status().isOk());
         long defenderAttackId =
                 number(
                                 body(
@@ -466,6 +469,12 @@ class ConquestFlowTest {
                 .isEqualTo(1);
         assertThat(count("select level from research_order where player_id = ?", defender.playerId))
                 .isEqualTo(2);
+        // the tag is the old owner's: the new owner starts without one
+        assertThat(
+                        count(
+                                "select count(*) from village_tag where village_id = ?",
+                                defender.villageId))
+                .isZero();
         neighbour
                 .troops()
                 .andExpect(jsonPath("$.incoming").isEmpty())

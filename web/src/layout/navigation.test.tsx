@@ -17,7 +17,7 @@ const me: Me = {
   needsRespawn: false,
   linked: false,
   respawnNearGuild: false,
-  villages: [{ id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 300, incomingAttacks: 0 }],
+  villages: [{ id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 300, incomingAttacks: 0, tag: null }],
 };
 
 function show(url: string) {

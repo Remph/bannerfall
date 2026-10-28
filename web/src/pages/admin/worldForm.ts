@@ -56,6 +56,10 @@ export interface WorldForm {
   guildMaxMembers: string;
   /** 1.6 (02-game-rules §2): guild mates start next to each other at the opening and on a respawn. */
   guildStartTogether: boolean;
+  /** 1.7 (02-game-rules §16.4): guilds can raise a banner whose levels give small bonuses. */
+  guildBannersEnabled: boolean;
+  /** The tutorial card, its menu row and its refunds (1.7, 02-game-rules §27). */
+  tutorialEnabled: boolean;
   /** Lord guilds (09-npc-lords §13): NPC lords form guilds; the most lords one may have. */
   npcGuildsEnabled: boolean;
   npcGuildMaxMembers: string;
@@ -121,6 +125,8 @@ export function worldToForm(settings: AdminWorldSettings): WorldForm {
     guildsEnabled: settings.guildsEnabled,
     guildMaxMembers: String(settings.guildMaxMembers),
     guildStartTogether: settings.guildStartTogether,
+    guildBannersEnabled: settings.guildBannersEnabled,
+    tutorialEnabled: settings.tutorialEnabled,
     npcGuildsEnabled: settings.npcGuildsEnabled,
     npcGuildMaxMembers: String(settings.npcGuildMaxMembers),
     unitLevelsEnabled: settings.unitLevelsEnabled,
@@ -262,6 +268,8 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     guildsEnabled: form.guildsEnabled,
     guildMaxMembers,
     guildStartTogether: form.guildStartTogether,
+    guildBannersEnabled: form.guildBannersEnabled,
+    tutorialEnabled: form.tutorialEnabled,
     npcGuildsEnabled: form.npcGuildsEnabled,
     npcGuildMaxMembers,
     unitLevelsEnabled: form.unitLevelsEnabled,

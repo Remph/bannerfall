@@ -1,16 +1,19 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import { useCurrentAccount } from '../../api/queries/auth';
+import { useEnemies } from '../../api/queries/guilds';
 import { RANKING_PAGE_SIZE, useRanking, type RankingEntry, type RankingKind } from '../../api/queries/ranking';
 import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Pagination } from '../../components/Pagination';
 import { SegmentedControl } from '../../components/SegmentedControl';
+import { enemySets, isEnemyPlayer, type EnemySets } from '../../game/enemies';
 import { formatNumber } from '../../game/format';
 import { bracketTag } from '../../game/guilds';
 import { pageCount } from '../../game/reports';
 import { useI18n } from '../../i18n';
+import { EnemyPill } from '../guild/EnemyPill';
 import { pageFromSearch } from '../reports/reportPaths';
 import { RANKING_KINDS, STATISTICS_PATH, playerPath, rankingKindFromSearch, rankingPath } from './rankingPaths';
 import styles from './RankingPage.module.css';
@@ -26,6 +29,7 @@ export function RankingPage() {
   const page = pageFromSearch(params);
   const by = rankingKindFromSearch(params);
   const ranking = useRanking(page, by);
+  const enemies = enemySets(useEnemies().data);
   const navigate = useNavigate();
 
   if (ranking.isError) {
@@ -86,7 +90,13 @@ export function RankingPage() {
           ) : (
             <ol className={styles.list} start={entries[0]?.rank}>
               {entries.map((entry, index) => (
-                <Line key={entry.playerId} entry={entry} by={by} showRank={entries[index - 1]?.rank !== entry.rank} />
+                <Line
+                  key={entry.playerId}
+                  entry={entry}
+                  by={by}
+                  showRank={entries[index - 1]?.rank !== entry.rank}
+                  enemies={enemies}
+                />
               ))}
             </ol>
           )}
@@ -111,7 +121,18 @@ export function RankingPage() {
  * One player: the rank (not repeated for equal values), name with tags, villages, and what the tab
  * sorts by (the points, or the statistics total).
  */
-function Line({ entry, by, showRank }: { entry: RankingEntry; by: RankingKind; showRank: boolean }) {
+function Line({
+  entry,
+  by,
+  showRank,
+  enemies,
+}: {
+  entry: RankingEntry;
+  by: RankingKind;
+  showRank: boolean;
+  /** The marks of the viewer's guild (1.7): a marked player, or one of a marked guild, gets the pill. */
+  enemies: EnemySets;
+}) {
   const { t, language } = useI18n();
   const me = useCurrentAccount();
   const mine = entry.playerId === me.playerId;
@@ -125,6 +146,7 @@ function Line({ entry, by, showRank }: { entry: RankingEntry; by: RankingKind; s
             {entry.name}
             {mine && <span className={styles.tag}>{t.map.youTag}</span>}
             {entry.npc && <span className={styles.tag}>{t.map.npcTag}</span>}
+            {isEnemyPlayer(enemies, { id: entry.playerId, guildId: entry.guildId }) && <EnemyPill />}
           </span>
           <span className={styles.sub}>{t.ranking.villageCount(entry.villageCount)}</span>
         </span>

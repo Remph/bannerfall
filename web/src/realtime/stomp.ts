@@ -9,10 +9,12 @@ import { Client, ReconnectionTimeMode, type IMessage } from '@stomp/stompjs';
 export const destinations = {
   events: '/user/queue/events',
   chat: '/topic/chat',
+  broadcast: '/topic/broadcast',
   errors: '/user/queue/errors',
   chatSend: '/app/chat.send',
   guildChat: '/user/queue/guild-chat',
   guildChatSend: '/app/guild-chat.send',
+  chatSeen: '/user/queue/chat-seen',
 } as const;
 
 /** `ws://host/ws` on http, `wss://host/ws` on https: the same origin as the page. */
@@ -25,8 +27,12 @@ export interface RealtimeHandlers {
   onEvent: (body: unknown) => void;
   /** A frame of `/topic/chat`: a `ChatMessageDto`, or `{hiddenId}` when the admin hid a message (M14a). */
   onChat: (body: unknown) => void;
+  /** A frame of `/topic/broadcast` (1.7): a `BroadcastDto`, a popup message of the host. */
+  onBroadcast: (body: unknown) => void;
   /** A frame of `/user/queue/guild-chat` (M15b): a `ChatMessageDto` of the guild, or `{hiddenId}`. */
   onGuildChat: (body: unknown) => void;
+  /** A frame of `/user/queue/chat-seen` (1.7): a `ChatSeenDto`, the player read a chat on another device. */
+  onChatSeen: (body: unknown) => void;
   /** A frame of `/user/queue/errors`: a `ChatErrorDto` for a refused chat message of this tab. */
   onChatError: (body: unknown) => void;
   /**
@@ -82,7 +88,9 @@ export function connectRealtime(url: string, handlers: RealtimeHandlers): Realti
       // subscriptions don't survive a reconnect: made anew every time
       client.subscribe(destinations.events, (message) => handlers.onEvent(parse(message)));
       client.subscribe(destinations.chat, (message) => handlers.onChat(parse(message)));
+      client.subscribe(destinations.broadcast, (message) => handlers.onBroadcast(parse(message)));
       client.subscribe(destinations.guildChat, (message) => handlers.onGuildChat(parse(message)));
+      client.subscribe(destinations.chatSeen, (message) => handlers.onChatSeen(parse(message)));
       client.subscribe(destinations.errors, (message) => handlers.onChatError(parse(message)));
       connected = true;
       handlers.onConnected(connectedBefore);

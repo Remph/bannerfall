@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { NavLink } from 'react-router';
 import { errorMessage } from '../api/errors';
 import { useCurrentAccount, useLogout } from '../api/queries/auth';
+import { useTutorial, useTutorialSwitch } from '../api/queries/tutorial';
 import { Button } from '../components/Button';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Icon } from '../components/Icon';
@@ -9,6 +10,7 @@ import { iconStyles, setIconStyle, useIconStyle } from '../components/iconStyle'
 import { SegmentedControl } from '../components/SegmentedControl';
 import { ServerClock } from '../components/ServerClock';
 import { Sheet } from '../components/Sheet';
+import { SwitchRow } from '../components/SwitchRow';
 import { VersionTag } from '../components/VersionTag';
 import { useI18n } from '../i18n';
 import { SOURCE_URL } from '../game/version';
@@ -71,6 +73,8 @@ function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
   const [palette, setPalette] = useState<Palette>(loadPalette);
   const paletteLabel = useId();
   const iconStyle = useIconStyle();
+  const tutorial = useTutorial().data;
+  const tutorialSwitch = useTutorialSwitch();
 
   function changeTheme(mode: ThemeMode) {
     setTheme(mode);
@@ -118,6 +122,18 @@ function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
           onChange={setIconStyle}
         />
       </div>
+      {/* the tutorial (1.7): off for good in a world without it */}
+      {tutorial?.enabled === true && (
+        <div className={styles.tutorial}>
+          <SwitchRow
+            label={t.tutorial.menuTitle}
+            checked={tutorial.active}
+            disabled={tutorialSwitch.isPending}
+            onChange={(on) => tutorialSwitch.mutate(on)}
+          />
+          <p className={styles.info}>{t.tutorial.menuHint}</p>
+        </div>
+      )}
       <ul className={styles.rows}>
         {profile && (
           <li>

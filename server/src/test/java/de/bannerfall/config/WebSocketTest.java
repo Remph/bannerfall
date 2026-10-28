@@ -7,6 +7,9 @@ import com.jayway.jsonpath.JsonPath;
 import de.bannerfall.Browser;
 import de.bannerfall.IntegrationTest;
 import de.bannerfall.MutableClock;
+import de.bannerfall.chat.BroadcastService;
+import de.bannerfall.chat.ChatSeenService;
+import de.bannerfall.chat.ChatService;
 import de.bannerfall.notify.GameNotification;
 import de.bannerfall.notify.PlayerNotification;
 import de.bannerfall.world.WorldService;
@@ -58,6 +61,9 @@ class WebSocketTest {
     @LocalServerPort int port;
     @Autowired JdbcClient jdbc;
     @Autowired WorldService worldService;
+    @Autowired ChatService chatService;
+    @Autowired ChatSeenService chatSeenService;
+    @Autowired BroadcastService broadcastService;
     @Autowired MutableClock clock;
     @Autowired ApplicationEventPublisher events;
     @Autowired PlatformTransactionManager transactionManager;
@@ -243,6 +249,49 @@ class WebSocketTest {
             assertThat(queue.poll(WAIT_SECONDS, TimeUnit.SECONDS)).contains("42");
             assertThat(queue.poll(WAIT_SECONDS, TimeUnit.SECONDS)).contains("43");
         }
+    }
+
+    @Test
+    void aBroadcastReachesEveryoneConnectedAndNobodyCanSendOne() throws Exception {
+        Client ben = connect(loggedIn());
+        Client tom = connect(loggedIn());
+        BlockingQueue<String> atBen = ben.subscribe("/topic/broadcast");
+        BlockingQueue<String> atTom = tom.subscribe("/topic/broadcast");
+        ben.ready();
+        tom.ready();
+
+        ben.send("/topic/broadcast", "{\"id\":1,\"text\":\"fake\"}");
+        ben.ready();
+        long id = broadcastService.send("Update in 5 minutes").id();
+
+        // the fake would have come first
+        for (BlockingQueue<String> queue : List.of(atBen, atTom)) {
+            String frame = queue.poll(WAIT_SECONDS, TimeUnit.SECONDS);
+            assertThat(JsonPath.<Number>read(frame, "$.id").longValue()).isEqualTo(id);
+            assertThat(JsonPath.<String>read(frame, "$.text")).isEqualTo("Update in 5 minutes");
+        }
+    }
+
+    @Test
+    void aReadMarkerReachesEveryDeviceOfItsPlayerOnly() throws Exception {
+        Account account = loggedIn();
+        Client phone = connect(account);
+        Client pc = connect(account);
+        Client other = connect(loggedIn());
+        BlockingQueue<String> atPhone = phone.subscribe("/user/queue/chat-seen");
+        BlockingQueue<String> atPc = pc.subscribe("/user/queue/chat-seen");
+        BlockingQueue<String> atOther = other.subscribe("/user/queue/chat-seen");
+        phone.ready();
+        pc.ready();
+        other.ready();
+        long messageId = chatService.send(other.playerId, "read me").id();
+
+        chatSeenService.markSeen(account.playerId(), null, messageId);
+
+        String expected = "{\"guildId\":null,\"id\":" + messageId + "}";
+        assertThat(atPhone.poll(WAIT_SECONDS, TimeUnit.SECONDS)).isEqualTo(expected);
+        assertThat(atPc.poll(WAIT_SECONDS, TimeUnit.SECONDS)).isEqualTo(expected);
+        assertThat(atOther).isEmpty();
     }
 
     // ---- what clients may do ----

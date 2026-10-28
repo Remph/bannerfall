@@ -326,6 +326,7 @@ function ScoutingCard({ scouting, defenderView }: { scouting: ScoutingReport; de
 const noBanners: BannerReport = {
   attackBonus: null,
   defenceBonus: null,
+  guildDefenceBonus: null,
   found: null,
   theft: null,
   stolen: null,
@@ -405,7 +406,7 @@ function BannersCard({
             )}
           </dl>
         )}
-        {(banners.attackBonus !== null || banners.defenceBonus !== null) && (
+        {(banners.attackBonus !== null || banners.defenceBonus !== null || banners.guildDefenceBonus != null) && (
           <dl className={styles.facts}>
             {banners.attackBonus !== null && (
               <div>
@@ -417,6 +418,12 @@ function BannersCard({
               <div>
                 <dt>{t.reports.bulwarkBonus}</dt>
                 <dd>{percent(banners.defenceBonus)}</dd>
+              </div>
+            )}
+            {banners.guildDefenceBonus != null && (
+              <div>
+                <dt>{t.reports.guildBannerBonus}</dt>
+                <dd>{percent(banners.guildDefenceBonus)}</dd>
               </div>
             )}
           </dl>

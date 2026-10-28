@@ -764,6 +764,7 @@ class AdminFlowTest {
                 null,
                 null,
                 null,
+                null,
                 s.barbarianWallsEnabled(),
                 s.barbarianWallStartDays(),
                 s.barbarianWallMaxLevel(),
@@ -793,6 +794,7 @@ class AdminFlowTest {
                 s.moraleFloor(),
                 s.noblePriceStep(),
                 s.automationVillages(),
+                s.tutorialEnabled(),
                 null);
     }
 }

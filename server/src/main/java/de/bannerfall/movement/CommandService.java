@@ -456,6 +456,14 @@ public class CommandService {
                         villageBanners.effectOf(source),
                         villageBanners.standard(source, now).orElse(null));
 
+        if (kind == MovementKind.SUPPORT) {
+            // the guild banner's level 2 (§16.4): supports to a guild mate arrive sooner
+            banner =
+                    banner.plusHaste(
+                            villageBanners.guildSupportHaste(
+                                    source.getPlayer(), target.getPlayer()));
+        }
+
         Long travelSeconds = null;
         Instant arriveAt = null;
         if (!units.isEmpty()) {

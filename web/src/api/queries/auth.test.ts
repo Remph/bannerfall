@@ -13,7 +13,7 @@ const anna: Me = {
   needsRespawn: false,
   linked: false,
   respawnNearGuild: false,
-  villages: [{ id: 2, name: "anna's village", x: 53, y: 59, points: 39, incomingAttacks: 0 }],
+  villages: [{ id: 2, name: "anna's village", x: 53, y: 59, points: 39, incomingAttacks: 0, tag: null }],
 };
 
 describe('switchAccount', () => {

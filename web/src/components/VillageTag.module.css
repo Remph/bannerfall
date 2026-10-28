@@ -1,0 +1,21 @@
+/* A village tag (1.7): a small pill like the "Main village" tag, kept on one line next to a name. */
+.tag {
+  flex: none;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  color: var(--color-title);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: 0.1em;
+}
+
+/* in the top bar the pill is an outline on the bar's own colour */
+.onBar {
+  border: 1px solid var(--color-on-bar-muted);
+  background: transparent;
+  color: var(--color-on-bar);
+}

@@ -5,7 +5,7 @@
 #
 # It asks the origin for the release tags, and when a higher patch of the running minor version
 # exists (1.6.1 -> 1.6.2, never 1.6.x -> 1.7.0) and its image is published, it runs
-# ops/bannerfall-update for it: backup, warning in the chat, restart, health check and automatic
+# ops/bannerfall-update for it: backup, warning popup, restart, health check and automatic
 # rollback as described there. Then it moves the shared Caddy checkout (EDGE_DIR) to the same tag
 # and reloads it. A new minor or major version is only mentioned in the log; update to it by hand
 # with ops/bannerfall-update after reading its release notes.
@@ -27,7 +27,7 @@
 #   Every run that ends well requests it (also "nothing to do"), a failed run requests it with
 #   /fail added and sends the log, so you are told both when an update broke and when the nightly
 #   run stopped happening. Put it in front of the command in cron, like BACKUP_PING_URL.
-# AUTO_UPDATE_WAIT: seconds between the chat warning and the restart (default 300).
+# AUTO_UPDATE_WAIT: seconds between the popup warning and the restart (default 300).
 # EDGE_DIR: the shared Caddy checkout (default /opt/bannerfall-edge); skipped when it doesn't exist
 #   or is set empty (EDGE_DIR= in front of the command).
 #

@@ -36,3 +36,16 @@ export function useRenameVillage(villageId: number) {
     },
   });
 }
+
+/**
+ * PUT /api/villages/{id}/tag (1.7): the player's own tag on his village, 1 to 5 capital letters or
+ * digits; a blank one removes it. Only /api/me carries tags, so that reloads.
+ */
+export function useSaveVillageTag(villageId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tag: string) =>
+      expectData(api.PUT('/api/villages/{id}/tag', { params: { path: { id: villageId } }, body: { tag } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: meQueryKey }),
+  });
+}

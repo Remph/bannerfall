@@ -582,6 +582,16 @@ export const en = {
     /** The tag of the village held longest, first in the switcher (1.3). */
     mainVillage: 'Main village',
     rename: 'Rename village',
+    /** The player's own tags on his villages (1.7): a pill next to the name, chips in the switcher. */
+    tagAdd: 'Add a tag',
+    tagEdit: (tag: string) => `Tag ${tag}. Change it`,
+    tagTitle: (village: string) => `Tag · ${village}`,
+    tagLabel: 'Tag',
+    tagHint: (max: number) => `Up to ${max} letters or digits, e.g. OFF or DEF. Only you can see it.`,
+    tagPlaceholder: 'OFF',
+    tagRemove: 'Remove',
+    tagFilter: 'Show villages with the tag',
+    tagAll: 'All',
     nameLabel: 'Village name',
     nameHint: '1–32 characters',
     nameEmpty: 'Please enter a name.',
@@ -1614,6 +1624,8 @@ export const en = {
       tier === 0 ? 'Without a Banner Hall the banner sleeps.' : `The hall lets it work as tier ${tierName(tier)}.`,
     warBonus: 'War banner',
     bulwarkBonus: 'Bulwark banner',
+    /** 1.7: the guild banner's defence in the simulator result */
+    guildBannerBonus: 'Guild banner',
     plunderBonus: 'Plunder banner',
     oathBonus: 'Oath banner',
     thievesSurvive: 'Banner thieves surviving',
@@ -1641,6 +1653,9 @@ export const en = {
     moraleHint: (floor: string) =>
       `100 unless the defender has less than about a quarter of the attacker’s points; this world’s lowest is ${floor}.`,
     moraleResult: 'Morale',
+    /** 1.7 (02-game-rules §16.4): the defender's guild banner level, 0 to 3 */
+    guildBannerLevel: 'Guild banner level',
+    guildBannerLevelHint: 'Level 3 gives the defence +5%. Counts only where the world has guild banners.',
     defenderThievesSurvive: 'Defenders’ banner thieves surviving',
     standardTheftChance: 'Chance they take the standard',
   },
@@ -1930,6 +1945,7 @@ export const en = {
     bannersTitle: 'Banners',
     warBonus: 'War banner of the attacker',
     bulwarkBonus: 'Bulwark banner of the defender',
+    guildBannerBonus: 'Guild banner of the defender',
     bonus: (percent: string) => `+${percent}`,
     bannerFound: 'You found a banner',
     thieves: 'Banner thieves',
@@ -2001,6 +2017,7 @@ export const en = {
     victoryClockStoppedYours: 'Your guild no longer meets the victory condition. The victory clock has stopped.',
     victoryClockStoppedYou: 'You no longer meet the victory condition. The victory clock has stopped.',
     guildInvited: (guild: string) => `${guild} invited you to join their guild`,
+    guildBannerRaised: (level: number) => `Your guild raised its banner to level ${level}`,
     messageReceived: (player: string) => `New message from ${player}`,
     achievementEarned: (name: string, level: string | null) =>
       level === null ? `Achievement earned: ${name}` : `Achievement earned: ${name} (${level})`,
@@ -2223,6 +2240,11 @@ export const en = {
     host: 'Host',
     broadcastToast: (text: string) => `Host: ${text}`,
   },
+  /** The popup with a message of the host (1.7). */
+  broadcast: {
+    title: 'Message from the host',
+    ok: 'OK',
+  },
   /** Guilds (M15a): founding, invitations, members, the leader's tools. */
   guild: {
     title: 'Guild',
@@ -2259,7 +2281,7 @@ export const en = {
       accept: 'Join',
       decline: 'Decline',
     },
-    roles: { LEADER: 'Leader', MEMBER: 'Member' } as Record<'LEADER' | 'MEMBER', string>,
+    roles: { LEADER: 'Leader', MEMBER: 'Member' } satisfies Record<'LEADER' | 'MEMBER', string>,
     description: 'About the guild',
     noDescription: 'No description yet.',
     members: 'Members',
@@ -2294,6 +2316,61 @@ export const en = {
     leaveText: (name: string) => `You leave ${name}. A leader can invite you again.`,
     leaveLastText: (name: string) => `You are the last member: ${name} ends when you leave.`,
     leaderMustHandOver: 'You lead this guild. Hand the lead to a member before you leave, or disband it.',
+    /** 1.7: the guild's enemy marks (02-game-rules §16.3) */
+    enemies: {
+      title: 'Enemies',
+      /** the red pill next to a marked guild, player or village */
+      pill: 'Enemy',
+      none: 'No enemies marked.',
+      noneLeader: 'No enemies marked. Mark a guild, a player or a village from its page or from the map.',
+      hint: 'Marks are shared by the whole guild and change no rules. Only the leader marks and unmarks.',
+      count: (count: number, max: number) => `${count} of ${max} marks used`,
+      guilds: 'Guilds',
+      players: 'Players',
+      villages: 'Villages',
+      mark: (name: string) => `Mark ${name} as enemy`,
+      /** the "…" button of a profile, guild or map panel */
+      more: (name: string) => `Enemy marks for ${name}`,
+      remove: (name: string) => `Remove the enemy mark from ${name}`,
+      ownedBy: (name: string) => `of ${name}`,
+    },
+    /** The guild banner (1.7, 02-game-rules §16.4): three levels, paid with donated resources. */
+    banner: {
+      title: 'Guild banner',
+      hint: 'Members pay for the guild banner with wood, clay and iron. Each level works in every village of every member.',
+      level: (level: number, max: number) => `Level ${level} of ${max}`,
+      levelOf: (level: number) => `Level ${level}`,
+      /** the three effects, with the bonus as a percentage ("+5%", "−10%") */
+      effects: {
+        PRODUCTION: (bonus: string) => `Wood, clay and iron production ${bonus}`,
+        SUPPORT: (bonus: string) => `Support to a guild mate arrives ${bonus} sooner`,
+        DEFENCE: (bonus: string) => `Defence ${bonus} in every village`,
+      },
+      pricePerMember: (price: string) => `${price} per member`,
+      fund: 'Fund',
+      fundOf: (fund: string, price: string) => `${fund} / ${price}`,
+      priceSum: (perMember: string, members: number) =>
+        `${perMember} × ${members} ${members === 1 ? 'member' : 'members'}`,
+      full: 'The guild banner has reached its highest level.',
+      fundFull: 'The fund covers the next level.',
+      locked: (when: string) => `Raising is blocked until ${when}: a member left the guild. Donating goes on.`,
+      donate: 'Donate',
+      raise: 'Raise level',
+      raiseTitle: (level: number) => `Raise the guild banner to level ${level}?`,
+      raiseText: (price: string) =>
+        `${price} are taken from the fund; what is left stays in it. The price follows the members the guild has now.`,
+      donateTitle: 'Donate to the guild banner',
+      donateHint: (missing: string) =>
+        `Wood, clay and iron count one to one. ${missing} are still missing for the next level.`,
+      village: 'From the village',
+      stock: (amount: string) => `${amount} in stock`,
+      total: (amount: string) => `Donating ${amount}`,
+      amountLabel: (resource: string) => `Amount to donate: ${resource}`,
+      donors: 'Donors',
+      noDonors: 'Nobody has donated yet.',
+      /** the profile of another guild */
+      publicLevel: (level: number, max: number) => `Guild banner level ${level} of ${max}`,
+    },
   },
   /** The host's page (04-api, "Admin"). */
   ranking: {
@@ -2660,10 +2737,17 @@ export const en = {
     },
     broadcast: {
       title: 'Message to everybody',
-      hint: 'Appears in everybody’s chat and as a toast, e.g. “Restart in 5 minutes”.',
+      hint: 'Pops up for everybody who is playing, and for anyone who logs in within the next ten minutes. Not in the chat, e.g. “Restart in 5 minutes”.',
       label: 'Message',
       send: 'Send',
       sent: 'Sent.',
+    },
+    chatSay: {
+      title: 'Message in the chat',
+      hint: 'Appears in everybody’s chat as a message of the host, and as a toast for those who are playing.',
+      label: 'Message',
+      send: 'Post',
+      sent: 'Posted.',
     },
     barbarian: {
       title: 'Spawn a barbarian village',
@@ -2831,6 +2915,10 @@ export const en = {
         'The attack counts with 30% + 3 × the defender’s points / the attacker’s points, at most 100% and at least the lowest morale. Only the attack changes, never the defence. Players and NPC lords alike; barbarian villages and scouts are not affected.',
       villageNameLanguageHint:
         "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
+      tutorialHint:
+        'New players get a short tutorial on the village page, one step at a time, and some steps give back what they cost, once per player. Off: no card, no menu row, no refunds.',
+      guildBannersHint:
+        'Needs guilds. A guild pays for three levels of its banner with donated wood, clay and iron; they give +5% production, support to guild mates 10% sooner and +5% defence in every village of every member. Off: no effects and no donating; level and fund stay.',
       guildStartTogetherHint:
         'At the opening, players who are in a guild by then get villages a few fields apart; a player who lost their last village may start again next to their guild.',
       npcGuildsHint:
@@ -2892,6 +2980,7 @@ export const en = {
         name: 'World name',
         inviteCode: 'Invite code',
         villageNameLanguage: 'Village names',
+        tutorial: 'Tutorial',
         speed: 'World speed',
         unitSpeed: 'Unit speed',
         beginnerProtectionHours: 'Beginner protection',
@@ -2914,6 +3003,7 @@ export const en = {
         npcThinkMinutes: 'NPC round',
         guilds: 'Guilds',
         guildStartTogether: 'Guild mates start next to each other',
+        guildBanners: 'Guild banners',
         morale: 'Morale',
         nightBonus: 'Night bonus',
         unitLevels: 'Unit levels',
@@ -3000,7 +3090,7 @@ export const en = {
     },
     difficulty: {
       title: 'NPC lords: difficulty',
-      names: { EASY: 'Easy', NORMAL: 'Normal', HARD: 'Hard', CUSTOM: 'Custom' } as Record<
+      names: { EASY: 'Easy', NORMAL: 'Normal', HARD: 'Hard', CUSTOM: 'Custom' } satisfies Record<
         'EASY' | 'NORMAL' | 'HARD' | 'CUSTOM',
         string
       >,
@@ -3028,7 +3118,7 @@ export const en = {
       spawn: 'Spawn a lord:',
       empty: 'There are no NPC lords.',
       pregame: 'The lords are created when the world opens; their number is set in the world settings.',
-      personalities: { BALANCED: 'Balanced', OFFENSIVE: 'Offensive', DEFENSIVE: 'Defensive' } as Record<
+      personalities: { BALANCED: 'Balanced', OFFENSIVE: 'Offensive', DEFENSIVE: 'Defensive' } satisfies Record<
         'BALANCED' | 'OFFENSIVE' | 'DEFENSIVE',
         string
       >,
@@ -3085,6 +3175,91 @@ export const en = {
     spawnBarbarian: (coords: string) => `Barbarian village on ${coords}`,
   },
   /** Keyed by the `code` of API errors (server: ErrorCode.java) plus the client-side codes. */
+  /** The tutorial (1.7, 02-game-rules §27): a slim card on the village page, one step at a time. */
+  tutorial: {
+    label: 'Tutorial',
+    stepOf: (index: number, total: number) => `Step ${index} of ${total}`,
+    lessonTag: 'Good to know',
+    showMe: 'Show me',
+    gotIt: 'Got it',
+    moreLabel: 'More for the tutorial',
+    skipStep: 'Skip this step',
+    skipLesson: 'Skip this tip',
+    skipTutorial: 'Skip tutorial',
+    allSteps: 'All steps',
+    /** "Back when done: 63 Wood, 75 Clay, 50 Iron" – the amounts are already formatted. */
+    refundWhenDone: (amounts: string) => `Back when done: ${amounts}`,
+    refundToast: (amounts: string) => `Tutorial refund: ${amounts}`,
+    sheetTitle: 'Tutorial',
+    stepsHeading: 'Steps',
+    lessonsHeading: 'Good to know',
+    status: { DONE: 'Done', SKIPPED: 'Skipped', OPEN: 'Open', UPCOMING: 'Later' },
+    next: 'Next',
+    menuTitle: 'Tutorial',
+    menuHint: 'Short tips as new things open up. Finished steps give back what they cost.',
+    steps: {
+      WOODCUTTER: {
+        title: 'Raise a woodcutter',
+        text: 'Buildings cost wood, clay and iron. Upgrade a woodcutter to level 2 in the Town Hall; it keeps producing while you are away.',
+      },
+      HEADQUARTERS: {
+        title: 'Raise the Town Hall',
+        text: 'A higher Town Hall builds faster and opens more buildings. Take it to level 3.',
+      },
+      BARRACKS: {
+        title: 'Build the Barracks',
+        text: 'Troops are trained here. Build it in the Town Hall.',
+      },
+      SPEARMEN: {
+        title: 'Recruit 5 spearmen',
+        text: 'Spearmen defend your village and fetch loot from barbarians. Train 5 in the Barracks; the step is done when they are ready.',
+      },
+      MAP_BARBARIAN: {
+        title: 'Find a barbarian village',
+        text: 'Barbarian villages belong to nobody and are fair game, even while you are protected. Open one on the map.',
+      },
+      ATTACK: {
+        title: 'Send your first attack',
+        text: 'Send some troops at a village on the map. Barbarian villages are the safe first target, and the troops come back with loot.',
+      },
+      REPORT: {
+        title: 'Read the report',
+        text: 'Every fight has a report with losses and loot. Open the one of your attack.',
+      },
+      SIMULATOR: {
+        title: 'Try the attack simulator',
+        text: 'Pick two armies and see who wins before you risk troops. Nothing is sent.',
+      },
+      FARM_LIST: {
+        title: 'Add a target to your farm list',
+        text: 'The farm list repeats an attack with one tap. Add the village you just raided.',
+      },
+      MARKET: {
+        title: 'Build the Market',
+        text: 'Trade resources with other players. It needs a Warehouse of level 2.',
+      },
+      GUILD: {
+        title: 'Join or found a guild',
+        text: 'Guild mates have a chat of their own and stand on one side.',
+      },
+      LESSON_UNIT_LEVELS: {
+        title: 'Unit levels',
+        text: 'In the Smithy you can raise a unit to level 2 and 3: a little more attack and defence in all your villages.',
+      },
+      LESSON_CONQUEST: {
+        title: 'Conquering villages',
+        text: 'Nobles from the Academy conquer villages. Every surviving noble lowers a village’s loyalty; at 0 it is yours. One noble is used up. You only see a village’s loyalty from your last attack on it.',
+      },
+      LESSON_AUTOMATION: {
+        title: 'Village automation',
+        text: 'With enough villages, a village can build by a plan while you are away. Save a plan, then switch it on per village.',
+      },
+      LESSON_BANNER_HALL: {
+        title: 'Banners',
+        text: 'Banners drop from battles you win: about one in ten against players and lords, rarely against barbarians. Equip one per village; the Hall’s level caps its strength; three of a kind fuse into a better one.',
+      },
+    },
+  },
   errors: {
     VALIDATION: 'Please check your input.',
     UNAUTHENTICATED: 'Please log in.',
@@ -3119,6 +3294,13 @@ export const en = {
     ALREADY_INVITED: 'This player has been invited already.',
     GUILD_MEMBER_NOT_FOUND: 'This player is not a member of your guild.',
     INVITATION_RATE_LIMIT: 'This player was invited a moment ago. Try again in a minute.',
+    ENEMY_NOT_ALLOWED: 'Your own guild, its members and barbarian villages cannot be marked as enemies.',
+    ENEMY_LIMIT: 'The guild has marked as many enemies as it can. Remove a mark first.',
+    GUILD_BANNERS_DISABLED: 'Guild banners are off in this world.',
+    BANNER_MAX_LEVEL: 'The guild banner has reached its highest level.',
+    DONATION_TOO_LARGE: 'The fund needs less than that for the next level. Donate no more than what is missing.',
+    BANNER_FUND_LOW: 'The fund does not cover the next level yet.',
+    GUILD_BANNER_LOCKED: 'A member left the guild a short while ago. The level can be raised again after 24 hours.',
     FARM_TARGET_NOT_FOUND: 'This target is not on the list any more.',
     ALREADY_IN_FARM_LIST: 'This village is on the list already.',
     FARM_LIST_FULL: 'The farm list is full. Remove a target first.',
@@ -3159,6 +3341,8 @@ export const en = {
     RECRUIT_TEMPLATE_NOT_FOUND: "This template doesn't exist (any more).",
     BUILD_PLAN_NOT_FOUND: "This build plan doesn't exist (any more).",
     AUTOMATION_LOCKED: 'The automation is not unlocked for you yet.',
+    TUTORIAL_STEP_NOT_FOUND: 'This tutorial step does not exist.',
+    TUTORIAL_STEP_NOT_OPEN: 'This tutorial step is not up yet.',
     DISMISS_ORDER_NOT_FOUND: 'This dismiss order no longer exists. Its units may be gone already.',
     DISMISS_LOCKED: 'An attack is on its way, so dismissing cannot be stopped now. Try again once it has arrived.',
     TARGET_NOT_FOUND: 'There is no village on this field.',
@@ -3196,6 +3380,7 @@ export const en = {
     LAST_ADMIN: 'The last admin cannot stop being one. Make someone else an admin first.',
     TOO_MANY_ADMIN_ATTEMPTS: 'Too many wrong host tokens. Wait a minute.',
     WRONG_PASSWORD: 'The current password is wrong.',
+    PASSWORD_TOO_COMMON: 'That password is too easy to guess. Choose another one.',
     LOCAL_LOGIN_OFF: 'On this world you log in through the account server.',
     ACCOUNT_LINKED: 'This account logs in through the account server. Change the password there.',
     EXTERNAL_LOGIN_MISSING: 'Your login has expired. Please log in again.',

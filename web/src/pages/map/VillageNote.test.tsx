@@ -185,4 +185,31 @@ describe('VillagePanel with notes', () => {
     fireEvent.keyDown(screen.getByRole('button', { name: 'Write a note' }), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the player’s own tag on his own village only', () => {
+    const own: MapVillage = { ...barbarian, id: home.id, name: 'Dorf von Ada', playerId: 7, playerName: 'ada' };
+    const tagged: Me = {
+      ...me,
+      villages: [{ id: home.id, name: 'Dorf von Ada', x: 63, y: 57, points: 26, incomingAttacks: 0, tag: 'OFF' }],
+    };
+    function show(kind: 'own' | 'barbarian') {
+      renderPage({
+        path: '/',
+        url: '/',
+        element: <VillagePanel village={own} kind={kind} currentVillage={home} onClose={vi.fn()} onCover={vi.fn()} />,
+        data: [
+          [meQueryKey, tagged],
+          [farmQueryKey(home.id), []],
+          [farmTemplatesQueryKey, []],
+        ],
+      });
+    }
+
+    show('own');
+    expect(screen.getByText('OFF')).toBeTruthy();
+    cleanup();
+
+    show('barbarian');
+    expect(screen.queryByText('OFF')).toBeNull();
+  });
 });

@@ -40,7 +40,10 @@ import java.time.ZoneId;
  * that share of the base price (0 = the flat price). {@code automationVillages} (1.6, 02-game-rules
  * §25) is the number of villages from which a player's villages can work through build plans by
  * themselves (0 = off). {@code guildStartTogether} (1.6, 02-game-rules §2) places guild mates next
- * to each other at the opening and on a respawn.
+ * to each other at the opening and on a respawn. {@code guildBannersEnabled} (1.7, 02-game-rules
+ * §16.4) lets guilds raise a banner whose levels give their members small bonuses. {@code
+ * tutorialEnabled} (1.7, 02-game-rules §27) shows the new players the tutorial and pays its
+ * refunds.
  *
  * <p>Built by name through {@link Builder} (1.3); the canonical constructor is called only by
  * {@link Builder#build()}. {@code WorldSettingsTest} checks by reflection that every setting has
@@ -74,6 +77,7 @@ public record WorldSettings(
         boolean guildsEnabled,
         int guildMaxMembers,
         boolean guildStartTogether,
+        boolean guildBannersEnabled,
         boolean npcGuildsEnabled,
         int npcGuildMaxMembers,
         boolean barbarianWallsEnabled,
@@ -104,7 +108,8 @@ public record WorldSettings(
         boolean moraleEnabled,
         int moraleFloor,
         double noblePriceStep,
-        int automationVillages) {
+        int automationVillages,
+        boolean tutorialEnabled) {
 
     /**
      * The defaults of the table in 02-game-rules §1 (speed 1; the invite code is a placeholder):
@@ -148,6 +153,7 @@ public record WorldSettings(
                 .guildsEnabled(guildsEnabled)
                 .guildMaxMembers(guildMaxMembers)
                 .guildStartTogether(guildStartTogether)
+                .guildBannersEnabled(guildBannersEnabled)
                 .npcGuildsEnabled(npcGuildsEnabled)
                 .npcGuildMaxMembers(npcGuildMaxMembers)
                 .barbarianWallsEnabled(barbarianWallsEnabled)
@@ -178,7 +184,8 @@ public record WorldSettings(
                 .moraleEnabled(moraleEnabled)
                 .moraleFloor(moraleFloor)
                 .noblePriceStep(noblePriceStep)
-                .automationVillages(automationVillages);
+                .automationVillages(automationVillages)
+                .tutorialEnabled(tutorialEnabled);
     }
 
     /** The night bonus of this world (1.4, 02-game-rules §8.1), its hours read in {@code zone}. */
@@ -285,6 +292,7 @@ public record WorldSettings(
         private boolean guildsEnabled = false;
         private int guildMaxMembers = 10;
         private boolean guildStartTogether = true;
+        private boolean guildBannersEnabled = false;
         private boolean npcGuildsEnabled = false;
         private int npcGuildMaxMembers = 3;
         private boolean barbarianWallsEnabled = false;
@@ -316,6 +324,7 @@ public record WorldSettings(
         private int moraleFloor = 30;
         private double noblePriceStep = 0.25;
         private int automationVillages = 3;
+        private boolean tutorialEnabled = true;
 
         private Builder() {}
 
@@ -446,6 +455,11 @@ public record WorldSettings(
 
         public Builder guildStartTogether(boolean value) {
             this.guildStartTogether = value;
+            return this;
+        }
+
+        public Builder guildBannersEnabled(boolean value) {
+            this.guildBannersEnabled = value;
             return this;
         }
 
@@ -604,6 +618,11 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder tutorialEnabled(boolean value) {
+            this.tutorialEnabled = value;
+            return this;
+        }
+
         public WorldSettings build() {
             return new WorldSettings(
                     name,
@@ -632,6 +651,7 @@ public record WorldSettings(
                     guildsEnabled,
                     guildMaxMembers,
                     guildStartTogether,
+                    guildBannersEnabled,
                     npcGuildsEnabled,
                     npcGuildMaxMembers,
                     barbarianWallsEnabled,
@@ -662,7 +682,8 @@ public record WorldSettings(
                     moraleEnabled,
                     moraleFloor,
                     noblePriceStep,
-                    automationVillages);
+                    automationVillages,
+                    tutorialEnabled);
         }
     }
 }

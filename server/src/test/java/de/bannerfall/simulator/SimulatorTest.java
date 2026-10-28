@@ -407,6 +407,54 @@ class SimulatorTest {
     }
 
     @Test
+    void theGuildBannerOfLevelThreeAddsItsDefenceAndOnlyWhileTheWorldHasIt() throws Exception {
+        setLuckRange(0);
+        String plain = post(request("{\"AXEMAN\":100}", "{\"SPEARMAN\":100}", 5, ""));
+        jdbc.sql("update world_settings set guilds_enabled = true, guild_banners_enabled = true")
+                .update();
+        worldService.reload();
+        try {
+            String level2 =
+                    post(
+                            request(
+                                    "{\"AXEMAN\":100}",
+                                    "{\"SPEARMAN\":100}",
+                                    5,
+                                    ",\"guildBannerLevel\":2"));
+            String level3 =
+                    post(
+                            request(
+                                    "{\"AXEMAN\":100}",
+                                    "{\"SPEARMAN\":100}",
+                                    5,
+                                    ",\"guildBannerLevel\":3"));
+            assertThat(number(level2, "$.guildDefenceBonus").doubleValue()).isZero();
+            assertThat(number(level3, "$.guildDefenceBonus").doubleValue()).isEqualTo(0.05);
+            // D grows by 5 %, the Bulwark's own number stays out of it
+            assertThat(number(level3, "$.scenarios[0].defense").doubleValue())
+                    .isCloseTo(
+                            number(plain, "$.scenarios[0].defense").doubleValue() * 1.05,
+                            within(1e-6));
+            assertThat(number(level3, "$.defenceBonus").doubleValue()).isZero();
+        } finally {
+            jdbc.sql(
+                            "update world_settings set guilds_enabled = false,"
+                                    + " guild_banners_enabled = false")
+                    .update();
+            worldService.reload();
+        }
+        // switched off in the world: the field is ignored
+        String off =
+                post(
+                        request(
+                                "{\"AXEMAN\":100}",
+                                "{\"SPEARMAN\":100}",
+                                5,
+                                ",\"guildBannerLevel\":3"));
+        assertThat(number(off, "$.guildDefenceBonus").doubleValue()).isZero();
+    }
+
+    @Test
     void survivingThievesShowTheChanceTheHallLeavesThem() throws Exception {
         setLuckRange(0);
 

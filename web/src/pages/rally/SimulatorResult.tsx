@@ -5,7 +5,7 @@ import { percentPoints } from '../../game/banners';
 import { formatFactor, formatNumber, formatPercent, formatShare } from '../../game/format';
 import { unitRows } from '../../game/reports';
 import type { SimulatorBody } from '../../game/simulator';
-import type { UnitMap } from '../../game/troops';
+import { toUnitMap } from '../../game/troops';
 import { toLevelMap } from '../../game/unitLevels';
 import { formatMorale } from '../../game/morale';
 import { useI18n } from '../../i18n';
@@ -49,6 +49,7 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
   if (
     simulation.attackBonus <= 0 &&
     simulation.defenceBonus <= 0 &&
+    simulation.guildDefenceBonus <= 0 &&
     simulation.plunderBonus <= 0 &&
     simulation.oathBonus <= 0 &&
     simulation.attackerStandard === null &&
@@ -85,6 +86,12 @@ function BannerBonuses({ simulation }: { simulation: Simulation }) {
         <div>
           <dt>{s.bulwarkBonus}</dt>
           <dd>{percent(simulation.defenceBonus)}</dd>
+        </div>
+      )}
+      {simulation.guildDefenceBonus > 0 && (
+        <div>
+          <dt>{s.guildBannerBonus}</dt>
+          <dd>{percent(simulation.guildDefenceBonus)}</dd>
         </div>
       )}
       {simulation.oathBonus > 0 && (
@@ -240,7 +247,7 @@ function Scenario({ scenario, request }: { scenario: SimulatedBattle; request: S
         {scenario.theft !== null && scenario.theft.chance > 0 && <p className={styles.muted}>{s.theftHint}</p>}
         <h3 className={styles.tableTitle}>{s.attackerTable}</h3>
         <UnitTable
-          rows={unitRows(request.attacker as UnitMap, scenario.attackerLosses as UnitMap)}
+          rows={unitRows(toUnitMap(request.attacker), toUnitMap(scenario.attackerLosses))}
           caption={s.attackerTable}
           countLabel={t.reports.sent}
           levels={toLevelMap(request.attackerLevels)}
@@ -250,7 +257,7 @@ function Scenario({ scenario, request }: { scenario: SimulatedBattle; request: S
           <p className={styles.muted}>{t.reports.noDefenders}</p>
         ) : (
           <UnitTable
-            rows={unitRows(request.defender as UnitMap, scenario.defenderLosses as UnitMap)}
+            rows={unitRows(toUnitMap(request.defender), toUnitMap(scenario.defenderLosses))}
             caption={s.defenderTable}
             countLabel={t.reports.present}
             // defending units never die against scouts only (02 §7.1)

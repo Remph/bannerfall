@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { ApiError, errorMessage } from '../../api/errors';
 import { useDeletePlayer } from '../../api/queries/admin';
 import { useCurrentAccount } from '../../api/queries/auth';
-import { useInvitePlayer, useMyGuild } from '../../api/queries/guilds';
+import { useEnemies, useInvitePlayer, useMyGuild } from '../../api/queries/guilds';
 import { usePlayerProfile, type PlayerProfile } from '../../api/queries/ranking';
 import { useWorld } from '../../api/queries/world';
 import { AchievementBadge } from '../../components/AchievementBadge';
@@ -13,6 +13,7 @@ import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Sheet } from '../../components/Sheet';
 import { sortEarned } from '../../game/achievements';
+import { enemySets, isEnemyPlayer } from '../../game/enemies';
 import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
 import { bracketTag, profileInvite } from '../../game/guilds';
 import { useI18n } from '../../i18n';
@@ -21,6 +22,8 @@ import { useCurrentVillageId } from '../../layout/useCurrentVillageId';
 import { achievementName, levelName } from '../achievements/achievementText';
 import { conversationPath } from '../messages/messagePaths';
 import { mapPath } from '../rally/rallyPaths';
+import { EnemyMenu } from '../guild/EnemyMenu';
+import { EnemyPill } from '../guild/EnemyPill';
 import { guildPath } from '../guild/guildPaths';
 import { HistoryCard, StatisticsCard } from './PlayerStatistics';
 import { parsePlayerId, rankingPath } from './rankingPaths';
@@ -71,6 +74,7 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
   const currentVillageId = useCurrentVillageId();
   const isMe = profile.id === me.playerId;
   const navigate = useNavigate();
+  const isEnemy = isEnemyPlayer(enemySets(useEnemies().data), { id: profile.id, guildId: profile.guild?.id });
 
   return (
     <div className={styles.page}>
@@ -80,6 +84,7 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
           {profile.name}
           {isMe && <span className={styles.tag}>{t.map.youTag}</span>}
           {profile.npc && <span className={styles.tag}>{t.map.npcTag}</span>}
+          {isEnemy && <EnemyPill />}
         </h1>
         <p className={styles.facts}>
           {t.profile.rank(profile.rank)} · {t.profile.points(formatNumber(profile.points, language))}
@@ -101,17 +106,28 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
             </a>
           </p>
         )}
-        {/* NPC lords don't read mail */}
-        {!isMe && !profile.npc && (
+        {!isMe && (
           <div className={styles.actions}>
-            {/* messages stay open in an ended world (v1.3) */}
-            <ActionsStayOn>
-              <Button type="button" onClick={() => void navigate(conversationPath(profile.id))}>
-                {t.messages.write}
-              </Button>
-            </ActionsStayOn>
-            {/* keyed: an error or a pending request belongs to this player, not to the next profile */}
-            <InviteToGuild key={profile.id} profile={profile} />
+            {/* NPC lords don't read mail */}
+            {!profile.npc && (
+              <>
+                {/* messages stay open in an ended world (v1.3) */}
+                <ActionsStayOn>
+                  <Button type="button" onClick={() => void navigate(conversationPath(profile.id))}>
+                    {t.messages.write}
+                  </Button>
+                </ActionsStayOn>
+                {/* keyed: an error or a pending request belongs to this player, not to the next profile */}
+                <InviteToGuild key={profile.id} profile={profile} />
+              </>
+            )}
+            {/* the guild leader's "…" (1.7); also for NPC lords */}
+            <span key={`enemy${profile.id}`} className={styles.enemyMenu}>
+              <EnemyMenu
+                targets={[{ kind: 'PLAYER', targetId: profile.id, name: profile.name }]}
+                label={t.guild.enemies.more(profile.name)}
+              />
+            </span>
           </div>
         )}
       </header>

@@ -27,7 +27,7 @@ body:
     attributes:
       label: Bannerfall version
       description: "In the game: Settings, Version. On your own server: `bfa status` (or `docker compose exec app bannerfall-admin status`)."
-      placeholder: "1.6.3"
+      placeholder: "1.7.0"
     validations:
       required: true
   - type: dropdown

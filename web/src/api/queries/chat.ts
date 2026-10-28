@@ -164,3 +164,18 @@ export function useHideGuildChatMessage() {
     },
   });
 }
+
+/** A read marker as `GET/PUT /api/chat/seen` and `/user/queue/chat-seen` send it (1.7). */
+export type ChatSeen = components['schemas']['ChatSeenDto'];
+
+/** What the server knows of the chats the player has read, on any of his devices (`ChatSeen[]`). */
+export const chatSeenQueryKey = ['chatSeen'] as const;
+
+export function fetchChatSeen(): Promise<ChatSeen[]> {
+  return expectData(api.GET('/api/chat/seen'));
+}
+
+/** PUT /api/chat/seen: everything up to `id` is read (the world chat with `guildId` undefined). The answer is the marker as it stands. */
+export function putChatSeen(guildId: number | undefined, id: number): Promise<ChatSeen> {
+  return expectData(api.PUT('/api/chat/seen', { body: { guildId: guildId ?? null, id } }));
+}

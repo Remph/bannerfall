@@ -6,7 +6,7 @@
 #
 # In order: checks that the checkout is clean, fetches the tags, pulls the image for exactly that
 # version (or builds it with --build), checks it out and that its compose.prod.yaml works with
-# .env, backs the database up (stops if that fails), warns the players in the chat, waits (60 s,
+# .env, backs the database up (stops if that fails), warns the players with a popup, waits (60 s,
 # --wait), switches BANNERFALL_IMAGE in .env, restarts the app and waits until it is healthy and
 # reports the new version, then runs bannerfall-admin check. Nothing changes for the players before
 # the backup is done; Ctrl+C (or a dropped connection) before the restart puts the old checkout
@@ -18,12 +18,12 @@
 #
 # Options:
 #   --yes          don't ask before starting
-#   --wait <s>     seconds between the chat warning and the restart (default 60, 0 = no warning)
+#   --wait <s>     seconds between the popup warning and the restart (default 60, 0 = no warning)
 #   --build        build the image here (docker build, bannerfall:<version>) instead of pulling it
 #   --repo <name>  the image to pull without its tag (default: BANNERFALL_IMAGE_REPO, else the one
 #                  BANNERFALL_IMAGE in .env names now)
 #
-# UPDATE_MESSAGE: the chat warning ({version} and {wait} are filled in).
+# UPDATE_MESSAGE: the popup warning ({version} and {wait} are filled in).
 # HEALTH_TIMEOUT: how long to wait for the new app, in seconds (default 300).
 #
 # The whole script is one function, called on the last line: checking the release out replaces
@@ -84,7 +84,7 @@ main() {
   echo "  checkout  $old_ref -> $tag"
   echo "  image     $old_image -> $new_image ($($build && echo "built here" || echo "pulled"))"
   if [ "$wait" -gt 0 ]; then
-    echo "  players   warned in the chat, restart $wait s later"
+    echo "  players   warned with a popup, restart $wait s later"
   else
     echo "  players   restart right away, no warning"
   fi
@@ -133,7 +133,7 @@ main() {
     text="${UPDATE_MESSAGE:-$text}"
     text="${text//\{version\}/$version}"
     text="${text//\{wait\}/$(say_wait "$wait")}"
-    admin broadcast "$text" > /dev/null || echo "(the chat warning failed; going on)" >&2
+    admin broadcast "$text" > /dev/null || echo "(the popup warning failed; going on)" >&2
     warned=" (the players saw the warning)"
     step "players warned; restarting in $wait s (Ctrl+C stops here and changes nothing)"
     sleep "$wait"

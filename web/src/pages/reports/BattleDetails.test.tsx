@@ -34,6 +34,7 @@ function battle(overrides: Partial<BattleReport>): BattleReport {
 const noBanners = {
   attackBonus: null,
   defenceBonus: null,
+  guildDefenceBonus: null,
   found: null,
   theft: null,
   stolen: null,
@@ -126,6 +127,17 @@ describe('BattleDetails with paladin standards', () => {
 
     expect(screen.getByText('You found a paladin standard')).toBeTruthy();
     expect(screen.getByText('Ram standard, tier I')).toBeTruthy();
+  });
+});
+
+/** The defence of the guild banner (1.7, 02-game-rules §16.4). */
+describe('BattleDetails with a guild banner', () => {
+  afterEach(cleanup);
+
+  it('lists the guild banner’s defence bonus with the other banner bonuses', () => {
+    open('DEFENSE', battle({ banners: { ...noBanners, guildDefenceBonus: 0.05 } }));
+    expect(screen.getByText('Guild banner of the defender')).toBeTruthy();
+    expect(screen.getByText('+5%')).toBeTruthy();
   });
 });
 

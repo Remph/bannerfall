@@ -143,6 +143,9 @@ class HostConsoleTest {
                 .post("/api/admin/broadcast", "{\"text\":\"x\"}")
                 .andExpect(status().isForbidden());
         player.browser
+                .post("/api/admin/chat", "{\"text\":\"x\"}")
+                .andExpect(status().isForbidden());
+        player.browser
                 .post("/api/admin/barbarians", "{\"x\":1,\"y\":1}")
                 .andExpect(status().isForbidden());
     }
@@ -326,6 +329,20 @@ class HostConsoleTest {
                 .andExpect(jsonPath("$.errors[0].field").value("password"));
     }
 
+    @Test
+    void theHostMayGiveACommonPasswordAndTheAccountLogsInWithIt() throws Exception {
+        // the common-password rule is for passwords players choose; an account that already has a
+        // weak one (set before the rule, or by the host) must keep logging in
+        TestPlayer player = TestPlayer.register(mockMvc);
+
+        hostPost(
+                        "/api/admin/players/" + player.playerId + "/reset-password",
+                        "{\"password\":\"password123\"}")
+                .andExpect(status().isOk());
+
+        Browser.open(mockMvc).login(name(player), "password123").andExpect(status().isOk());
+    }
+
     // ---- the player's own password ----
 
     @Test
@@ -382,25 +399,64 @@ class HostConsoleTest {
     // ---- broadcast and barbarians ----
 
     @Test
-    void aBroadcastIsAChatMessageWithoutAuthor() throws Exception {
-        int before = sent.chat().size();
+    void aBroadcastIsAPopupAndNotInTheChat() throws Exception {
+        int chatBefore = sent.chat().size();
+        int popupsBefore = sent.broadcasts().size();
         String answer =
                 body(
                         hostPost("/api/admin/broadcast", "{\"text\":\"  Restart at 22:00 \"}")
                                 .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.text").value("Restart at 22:00"))
+                                .andExpect(jsonPath("$.text").value("Restart at 22:00")));
+        long id = JsonPath.<Number>read(answer, "$.id").longValue();
+
+        assertThat(sent.chat()).hasSize(chatBefore);
+        assertThat(sent.broadcasts().subList(popupsBefore, sent.broadcasts().size()))
+                .singleElement()
+                .satisfies(
+                        json -> {
+                            assertThat(JsonPath.<Number>read(json, "$.id").longValue())
+                                    .isEqualTo(id);
+                            assertThat(JsonPath.<String>read(json, "$.text"))
+                                    .isEqualTo("Restart at 22:00");
+                        });
+        TestPlayer player = TestPlayer.register(mockMvc);
+        player.browser
+                .get("/api/chat/messages")
+                .andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty())
+                .andExpect(jsonPath("$[?(@.text == 'Restart at 22:00')]").isEmpty());
+        // a player who connects later still gets it
+        player.browser
+                .get("/api/broadcasts")
+                .andExpect(jsonPath("$[-1:].text").value("Restart at 22:00"));
+        assertThat(lastAuditActor("BROADCAST")).isEqualTo(AdminActor.HOST_CLI);
+        hostPost("/api/admin/broadcast", "{\"text\":\"   \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+
+    @Test
+    void chatSayIsAChatMessageWithoutAuthor() throws Exception {
+        int chatBefore = sent.chat().size();
+        int popupsBefore = sent.broadcasts().size();
+        String answer =
+                body(
+                        hostPost("/api/admin/chat", "{\"text\":\"  Welcome to the world \"}")
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.text").value("Welcome to the world"))
                                 .andExpect(jsonPath("$.playerId").isEmpty()));
         int id = JsonPath.read(answer, "$.id");
 
-        assertThat(sent.chat().subList(before, sent.chat().size()))
+        assertThat(sent.broadcasts()).hasSize(popupsBefore);
+        assertThat(sent.chat().subList(chatBefore, sent.chat().size()))
                 .singleElement()
                 .satisfies(
                         json -> assertThat(JsonPath.<Object>read(json, "$.playerName")).isNull());
         TestPlayer.register(mockMvc)
                 .browser
                 .get("/api/chat/messages")
-                .andExpect(jsonPath("$[?(@.id == " + id + ")].text").value("Restart at 22:00"));
-        hostPost("/api/admin/broadcast", "{\"text\":\"   \"}")
+                .andExpect(jsonPath("$[?(@.id == " + id + ")].text").value("Welcome to the world"));
+        assertThat(lastAuditActor("CHAT_SAY")).isEqualTo(AdminActor.HOST_CLI);
+        hostPost("/api/admin/chat", "{\"text\":\"   \"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION"));
     }

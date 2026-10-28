@@ -6,7 +6,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import de.bannerfall.IntegrationTest;
 import de.bannerfall.MutableClock;
 import de.bannerfall.TestPlayer;
 import de.bannerfall.TestRandomSource;
@@ -14,6 +13,7 @@ import de.bannerfall.common.RandomSource;
 import de.bannerfall.event.EventProcessor;
 import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
+import de.bannerfall.movement.CommandService;
 import de.bannerfall.rules.Production;
 import de.bannerfall.rules.Storage;
 import de.bannerfall.world.WorldInitializer;
@@ -36,8 +36,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -45,35 +43,44 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * The NPC simulation of 09-npc-lords §11 (M12d): a fresh world with only NPC lords, then the same
- * with two sleeping humans, at speed 3 for 50 days (the clock moves from event to event, the real
- * event engine runs everything). It prints the summary tables of §11, checks the targets and fails
- * on the ones that are hard rules (a build order in the quiet hours, a FAILED event, an attack that
- * breaks the human's quiet hours or cap, a human who loses a spared last village).
+ * with two sleeping humans, then with four scripted active humans, at speed 3 for 30 days (the
+ * clock moves from event to event, the real event engine runs everything). It prints the summary
+ * tables of §11, checks the targets and fails on the ones that are hard rules (a build order in the
+ * quiet hours, a FAILED event, an attack that breaks the human's quiet hours or cap, a human who
+ * loses a spared last village).
  *
- * <p>Tagged {@code simulation}: {@code ./gradlew test} skips it, {@code ./gradlew simulationTest}
- * runs it (and only it). The dice are seeded, so a run can be repeated. Knobs (Gradle properties
- * {@code -PsimDays=…}, {@code -PsimThinkMinutes=…}, {@code -PsimSeed=…}); the tables are also
- * written to {@code build/simulation/}. Balance variants (v1.3): {@code -PsimWalls=true} (barbarian
- * walls with the default settings), {@code -PsimFarmShare=…} and {@code -PsimFarmRest=…} (a CUSTOM
- * difficulty: NORMAL with these farm values), {@code -PsimFarmCooldown=…} (minutes, overrides
- * {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file name). Lord
- * guilds: {@code -PsimLordGuilds=true}; lord banners (1.4, 09 §14): {@code -PsimLordBanners=true};
- * archers (1.6, 02-game-rules §5.6): {@code -PsimArchers=true}; morale (1.6, 02 §8.2, on by
- * default): {@code -PsimMorale=false}; learning lords (1.6, 09 §15): {@code
+ * <p>The base of the three scenario classes {@link NpcSimulationLordsOnlyTest}, {@link
+ * NpcSimulationSleepingHumansTest} and {@link NpcSimulationActiveHumansTest}, tagged {@code
+ * simulation}: {@code ./gradlew test} skips them, {@code ./gradlew simulationTest} runs them (and
+ * only them), side by side in three JVMs. The dice are seeded, so a run can be repeated. Knobs
+ * (Gradle properties {@code -PsimQuick} (15 days, the targets that need the whole run are not
+ * judged), {@code -PsimDays=…}, {@code -PsimThinkMinutes=…}, {@code -PsimSeed=…}); the tables are
+ * also written to {@code build/simulation/}. Balance variants (v1.3): {@code -PsimWalls=true}
+ * (barbarian walls with the default settings), {@code -PsimFarmShare=…} and {@code -PsimFarmRest=…}
+ * (a CUSTOM difficulty: NORMAL with these farm values), {@code -PsimFarmCooldown=…} (minutes,
+ * overrides {@code farm-cooldown-minutes}), {@code -PsimLabel=…} (added to the title and the file
+ * name). Lord guilds: {@code -PsimLordGuilds=true}; lord banners (1.4, 09 §14): {@code
+ * -PsimLordBanners=true}; archers (1.6, 02-game-rules §5.6): {@code -PsimArchers=true}; morale
+ * (1.6, 02 §8.2, on by default): {@code -PsimMorale=false}; learning lords (1.6, 09 §15): {@code
  * -PsimLordLearning=true}; lord shipments (1.6, 09 §5.5) are on unless {@code
  * -PsimShipments=false}. World speed, lord count and the settings of a real world (1.6.1): {@code
  * -PsimSpeed=6}, {@code -PsimLords=3}, {@code -PsimSqlFile=…} (UPDATE statements for {@code
- * world_settings}, separated by semicolons). A world that ends (a lord guild wins by domination)
- * ends the run at that day.
+ * world_settings}, separated by semicolons). The run talks to its database by the container's own
+ * address instead of Docker's published port (about 1.5x faster; {@code -PsimDirectDatabase=false}
+ * turns it off, and where the address cannot be reached, as on Docker Desktop, the published port
+ * is used anyway). A world that ends (a lord guild wins by domination) ends the run at that day.
  */
-@Tag("simulation")
-@IntegrationTest
-class NpcSimulationTest {
+abstract class NpcSimulationTest {
 
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
     private static final double SPEED =
             Double.parseDouble(System.getProperty("simulation.speed", "3.0"));
     private static final int LORDS = Integer.getInteger("simulation.lords", 6);
+    private static final int DAYS = Integer.getInteger("simulation.days", 30);
+
+    /** A quick run (-PsimQuick): the targets that need the whole run are not judged. */
+    private static final boolean QUICK = Boolean.getBoolean("simulation.quick");
+
     private static final Duration SAMPLE = Duration.ofHours(6);
     private static final Duration MAX_STEP = Duration.ofMinutes(10);
 
@@ -87,8 +94,9 @@ class NpcSimulationTest {
     @Autowired GameData gameData;
     @Autowired NpcBalance balance;
     @Autowired NpcBrainRepository brains;
+    @Autowired CommandService commands;
 
-    private final int days = Integer.getInteger("simulation.days", 50);
+    private final int days = DAYS;
     private final int thinkMinutes = Integer.getInteger("simulation.thinkMinutes", 60);
     private final long seed = Long.getLong("simulation.seed", 20261007L);
     private final boolean walls = Boolean.getBoolean("simulation.walls");
@@ -97,10 +105,11 @@ class NpcSimulationTest {
     private final String label = System.getProperty("simulation.label", "");
     private final boolean lordGuilds = Boolean.getBoolean("simulation.lordGuilds");
     private final boolean lordBanners = Boolean.getBoolean("simulation.lordBanners");
-    private final boolean archers = Boolean.getBoolean("simulation.archers");
+    private final boolean archers = Boolean.getBoolean("simulation.archers") || activeHumans();
     private final boolean morale =
             Boolean.parseBoolean(System.getProperty("simulation.morale", "true"));
-    private final boolean lordLearning = Boolean.getBoolean("simulation.lordLearning");
+    private final boolean lordLearning =
+            Boolean.getBoolean("simulation.lordLearning") || activeHumans();
     private final boolean shipments = !"false".equals(System.getProperty("simulation.shipments"));
 
     /** The days (at speed 3) at which the lords' points are noted. */
@@ -168,20 +177,21 @@ class NpcSimulationTest {
         return out.toString();
     }
 
-    @Test
-    void npcLordsOnly() throws Exception {
-        run("NPC lords only", 0);
-    }
-
-    @Test
-    void withTwoSleepingHumans() throws Exception {
-        run("two sleeping humans", 2);
+    /**
+     * Whether the scenario has scripted human players ({@link SimulatedHumans}); it then also
+     * switches archers and learning lords on, which only humans' attacks can exercise.
+     */
+    boolean activeHumans() {
+        return false;
     }
 
     // ---- the run ----
 
-    private void run(String title, int sleepers) throws Exception {
+    void run(String title, int sleepers) throws Exception {
         long wallStart = System.nanoTime();
+        if (QUICK) {
+            title = title + " quick";
+        }
         if (!label.isEmpty()) {
             title = title + " " + label;
         }
@@ -197,6 +207,11 @@ class NpcSimulationTest {
         List<Long> humans = new ArrayList<>();
         for (int i = 0; i < sleepers; i++) {
             humans.add(TestPlayer.register(mockMvc).playerId);
+        }
+        SimulatedHumans bots = null;
+        if (activeHumans()) {
+            bots = new SimulatedHumans(commands, jdbc);
+            humans.addAll(bots.register(mockMvc, start));
         }
         Set<Long> lordIds = new HashSet<>(ids("select id from player where npc"));
 
@@ -225,6 +240,9 @@ class NpcSimulationTest {
                 clock.set(target);
             }
             processor.processDue(clock.instant());
+            if (bots != null) {
+                bots.act(clock.instant());
+            }
 
             checkBuildOrders(orders);
             collectSends(humans, lastMovement, sends);
@@ -236,6 +254,7 @@ class NpcSimulationTest {
             }
         }
         sampleAcademies(start, academyDay);
+        samplePoints(start, checkpoint, pointsByDay); // a checkpoint on the last day
         if (worldEnded()) {
             System.out.printf(
                     Locale.ROOT,
@@ -260,6 +279,7 @@ class NpcSimulationTest {
         String text =
                 result.render()
                         + shipmentLine()
+                        + (bots == null ? "" : bots.lines())
                         + armyLines()
                         + oneVillageLines()
                         + lordGuildLines()
@@ -269,6 +289,9 @@ class NpcSimulationTest {
         Files.createDirectories(dir);
         Files.writeString(dir.resolve(title.replace(' ', '-') + ".txt"), text);
         result.assertRules();
+        if (bots != null) {
+            bots.assertActed(days);
+        }
     }
 
     /**
@@ -886,7 +909,9 @@ class NpcSimulationTest {
             out.append("points by day (speed 3) and loot as a share of the own production:\n");
             StringBuilder head = new StringBuilder("lord                 pers");
             for (int d : CHECKPOINTS) {
-                head.append(String.format(Locale.ROOT, " %6s", "d" + d));
+                if (d <= DAYS) {
+                    head.append(String.format(Locale.ROOT, " %6s", "d" + d));
+                }
             }
             out.append(head).append("    end  loot/prod\n");
             for (LordRow l : lords) {
@@ -897,8 +922,10 @@ class NpcSimulationTest {
                                         "%-20s %-4s",
                                         l.name(),
                                         l.personality().name().substring(0, 3)));
-                for (int v : l.pointsByDay()) {
-                    line.append(String.format(Locale.ROOT, " %6d", v));
+                for (int i = 0; i < CHECKPOINTS.length; i++) {
+                    if (CHECKPOINTS[i] <= DAYS) {
+                        line.append(String.format(Locale.ROOT, " %6d", l.pointsByDay()[i]));
+                    }
                 }
                 line.append(
                         String.format(
@@ -966,7 +993,7 @@ class NpcSimulationTest {
                 out.append(
                         String.format(
                                 Locale.ROOT,
-                                "sleeping humans (%d): %d arrivals (max %d per rolling 24 h), %d"
+                                "humans (%d): %d arrivals (max %d per rolling 24 h), %d"
                                         + " commands sent (max %d per human and 24 h, cap %d; max"
                                         + " %d per lord, human and 24 h, cap %d), %d in the quiet"
                                         + " hours, villages lost %d, wiped out %d%n",
@@ -984,12 +1011,20 @@ class NpcSimulationTest {
             }
             out.append("targets (09 §11):\n");
             for (Target t : targets()) {
-                out.append("  ").append(t.ok() ? "ok   " : "MISS ").append(t.text()).append('\n');
+                String mark = !t.judged() ? "skip " : t.ok() ? "ok   " : "MISS ";
+                out.append("  ").append(mark).append(t.text()).append('\n');
             }
             return out.toString();
         }
 
-        private record Target(boolean ok, String text) {}
+        /**
+         * A target of a quick run that needs the whole run is shown with its figures, not judged.
+         */
+        private record Target(boolean ok, boolean judged, String text) {
+            Target(boolean ok, String text) {
+                this(ok, true, text);
+            }
+        }
 
         private List<Target> targets() {
             List<Target> t = new ArrayList<>();
@@ -1035,11 +1070,13 @@ class NpcSimulationTest {
             t.add(
                     new Target(
                             perPersonality && aroundMedian && spread,
+                            !QUICK,
                             String.format(
                                     Locale.ROOT,
-                                    "2 even: personality averages within 1.5x (%.2fx), every lord"
-                                            + " within 0.5-2x the median (%s), most villages of one"
-                                            + " lord %d of %d",
+                                    (QUICK ? "(quick run, not judged) " : "")
+                                            + "2 even: personality averages within 1.5x (%.2fx),"
+                                            + " every lord within 0.5-2x the median (%s), most"
+                                            + " villages of one lord %d of %d",
                                     minAvg == 0 ? 0 : maxAvg / minAvg,
                                     aroundMedian ? "yes" : "NO",
                                     most,
@@ -1053,7 +1090,9 @@ class NpcSimulationTest {
             t.add(
                     new Target(
                             humans > 0 || (conquered >= 4 && offWon > 0),
-                            "3 alive: "
+                            !QUICK,
+                            (QUICK ? "(quick run, not judged) " : "")
+                                    + "3 alive: "
                                     + conquered
                                     + " of "
                                     + lords.size()
@@ -1249,6 +1288,7 @@ class NpcSimulationTest {
                         .map(column -> "coalesce(sum(u." + column + "), 0) as " + column)
                         .collect(Collectors.joining(", "));
         StringBuilder out = new StringBuilder("\nUnits of the lords at the end (home and away):\n");
+        long[] archerTotals = new long[4]; // archers, mounted archers, lords holding either, lords
         jdbc.sql(
                         "select p.name, "
                                 + sums
@@ -1257,6 +1297,17 @@ class NpcSimulationTest {
                                 + " by p.id, p.name order by p.id")
                 .query(
                         (rs, row) -> {
+                            long archer = columns.contains("u_archer") ? rs.getLong("u_archer") : 0;
+                            long mounted =
+                                    columns.contains("u_mounted_archer")
+                                            ? rs.getLong("u_mounted_archer")
+                                            : 0;
+                            archerTotals[3]++;
+                            archerTotals[0] += archer;
+                            archerTotals[1] += mounted;
+                            if (archer + mounted > 0) {
+                                archerTotals[2]++;
+                            }
                             StringBuilder units = new StringBuilder();
                             for (String column : columns) {
                                 if (rs.getLong(column) > 0) {
@@ -1279,6 +1330,15 @@ class NpcSimulationTest {
                             return null;
                         })
                 .list();
+        out.append(
+                String.format(
+                        Locale.ROOT,
+                        "archers: %d archers and %d mounted archers, held by %d of %d lords%s%n",
+                        archerTotals[0],
+                        archerTotals[1],
+                        archerTotals[2],
+                        archerTotals[3],
+                        archers ? "" : " (archers are off in this world)"));
         return out.toString();
     }
 
