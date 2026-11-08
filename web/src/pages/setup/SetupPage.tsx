@@ -38,6 +38,7 @@ import {
   type SetupPreset,
   type SetupStep,
 } from './setupPresets';
+import { Switch } from '../../components/Switch';
 
 /**
  * /setup – the guided world setup (1.6): the host walks through the important world settings while
@@ -477,13 +478,7 @@ function SwitchRow({
           <span className={styles.switchName}>{label}</span>
           <span className={styles.switchHint}>{hint}</span>
         </span>
-        <input
-          type="checkbox"
-          role="switch"
-          className={styles.switch}
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-        />
+        <Switch checked={checked} onChange={onChange} />
       </label>
       {checked && children !== undefined && <div className={styles.switchMore}>{children}</div>}
     </li>

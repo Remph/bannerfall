@@ -56,7 +56,7 @@
 .start,
 .empty {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .messages {
@@ -80,13 +80,13 @@
 .meta {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }
 
 .name {
   color: var(--color-title);
-  font-size: 0.95rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
@@ -135,7 +135,7 @@
   color: var(--color-on-bar);
   box-shadow: var(--shadow-float);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -191,7 +191,7 @@
 .hint,
 .error {
   margin: var(--space-1) 0 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .hint {
@@ -210,7 +210,7 @@
   background: none;
   color: var(--color-text-muted);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   text-decoration: underline;
   cursor: pointer;
 }

@@ -121,7 +121,6 @@ export const en = {
     map: 'Map',
     rallyPoint: 'Rally Point',
     farm: 'Farm list',
-    troops: 'Troops',
     market: 'Market',
     reports: 'Reports',
     messages: 'Messages',
@@ -1149,6 +1148,13 @@ export const en = {
     unequip: 'Take down',
     unequipping: 'Taking down…',
     locked: 'An attack is on its way: banners cannot be changed here until it has arrived.',
+    /** Both slots locked by the same attack: said once above the cards (1.7 design review). */
+    bothLocked:
+      'An attack is on its way here: neither the banner nor the standard can be changed until it has arrived.',
+    /** The short lock chip on each card while `bothLocked` says why. */
+    lockedShort: 'Locked',
+    /** The fold with the rules of a card (1.7 design review). */
+    howItWorks: 'How it works',
     stashTitle: (count: number) => `Stash (${count})`,
     stashEmpty:
       'Your stash is empty. Winning a battle against a player or an NPC lord, attacking or defending, can bring you a banner; against barbarians it happens more rarely.',
@@ -1212,7 +1218,9 @@ export const en = {
   /** Dismissing units (02-game-rules §5.2a). */
   dismiss: {
     button: 'Dismiss',
-    buttonLabel: (unit: string) => `Dismiss ${unit}`,
+    /** The unit row's "…" (1.7 design review), which holds Dismiss. */
+    moreLabel: (unit: string) => `More for ${unit}`,
+    buttonQueueFull: 'Dismiss (queue full)',
     title: (unit: string) => `Dismiss ${unit}`,
     atHome: (amount: string) => `${amount} at home`,
     explain:
@@ -2427,6 +2435,8 @@ export const en = {
     chartLabel: 'Show over time',
     day: 'Day',
     oneDay: 'The first day: the line grows from tomorrow on.',
+    /** The same under both charts of the world statistics (1.7 design review). */
+    oneDayCharts: 'The first day: the lines grow from tomorrow on.',
     worldTitle: 'World statistics',
     worldIntro: 'How the world has grown, day by day. Each day shows the state at its end; today shows now.',
     leaders: 'Leading players',
@@ -3190,6 +3200,8 @@ export const en = {
     /** "Back when done: 63 Wood, 75 Clay, 50 Iron" – the amounts are already formatted. */
     refundWhenDone: (amounts: string) => `Back when done: ${amounts}`,
     refundToast: (amounts: string) => `Tutorial refund: ${amounts}`,
+    /** A refund that met a full warehouse: nothing arrived. */
+    refundLost: 'Tutorial refund lost: the warehouse is full.',
     sheetTitle: 'Tutorial',
     stepsHeading: 'Steps',
     lessonsHeading: 'Good to know',

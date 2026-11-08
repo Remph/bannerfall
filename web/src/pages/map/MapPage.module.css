@@ -85,7 +85,7 @@
   margin: 0;
   padding: 0 var(--space-2);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .message {
@@ -151,7 +151,7 @@
   flex-basis: 100%;
   margin: 0;
   color: var(--color-danger);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .legend {
@@ -168,7 +168,7 @@
     padding: 0;
     list-style: none;
     color: var(--color-text-muted);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
   }
 
   .legend li {
@@ -312,7 +312,7 @@
   line-height: 1.3;
   background: var(--color-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .statusLoading {
@@ -355,7 +355,7 @@
   border-radius: 0.5rem;
   background: var(--color-surface);
   box-shadow: var(--shadow-float);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   line-height: 1.35;
   white-space: nowrap;
   pointer-events: none;
@@ -404,7 +404,7 @@
 .panelTitle {
   flex: 1;
   min-width: 0;
-  font-size: 1.1rem;
+  font-size: var(--font-size-lg);
   overflow-wrap: anywhere;
 }
 
@@ -441,7 +441,7 @@
 .hint {
   margin: var(--space-3) var(--space-2) 0 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .hint + .hint {
@@ -454,7 +454,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   white-space: nowrap;
 }
 
@@ -523,7 +523,7 @@
   align-items: center;
   gap: 0.35rem;
   color: var(--color-accent);
-  font-size: 0.92rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: none;
 }
@@ -535,7 +535,7 @@
 .later {
   margin: var(--space-2) var(--space-2) 0 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 /* dev cheat for an empty field that was jumped to (pnpm dev only) */
@@ -638,7 +638,7 @@
   padding: var(--space-2);
   border-top: 1px solid var(--color-border);
   list-style: none;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .guildChip {
@@ -683,7 +683,7 @@
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 /* ---------- movement markers (M26): the badges of the canvas, for the legend and the panel ---------- */
@@ -792,7 +792,7 @@
   border-radius: 0.6rem;
   background: var(--color-surface);
   box-shadow: var(--shadow-float);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   line-height: 1.35;
   pointer-events: none;
 }
@@ -876,7 +876,7 @@
 
 .layerText > span {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .layerSwitch {
@@ -913,7 +913,7 @@
 
 .layersTitle {
   margin: var(--space-2) 0 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .layersSheet .legend {
@@ -923,7 +923,7 @@
   padding: 0;
   list-style: none;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .layersSheet .legend li {
@@ -951,14 +951,14 @@
 .farmLineHead {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
 .farmLineNote {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 /* the night bonus (1.4): the templates that would arrive in it */
@@ -974,7 +974,7 @@
   gap: 0.3rem;
   margin: 0;
   color: var(--color-success);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
@@ -995,7 +995,7 @@
   background: none;
   color: var(--color-accent);
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;

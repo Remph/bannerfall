@@ -112,6 +112,9 @@ function Charts({ statistics }: { statistics: WorldStatistics }) {
           dayLabel={t.statistics.day}
         />
       </Card>
+      {/* like a player's chart: on the first day both charts show dots, no lines yet; said once under
+          them (1.7 design review) */}
+      {statistics.days.length === 1 && <p className={styles.meta}>{t.statistics.oneDayCharts}</p>}
       <p className={styles.meta}>{t.statistics.since(formatDateTime(Date.parse(statistics.since), language))}</p>
     </div>
   );

@@ -109,10 +109,30 @@ describe('RecruitPage', () => {
     open('barracks');
 
     expect(screen.getByText('Enter a number for a unit first.')).toBeTruthy();
+    // no grey "Recruit" per row while nothing is typed (1.7 design review)
+    expect(screen.queryAllByRole('button', { name: 'Recruit' })).toHaveLength(0);
     fireEvent.change(screen.getByLabelText('Number of units to recruit: Spearman'), { target: { value: '10' } });
     fireEvent.click(screen.getAllByRole('button', { name: 'Recruit' })[0]!);
 
     expect(recruit.mock.calls[0]?.[0]).toEqual({ unit: 'SPEARMAN', count: 10 });
+  });
+
+  it('keeps Dismiss behind the row’s "…" (1.7 design review)', () => {
+    renderPage({
+      path: '/v/:villageId/recruit/:building',
+      url: `/v/${village.id}/recruit/barracks`,
+      element: <RecruitPage />,
+      data: [
+        [villageQueryKey(village.id), { ...village, unitsHome: { SPEARMAN: 12 } }],
+        [recruitmentQueryKey(village.id), buildings],
+        [troopsQueryKey(village.id), troops],
+        [recruitTemplatesQueryKey, []],
+      ],
+    });
+
+    expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Spearman' }));
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeTruthy();
   });
 
   it('sends a building that is not built to the Town Hall', () => {

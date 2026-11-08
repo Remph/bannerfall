@@ -6,7 +6,7 @@
   background: var(--color-well);
   color: var(--color-title);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   white-space: nowrap;

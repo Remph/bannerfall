@@ -30,9 +30,17 @@
   background: transparent;
   color: var(--color-on-bar-muted);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--font-size-2xs);
   text-decoration: none;
   cursor: pointer;
+}
+
+/* a long name ("Sammelplatz") stays on one line; on a 320 px phone it may end in "…" */
+.tabLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabIcon {
@@ -41,7 +49,7 @@
   place-items: center;
   padding: 2px 12px;
   border-radius: var(--radius-pill);
-  font-size: 1.4rem;
+  font-size: var(--font-size-2xl);
 }
 
 /* unread reports: a small count at the icon's top right */
@@ -56,7 +64,7 @@
   background: var(--color-danger);
   color: var(--color-on-danger);
   box-shadow: 0 0 0 2px var(--color-bar);
-  font-size: 0.68rem;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   line-height: 1.15rem;
   text-align: center;
@@ -115,7 +123,7 @@
 
   .navItem {
     padding-inline: 0.55rem;
-    font-size: 0.95rem;
+    font-size: var(--font-size-sm);
   }
 }
 
@@ -123,7 +131,7 @@
 @media (min-width: 1024px) and (max-width: 1199.98px) {
   .navItem {
     padding-inline: 0.4rem;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 }
 
@@ -161,7 +169,7 @@ a.navItem:hover {
   border-radius: var(--radius-pill);
   background: var(--color-danger);
   color: var(--color-on-danger);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   line-height: 1.35rem;
   text-align: center;
@@ -182,7 +190,7 @@ a.navItem:hover {
 .moreHeading {
   margin: 0 0 var(--space-1);
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -277,7 +285,7 @@ button.moreItem {
   background: var(--color-danger);
   color: var(--color-on-danger);
   box-shadow: 0 0 0 2px var(--color-surface);
-  font-size: 0.68rem;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   line-height: 1.15rem;
   text-align: center;
@@ -292,7 +300,7 @@ button.moreItem {
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   line-height: 1.5;
 }
 

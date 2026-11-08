@@ -190,7 +190,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   background: var(--color-well);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Simulate: sticks above the tab bar on phones like the rally point's send buttons */
@@ -299,7 +299,7 @@
 
 .tableTitle {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 

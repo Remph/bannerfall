@@ -53,8 +53,45 @@
   border-radius: var(--radius);
   background: var(--color-danger-bg);
   color: var(--color-danger);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
+}
+
+/* the short chip on each card while the header says why both slots are locked (1.7 design review) */
+.lockShort {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.6rem;
+}
+
+/* a card's rules behind "How it works" (1.7 design review) */
+.how {
+  border-top: 1px solid var(--color-divider);
+  padding-top: var(--space-1);
+}
+
+.howSummary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.howBody {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
 }
 
 .lockChip svg {
@@ -107,7 +144,7 @@
 
 .stashGroup {
   margin: var(--space-3) var(--space-4) 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .stashRow {
@@ -189,7 +226,7 @@ a.villageLink:focus-visible {
 
 .fuseTier {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .fuseList {
@@ -214,7 +251,7 @@ a.villageLink:focus-visible {
   background: var(--color-surface);
   color: inherit;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
@@ -259,7 +296,7 @@ a.villageLink:focus-visible {
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-title);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 

@@ -3,6 +3,7 @@ import { errorMessage } from '../../api/errors';
 import { useDismiss, type RecruitUnit } from '../../api/queries/recruitment';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { MoreMenu } from '../../components/MoreMenu';
 import { Sheet } from '../../components/Sheet';
 import { UnitCountInput } from '../../components/UnitCountInput';
 import { formatDuration, formatNumber } from '../../game/format';
@@ -20,9 +21,11 @@ interface DismissUnitProps {
 }
 
 /**
- * "Dismiss" next to a unit with units at home (02-game-rules §5.2a): a sheet with the count, the
- * time it takes and what happens, then one confirmation. Dismissing can't be undone for the units
- * already gone, so it never happens on a single tap.
+ * "Dismiss" in the "…" of a unit with units at home (02-game-rules §5.2a): a sheet with the count,
+ * the time it takes and what happens, then one confirmation. Dismissing can't be undone for the
+ * units already gone, so it never happens on a single tap. Since the 1.7 design review it sits
+ * behind "…", so the row's one visible button is Recruit (a rare action that costs troops looked
+ * stronger than the main one while no count was typed).
  */
 export function DismissUnit({ villageId, unit, atHome, queueFull }: DismissUnitProps) {
   const { t, language } = useI18n();
@@ -43,17 +46,17 @@ export function DismissUnit({ villageId, unit, atHome, queueFull }: DismissUnitP
 
   return (
     <>
-      <Button
-        type="button"
-        variant="secondary"
-        size="small"
-        disabled={queueFull}
-        aria-label={t.dismiss.buttonLabel(name)}
-        title={queueFull ? t.dismiss.queueFull : undefined}
-        onClick={() => setOpen(true)}
-      >
-        {t.dismiss.button}
-      </Button>
+      <MoreMenu
+        label={t.dismiss.moreLabel(name)}
+        items={[
+          {
+            label: queueFull ? t.dismiss.buttonQueueFull : t.dismiss.button,
+            icon: 'close',
+            disabled: queueFull,
+            onSelect: () => setOpen(true),
+          },
+        ]}
+      />
       <Sheet open={open} onClose={close} title={t.dismiss.title(name)}>
         <div className={styles.confirm}>
           <p>{t.dismiss.explain}</p>

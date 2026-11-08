@@ -7,7 +7,7 @@
 .tag {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .text {
@@ -17,7 +17,7 @@
 .refund {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .actions {

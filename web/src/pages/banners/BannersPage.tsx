@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { errorMessage } from '../../api/errors';
 import {
@@ -101,6 +101,9 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
   const paladins = (useWorld().data?.paladinMaxSlots ?? 0) > 0;
   // the standard's card shows in worlds with paladins, and wherever a standard is to be had
   const showStandards = data.paladinsEnabled || standard !== null || standardStash.length > 0;
+  // one attack locking both slots is said once above the cards; each card keeps a short chip (1.7
+  // design review: two red boxes in a row said the same)
+  const bothLocked = here.locked && here.standardLocked && showStandards;
 
   const stashRows = (banners: OwnBanner[]) => (
     <ul className={styles.stash}>
@@ -139,14 +142,20 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
           </p>
         )}
         <p className={styles.hint}>{data.enabled ? s.hallExplain : s.disabled}</p>
+        {bothLocked && (
+          <p className={styles.lockChip}>
+            <Icon name="lock" />
+            {s.bothLocked}
+          </p>
+        )}
       </header>
 
       <Card title={s.slotTitle}>
         <div className={styles.body}>
           {here.locked && (
-            <p className={styles.lockChip}>
+            <p className={bothLocked ? styles.lockShort : styles.lockChip}>
               <Icon name="lock" />
-              {s.locked}
+              {bothLocked ? s.lockedShort : s.locked}
             </p>
           )}
           <Slot data={data} here={here} flying={flying} busy={busy} onUnequip={() => unequip.mutate()} />
@@ -158,9 +167,9 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
         <Card title={s.standardSlotTitle}>
           <div className={styles.body}>
             {here.standardLocked && (
-              <p className={styles.lockChip}>
+              <p className={bothLocked ? styles.lockShort : styles.lockChip}>
                 <Icon name="lock" />
-                {s.standardLocked}
+                {bothLocked ? s.lockedShort : s.standardLocked}
               </p>
             )}
             <StandardSlot
@@ -172,9 +181,11 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
             />
             {data.paladinsEnabled ? (
               <>
-                <p className={styles.hint}>{s.standardExplain}</p>
                 <p className={styles.hint}>{s.paladinLevel(data.paladinLevel)}</p>
-                {data.standardTheftEnabled && <p className={styles.hint}>{s.standardTheft}</p>}
+                <HowItWorks>
+                  <p className={styles.hint}>{s.standardExplain}</p>
+                  {data.standardTheftEnabled && <p className={styles.hint}>{s.standardTheft}</p>}
+                </HowItWorks>
               </>
             ) : (
               <p className={styles.hint}>{s.standardNoPaladins}</p>
@@ -185,7 +196,9 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
 
       <Card title={s.stashTitle(stash.length)}>
         <div className={styles.body}>
-          <p className={styles.hint}>{s.stashExplain}</p>
+          <HowItWorks>
+            <p className={styles.hint}>{s.stashExplain}</p>
+          </HowItWorks>
         </div>
         {stash.length === 0 ? (
           <p className={styles.empty}>{s.stashEmpty}</p>
@@ -210,8 +223,10 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
       {data.enabled && (
         <Card title={s.thievesTitle}>
           <div className={styles.body}>
-            <p className={styles.hint}>{s.thievesExplain}</p>
-            {paladins && <p className={styles.hint}>{s.paladinHere}</p>}
+            <HowItWorks>
+              <p className={styles.hint}>{s.thievesExplain}</p>
+              {paladins && <p className={styles.hint}>{s.paladinHere}</p>}
+            </HowItWorks>
             {here.hallLevel > 0 ? (
               <p>
                 <Link className={styles.link} to={recruitPath(villageId, 'BANNER_HALL')}>
@@ -642,5 +657,19 @@ function VillageRow({
         </Link>
       )}
     </li>
+  );
+}
+
+/**
+ * A card's rules folded behind "How it works" (1.7 design review): the banners and the stash come
+ * first for a player who knows the rules; a native <details>, so keyboard and screen readers work.
+ */
+function HowItWorks({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <details className={styles.how}>
+      <summary className={styles.howSummary}>{t.banners.howItWorks}</summary>
+      <div className={styles.howBody}>{children}</div>
+    </details>
   );
 }

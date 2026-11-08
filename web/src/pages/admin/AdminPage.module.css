@@ -149,7 +149,7 @@
   margin: 0;
   color: var(--color-danger);
   font-family: ui-monospace, monospace;
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -232,7 +232,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   vertical-align: middle;
 }
@@ -258,7 +258,7 @@
   border-radius: var(--radius);
   background: var(--color-well);
   font-family: ui-monospace, monospace;
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   letter-spacing: 0.05em;
   user-select: all;
   overflow-wrap: anywhere;
@@ -300,14 +300,14 @@
 .details {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }
 
 /* a heading inside a card (the lord guilds above the lords, 09-npc-lords §13.7) */
 .subtitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 /* the personality and the lord's "…" at the right of its line */

@@ -42,7 +42,7 @@
 
 .note {
   padding: var(--space-2) var(--space-3) var(--space-3);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .list {

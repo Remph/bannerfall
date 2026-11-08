@@ -16,7 +16,7 @@
 
 .heading {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--font-size-lg);
   color: var(--color-title);
 }
 

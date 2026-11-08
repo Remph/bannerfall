@@ -41,7 +41,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-danger);
   color: var(--color-on-danger);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   line-height: 1.35rem;
   text-align: center;
@@ -75,7 +75,7 @@
   flex: 1;
   margin: 0;
   color: var(--color-on-bar);
-  font-size: 1.05rem;
+  font-size: var(--font-size-lg);
 }
 
 .minimize {
@@ -87,7 +87,7 @@
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-on-bar);
-  font-size: 1.2rem;
+  font-size: var(--font-size-xl);
   cursor: pointer;
 }
 

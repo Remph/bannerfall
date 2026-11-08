@@ -541,9 +541,13 @@ function UnitRow(props: UnitRowProps) {
             />
             <div className={styles.action}>
               {hint !== null && <p className={styles.hint}>{hint}</p>}
-              <Button type="button" size="small" disabled={!canRecruit || pending} onClick={() => onRecruit(count)}>
-                {recruiting ? t.recruit.recruiting : t.recruit.recruit}
-              </Button>
+              {/* only once there is something to say or send (1.7 design review): an empty list no
+                  longer shows a grey "Recruit" in every row; "Recruit all" below says what to do */}
+              {(count >= 1 || hint !== null) && (
+                <Button type="button" size="small" disabled={!canRecruit || pending} onClick={() => onRecruit(count)}>
+                  {recruiting ? t.recruit.recruiting : t.recruit.recruit}
+                </Button>
+              )}
             </div>
           </div>
           {error !== null && (

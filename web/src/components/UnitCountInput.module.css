@@ -51,7 +51,7 @@
   background: var(--color-well);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

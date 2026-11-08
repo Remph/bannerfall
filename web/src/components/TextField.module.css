@@ -32,7 +32,7 @@
 .hint,
 .error {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .hint {

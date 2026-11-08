@@ -71,6 +71,23 @@ describe('BannersPage', () => {
     expect(screen.queryAllByRole('button', { name: /^Swap in / })).toHaveLength(0);
   });
 
+  it('says once above the cards when one attack locks the banner and the standard', () => {
+    open({
+      ...banners,
+      villages: banners.villages.map((entry) => ({ ...entry, locked: true, standardLocked: true })),
+    });
+
+    expect(
+      screen.getByText(
+        'An attack is on its way here: neither the banner nor the standard can be changed until it has arrived.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByText('Locked')).toHaveLength(2);
+    expect(
+      screen.queryByText('An attack is on its way: banners cannot be changed here until it has arrived.'),
+    ).toBeNull();
+  });
+
   it('offers the three tier I banners for fusing, but not the single tier III one', () => {
     open();
 

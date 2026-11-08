@@ -57,6 +57,30 @@ export function resourceText(
   return parts.join(', ');
 }
 
+/**
+ * The refunds of one answer as one toast's content (design review 1.7): the amounts added up and
+ * the first village that got something. A refund into a full warehouse arrives as 0 and adds
+ * nothing; `villageId` stays undefined while nothing arrived at all.
+ */
+export function sumRefunds(
+  refunds: readonly { villageId: number; amount: { wood: number; clay: number; iron: number } }[],
+): {
+  amount: { wood: number; clay: number; iron: number };
+  villageId: number | undefined;
+} {
+  const amount = { wood: 0, clay: 0, iron: 0 };
+  let villageId: number | undefined;
+  for (const refund of refunds) {
+    amount.wood += refund.amount.wood;
+    amount.clay += refund.amount.clay;
+    amount.iron += refund.amount.iron;
+    if (villageId === undefined && refund.amount.wood + refund.amount.clay + refund.amount.iron > 0) {
+      villageId = refund.villageId;
+    }
+  }
+  return { amount, villageId };
+}
+
 /** The lines of the "All steps" sheet: first the steps, then the lessons. */
 export function splitLines(steps: TutorialStepLine[]): { steps: TutorialStepLine[]; lessons: TutorialStepLine[] } {
   return {

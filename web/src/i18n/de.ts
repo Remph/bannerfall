@@ -97,7 +97,6 @@ export const de: Dictionary = {
     map: 'Karte',
     rallyPoint: 'Sammelplatz',
     farm: 'Farmliste',
-    troops: 'Truppen',
     market: 'Marktplatz',
     reports: 'Berichte',
     messages: 'Nachrichten',
@@ -1063,6 +1062,10 @@ export const de: Dictionary = {
     unequip: 'Einholen',
     unequipping: 'Wird eingeholt…',
     locked: 'Ein Angriff ist unterwegs: Banner können hier erst nach seiner Ankunft gewechselt werden.',
+    bothLocked:
+      'Ein Angriff ist hierher unterwegs: Banner und Standarte können erst nach seiner Ankunft gewechselt werden.',
+    lockedShort: 'Gesperrt',
+    howItWorks: 'So funktioniert es',
     stashTitle: (count: number) => `Vorrat (${count})`,
     stashEmpty:
       'Dein Vorrat ist leer. Ein gewonnener Kampf gegen Spieler oder NPC-Fürsten, ob im Angriff oder in der Verteidigung, kann dir ein Banner bringen; gegen Barbaren seltener.',
@@ -1126,7 +1129,8 @@ export const de: Dictionary = {
   /** Entlassen von Truppen (02-game-rules §5.2a). */
   dismiss: {
     button: 'Entlassen',
-    buttonLabel: (unit: string) => `${unit} entlassen`,
+    moreLabel: (unit: string) => `Mehr zu ${unit}`,
+    buttonQueueFull: 'Entlassen (Schleife voll)',
     title: (unit: string) => `${unit} entlassen`,
     atHome: (amount: string) => `${amount} im Dorf`,
     explain:
@@ -2213,6 +2217,7 @@ export const de: Dictionary = {
     chartLabel: 'Im Verlauf zeigen',
     day: 'Tag',
     oneDay: 'Der erste Tag: Die Linie wächst ab morgen.',
+    oneDayCharts: 'Der erste Tag: Die Linien wachsen ab morgen.',
     worldTitle: 'Weltstatistik',
     worldIntro:
       'Wie die Welt gewachsen ist, Tag für Tag. Jeder Tag zeigt den Stand an seinem Ende, heute den jetzigen.',
@@ -2984,6 +2989,7 @@ export const de: Dictionary = {
     allSteps: 'Alle Schritte',
     refundWhenDone: (amounts: string) => `Gibt es zurück: ${amounts}`,
     refundToast: (amounts: string) => `Tutorial-Erstattung: ${amounts}`,
+    refundLost: 'Tutorial-Erstattung verfallen: Der Speicher ist voll.',
     sheetTitle: 'Tutorial',
     stepsHeading: 'Schritte',
     lessonsHeading: 'Gut zu wissen',

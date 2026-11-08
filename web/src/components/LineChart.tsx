@@ -46,8 +46,9 @@ const KEY_STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
  * A small line chart over days (1.5 statistics, 05-frontend §3), hand-drawn SVG: the game has no
  * chart library. One value axis from 0, recessive grid, 2 px lines. Tap, drag or the arrow keys
  * pick a day; the line above the plot reads out every line's value on it (the last day until then),
- * so nothing needs hover. Two or more lines get a legend, and a hidden table carries the numbers
- * for screen readers.
+ * so nothing needs hover. With two or more lines the readout names each next to its colour, so it
+ * is the legend too (1.7 design review: a second legend under the plot said the same again), and a
+ * hidden table carries the numbers for screen readers.
  */
 export function LineChart({ label, lines, formatValue, formatDay, dayLabel }: LineChartProps) {
   const box = useRef<HTMLDivElement>(null);
@@ -195,16 +196,6 @@ export function LineChart({ label, lines, formatValue, formatDay, dayLabel }: Li
           })}
         </svg>
       </div>
-      {lines.length > 1 && (
-        <ul className={styles.legend}>
-          {lines.map((line, place) => (
-            <li key={line.key} className={styles.legendItem}>
-              <span className={styles.swatch} style={{ background: colorOf(line, place) }} aria-hidden="true" />
-              {line.label}
-            </li>
-          ))}
-        </ul>
-      )}
       {/* in a div: a table ignores the 1 px width and would widen a phone page */}
       <div className="sr-only">
         <table>

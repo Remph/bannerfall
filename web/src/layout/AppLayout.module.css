@@ -62,7 +62,7 @@
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-on-bar-muted);
-  font-size: 1.2rem;
+  font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
@@ -107,7 +107,7 @@
     display: block;
     grid-area: brand;
     font-family: var(--font-brand);
-    font-size: 1.6rem;
+    font-size: var(--font-size-2xl);
     line-height: 1;
     color: var(--color-highlight);
     text-decoration: none;
@@ -144,7 +144,7 @@
     border-radius: var(--radius-pill);
     background: transparent;
     color: var(--color-on-bar);
-    font-size: 1.3rem;
+    font-size: var(--font-size-xl);
     cursor: pointer;
   }
 
@@ -181,7 +181,7 @@
     padding: 0.35rem var(--space-3);
     background: var(--color-bar-edge);
     color: var(--color-on-bar-muted);
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
     font-variant-numeric: tabular-nums;
   }
 

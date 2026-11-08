@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { smithyQueryKey } from '../../api/queries/smithy';
 import { villageQueryKey } from '../../api/queries/villages';
@@ -40,6 +40,18 @@ describe('SmithyPage', () => {
     expect(screen.getAllByText('The smithy of this village is busy with another research.').length).toBeGreaterThan(0);
   });
 
+  it('shows the values of the current and the next level only (1.7 design review)', () => {
+    open();
+
+    // the spearman is at Lv 1 of 3: Lv 1 (marked) and Lv 2, what a research would change
+    const table = screen.getByRole('table', { name: 'Values of Spearman' });
+    expect(
+      within(table)
+        .getAllByRole('rowheader')
+        .map((cell) => cell.textContent),
+    ).toEqual(['Lv 1', 'Lv 2']);
+  });
+
   it('with levels off shows only the base values and no research', () => {
     open({ ...smithy, levelsEnabled: false });
 
@@ -52,7 +64,7 @@ describe('SmithyPage', () => {
   it('sends the paladin and the thief to the Banner Hall for their levels (1.4)', () => {
     open({ ...smithy, levelsEnabled: false });
 
-    // their levels count with unit levels off too: the paladin's badge and his three levels show
+    // their levels count with unit levels off too: the paladin's badge and his levels (current and next) show
     expect(screen.getByText('Lv 2 of 3')).toBeTruthy();
     expect(screen.getAllByText('Its levels are trained in the Banner Hall.')).toHaveLength(2);
     const links = screen.getAllByRole('link', { name: 'To the Banner Hall' });

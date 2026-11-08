@@ -15,6 +15,7 @@ import { ErrorMessage } from '../../components/ErrorMessage';
 import { useI18n } from '../../i18n';
 import { devicePushOn, pushSupport, PushBlockedError, turnOffPush, turnOnPush } from '../../push/pushClient';
 import styles from './NotificationsPage.module.css';
+import { Switch } from '../../components/Switch';
 
 /**
  * /notifications (1.5, 05-frontend §7b): push notifications for this device, and the switches of
@@ -149,13 +150,10 @@ function Kinds({ kinds }: { kinds: PushSettings['kinds'] }) {
                   <span className={styles.kindName}>{t.push.kinds[kind]}</span>
                   <span className={styles.kindHint}>{t.push.kindHints[kind]}</span>
                 </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className={styles.switch}
+                <Switch
                   checked={checked}
                   disabled={setKind.isPending}
-                  onChange={(event) => setKind.mutate({ kind, enabled: event.target.checked })}
+                  onChange={(enabled) => setKind.mutate({ kind, enabled })}
                 />
               </label>
             </li>

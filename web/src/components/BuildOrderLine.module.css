@@ -65,13 +65,13 @@
   border-radius: var(--radius-pill);
   background: var(--color-danger-bg);
   color: var(--color-danger);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .time {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }

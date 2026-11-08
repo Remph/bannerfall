@@ -22,7 +22,7 @@
 .count {
   color: var(--color-title);
   font-family: var(--font-head);
-  font-size: 1.1rem;
+  font-size: var(--font-size-lg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -56,14 +56,14 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2);
-  font-size: 1.05rem;
+  font-size: var(--font-size-lg);
   overflow-wrap: anywhere;
 }
 
 .level {
   color: var(--color-text-muted);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -78,7 +78,7 @@
 .status,
 .progressText {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 

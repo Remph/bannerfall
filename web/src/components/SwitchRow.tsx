@@ -1,3 +1,4 @@
+import { Switch } from './Switch';
 import styles from './SwitchRow.module.css';
 
 interface SwitchRowProps {
@@ -12,14 +13,7 @@ export function SwitchRow({ label, checked, disabled = false, onChange }: Switch
   return (
     <label className={styles.row}>
       <span className={styles.label}>{label}</span>
-      <input
-        type="checkbox"
-        role="switch"
-        className={styles.switch}
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-      />
+      <Switch checked={checked} disabled={disabled} onChange={onChange} />
     </label>
   );
 }

@@ -5,7 +5,7 @@
 # change (the development repository has Dependabot propose them).
 
 # --- 1. web: pnpm build -> /web/dist ---
-FROM node:24.22.0-slim AS web
+FROM node:24.22.2-slim AS web
 WORKDIR /web
 # The pnpm version comes from "packageManager" in web/package.json.
 RUN corepack enable

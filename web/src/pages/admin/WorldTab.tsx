@@ -41,6 +41,7 @@ import {
   type WorldTabForm,
   type WorldTabKey,
 } from './worldTabForm';
+import { Switch } from '../../components/Switch';
 
 /**
  * The admin's World tab (1.6): the world settings in the setup wizard's five sections – a switch at
@@ -337,13 +338,7 @@ function SwitchRow({
           <span className={styles.switchName}>{label ?? t.admin.worldTab.rows[row]}</span>
           {hint !== undefined && <span className={styles.hint}>{hint}</span>}
         </span>
-        <input
-          type="checkbox"
-          role="switch"
-          className={styles.switch}
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-        />
+        <Switch checked={checked} onChange={onChange} />
       </label>
       {(checked || typing) && children !== undefined && (
         <div
@@ -701,12 +696,9 @@ function MapSection({ editor }: { editor: Editor }) {
           />
         </Fields>
         <label className={styles.check}>
-          <input
-            type="checkbox"
-            role="switch"
-            className={styles.switch}
+          <Switch
             checked={form.barbarianWallsRebuild}
-            onChange={(event) => editor.update({ barbarianWallsRebuild: event.target.checked })}
+            onChange={(barbarianWallsRebuild) => editor.update({ barbarianWallsRebuild })}
           />
           {t.admin.barbarianWalls.barbarianWallsRebuild}
         </label>

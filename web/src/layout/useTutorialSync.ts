@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTutorial } from '../api/queries/tutorial';
 import { useShowToast } from '../components/toasts';
-import { resourceText } from '../game/tutorial';
+import { resourceText, sumRefunds } from '../game/tutorial';
 import { useI18n } from '../i18n';
 
 /**
@@ -33,12 +33,17 @@ export function useTutorialSync(villageUpdatedAt: number): void {
       return;
     }
     toasted.current = answeredAt;
-    for (const refund of refunds) {
-      showToast({
-        tone: 'success',
-        text: t.tutorial.refundToast(resourceText(refund.amount, t, language)),
-        to: { pathname: `/v/${refund.villageId}` },
-      });
+    // one toast for all refunds of this answer; a full warehouse got nothing, so say that instead
+    // of an empty "Tutorial refund:" (design review 1.7)
+    const { amount, villageId } = sumRefunds(refunds);
+    if (villageId === undefined) {
+      showToast({ tone: 'info', text: t.tutorial.refundLost });
+      return;
     }
+    showToast({
+      tone: 'success',
+      text: t.tutorial.refundToast(resourceText(amount, t, language)),
+      to: { pathname: `/v/${villageId}` },
+    });
   }, [refunds, answeredAt, showToast, t, language]);
 }

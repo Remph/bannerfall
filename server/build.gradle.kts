@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.1.1"
+    id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "8.10.4"
 }
@@ -31,7 +31,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
     // the host console's command line (de.bannerfall.cli, 08-host-console §5)
     implementation("info.picocli:picocli:4.7.7")
     developmentOnly("org.springframework.boot:spring-boot-devtools")

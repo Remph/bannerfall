@@ -99,7 +99,7 @@
   min-width: 2.25rem;
   color: var(--color-title);
   font-family: var(--font-head);
-  font-size: 1.15rem;
+  font-size: var(--font-size-lg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -123,7 +123,7 @@
 
 .sub {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .tag {
@@ -132,7 +132,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   white-space: nowrap;
 }
@@ -166,7 +166,7 @@
 .winsIn {
   margin: 0;
   font-family: var(--font-head);
-  font-size: 1.4rem;
+  font-size: var(--font-size-2xl);
   font-variant-numeric: tabular-nums;
   color: var(--color-accent);
 }
@@ -174,14 +174,14 @@
 .winsInLabel {
   display: block;
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
 .winnerLine {
   margin: 0;
   font-family: var(--font-head);
-  font-size: 1.2rem;
+  font-size: var(--font-size-xl);
   color: var(--color-title);
 }
 
@@ -192,7 +192,7 @@
 
 .sidesTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 .sideList {
@@ -229,7 +229,7 @@
 .stateLine {
   margin: 0;
   font-family: var(--font-head);
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   line-height: 1.25;
   color: var(--color-title);
 }
@@ -363,7 +363,7 @@
 
 .victoryStripText > span {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 

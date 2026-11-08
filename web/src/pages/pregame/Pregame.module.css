@@ -15,19 +15,19 @@
 
 .title {
   margin: 0 0 var(--space-2);
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
   color: var(--color-title);
 }
 
 .opens {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--font-size-lg);
 }
 
 .countdown {
   margin: var(--space-2) 0 0;
   font-family: var(--font-head);
-  font-size: 1.8rem;
+  font-size: var(--font-size-3xl);
   font-variant-numeric: tabular-nums;
   color: var(--color-accent);
 }
@@ -35,7 +35,7 @@
 .countdownLabel {
   display: block;
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
@@ -116,7 +116,7 @@
   /* a link now: only the name is clickable, the bar buttons are pushed to the right */
   margin-right: auto;
   font-family: var(--font-brand);
-  font-size: 1.4rem;
+  font-size: var(--font-size-2xl);
   color: var(--color-highlight);
   text-decoration: none;
 }
@@ -144,7 +144,7 @@
   background: transparent;
   color: var(--color-on-bar);
   font: inherit;
-  font-size: 1.2rem;
+  font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
@@ -182,7 +182,7 @@
 
 .setupTitle {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--font-size-xl);
   color: var(--color-title);
 }
 

@@ -38,10 +38,29 @@ describe('WorldStatisticsPage (1.5)', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'World statistics' })).toBeTruthy();
     expect(screen.getByRole('img', { name: 'Leading players' })).toBeTruthy();
-    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['ada', 'Sir Godwin']);
+    // the read-out names the leaders (it is the legend, 1.7 design review)
+    expect(screen.getAllByText('ada').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sir Godwin').length).toBeGreaterThan(0);
     expect(screen.getByText('11 players · 44 villages · 28 barbarian villages')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Points' }));
     expect(screen.getByRole('img', { name: 'The world: Points' })).toBeTruthy();
+    expect(screen.queryByText('The first day: the lines grow from tomorrow on.')).toBeNull();
+  });
+
+  it('says once under both charts that the lines start tomorrow on the first day (1.7 design review)', () => {
+    const firstDay: WorldStatistics = {
+      ...statistics,
+      days: statistics.days.slice(0, 1),
+      leaders: statistics.leaders.map((leader) => ({ ...leader, days: leader.days.slice(0, 1) })),
+    };
+    renderPage({
+      path: '/statistics',
+      url: '/statistics',
+      element: <WorldStatisticsPage />,
+      data: [[worldStatisticsQueryKey, firstDay]],
+    });
+
+    expect(screen.getAllByText('The first day: the lines grow from tomorrow on.')).toHaveLength(1);
   });
 });

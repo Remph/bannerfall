@@ -25,6 +25,7 @@ import styles from './AutomationPage.module.css';
 import { byHandText, missingText, statusText } from './automationText';
 import { PlanLineView } from './PlanLineView';
 import { PlanEditor, PlanPicker } from './PlanSheets';
+import { Switch } from '../../components/Switch';
 
 /**
  * /v/:villageId/automation – the village automation (02-game-rules §25, 1.6): the switch and the
@@ -83,15 +84,12 @@ function Automation({ villageId }: { villageId: number }) {
                   <span id={switchStateId} className={styles.switchState}>
                     {status.data.enabled ? t.automation.running : t.automation.paused}
                   </span>
-                  <input
-                    type="checkbox"
-                    role="switch"
+                  <Switch
                     aria-label={t.automation.switchLabel}
                     aria-describedby={switchStateId}
-                    className={styles.switch}
                     checked={status.data.enabled}
                     disabled={set.isPending}
-                    onChange={(event) => set.mutate({ plan: status.data.plan, enabled: event.target.checked })}
+                    onChange={(enabled) => set.mutate({ plan: status.data.plan, enabled })}
                   />
                 </label>
               )

@@ -48,6 +48,17 @@
   --font-head: 'Alegreya SC', Georgia, serif;
   --font-body: 'Alegreya Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
+  /* font sizes (1.7 design review): one scale instead of 27 literal sizes; body text is base */
+  --font-size-2xs: 0.7rem; /* tab bar labels, counts on badges */
+  --font-size-xs: 0.8rem; /* small print, chips */
+  --font-size-sm: 0.9rem; /* hints, secondary lines, small buttons */
+  --font-size-base: 1rem;
+  --font-size-lg: 1.1rem; /* card titles */
+  --font-size-xl: 1.3rem;
+  --font-size-2xl: 1.5rem; /* page titles */
+  --font-size-3xl: 1.8rem;
+  --font-size-4xl: 2.25rem; /* the brand on the login page */
+
   /* spacing and shapes */
   --space-1: 0.25rem;
   --space-2: 0.5rem;

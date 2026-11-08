@@ -21,7 +21,7 @@
 .table thead th {
   border-top: 0;
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
@@ -60,7 +60,7 @@
   border-radius: 50%;
   background: var(--color-well);
   color: var(--color-accent);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .level {
@@ -68,7 +68,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-title);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   white-space: nowrap;
   display: inline-block;

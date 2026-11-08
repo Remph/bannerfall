@@ -37,6 +37,34 @@ describe('useTutorialSync', () => {
     );
   });
 
+  it('adds several refunds up into one toast', () => {
+    open({
+      ...tutorial,
+      refunds: [
+        { key: 'WOODCUTTER', villageId: 7, amount: { wood: 63, clay: 75, iron: 50 } },
+        { key: 'HEADQUARTERS', villageId: 7, amount: { wood: 100, clay: 0, iron: 20 } },
+      ],
+    });
+
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'Tutorial refund: 163 Wood, 75 Clay, 70 Iron', to: { pathname: '/v/7' } }),
+    );
+  });
+
+  it('says the refund was lost when a full warehouse took nothing', () => {
+    open({
+      ...tutorial,
+      refunds: [
+        { key: 'WOODCUTTER', villageId: 7, amount: { wood: 0, clay: 0, iron: 0 } },
+        { key: 'BARRACKS', villageId: 7, amount: { wood: 0, clay: 0, iron: 0 } },
+      ],
+    });
+
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith({ tone: 'info', text: 'Tutorial refund lost: the warehouse is full.' });
+  });
+
   it('says nothing when nothing was paid', () => {
     open({ ...tutorial, refunds: [] });
 

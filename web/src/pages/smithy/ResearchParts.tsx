@@ -180,15 +180,18 @@ export function UnitRow(props: UnitRowProps) {
 
 /**
  * Attack and the defence values (against archers only in a world with archers, 1.6). With unit
- * levels one row per level, the unit's current level marked; otherwise (levels off, or a unit
- * without levels) one row with the values it has.
+ * levels the current level (marked) and the next one, what a research would change (1.7 design
+ * review: every level made one unit fill a phone screen); otherwise (levels off, or a unit without
+ * levels) one row with the values it has.
  */
 function StatsTable({ unit, leveled }: { unit: SmithyUnit; leveled: boolean }) {
   const { t, language } = useI18n();
   const s = t.smithy;
   const archers = useWorld().data?.archersEnabled === true;
   const rows = leveled
-    ? unit.stats.map((stats, index) => ({ level: index + 1, stats }))
+    ? unit.stats
+        .map((stats, index) => ({ level: index + 1, stats }))
+        .filter(({ level }) => level === unit.level || level === unit.level + 1)
     : [{ level: null, stats: statsAt(unit.stats, unit.level) }];
   return (
     <table className={styles.levels}>

@@ -62,7 +62,7 @@
 .ready,
 .status {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--font-size-sm);
 }
 
 .ready {

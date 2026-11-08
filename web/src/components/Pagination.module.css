@@ -29,7 +29,7 @@ a.pageLink:hover {
 
 .pageInfo {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }

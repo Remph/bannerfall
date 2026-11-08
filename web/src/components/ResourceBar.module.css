@@ -44,7 +44,7 @@
 }
 
 .icon {
-  font-size: 1.15rem;
+  font-size: var(--font-size-lg);
 }
 
 .text {
@@ -63,18 +63,18 @@
 
 .amount {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--font-size-sm);
 }
 
 .max {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--color-on-bar);
   opacity: 0.85;
 }
 
 .detail {
-  font-size: 0.72rem;
+  font-size: var(--font-size-2xs);
   color: var(--color-on-bar-muted);
   white-space: nowrap;
 }
@@ -103,7 +103,7 @@
   }
 
   .compact .icon {
-    font-size: 0.95rem;
+    font-size: var(--font-size-sm);
   }
 
   /* The slim row is only about 16 px tall: the link's tap area reaches down into the bar's bottom
@@ -119,7 +119,7 @@
   }
 
   .compact .amount {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
   }
 
   .compact .max,
@@ -163,7 +163,7 @@
   }
 
   .max {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
   }
 
   .fill {

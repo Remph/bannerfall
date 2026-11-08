@@ -13,7 +13,7 @@
   background: var(--color-well);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--font-size-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -71,7 +71,7 @@
   gap: var(--space-3);
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 

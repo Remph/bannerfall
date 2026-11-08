@@ -45,8 +45,9 @@ describe('LineChart', () => {
 
     expect(readout()).toBe('10-19ada220 ptsSir Godwin130 pts');
     expect(container.querySelectorAll('polyline')).toHaveLength(2);
-    // two lines: a legend names them, so colour is never the only key
-    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['ada', 'Sir Godwin']);
+    // two lines: the readout names them next to their colours, so colour is never the only key and
+    // no second legend repeats it (1.7 design review)
+    expect(screen.queryByRole('list')).toBeNull();
   });
 
   it('picks a day with the arrow keys and shows a dash for a line without it', () => {
@@ -65,7 +66,7 @@ describe('LineChart', () => {
 
     expect(container.querySelectorAll('polyline')).toHaveLength(0);
     expect(container.querySelectorAll('circle')).toHaveLength(1);
-    // one line: no legend, the chart's title names it
+    // one line: no names in the readout, the chart's title names it
     expect(screen.queryByRole('list')).toBeNull();
     const table = screen.getByRole('table');
     expect(within(table).getByRole('row', { name: '10-19 5 pts' })).toBeTruthy();

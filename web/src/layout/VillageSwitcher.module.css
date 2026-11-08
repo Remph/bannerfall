@@ -27,13 +27,13 @@
 
 .coords {
   color: var(--color-on-bar-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 
 .chevron {
   flex: none;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   color: var(--color-on-bar-muted);
 }
 
@@ -131,14 +131,14 @@
 }
 
 .villageMeta {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* attacks on the way to it (from /api/me, M9b) */
 .villageAttacks {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--color-danger);
 }
@@ -150,7 +150,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-title);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   vertical-align: 0.1em;
 }

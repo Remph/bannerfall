@@ -214,8 +214,9 @@ export function TabBar({ villageId, onMore, inFlow = false }: TabBarProps) {
             <Icon name={sections[key].icon} />
             {key === 'reports' && <UnreadBadge className={styles.tabBadge} />}
           </span>
-          {/* On the phone the rally point tab is simply called "Troops". */}
-          <span>{key === 'rallyPoint' ? t.nav.troops : t.nav[key]}</span>
+          {/* one name per place (1.7 design review): the tab says "Rally Point" like the page it
+              opens; as "Troops" it read like the place to recruit, which is behind "More" */}
+          <span className={styles.tabLabel}>{t.nav[key]}</span>
         </SectionLink>
       ))}
       <button

@@ -83,7 +83,7 @@
 .small {
   min-height: 2.25rem;
   padding: 0 0.9rem;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 /* touch screens keep the full touch target height (05-frontend §8) */

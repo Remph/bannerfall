@@ -19,7 +19,7 @@
   .scroll .option {
     flex: 1 0 auto;
     padding: 0 0.4rem;
-    font-size: 0.88rem;
+    font-size: var(--font-size-sm);
     white-space: nowrap;
   }
 }
