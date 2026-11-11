@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Icon, type IconName } from './Icon';
 import { IconButton } from './IconButton';
 import styles from './MoreMenu.module.css';
@@ -16,12 +16,20 @@ interface MoreMenuProps {
   /** The button's accessible name and tooltip, e.g. "More for Tomburg". */
   label: string;
   items: MoreMenuItem[];
+  /**
+   * Which edge of the list lines up with the button's. Left: the list opens to the right (a "…" at the
+   * left of its pane, a conversation's next to Profile). Without it: towards the middle of the window.
+   */
+  align?: 'left' | 'right';
 }
 
 /** One item (the touch target), the list's padding and border, the gap to the button. */
 const ITEM_PX = 44;
 const FRAME_PX = 12;
 const GAP_PX = 4;
+
+/** The least room the list keeps to the window's edge. */
+const EDGE_PX = 8;
 
 /**
  * A "…" button with the rarer actions of a list row (1.3), so the row keeps one visible button.
@@ -30,9 +38,10 @@ const GAP_PX = 4;
  * choice, a tap elsewhere, Escape, a scroll or the focus moving on closes it; after a choice or
  * Escape the focus is back on the button.
  */
-export function MoreMenu({ label, items }: MoreMenuProps) {
+export function MoreMenu({ label, items, align }: MoreMenuProps) {
   const [place, setPlace] = useState<CSSProperties | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const open = place !== null;
 
@@ -64,6 +73,24 @@ export function MoreMenu({ label, items }: MoreMenuProps) {
     };
   }, [open]);
 
+  // A list that opens to the right of a "…" near the right edge (a long German label on a 320 px phone) ends
+  // past the window: slide it back, so its rounded corners show (2.0 UI review follow-up)
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (menu === null || place === null || typeof place.left !== 'number') {
+      return;
+    }
+    // from the list's width and the state's `left`, not from where it is drawn: the global reduced-motion
+    // rule gives every property a transition, so for a moment the list is still at the old place
+    const fits = Math.max(
+      EDGE_PX,
+      Math.floor(document.documentElement.clientWidth - EDGE_PX - menu.getBoundingClientRect().width),
+    );
+    if (fits < place.left - 0.5) {
+      setPlace({ ...place, left: fits });
+    }
+  }, [place]);
+
   function toggle(button: HTMLElement) {
     if (open) {
       setPlace(null);
@@ -71,12 +98,16 @@ export function MoreMenu({ label, items }: MoreMenuProps) {
     }
     const rect = button.getBoundingClientRect();
     const viewport = document.documentElement;
-    const right = viewport.clientWidth - rect.right;
+    // the list opens towards the middle of the window: under a "…" at the right its right edge is the
+    // button's, under one at the left (a conversation's, next to Profile) its left edge, so it is not
+    // cut off by the window's edge
+    const opensLeft = align === undefined ? (rect.left + rect.right) / 2 > viewport.clientWidth / 2 : align === 'right';
+    const side: CSSProperties = opensLeft ? { right: viewport.clientWidth - rect.right } : { left: rect.left };
     const room = items.length * ITEM_PX + FRAME_PX + GAP_PX;
     setPlace(
       viewport.clientHeight - rect.bottom >= room
-        ? { top: rect.bottom + GAP_PX, right }
-        : { bottom: viewport.clientHeight - rect.top + GAP_PX, right },
+        ? { top: rect.bottom + GAP_PX, ...side }
+        : { bottom: viewport.clientHeight - rect.top + GAP_PX, ...side },
     );
   }
 
@@ -101,7 +132,7 @@ export function MoreMenu({ label, items }: MoreMenuProps) {
         onClick={(event) => toggle(event.currentTarget)}
       />
       {open && (
-        <div id={listId} className={styles.menu} style={place}>
+        <div id={listId} ref={menuRef} className={styles.menu} style={place}>
           {items.map((item) => (
             <button
               key={item.label}

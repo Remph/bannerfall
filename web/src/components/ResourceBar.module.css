@@ -1,10 +1,10 @@
-/* Phone first: four equal columns, icon above the numbers. Sits on the green bar. */
+/* Phone first: four equal columns, icon above the numbers. Phones: on the land under the sky; desktop: on the sky. */
 .bar {
   display: flex;
   margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--color-on-bar);
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -34,12 +34,12 @@
   text-decoration: none;
 }
 
-.link:hover {
-  background: var(--color-bar-hover);
+a.link:hover {
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
 }
 
 .link:focus-visible {
-  outline: 2px solid var(--color-highlight);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
@@ -69,13 +69,12 @@
 .max {
   font-size: var(--font-size-xs);
   font-weight: 500;
-  color: var(--color-on-bar);
-  opacity: 0.85;
+  color: var(--color-sky-muted);
 }
 
 .detail {
   font-size: var(--font-size-2xs);
-  color: var(--color-on-bar-muted);
+  color: var(--color-sky-muted);
   white-space: nowrap;
 }
 
@@ -85,13 +84,13 @@
 
 .full .amount,
 .full .max {
-  color: var(--color-on-bar-warn);
+  color: var(--color-sky-warn);
 }
 
 /* the farm with less than a tenth free (balancing round 2): build the farm before it stops you */
 .almostFull .amount,
 .almostFull .max {
-  color: var(--color-on-bar-caution);
+  color: var(--color-sky-caution);
 }
 
 /* Phones, slim row: icon and amount side by side, no maximum or production. */
@@ -104,18 +103,6 @@
 
   .compact .icon {
     font-size: var(--font-size-sm);
-  }
-
-  /* The slim row is only about 16 px tall: the link's tap area reaches down into the bar's bottom
-     padding (24 px in all) without moving anything. Not upwards, where the village switcher sits. */
-  .compact .link {
-    position: relative;
-  }
-
-  .compact .link::after {
-    content: '';
-    position: absolute;
-    inset: 0 0 calc(-1 * var(--space-2));
   }
 
   .compact .amount {
@@ -147,6 +134,19 @@
     gap: var(--space-2);
   }
 
+  /* the narrowest desktop windows (1024 to 1199 px, a scroll bar included) with six-digit amounts: the
+     capacity is set as small as on a phone and the icon sits closer, so the row stays within the window and
+     leaves the village switcher its name (2.0 F2) */
+  @media (max-width: 1199.98px) {
+    .item {
+      gap: var(--space-1);
+    }
+
+    .max {
+      font-size: var(--font-size-xs);
+    }
+  }
+
   /* The population has no link but the same side padding, so the gaps between the items stay even.
      Desktop only: on phones the padding would make its column wider than the other three. */
   .plain {
@@ -174,25 +174,25 @@
     margin-top: 2px;
     border-radius: 2px;
     overflow: hidden;
-    background: var(--color-track);
+    background: color-mix(in srgb, var(--color-text) 22%, transparent);
   }
 
   .fill > span {
     display: block;
     height: 100%;
-    background: var(--color-highlight);
+    background: var(--color-accent);
   }
 
   .full .fill > span {
-    background: var(--color-on-bar-warn);
+    background: var(--color-sky-warn);
   }
 
   .almostFull .fill > span {
-    background: var(--color-on-bar-caution);
+    background: var(--color-sky-caution);
   }
 }
 
-/* A jump counts to the new amount (useCountedValue): a gain glows gold for a moment, a payment dims. */
+/* A jump counts to the new amount (useCountedValue): a gain swells for a moment in the success green, a payment dims. */
 .amount {
   display: inline-block;
   transition:
@@ -202,11 +202,10 @@
 }
 
 .gain .amount {
-  color: var(--color-highlight);
+  color: var(--color-success);
   transform: scale(1.12);
-  text-shadow: 0 0 8px rgb(233 196 106 / 55%);
 }
 
 .spend .amount {
-  color: var(--color-on-bar-muted);
+  color: var(--color-sky-muted);
 }

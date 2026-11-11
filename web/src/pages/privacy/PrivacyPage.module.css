@@ -3,6 +3,8 @@
   display: grid;
   gap: var(--space-3);
   max-width: 40rem;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .title {
@@ -26,10 +28,10 @@
 
 /* The host's name and contact stand out a little: it is what a player looks for first. */
 .operator {
+  /* 2.0: a shade of the land, no outline */
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: var(--color-well);
 }
 
 .address {

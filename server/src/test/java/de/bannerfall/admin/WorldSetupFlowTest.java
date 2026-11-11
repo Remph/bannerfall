@@ -115,6 +115,47 @@ class WorldSetupFlowTest {
         player.get("/api/me").andExpect(jsonPath("$.role").value("PLAYER"));
     }
 
+    /** Security review of 1.7: the code can't be guessed; a few wrong claims end it. */
+    @Test
+    void aCodeEndsAfterFewWrongClaimsAndANewOneWorks() throws Exception {
+        Browser player = Browser.open(mockMvc);
+        player.register(Browser.uniqueUsername()).andExpect(status().isCreated());
+        String code = newCode();
+
+        for (int i = 0; i < SetupCodeService.MAX_WRONG_CLAIMS; i++) {
+            player.post("/api/me/setup-claim", "{\"code\":\"wrong-code\"}")
+                    .andExpect(status().isBadRequest());
+        }
+
+        // the code is gone, even for someone who now has it right
+        player.post("/api/me/setup-claim", "{\"code\":\"" + code + "\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SETUP_CODE_INVALID"));
+        player.get("/api/me").andExpect(jsonPath("$.role").value("PLAYER"));
+
+        // the host runs `setup` again: a fresh code, a fresh count
+        String next = newCode();
+        player.post("/api/me/setup-claim", "{\"code\":\"" + next + "\"}")
+                .andExpect(status().isNoContent());
+        demote(player);
+    }
+
+    @Test
+    void aCodeSurvivesWrongClaimsUnderTheLimit() throws Exception {
+        Browser player = Browser.open(mockMvc);
+        player.register(Browser.uniqueUsername()).andExpect(status().isCreated());
+        String code = newCode();
+
+        for (int i = 0; i < SetupCodeService.MAX_WRONG_CLAIMS - 1; i++) {
+            player.post("/api/me/setup-claim", "{\"code\":\"wrong-code\"}")
+                    .andExpect(status().isBadRequest());
+        }
+
+        player.post("/api/me/setup-claim", "{\"code\":\"" + code + "\"}")
+                .andExpect(status().isNoContent());
+        demote(player);
+    }
+
     @Test
     void theAuditLogNeverShowsTheCode() throws Exception {
         String code = newCode();

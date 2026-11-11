@@ -3,6 +3,8 @@
   display: grid;
   gap: var(--space-3);
   max-width: 40rem;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -36,8 +38,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .item:first-child {
@@ -91,14 +93,13 @@
 .bar {
   height: 0.5rem;
   overflow: hidden;
-  background: var(--color-well);
-  border: 1px solid var(--color-border);
+  background: var(--color-track);
   border-radius: var(--radius-pill);
 }
 
 .fill {
   height: 100%;
-  background: var(--color-success);
+  background: var(--color-action);
 }
 
 /* desktop: the categories side by side instead of one narrow column (1.3) */

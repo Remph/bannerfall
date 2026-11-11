@@ -1,27 +1,44 @@
-/* The link is a full touch target; the red pill inside is smaller. */
+/* The attack alarm on the sky. The link is a full touch target; the red sign inside is smaller. */
 .badge {
   min-width: var(--touch-target);
   min-height: var(--touch-target);
   display: grid;
   place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-pill);
-  text-decoration: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 
 .pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   min-height: 2rem;
   padding: 0 0.7rem;
-  border: 2px solid var(--color-on-bar);
-  border-radius: var(--radius-pill);
-  background: var(--color-danger);
-  color: var(--color-on-danger);
+  border: 0;
+  border-radius: var(--radius);
+  background-color: var(--color-war);
+  background-image: var(--texture);
+  color: var(--color-on-war);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   animation: attention 1.6s ease-in-out 3;
+}
+
+/* look switch: a seam just inside the red alarm, like the attack button's (none in the plain themes) */
+.pill::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: var(--seam-on-dark);
+  border-radius: calc(var(--radius) - 3px);
+  pointer-events: none;
 }
 
 .badge:hover .pill {
@@ -29,13 +46,13 @@
 }
 
 .badge:focus-visible {
-  outline: 2px solid var(--color-highlight);
+  outline: 2px solid var(--color-text);
   outline-offset: 0;
 }
 
 /* draws the eye when it appears (three pulses, not forever) */
 @keyframes attention {
   50% {
-    box-shadow: 0 0 0 5px rgba(180, 35, 24, 0.35);
+    box-shadow: 0 0 0 5px rgba(196, 64, 47, 0.35);
   }
 }

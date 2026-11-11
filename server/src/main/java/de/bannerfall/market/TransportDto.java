@@ -21,7 +21,7 @@ public record TransportDto(
         Instant returnAt,
         boolean arrived) {
 
-    static TransportDto of(TradeTransport transport) {
+    public static TransportDto of(TradeTransport transport) {
         return new TransportDto(
                 transport.getId(),
                 VillageRefDto.of(transport.getSourceVillage()),

@@ -83,6 +83,7 @@ class RaceTest {
             jdbc.sql("delete from unit_stack where home_village_id = ? or location_village_id = ?")
                     .params(id, id)
                     .update();
+            jdbc.sql("delete from research_order where village_id = ?").param(id).update();
             jdbc.sql("delete from village where id = ?").param(id).update();
         }
         extraVillages.clear();

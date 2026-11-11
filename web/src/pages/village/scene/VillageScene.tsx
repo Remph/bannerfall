@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
+import { useId, useMemo, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { BuildOrder } from '../../../api/queries/buildings';
 import type { Village } from '../../../api/queries/villages';
@@ -19,6 +19,24 @@ import s from './VillageScene.module.css';
 /** How far below its spot a building's plate hangs (the gate's a little less: it stands on the wall). */
 const PLATE_DROP = 8;
 const GATE_PLATE_DROP = 6;
+
+/**
+ * One sun, standing in the header behind the village: everything that stands up throws its own
+ * outline on the ground, flattened and leaning towards the viewer (2.0, Horizont).
+ */
+const CAST = 'matrix(1 0 -0.36 -0.5 0 0)';
+/** Dug into the ground or part of the wall: nothing to throw a shadow. */
+const NO_CAST: ReadonlySet<BuildingType> = new Set(['CLAY_PIT', 'HIDING_PLACE', 'WALL']);
+/**
+ * Buildings with lit windows or a fire: at night each throws a pool of warm light on the ground
+ * (its middle and half width in the drawing's units).
+ */
+const LIGHT: Partial<Record<BuildingType, { x: number; r: number }>> = {
+  HEADQUARTERS: { x: 0, r: 58 },
+  BARRACKS: { x: 0, r: 50 },
+  SMITHY: { x: -6, r: 40 },
+  FARM: { x: 20, r: 30 },
+};
 
 /**
  * The buildings of a village as one picture (05-frontend, *Village picture*): every building drawn
@@ -89,7 +107,7 @@ export function VillageScene({
     ...layout.trees.map(([x, y, r]) => ({
       depth: y + r * 0.8,
       x,
-      node: <Tree key={`tree-${x}-${y}`} x={x} y={y} r={layout.scale === 1 ? r : r * 0.95} />,
+      node: <Tree key={`tree-${x}-${y}`} x={x} y={y} r={layout.scale === 1 ? r : r * 0.95} shade={false} />,
     })),
     ...shown
       .filter((type) => type !== 'WALL')
@@ -97,6 +115,8 @@ export function VillageScene({
     // top down, and left to right on a row: also the tab order
   ].sort((a, b) => a.depth - b.depth || a.x - b.x);
 
+  const standing = shown.filter((type) => !NO_CAST.has(type) && levelOf(type) > 0);
+  const poolId = useId();
   const { cx, cy, rx, ry } = layout.wall;
   return (
     <svg
@@ -105,10 +125,21 @@ export function VillageScene({
       role="group"
       aria-label={t.village.buildingsTitle}
     >
+      <defs>
+        <radialGradient id={poolId}>
+          <stop className={s.poolCore} offset="0" />
+          <stop className={s.poolEdge} offset="1" />
+        </radialGradient>
+      </defs>
       <rect className={s.grass} width={layout.width} height={layout.height} />
+      <g className={s.mounds} aria-hidden="true">
+        {layout.mounds.map(([x, y, w, h]) => (
+          <path key={`${x}-${y}`} d={`M${x - w} ${y}Q${x} ${y - 2 * h} ${x + w} ${y}Z`} />
+        ))}
+      </g>
       <ellipse className={s.yard} cx={cx} cy={cy} rx={rx - 8} ry={ry - 8} />
       {layout.paths.map((d) => (
-        <path key={d} className={s.path} d={d} strokeWidth={14 * layout.scale + 2} />
+        <path key={d} className={s.path} d={d} style={{ strokeWidth: 14 * layout.scale + 2 }} />
       ))}
       {stakes === undefined ? (
         <ellipse className={s.wallPlot} cx={cx} cy={cy} rx={rx} ry={ry} />
@@ -119,6 +150,39 @@ export function VillageScene({
           <path className={s.woodSide} d={stakes.back.side} />
         </>
       )}
+      <g className={s.casts} aria-hidden="true">
+        {layout.trees.map(([x, y, r]) => (
+          <g key={`tree-${x}-${y}`} transform={`translate(${x} ${y}) ${CAST} translate(${-x} ${-y})`}>
+            <Tree x={x} y={y} r={layout.scale === 1 ? r : r * 0.95} shade={false} />
+          </g>
+        ))}
+        {standing.map((type) => (
+          <g
+            key={type}
+            data-cast={type}
+            transform={`translate(${layout.spots[type].x} ${layout.spots[type].y}) ${CAST} scale(${layout.scale})`}
+          >
+            <BuildingDrawing type={type} growth={growthOf(type, levelOf(type))} />
+          </g>
+        ))}
+      </g>
+      <g className={s.pools} aria-hidden="true">
+        {standing.map((type) => {
+          const light = LIGHT[type];
+          return (
+            light !== undefined && (
+              <ellipse
+                key={type}
+                fill={`url(#${poolId})`}
+                cx={layout.spots[type].x + light.x * layout.scale}
+                cy={layout.spots[type].y + 4}
+                rx={light.r * layout.scale + 10}
+                ry={(light.r * layout.scale + 10) * 0.3}
+              />
+            )
+          );
+        })}
+      </g>
       {depthSorted.map((item) => item.node)}
       {stakes !== undefined && (
         <>

@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { ApiError, errorMessage } from '../../api/errors';
 import { ACCOUNT_SERVER_LOGIN, useAuthOptions, useExternalLogin, useJoin } from '../../api/queries/auth';
 import { Button } from '../../components/Button';
@@ -35,6 +35,12 @@ export function JoinPage() {
       // On success the player is logged in and <RequireGuest> opens the game.
       join.mutate(inviteCode.trim());
     }
+  }
+
+  // a world without the account server has nothing to join with: its login page instead (2.0 UI review:
+  // "Log in with  first." had a hole where the server's name belongs)
+  if (options.data !== undefined && (options.data.mode === 'OFF' || !options.data.accountServerName)) {
+    return <Navigate to="/login" replace />;
   }
 
   if (options.isPending || external.isPending) {

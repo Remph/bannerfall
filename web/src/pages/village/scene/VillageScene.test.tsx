@@ -45,6 +45,17 @@ describe('VillageScene', () => {
     expect(within(scene).getByRole('link', { name: 'Wall, Lv 1' }).getAttribute('href')).toBe('/v/7/hq#WALL');
   });
 
+  it('lays a cast shadow under every standing building, none under plots, pits and the wall', () => {
+    const scene = renderScene(village({ ...allBuilt, SMITHY: 0 }));
+    const casts = [...scene.querySelectorAll('[data-cast]')].map((node) => node.getAttribute('data-cast'));
+    const expected = buildingTypes.filter((type) => !['SMITHY', 'CLAY_PIT', 'HIDING_PLACE', 'WALL'].includes(type));
+    expect(casts.sort()).toEqual([...expected].sort());
+    // decoration only: no second set of links, hidden from screen readers
+    const group = scene.querySelector('[data-cast]')?.parentElement;
+    expect(group?.getAttribute('aria-hidden')).toBe('true');
+    expect(group?.querySelector('a')).toBeNull();
+  });
+
   it('leaves the Banner Hall out on a world without banners and paladins unless one stands there', () => {
     renderScene(village({ ...allBuilt, BANNER_HALL: 0 }), false);
     expect(screen.queryByRole('link', { name: /Banner Hall/ })).toBeNull();
@@ -95,6 +106,18 @@ describe('VillageScene', () => {
   it('shows a dash on the plates of buildings not built', () => {
     const scene = renderScene(village({ HEADQUARTERS: 1 }));
     expect(within(scene).getAllByText('–')).toHaveLength(buildingTypes.length - 1);
+  });
+});
+
+describe('VillageScene and the picture outline (look switch)', () => {
+  it('sets no stroke as an attribute on a shape the outline rule reaches', () => {
+    // the zero-weight outline rule in VillageScene.module.css beats SVG attributes in every theme:
+    // a width or colour set as an attribute is lost (the paths were hairlines once)
+    const scene = renderScene(village(allBuilt));
+    const withStroke = [...scene.querySelectorAll('rect, polygon, path, circle, ellipse')].filter((shape) =>
+      ['stroke', 'stroke-width', 'stroke-linejoin'].some((name) => shape.hasAttribute(name)),
+    );
+    expect(withStroke.map((shape) => shape.outerHTML.slice(0, 80))).toEqual([]);
   });
 });
 

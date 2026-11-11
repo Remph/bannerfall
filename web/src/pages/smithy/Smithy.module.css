@@ -4,6 +4,8 @@
   gap: var(--space-3);
   max-width: 44rem;
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -24,6 +26,9 @@
 .link {
   color: var(--color-accent);
   font-weight: 600;
+  display: inline-block;
+  padding-block: var(--tap-pad);
+  margin-block: calc(-1 * var(--tap-pad));
 }
 
 .hint {
@@ -32,7 +37,7 @@
 }
 
 .body {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .body p {
@@ -67,8 +72,8 @@
   /* two columns on wide screens: a short unit next to a tall one keeps its lines together at the top */
   align-content: start;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-3) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
@@ -88,8 +93,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
@@ -99,15 +102,13 @@
   overflow-wrap: anywhere;
 }
 
-/* the neutral level badge of the building lists (1.3), so the Research button stays the strongest
-   colour in the row (1.7 design review) */
+/* 2.0: the level is a small dark sign, as on the village picture and in the Town Hall */
 .badge {
   margin-left: auto;
   padding: 0 var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
-  color: var(--color-title);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+  border-radius: 0.45rem;
+  background: var(--color-badge);
+  color: var(--color-on-badge);
   font-size: var(--font-size-sm);
   font-weight: 700;
   line-height: 1.5rem;
@@ -149,7 +150,7 @@
 .levels th,
 .levels td {
   padding: var(--space-1) var(--space-2);
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   text-align: right;
 }
 
@@ -179,18 +180,27 @@
   font-weight: 700;
 }
 
-.current {
+/* a rounded band with room around its first and last value */
+.current th,
+.current td {
   background: var(--color-well);
 }
 
+.levels .current th:first-child {
+  padding-left: var(--space-2);
+  border-radius: 0.45rem 0 0 0.45rem;
+}
+
+.current td:last-child {
+  border-radius: 0 0.45rem 0.45rem 0;
+}
+
 /* ---------- the next research ---------- */
+/* 2.0: no box; the next level's costs and its button close the unit's row */
 .research {
   display: grid;
   gap: var(--space-2);
   margin: 0;
-  padding: var(--space-2);
-  border-radius: calc(var(--radius) - 0.25rem);
-  border: 1px dashed var(--color-border);
 }
 
 .costs {
@@ -226,13 +236,10 @@
 
   .list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
   }
 
   .row:nth-child(2) {
     border-top: 0;
-  }
-
-  .row:nth-child(2n) {
-    border-left: 1px solid var(--color-divider);
   }
 }

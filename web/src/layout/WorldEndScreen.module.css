@@ -103,10 +103,12 @@
   align-items: center;
   justify-content: center;
   padding: 0 1rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  /* 2.0: like Button: the main one in the action colour, the other one outlined */
+  border: var(--line) solid transparent;
+  border-radius: var(--radius);
+  background: var(--color-action);
+  color: var(--color-on-action);
+  box-shadow: 0 2.5px 0 var(--color-action-edge);
   font: inherit;
   font-weight: 700;
   text-decoration: none;
@@ -115,7 +117,7 @@
 
 .second {
   border-color: var(--color-border);
-  background: var(--color-surface);
+  background: transparent;
   color: var(--color-text);
-  font-weight: 600;
+  box-shadow: none;
 }

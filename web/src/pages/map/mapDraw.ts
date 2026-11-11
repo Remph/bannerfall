@@ -75,7 +75,7 @@ const SQUARE_SIDE = [0.55, 0.7, 0.85] as const;
 const THIN_GRID_MIN_TILE = 16;
 /** Selection rings never get smaller than this (half their side, px), so they stay visible far out. */
 const RING_MIN_HALF = 7;
-const FONT = '"Alegreya Sans", system-ui, sans-serif';
+const FONT = '"Bricolage Grotesque", system-ui, sans-serif';
 const PLATE_NAME_FONT = `700 13px ${FONT}`;
 const PLATE_OWNER_FONT = `500 11.5px ${FONT}`;
 /** Movement badges (M26): their radius is this share of a field, within these bounds (CSS px). */
@@ -149,9 +149,11 @@ export interface MapColors {
   treeShade: string;
   treeLight: string;
   conifer: string;
-  /** A mound's lit side and its shade; the shade also tints hilly fields far out. */
+  /** A mound's lit side and its shade. */
   hill: string;
   hillShade: string;
+  /** Hilly fields far out: the mound's shade, but lifted off the ground in Black, where that shade is as dark as the ground. */
+  hillFar: string;
   water: string;
   waterBank: string;
   /** Wooded fields far out. */
@@ -193,6 +195,7 @@ export function readMapColors(element: Element): MapColors {
     conifer: color('conifer'),
     hill: color('hill'),
     hillShade: color('hill-shade'),
+    hillFar: color('hill-far'),
     water: color('water'),
     waterBank: color('water-bank'),
     forestFar: color('forest-far'),
@@ -365,7 +368,7 @@ function tintImage(land: Land, colors: MapColors): HTMLCanvasElement | undefined
       ctx.fillStyle = colors.forestFar;
     } else if (hills > FAR_TINT_MIN) {
       ctx.globalAlpha = 0.25 + hills * 0.35;
-      ctx.fillStyle = colors.hillShade;
+      ctx.fillStyle = colors.hillFar;
     } else {
       return;
     }
@@ -406,7 +409,7 @@ function drawTerrain(ctx: CanvasRenderingContext2D, scene: MapScene, range: Fiel
     // one small picture per piece, scaled up without smoothing; its edges on whole device pixels, so
     // two pieces meet without a seam
     const snap = (value: number) => Math.round(value * pixelRatio) / pixelRatio;
-    const key = `${colors.forestFar} ${colors.hillShade}`;
+    const key = `${colors.forestFar} ${colors.hillFar}`;
     ctx.imageSmoothingEnabled = false;
     for (let py = Math.floor(range.minY / LAND_PIECE); py <= Math.floor(range.maxY / LAND_PIECE); py++) {
       for (let px = pieces.minX; px <= pieces.maxX; px++) {
@@ -1784,6 +1787,15 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: MapScene, range: FieldRa
   ctx.fillStyle = colors.axis;
   ctx.fillRect(0, 0, size.width, AXIS_TOP);
   ctx.fillRect(0, AXIS_TOP, AXIS_LEFT, size.height - AXIS_TOP);
+  // a thin line where the bands end (2.0): they have the land's colour, so without it a name or a tree
+  // that slides under the numbers would be cut off in mid-air
+  ctx.strokeStyle = colors.gridStrong;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(AXIS_LEFT, size.height);
+  ctx.lineTo(AXIS_LEFT, AXIS_TOP);
+  ctx.lineTo(size.width, AXIS_TOP);
+  ctx.stroke();
   if (range === undefined) {
     return;
   }

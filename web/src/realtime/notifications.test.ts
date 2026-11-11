@@ -483,6 +483,7 @@ describe('every query key and the events', () => {
     blocksQueryKey: 'only the player changes them, on this page',
     reportQueryKey: 'a report doesn’t change once written',
     tutorialQueryKey: 'follows the village on screen (useTutorialSync)',
+    nowQueryKey: 'follows the village, troops, recruitment, market and smithy queries (followWhatFeedsNow)',
   };
 
   const modules: Record<string, Record<string, unknown>> = import.meta.glob(

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { meQueryKey, type Me } from '../api/queries/auth';
 import { renderPage } from '../testing/renderPage';
 import { VillageSwitcher } from './VillageSwitcher';
@@ -107,5 +107,33 @@ describe('VillageSwitcher', () => {
       open(tagged);
       expect(screen.getAllByRole('link')).toHaveLength(3);
     });
+  });
+});
+
+describe('VillageSwitcher on the PC', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('opens a menu under the name instead of a sheet, and a village closes it (2.0 UI review)', () => {
+    open(me.villages);
+
+    const menu = screen.getByRole('dialog', { name: 'Your villages' });
+    expect(menu.tagName).toBe('DIV');
+    expect(screen.getByRole('button', { name: /Dorf von Ben/ }).getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(screen.getByRole('link', { name: /Tomburg/ }));
+
+    expect(screen.queryByRole('dialog', { name: 'Your villages' })).toBeNull();
   });
 });

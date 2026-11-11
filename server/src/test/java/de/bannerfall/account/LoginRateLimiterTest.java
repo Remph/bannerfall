@@ -129,4 +129,99 @@ class LoginRateLimiterTest {
         assertThat(limiter.isBlocked("ben", "2001:db8:1:3::1")).isFalse();
         assertThat(limiter.isBlocked("ben", HOME)).isFalse();
     }
+
+    /** 2.0, F4: guesses from many networks used up one budget per name. */
+    @Test
+    void aNameIsLockedAfterTooManyFailuresFromAnyAddresses() {
+        // five networks with four failures each: no address is blocked ...
+        for (int network = 0; network < 5; network++) {
+            fail("ben", "203.0.113." + network, 4);
+        }
+        assertThat(limiter.isBlocked("ben", "203.0.113.0")).isFalse();
+        assertThat(limiter.isLocked("ben")).isTrue();
+
+        // ... but the name takes no further attempt, from a new address either
+        assertThat(limiter.tryAttempt("ben", "198.51.100.77")).isFalse();
+        assertThat(limiter.tryAttempt("ben", "203.0.113.0")).isFalse();
+        assertThat(limiter.isLocked("anna")).isFalse();
+        assertThat(limiter.tryAttempt("anna", "198.51.100.77")).isTrue();
+    }
+
+    @Test
+    void justUnderTheNamesBudgetStillAllowsALogin() {
+        for (int network = 0; network < 5; network++) {
+            fail("ben", "203.0.113." + network, 3);
+        }
+        fail("ben", "203.0.113.9", 4);
+
+        assertThat(limiter.isLocked("ben")).isFalse();
+        assertThat(limiter.tryAttempt("ben", HOME)).isTrue();
+    }
+
+    @Test
+    void theNamesLockEndsWithItsWindow() {
+        for (int network = 0; network < 5; network++) {
+            fail("ben", "203.0.113." + network, 4);
+        }
+
+        clock.advance(LoginRateLimiter.ACCOUNT_WINDOW.minusSeconds(1));
+        assertThat(limiter.isLocked("ben")).isTrue();
+
+        clock.advance(Duration.ofSeconds(1));
+        assertThat(limiter.isLocked("ben")).isFalse();
+        assertThat(limiter.tryAttempt("ben", HOME)).isTrue();
+    }
+
+    @Test
+    void failuresInSeparateWindowsDoNotAddUp() {
+        for (int round = 0; round < 3; round++) {
+            for (int network = 0; network < 3; network++) {
+                fail("ben", "203.0.113." + network, 3);
+            }
+            clock.advance(LoginRateLimiter.ACCOUNT_WINDOW);
+        }
+
+        assertThat(limiter.isLocked("ben")).isFalse();
+    }
+
+    @Test
+    void aBlockedAddressDoesNotUseUpTheNamesBudget() {
+        fail("ben", "203.0.113.9", 5);
+        // a script hammers on from the blocked address: refused, and not counted for the name
+        for (int i = 0; i < 100; i++) {
+            assertThat(limiter.tryAttempt("ben", "203.0.113.9")).isFalse();
+        }
+
+        assertThat(limiter.isLocked("ben")).isFalse();
+        assertThat(limiter.tryAttempt("ben", HOME)).isTrue();
+    }
+
+    @Test
+    void aRightPasswordClearsTheNamesFailures() {
+        fail("ben", "203.0.113.1", 4);
+        fail("ben", "203.0.113.2", 4);
+        fail("ben", "203.0.113.3", 4);
+        fail("ben", "203.0.113.4", 4);
+        limiter.tryAttempt("ben", HOME);
+        limiter.recordSuccess("ben", HOME);
+        fail("ben", "203.0.113.5", 4);
+
+        assertThat(limiter.isLocked("ben")).isFalse();
+    }
+
+    @Test
+    void forgettingANameLiftsItsLockAndExpiredNamesAreDropped() {
+        for (int network = 0; network < 5; network++) {
+            fail("ben", "203.0.113." + network, 4);
+        }
+        fail("ada", "198.51.100.1", 1);
+
+        limiter.forget("ben");
+        assertThat(limiter.isLocked("ben")).isFalse();
+        assertThat(limiter.accountsHeld()).isEqualTo(1);
+
+        clock.advance(LoginRateLimiter.ACCOUNT_WINDOW);
+        limiter.forgetExpired();
+        assertThat(limiter.accountsHeld()).isZero();
+    }
 }

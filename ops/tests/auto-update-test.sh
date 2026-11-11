@@ -41,6 +41,8 @@ STUB
 #!/usr/bin/env bash
 case "\$*" in
   *ls-remote*) sed 's|^|abc123\trefs/tags/|' "$work/tags" ;;
+  *"-C "*rev-parse*) cat "$work/edge_sha" 2> /dev/null || echo tagobject1 ;;
+  *rev-parse*) echo tagobject1 ;;
   *describe*) cat "$work/edge_tag" 2> /dev/null || true ;;
   *checkout*) [ ! -e "$work/edge_fail" ] || exit 1; echo "git \$*" >> "$work/calls" ;;
   *) echo "git \$*" >> "$work/calls" ;;
@@ -119,6 +121,15 @@ touch "$work/edge_fail"
 run_script
 check "edge move fails: exit 1, says so" '[ "$status" -eq 1 ] && grep -q "THE WORLD RUNS 1.6.2" <<< "$out"'
 check "edge move fails: version not marked failed" '[ ! -e "$work/auto-update.failed" ]'
+
+# The edge checkout fetched another tag object than the one the update verified: left alone.
+case_setup 1.6.1 "v1.6.1 v1.6.2" yes 0
+echo tagobject2 > "$work/edge_sha"
+run_script
+check "edge has another tag object: exit 1, says so" \
+  '[ "$status" -eq 1 ] && grep -q "another tag v1.6.2 than the verified one" <<< "$out"'
+check "edge has another tag object: not checked out" '! grep -q "checkout" "$work/calls" && ! grep -q "caddy reload" "$work/calls"'
+check "edge has another tag object: version not marked failed" '[ ! -e "$work/auto-update.failed" ]'
 
 case_setup 1.6.1 "v1.6.1 v1.6.2" yes 0
 touch "$work/app_down"

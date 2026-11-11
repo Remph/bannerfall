@@ -292,10 +292,13 @@ const LOBES: readonly (readonly [number, number, number])[] = [
 ];
 
 /** A tree whose foot is at x, y: trunk, a crown of three lobes shaded on the lower right, lit spots. */
-export function Tree({ x, y, r }: { x: number; y: number; r: number }) {
+export function Tree({ x, y, r, shade = true }: { x: number; y: number; r: number; shade?: boolean }) {
   return (
     <g>
-      <ellipse className={s.treeShade} cx={x + r * 0.25} cy={y + r * 0.85} rx={r * 0.95} ry={r * 0.3} opacity={0.3} />
+      {/* the picture's own trees get a cast shadow instead (VillageScene) */}
+      {shade && (
+        <ellipse className={s.treeShade} cx={x + r * 0.25} cy={y + r * 0.85} rx={r * 0.95} ry={r * 0.3} opacity={0.3} />
+      )}
       <rect className={s.treeShade} x={x - r * 0.1} y={y - r * 0.1} width={r * 0.2} height={r * 0.9} />
       <Lobes x={x} y={y} r={r} lobes={LOBES} />
     </g>

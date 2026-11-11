@@ -8,6 +8,18 @@
 #
 # BACKUP_DIR: where the dumps go (default: backups/ next to compose.prod.yaml)
 # KEEP_DAYS:  how long to keep them (default 14)
+# BACKUP_AGE_RECIPIENT and BACKUP_OFFSITE_CMD: optional, an encrypted copy of every dump in a
+#   second place, for a server that dies with its disk (README "Backups"). The dump is encrypted
+#   with age (https://age-encryption.org, `apt install age`) to the PUBLIC key in
+#   BACKUP_AGE_RECIPIENT ("age1…", from `age-keygen`; the server never holds the key that opens
+#   it), and BACKUP_OFFSITE_CMD is run with the encrypted file as its argument "$1", for example
+#     BACKUP_AGE_RECIPIENT=age1… BACKUP_OFFSITE_CMD='rsync -e "ssh -i /root/.ssh/backup" "$1" backup@other-host:bannerfall/'
+#     BACKUP_OFFSITE_CMD='rclone copyto "$1" remote:bannerfall/"$(basename "$1")"'
+#   Nothing is ever sent unencrypted: the command without the recipient is refused. The copy is
+#   made after the local dump is safe; if it fails, the run exits 1 and reports /fail, and the
+#   local dump stays. Old copies are not deleted (that is the other place's job, for instance a
+#   lifecycle rule). bannerfall-update and bannerfall-restore make no copy (BACKUP_OFFSITE_CMD is
+#   empty there), so an unreachable second place never holds an update up.
 # BACKUP_PING_URL: optional, the address of a free "dead man's switch" check (for example a
 #   healthchecks.io check). A good backup requests the address, a failed one requests it with
 #   /fail added, and the service mails you when neither happens in time. Put it in front of the
@@ -25,6 +37,21 @@ ping() {
 
 BACKUP_DIR="${BACKUP_DIR:-backups}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
+
+# Look at the off-site settings first: a backup that would not be sent where it should be is
+# reported before anything is dumped, not after.
+if [ -n "${BACKUP_OFFSITE_CMD:-}" ]; then
+  if [ -z "${BACKUP_AGE_RECIPIENT:-}" ]; then
+    echo "$(date -Is) BACKUP_OFFSITE_CMD needs BACKUP_AGE_RECIPIENT: a dump is never sent unencrypted" >&2
+    ping /fail
+    exit 2
+  fi
+  if ! command -v age > /dev/null; then
+    echo "$(date -Is) BACKUP_OFFSITE_CMD needs age (apt install age)" >&2
+    ping /fail
+    exit 2
+  fi
+fi
 mkdir -p "$BACKUP_DIR"
 
 target="$BACKUP_DIR/bannerfall-$(date +%F-%H%M).sql.gz"
@@ -53,4 +80,20 @@ trap - EXIT
 
 find "$BACKUP_DIR" -maxdepth 1 -name 'bannerfall-*.sql.gz' -mtime "+$KEEP_DAYS" -delete
 echo "$(date -Is) backup ok: $target ($(du -h "$target" | cut -f1))"
+
+# The encrypted copy in a second place. The local dump is safe by now; a failure here is reported
+# and makes the run fail, but takes nothing back.
+if [ -n "${BACKUP_OFFSITE_CMD:-}" ]; then
+  sealed_dir="$(mktemp -d "$BACKUP_DIR/.offsite.XXXXXX")"
+  trap 'rm -rf "$sealed_dir"' EXIT
+  sealed="$sealed_dir/$(basename "$target").age"
+  if age -r "$BACKUP_AGE_RECIPIENT" -o "$sealed" "$target" \
+    && bash -c "$BACKUP_OFFSITE_CMD" bannerfall-offsite "$sealed"; then
+    echo "$(date -Is) off-site copy ok: $(basename "$sealed")"
+  else
+    echo "$(date -Is) OFF-SITE COPY FAILED (the local backup $target is fine)" >&2
+    ping /fail
+    exit 1
+  fi
+fi
 ping ""

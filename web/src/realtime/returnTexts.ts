@@ -1,6 +1,6 @@
 import type { components } from '../api/schema';
 import { formatCoords, formatNumber } from '../game/format';
-import type { Dictionary } from '../i18n/en';
+import type { PushTexts } from '../i18n/push-en';
 import type { Language } from '../i18n/language';
 
 type Schemas = components['schemas'];
@@ -12,7 +12,7 @@ type Schemas = components['schemas'];
 export function attacksReturnedText(
   event: Schemas['AttacksReturned'],
   village: string,
-  t: Dictionary,
+  t: PushTexts,
   language: Language,
 ): string {
   const total = event.loot.wood + event.loot.clay + event.loot.iron;
@@ -30,6 +30,6 @@ export function attacksReturnedText(
 const resourceKeys = { WOOD: 'wood', CLAY: 'clay', IRON: 'iron' } as const;
 
 /** The words for STORAGE_FULL (1.6): "Warehouse full in Hilltop: wood, clay." */
-export function storageFullText(event: Schemas['StorageFull'], village: string, t: Dictionary): string {
+export function storageFullText(event: Schemas['StorageFull'], village: string, t: PushTexts): string {
   return t.realtime.storageFull(village, event.full.map((resource) => t.resources[resourceKeys[resource]]).join(', '));
 }

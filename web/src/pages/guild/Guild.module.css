@@ -4,6 +4,8 @@
   gap: var(--space-3);
   max-width: 40rem;
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -65,7 +67,7 @@
 .body {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .body p {
@@ -121,8 +123,8 @@
 .row {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
@@ -143,6 +145,9 @@
 
 a.rowName {
   text-decoration: none;
+  display: inline-block;
+  padding-block: var(--tap-pad);
+  margin-block: calc(-1 * var(--tap-pad));
 }
 
 a.rowName:hover {
@@ -156,10 +161,8 @@ a.rowName:hover {
 }
 
 .pill {
+  /* 2.0: a quiet note, no pill */
   margin-left: var(--space-2);
-  padding: 0 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 400;
@@ -186,12 +189,12 @@ a.rowName:hover {
 }
 
 .listEmpty {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .subTitle {
   margin: 0;
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--card-inset, var(--space-3));
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -205,12 +208,10 @@ a.rowName:hover {
 
 .bannerArt {
   display: grid;
-  place-items: center;
-  width: 3.5rem;
+  /* 2.0: no well; the sign stands at the left edge, lined up with the rows below */
+  place-items: center start;
+  width: 3rem;
   height: 3.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-well);
   color: var(--color-accent);
   font-size: var(--font-size-4xl);
 }
@@ -228,14 +229,13 @@ a.rowName:hover {
 .pip {
   width: 1.5rem;
   height: 0.5rem;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--color-well);
+  /* the track colour: three small empty pips in the well's shade are lost on the land by day */
+  background: var(--color-track);
 }
 
 .pipOn {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
+  background: var(--color-action);
 }
 
 .effects {
@@ -250,7 +250,7 @@ a.rowName:hover {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   color: var(--color-text-muted);
 }
 
@@ -301,14 +301,13 @@ a.rowName:hover {
 .bar {
   height: 0.5rem;
   overflow: hidden;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--color-well);
+  background: var(--color-track);
 }
 
 .fill {
   height: 100%;
-  background: var(--color-success);
+  background: var(--color-action);
 }
 
 .lockNote {
@@ -337,7 +336,7 @@ a.rowName:hover {
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .donors li:first-child {
@@ -393,7 +392,7 @@ a.rowName:hover {
   align-items: center;
   gap: var(--space-1) var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .amountRow:first-child {

@@ -4,6 +4,8 @@
   gap: var(--space-3);
   max-width: 40rem;
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -24,7 +26,7 @@
 .body {
   display: grid;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .body p {
@@ -44,8 +46,8 @@
   /* as wide as the list, not the whole preview: that is cut with "…" (next to a conversation, 1.3) */
   grid-template-columns: minmax(0, 1fr);
   gap: 2px;
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
   color: inherit;
   text-decoration: none;
 }
@@ -55,7 +57,10 @@
 }
 
 .line:hover {
-  background: rgb(128 128 128 / 12%);
+  margin-inline: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-well);
 }
 
 .lineTop {
@@ -103,9 +108,10 @@
 .unread {
   flex: none;
   padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-danger);
-  color: var(--color-on-danger);
+  border-radius: 0.45rem;
+  /* 2.0: red is war; an unread message is a dark sign */
+  background: var(--color-badge);
+  color: var(--color-on-badge);
   font-size: var(--font-size-xs);
   font-weight: 700;
 }
@@ -122,8 +128,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-1) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
@@ -140,7 +146,7 @@
 .thread {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--card-inset, var(--space-3));
 }
 
 .older {
@@ -155,19 +161,25 @@
   list-style: none;
 }
 
+/* 2.0: no outlines. The other player's words lie in a shade of the land, your own in the dark sign colour */
 .bubble {
   display: grid;
   gap: 2px;
   max-width: 85%;
-  padding: var(--space-2);
-  border: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: var(--color-well);
 }
 
 .bubble.mine {
   justify-self: end;
-  border-color: var(--color-accent);
+  background: var(--color-badge);
+  color: var(--color-on-badge);
+}
+
+.bubble.mine .bubbleWhen {
+  color: inherit;
+  opacity: 0.75;
 }
 
 .bubbleText {
@@ -186,8 +198,8 @@
 .composer {
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-3);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .composerRow {
@@ -233,21 +245,33 @@
 .tools {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
 }
 
+/* "Profile ›": a link to another page (2.0 UI review) */
 .tools a {
   min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
+  gap: 0.15rem;
   color: var(--color-accent);
   font-weight: 600;
+  text-decoration: none;
+}
+
+.tools a:hover,
+.tools a:focus-visible {
+  text-decoration: underline;
 }
 
 /* ---------- desktop: next to the inbox (1.3) ---------- */
+/* 2.0: a rounded shade of the land that reaches a little past the row's text */
 .openLine {
+  margin-inline: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  border-radius: var(--radius);
   background: var(--color-well);
-  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
 /* the conversation fills its column: the messages scroll inside, the input stays at the bottom */

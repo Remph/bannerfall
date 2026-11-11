@@ -2,15 +2,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .hero {
   padding: var(--space-4) var(--space-3);
+  /* 2.0: on the land, no frame */
   text-align: center;
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
 }
 
 .title {
@@ -26,7 +25,9 @@
 
 .countdown {
   margin: var(--space-2) 0 0;
-  font-family: var(--font-head);
+  /* a running clock needs tabular figures, which a theme's title face may not have */
+  font-family: var(--font-body);
+  font-weight: 800;
   font-size: var(--font-size-3xl);
   font-variant-numeric: tabular-nums;
   color: var(--color-accent);
@@ -47,7 +48,7 @@
 /* label left, value right, a thin line between the rows */
 .facts {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-2);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-2);
 }
 
 .fact {
@@ -55,7 +56,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .fact:last-child {
@@ -77,7 +78,7 @@
   margin-top: var(--space-3);
   padding: var(--space-3);
   text-align: center;
-  border: 1px solid var(--color-border);
+  /* 2.0: a shade of the land, no outline */
   border-radius: var(--radius);
   background: var(--color-well);
 }
@@ -105,11 +106,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  /* the name lines up with the page's text; the icon buttons keep their own air at the right */
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
   padding-top: calc(var(--space-1) + env(safe-area-inset-top, 0px));
-  background: var(--color-bar);
-  color: var(--color-on-bar);
-  border-bottom: 2px solid var(--color-bar-edge);
+  /* 2.0: a slim sky, as the game's header on a scrolled phone page */
+  background: var(--texture), linear-gradient(var(--color-sky-1) 0 50%, var(--color-sky-2) 50%);
+  color: var(--color-text);
 }
 
 .brand {
@@ -117,16 +119,13 @@
   margin-right: auto;
   font-family: var(--font-brand);
   font-size: var(--font-size-2xl);
-  color: var(--color-highlight);
+  font-weight: 800;
+  color: var(--color-text);
   text-decoration: none;
 }
 
-.brand:hover {
-  color: var(--color-on-bar);
-}
-
 .brand:focus-visible {
-  outline: 2px solid var(--color-highlight);
+  outline: 2px solid var(--color-accent);
   outline-offset: 4px;
   border-radius: 2px;
 }
@@ -142,14 +141,14 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--color-on-bar);
+  color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
 .barButton:hover {
-  background: var(--color-bar-hover);
+  background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
 .main {
@@ -157,7 +156,7 @@
   width: 100%;
   max-width: 42rem;
   margin: 0 auto;
-  padding: var(--space-3) var(--space-3) 5rem;
+  padding: var(--space-3) var(--card-inset, var(--space-3)) 5rem;
 }
 
 .mainWide {
@@ -173,11 +172,10 @@
 
 /* the host's way into the guided world setup (1.6) */
 .setupCard {
+  /* 2.0: a shade of the land, no frame */
   padding: var(--space-3);
-  border: 2px solid var(--color-accent);
   border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
+  background: var(--color-well);
 }
 
 .setupTitle {
@@ -203,10 +201,12 @@
   display: inline-flex;
   align-items: center;
   padding: 0 1.25rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 600;
+  /* 2.0: the place's main action, like Button's primary */
+  border-radius: var(--radius);
+  background: var(--color-action);
+  color: var(--color-on-action);
+  box-shadow: 0 2.5px 0 var(--color-action-edge);
+  font-weight: 700;
   text-decoration: none;
 }
 

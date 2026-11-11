@@ -21,6 +21,8 @@ interface SegmentedControlProps<T extends string> {
   scroll?: boolean;
   /** Slimmer, for a card's header (the village page's picture | list switch); still 44 px tall to tap. */
   compact?: boolean;
+  /** A settings choice (language, appearance): a track with the chosen segment filled, not words on a line. */
+  track?: boolean;
 }
 
 interface Pill {
@@ -36,8 +38,9 @@ function samePill(a: Pill | null, b: Pill | null): boolean {
  * A row of buttons where exactly one is selected (theme, language …). Generic: `T` is the type of
  * the values, e.g. 'system' | 'light' | 'dark', so onChange gets exactly that type back.
  *
- * The selected option's background is one pill behind the buttons that slides to the new choice
- * (1.3); it follows the button when the row changes size. Reduced motion: it jumps.
+ * The selected option carries one mark that slides to the new choice (1.3; since 2.0 a line under
+ * the word, or the filled segment of a `track`); it follows the button when the row changes size.
+ * Reduced motion: it jumps.
  */
 export function SegmentedControl<T extends string>({
   label,
@@ -46,6 +49,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   scroll = false,
   compact = false,
+  track = false,
 }: SegmentedControlProps<T>) {
   const group = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState<Pill | null>(null);
@@ -72,7 +76,13 @@ export function SegmentedControl<T extends string>({
     return () => observer.disconnect();
   }, [value, labels]);
 
-  const classes = [styles.group, scroll && styles.scroll, compact && styles.compact, pill !== null && styles.sliding]
+  const classes = [
+    styles.group,
+    scroll && styles.scroll,
+    compact && styles.compact,
+    track && styles.track,
+    pill !== null && styles.sliding,
+  ]
     .filter(Boolean)
     .join(' ');
   return (

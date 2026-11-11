@@ -1,5 +1,6 @@
 /* The village picture (05-frontend, *Village picture*). Every colour is a --village-* token
-   (tokens.css), so the dark theme turns the scene into an evening village. */
+   (tokens.css), so the dark theme turns the scene into an evening village. Since 2.0 the picture has
+   no frame: its ground is the page's ground, and the labels are written on the land. */
 
 .scene {
   display: block;
@@ -9,13 +10,14 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  border-radius: calc(var(--radius) - 2px);
 }
 
 /* ---- fills ---- */
 
+/* the picture's ground is the page's own ground showing through, so a theme's texture runs under the
+   village without an edge */
 .grass {
-  fill: var(--village-grass);
+  fill: none;
 }
 
 .yard {
@@ -206,6 +208,60 @@
   fill: var(--village-smoke);
 }
 
+/* ---- the land (2.0): mounds, cast shadows, light on the ground at night ---- */
+
+.mounds path {
+  fill: var(--color-hill);
+  opacity: 0.8;
+}
+
+/* the old soft blobs under the buildings: the cast shadows replace them */
+.shadow {
+  display: none;
+}
+
+/* every building and tree once more, flattened to one colour and laid on the ground; the group's
+   opacity keeps overlapping shadows from adding up. The classes below this block that set a fill, a
+   stroke or an opacity have the same weight as `.casts *` and would win, hence `.casts :is(*)`.
+   Animations stay: the shadow of a flag sways with its flag. */
+.casts {
+  opacity: var(--village-cast-strength);
+  pointer-events: none;
+}
+
+.casts :is(*) {
+  fill: var(--village-cast);
+  stroke: none;
+  opacity: 1;
+}
+
+/* poles, posts, fences and beams are lines: their shadow is a line too, so a flag's shadow hangs on
+   its pole's and a spear's tip on its shaft's */
+.casts :is(.pole, .line, .woodLine, .timber, .timberWide, .arm, .columns, .dome, .thinWood) {
+  fill: none;
+  stroke: var(--village-cast);
+}
+
+/* what lies flat, floats or is only a detail on a face throws no shadow */
+.casts :is(.smoke, .field, .fieldAlt, .furrow, .paving, .pavingEdge, .stripe, .planks),
+.casts :is(.goldStroke, .plotPlus, .scaffold, .plot) {
+  display: none;
+}
+
+.pools {
+  pointer-events: none;
+}
+
+.poolCore {
+  stop-color: var(--village-pool);
+  stop-opacity: 0.3;
+}
+
+.poolEdge {
+  stop-color: var(--village-pool);
+  stop-opacity: 0;
+}
+
 /* ---- lines ---- */
 
 .path,
@@ -336,6 +392,11 @@
   outline: none;
 }
 
+/* the global :focus-visible ring would draw a square around the drawing: the ring is the plate's (.focusRing) */
+.place:focus-visible {
+  outline: none;
+}
+
 /* a small lift as feedback while pressed (and under the mouse); never needed to find a building */
 .lift {
   transition: transform 0.15s ease-out;
@@ -347,44 +408,60 @@
   transform: translateY(-2px);
 }
 
-/* ---- plates ---- */
+/* ---- labels (2.0): written on the land, no box ---- */
 
 .plate {
   cursor: pointer;
   outline: none;
 }
 
+.plate:focus-visible {
+  outline: none;
+}
+
+/* the tap area; in the stitched theme also a box with a running-stitch outline (look switches) */
 .plateBox {
-  fill: var(--color-surface);
-  stroke: var(--color-border);
-  stroke-width: 1;
-}
-
-.plateFaded {
-  opacity: 0.8;
-}
-
-.plateFaded .plateBox {
-  stroke-dasharray: 3 3;
+  fill: var(--plate-fill);
+  stroke: var(--plate-stroke);
+  stroke-width: var(--plate-stroke-width);
+  stroke-dasharray: var(--plate-dash);
 }
 
 .plateName,
 .plateLevel {
-  fill: var(--color-text);
-  font-weight: 600;
+  font-weight: 700;
   dominant-baseline: central;
 }
 
-.plateFaded .plateName {
-  fill: var(--color-text-muted);
+/* a thin halo in the ground's colour keeps the name readable over paths, fences and shadows */
+.plateName {
+  fill: var(--color-text);
+  paint-order: stroke;
+  stroke: var(--color-bg);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
 }
 
 .plateLevel {
+  fill: var(--color-on-badge);
   text-anchor: middle;
 }
 
 .platePill {
+  fill: var(--color-badge);
+}
+
+/* not built yet: a quiet name and an empty badge */
+.plateFaded .plateName {
+  fill: var(--color-text-muted);
+}
+
+.plateFaded .platePill {
   fill: var(--color-well);
+}
+
+.plateFaded .plateLevel {
+  fill: var(--color-text-muted);
 }
 
 .plateTrack {
@@ -572,4 +649,30 @@
 /* the tap area of a building: invisible, but it takes taps */
 .hit {
   fill: transparent;
+}
+
+/* Look switch "picture outline" (tokens.css): a theme that sets the --picture-outline tokens draws a
+   thread round every shape. The selector weighs nothing, so each class that sets its own stroke keeps
+   it. While the tokens are unset the declarations fall back to "inherit", which is what the shapes did
+   before; but the rule still beats an SVG attribute, so a shape in this list must never carry `stroke`,
+   `stroke-width` or `stroke-linejoin` as an attribute (the paths set their width as a style). */
+:where(.scene) :where(rect, polygon, path, circle, ellipse) {
+  stroke: var(--picture-outline);
+  stroke-width: var(--picture-outline-width);
+  stroke-linejoin: var(--picture-outline-join);
+}
+
+/* what is no shape of its own never gets the thread: tap areas, the ground, shades on the ground,
+   smoke, light (a class that draws a line of its own, like .wallShade or .plateBox, must not be
+   listed here) */
+.hit,
+.grass,
+.yard,
+.shadow,
+.cloud,
+ellipse.treeShade,
+.mounds path,
+.pools :is(*),
+.smoke :is(*) {
+  stroke: none;
 }

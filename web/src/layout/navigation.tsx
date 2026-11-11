@@ -1,7 +1,8 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useCurrentAccount } from '../api/queries/auth';
 import { useUnreadMessages } from '../api/queries/messages';
+import { useNow } from '../api/queries/now';
 import { useUnreadReports } from '../api/queries/reports';
 import { useMyGuild } from '../api/queries/guilds';
 import { useWorld } from '../api/queries/world';
@@ -9,6 +10,7 @@ import { Icon } from '../components/Icon';
 import { bannerHallAvailable } from '../game/banners';
 import { badgeText } from '../game/reports';
 import { guildSectionVisible } from '../game/guilds';
+import { nowSections } from '../game/now';
 import { useT } from '../i18n';
 import { playerPath } from '../pages/ranking/rankingPaths';
 import { useChatUnread } from '../realtime/chatSeen';
@@ -48,6 +50,8 @@ interface SectionLinkProps {
   onNavigate?: () => void;
   /** Show "coming soon" as a visible pill (touch screens never show the `title` tooltip). */
   showSoon?: boolean;
+  /** A tooltip for a link whose name may be hidden (the rail folded to icons). */
+  title?: string;
   children: ReactNode;
 }
 
@@ -58,7 +62,15 @@ interface SectionLinkProps {
  * that. The bars' links cross-fade the page (View Transitions, 1.3), except to the page already
  * open; the menu sheet's links don't, as the sheet closes.
  */
-function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = false, children }: SectionLinkProps) {
+function SectionLink({
+  sectionKey,
+  villageId,
+  className,
+  onNavigate,
+  showSoon = false,
+  title,
+  children,
+}: SectionLinkProps) {
   const t = useT();
   const bannersOn = useWorld().data?.bannersEnabled !== false;
   const current = useNavEntry() === sectionKey;
@@ -88,6 +100,7 @@ function SectionLink({ sectionKey, villageId, className, onNavigate, showSoon = 
       to={target}
       state={OPENS_AT_TOP}
       className={className}
+      title={title}
       aria-current={current ? 'page' : undefined}
       onClick={onNavigate}
     >
@@ -131,6 +144,23 @@ function ChatBadge({ className }: { className: string | undefined }) {
   );
 }
 
+/** How much runs, on the Now tile of "More" (2.0); nothing while nothing does. */
+function NowBadge({ className }: { className: string | undefined }) {
+  const t = useT();
+  const now = useNow().data;
+  const count = now === undefined ? 0 : nowSections(now, 'all', undefined).count;
+  const text = badgeText(count);
+  if (text === undefined) {
+    return null;
+  }
+  return (
+    <span className={className}>
+      <span aria-hidden="true">{text}</span>
+      <span className="sr-only">, {t.now.running(count)}</span>
+    </span>
+  );
+}
+
 /** Unread private messages on the Messages entry, nothing while there are none (M17). */
 function MessagesBadge({ className }: { className: string | undefined }) {
   const t = useT();
@@ -167,28 +197,71 @@ function MoreBadge({ className }: { className: string | undefined }) {
   );
 }
 
+interface DesktopNavProps {
+  villageId: number | undefined;
+  /** The chat panel (ChatDock): the rail's Chat entry opens and closes it. */
+  chatOpen: boolean;
+  onToggleChat: () => void;
+  /** The Chat entry's button, so the panel's "Minimise" can hand the keyboard focus to it. */
+  chatEntryRef?: RefObject<HTMLButtonElement | null>;
+}
+
 /**
- * Desktop (≥ 1024 px): the tab row under the top bar. The village's pages on the left; the pages
- * that are the same for every village (reports, messages …) on the right after a divider (1.3).
+ * Desktop (≥ 1024 px): the rail at the left with every page (2.0; a tab row under the top bar
+ * before), in the More sheet's two groups: the village's pages, then the pages that are the same for
+ * every village, with the chat after the messages. Below 1200 px it folds to icons only; the names
+ * stay for screen readers and as tooltips.
  */
-export function DesktopNav({ villageId }: { villageId: number | undefined }) {
+export function DesktopNav({ villageId, chatOpen, onToggleChat, chatEntryRef }: DesktopNavProps) {
   const t = useT();
   const keys = visibleSections(desktopSections, useOptionalSections());
-  const firstGlobal = keys.find((key) => sections[key].global === true);
+  const headingId = useId();
+  const item = (key: SectionKey) => (
+    <li key={key}>
+      <SectionLink sectionKey={key} villageId={villageId} className={styles.railItem} title={t.nav[key]}>
+        <Icon name={sections[key].icon} className={styles.railIcon} />
+        <span className={styles.railLabel}>{t.nav[key]}</span>
+        {key === 'reports' && <UnreadBadge className={styles.railBadge} />}
+        {key === 'messages' && <MessagesBadge className={styles.railBadge} />}
+      </SectionLink>
+    </li>
+  );
   return (
-    <nav className={styles.desktopNav} aria-label={t.nav.label}>
-      {keys.map((key) => (
-        <SectionLink
-          key={key}
-          sectionKey={key}
-          villageId={villageId}
-          className={key === firstGlobal ? `${styles.navItem} ${styles.groupStart}` : styles.navItem}
-        >
-          {t.nav[key]}
-          {key === 'reports' && <UnreadBadge className={styles.badge} />}
-          {key === 'messages' && <MessagesBadge className={styles.badge} />}
-        </SectionLink>
-      ))}
+    <nav className={styles.rail} aria-label={t.nav.label}>
+      <h2 id={`${headingId}-village`} className={styles.railHeading}>
+        {t.nav.moreVillage}
+      </h2>
+      <ul className={styles.railList} aria-labelledby={`${headingId}-village`}>
+        {keys.filter((key) => sections[key].global !== true).map(item)}
+      </ul>
+      <h2 id={`${headingId}-player`} className={styles.railHeading}>
+        {t.nav.morePlayer}
+      </h2>
+      <ul className={styles.railList} aria-labelledby={`${headingId}-player`}>
+        {keys
+          .filter((key) => sections[key].global === true)
+          .flatMap((key) =>
+            key === 'messages'
+              ? [
+                  item(key),
+                  <li key="chat">
+                    <button
+                      ref={chatEntryRef}
+                      type="button"
+                      className={styles.railItem}
+                      onClick={onToggleChat}
+                      aria-expanded={chatOpen}
+                      title={t.nav.chat}
+                    >
+                      <Icon name="chat" className={styles.railIcon} />
+                      <span className={styles.railLabel}>{t.nav.chat}</span>
+                      <ChatBadge className={styles.railBadge} />
+                    </button>
+                  </li>,
+                ]
+              : [item(key)],
+          )}
+      </ul>
     </nav>
   );
 }
@@ -240,6 +313,8 @@ interface MoreLinksProps {
   villageId: number | undefined;
   onNavigate: () => void;
   onOpenChat: () => void;
+  /** Phone: the first tile opens the Now sheet, for anyone who doesn't swipe the sky down (2.0). */
+  onOpenNow?: () => void;
 }
 
 /**
@@ -248,7 +323,7 @@ interface MoreLinksProps {
  * player's own profile (1.5.1; on desktop it is in the gear menu). Unread counts sit on the icon,
  * like in the tab bar, so a long label never wraps under them.
  */
-export function MoreLinks({ villageId, onNavigate, onOpenChat }: MoreLinksProps) {
+export function MoreLinks({ villageId, onNavigate, onOpenChat, onOpenNow }: MoreLinksProps) {
   const t = useT();
   const me = useCurrentAccount();
   const entry = useNavEntry();
@@ -271,6 +346,17 @@ export function MoreLinks({ villageId, onNavigate, onOpenChat }: MoreLinksProps)
         {t.nav.moreVillage}
       </h3>
       <ul className={styles.moreList} aria-labelledby={`${headingId}-village`}>
+        {onOpenNow !== undefined && (
+          <li>
+            <button type="button" className={styles.moreItem} onClick={onOpenNow} aria-haspopup="dialog">
+              <span className={styles.moreIcon}>
+                <Icon name="clock" />
+                <NowBadge className={styles.moreBadge} />
+              </span>
+              <span className={styles.moreLabel}>{t.now.title}</span>
+            </button>
+          </li>
+        )}
         {visibleSections(moreGroups.village, shown).map(item)}
       </ul>
       <h3 id={`${headingId}-player`} className={styles.moreHeading}>

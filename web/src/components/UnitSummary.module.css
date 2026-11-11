@@ -22,8 +22,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
   font-size: var(--font-size-sm);
 }

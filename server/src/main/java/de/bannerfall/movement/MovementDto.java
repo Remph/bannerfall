@@ -33,7 +33,7 @@ public record MovementDto(
         @Schema(nullable = true) Instant cancellableUntil,
         boolean notifyReturn) {
 
-    static MovementDto of(Movement movement, int cancelWindowSeconds) {
+    public static MovementDto of(Movement movement, int cancelWindowSeconds) {
         return new MovementDto(
                 movement.getId(),
                 movement.getKind(),

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { meQueryKey, type Me } from '../api/queries/auth';
 import { renderPage } from '../testing/renderPage';
 import { DesktopNav, TabBar } from './navigation';
@@ -20,13 +20,13 @@ const me: Me = {
   villages: [{ id: 9, name: 'Dorf von Ben', x: 48, y: 52, points: 300, incomingAttacks: 0, tag: null }],
 };
 
-function show(url: string) {
+function show(url: string, chatOpen = false, onToggleChat = () => {}) {
   renderPage({
     path: '*',
     url,
     element: (
       <>
-        <DesktopNav villageId={9} />
+        <DesktopNav villageId={9} chatOpen={chatOpen} onToggleChat={onToggleChat} />
         <TabBar villageId={9} onMore={() => {}} />
       </>
     ),
@@ -56,5 +56,28 @@ describe('the bars light the open page (1.5.1)', () => {
   it('lights no section on the own profile, only More on the phone', () => {
     show(`/players/${PLAYER_ID}`);
     expect(lit()).toEqual(['More']);
+  });
+});
+
+describe('the rail on a desktop (2.0)', () => {
+  afterEach(cleanup);
+
+  it('has the chat after the messages, as a button that opens and closes the panel', () => {
+    const toggle = vi.fn();
+    show('/v/9', false, toggle);
+    const rail = screen.getAllByRole('navigation')[0];
+    const names = [...(rail?.querySelectorAll('a, button') ?? [])].map((entry) => entry.textContent.trim());
+    expect(names.indexOf('Chat')).toBe(names.indexOf('Messages') + 1);
+    const chat = screen.getByRole('button', { name: 'Chat' });
+    expect(chat.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(chat);
+    expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the chat while its panel is open, without lighting it as the open page', () => {
+    show('/reports', true);
+    const chat = screen.getByRole('button', { name: 'Chat' });
+    expect(chat.getAttribute('aria-expanded')).toBe('true');
+    expect(chat.getAttribute('aria-current')).toBeNull();
   });
 });

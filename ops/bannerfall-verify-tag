@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# bannerfall-verify-tag <vX.Y.Z> – checks a fetched release tag before anything of it is used
+# (docs/hosting.md §10, README "Deploying"). bannerfall-update runs it; you can too:
+#   git fetch --tags origin && ops/bannerfall-verify-tag v2.0.1
+#
+# Every release tag is a signed tag (an SSH signature by the release key). This checks the
+# signature against the public key pinned in ops/release-signers of THIS checkout, that is of the
+# version that runs now, not of the new one, so a stolen account or deploy key can publish a tag
+# but not one that passes. The tag's message also names the image of the release by digest
+# ("Image: ghcr.io/…/bannerfall@sha256:…"); it is read only from a tag that passed.
+#
+# It prints two lines on stdout, for the caller:
+#   verified=yes|no     yes = signed by a pinned key; no = nothing is pinned yet (warned on stderr)
+#   image=<name>@sha256:<digest>      only when the tag names one
+# and exits 0, or 1 when the tag fails the check (unsigned, signed by another key, not an annotated
+# tag, ssh-keygen missing), 2 when called wrong.
+#
+# BANNERFALL_RELEASE_SIGNERS: another allowed-signers file (default ops/release-signers). A file
+#   outside the checkout, such as /etc/bannerfall/release-signers, keeps the pin out of reach of
+#   whatever a checkout contains.
+# BANNERFALL_REQUIRE_SIGNED=1: nothing pinned counts as a failure instead of a warning.
+#
+# Pin a key: put a line "bannerfall-releases ssh-ed25519 AAAA…" (the public key, `ssh-keygen -y`)
+# in the file; # lines are comments. The published key and its fingerprint are in the README.
+set -euo pipefail
+
+usage() {
+  echo "$0: $1" >&2
+  echo "usage: $0 <vX.Y.Z>" >&2
+  exit 2
+}
+
+fail() {
+  echo "NOT VERIFIED: $1" >&2
+  exit 1
+}
+
+[ $# -eq 1 ] || usage "give the tag"
+tag="$1"
+[[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || usage "the tag looks like v1.2.3"
+
+cd "$(dirname "$0")/.."
+signers="${BANNERFALL_RELEASE_SIGNERS:-ops/release-signers}"
+
+git rev-parse -q --verify "refs/tags/$tag" > /dev/null || fail "there is no tag $tag here (git fetch --tags origin)"
+
+verified=no
+if [ -f "$signers" ] && grep -qvE '^[[:space:]]*(#|$)' "$signers"; then
+  command -v ssh-keygen > /dev/null || fail "ssh-keygen is missing, which git needs to check the signature (apt install openssh-client)"
+  [ "$(git cat-file -t "refs/tags/$tag")" = tag ] || fail "$tag is not a signed tag"
+  if ! result="$(git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$signers" verify-tag "$tag" 2>&1)"; then
+    echo "$result" >&2
+    fail "$tag is not signed by a key in $signers; do not install it"
+  fi
+  echo "$result" >&2
+  verified=yes
+  # A signature covers the tag object, not the name it is filed under: an old signed tag pushed
+  # under a newer name would pass the check above, and so install an old release as the new one.
+  named="$(git cat-file tag "refs/tags/$tag" | sed -n '1,/^$/s/^tag //p')"
+  [ "$named" = "$tag" ] || fail "the signed tag says it is ${named:-nothing}, not $tag; do not install it"
+elif [ "${BANNERFALL_REQUIRE_SIGNED:-}" = 1 ]; then
+  fail "no release key is pinned in $signers, and BANNERFALL_REQUIRE_SIGNED=1"
+else
+  echo "WARNING: no release key is pinned in $signers; the signature of $tag was NOT checked." >&2
+fi
+
+# The message of an annotated tag; a lightweight tag has none.
+images=""
+if [ "$(git cat-file -t "refs/tags/$tag")" = tag ]; then
+  # Only the part the signature covers: text after the signature block is not signed, and git
+  # and ssh-keygen accept it there.
+  images="$(git cat-file tag "refs/tags/$tag" \
+    | sed -e '1,/^$/d' -e '/^-----BEGIN SSH SIGNATURE-----$/,$d' \
+    | grep -E '^Image: ' || true)"
+fi
+image=""
+if [ -n "$images" ]; then
+  [ "$(wc -l <<< "$images")" -eq 1 ] || fail "$tag names more than one image"
+  image="${images#Image: }"
+  [[ "$image" =~ ^[a-z0-9][a-z0-9._/:-]*@sha256:[0-9a-f]{64}$ ]] || fail "$tag names an image in a form this script doesn't accept: $image"
+fi
+
+echo "verified=$verified"
+[ -z "$image" ] || echo "image=$image"

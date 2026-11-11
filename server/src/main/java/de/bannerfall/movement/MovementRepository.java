@@ -21,6 +21,36 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
             """)
     List<Movement> findOutgoing(long villageId);
 
+    /**
+     * Commands the villages have sent that are still on the way (ATTACK, SUPPORT), next first, with
+     * their villages and owners read along (the Now list).
+     */
+    @Query(
+            """
+            select m from Movement m
+              join fetch m.sourceVillage sv left join fetch sv.player
+              join fetch m.targetVillage tv left join fetch tv.player
+              join fetch m.homeVillage hv left join fetch hv.player
+            where m.homeVillage.id in :villageIds
+              and m.kind <> de.bannerfall.movement.MovementKind.RETURN
+            order by m.arriveAt, m.id
+            """)
+    List<Movement> findOutgoingOf(Collection<Long> villageIds);
+
+    /**
+     * Everything arriving at the villages, next first, with the villages and owners read along (the
+     * Now list).
+     */
+    @Query(
+            """
+            select m from Movement m
+              join fetch m.sourceVillage sv left join fetch sv.player
+              join fetch m.targetVillage tv left join fetch tv.player
+            where m.targetVillage.id in :villageIds
+            order by m.arriveAt, m.id
+            """)
+    List<Movement> findIncomingTo(Collection<Long> villageIds);
+
     /** Everything arriving at the village, next first: attacks, supports, own units returning. */
     List<Movement> findByTargetVillageIdOrderByArriveAtAscIdAsc(long villageId);
 

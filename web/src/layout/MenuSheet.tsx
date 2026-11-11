@@ -38,6 +38,8 @@ interface MenuSheetProps {
   onClose: () => void;
   /** Phone: the chat entry of "More" (desktop has its own chat panel). */
   onOpenChat?: () => void;
+  /** Phone: the "Now" tile of "More" opens the pull-down sheet (2.0). */
+  onOpenNow?: () => void;
   /** The "World settings" entry (M14g); missing in the pre-game, where the page lists them. */
   onOpenWorldInfo?: () => void;
   /**
@@ -47,12 +49,20 @@ interface MenuSheetProps {
   profile?: boolean;
 }
 
-export function MenuSheet({ kind, villageId, onClose, onOpenChat, onOpenWorldInfo, profile = false }: MenuSheetProps) {
+export function MenuSheet({
+  kind,
+  villageId,
+  onClose,
+  onOpenChat,
+  onOpenNow,
+  onOpenWorldInfo,
+  profile = false,
+}: MenuSheetProps) {
   const { t } = useI18n();
   return (
     <Sheet open={kind !== null} onClose={onClose} title={kind === 'more' ? t.nav.more : t.nav.settings}>
       {kind === 'more' && onOpenChat !== undefined && (
-        <MoreLinks villageId={villageId} onNavigate={onClose} onOpenChat={onOpenChat} />
+        <MoreLinks villageId={villageId} onNavigate={onClose} onOpenChat={onOpenChat} onOpenNow={onOpenNow} />
       )}
       <Settings onNavigate={onClose} onOpenWorldInfo={onOpenWorldInfo} profile={profile && kind === 'settings'} />
     </Sheet>
@@ -65,7 +75,8 @@ interface SettingsProps {
   profile: boolean;
 }
 
-function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
+/** The settings (language, appearance, the pages of the gear menu, log out): in the sheet, and in the PC's gear menu. */
+export function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
   const { t, language, setLanguage } = useI18n();
   const me = useCurrentAccount();
   const logout = useLogout();
@@ -91,6 +102,7 @@ function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
       <div className={styles.setting}>
         <span className={styles.label}>{t.settings.language}</span>
         <SegmentedControl
+          track
           label={t.settings.language}
           options={languages.map((value) => ({ value, label: languageNames[value], lang: value }))}
           value={language}
@@ -100,6 +112,7 @@ function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
       <div className={styles.setting}>
         <span className={styles.label}>{t.settings.theme}</span>
         <SegmentedControl
+          track
           label={t.settings.theme}
           options={themeModes.map((value) => ({ value, label: t.settings.themeModes[value] }))}
           value={theme}
@@ -116,6 +129,7 @@ function Settings({ onNavigate, onOpenWorldInfo, profile }: SettingsProps) {
       <div className={styles.setting}>
         <span className={styles.label}>{t.settings.icons}</span>
         <SegmentedControl
+          track
           label={t.settings.icons}
           options={iconStyles.map((value) => ({ value, label: t.settings.iconStyles[value] }))}
           value={iconStyle}
@@ -223,7 +237,7 @@ interface PalettePickerProps {
 
 /**
  * The colour themes (1.6) as small tiles, each a preview of that theme in the current light or dark
- * mode: its bar with the gold line and a main button on its paper (data-palette on the tile,
+ * mode: its sky with the sun or moon and a main button on its land (data-palette on the tile,
  * styles/palettes.css). Native radio buttons, so arrow keys move between them; the chosen theme's
  * name stands under the tiles, so nothing depends on hovering.
  */
@@ -243,7 +257,7 @@ function PalettePicker({ labelId, value, onChange }: PalettePickerProps) {
               aria-label={t.settings.palettes[palette]}
             />
             <span className={styles.paletteTile} data-palette={palette} aria-hidden="true">
-              <span className={styles.paletteBar} />
+              <span className={styles.paletteSky} />
               <span className={styles.paletteButton} />
             </span>
           </label>

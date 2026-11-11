@@ -27,6 +27,8 @@ export interface SceneLayout {
   /** Trees as x, y and radius. */
   trees: readonly (readonly [number, number, number])[];
   paths: readonly string[];
+  /** Soft rises in the meadow outside the wall, behind everything else: x, y of the foot's middle, half width, height. */
+  mounds: readonly (readonly [number, number, number, number])[];
 }
 
 /** Tablets and desktop (from 640 px): the village spread out sideways. */
@@ -92,6 +94,13 @@ export const WIDE: SceneLayout = {
     'M440 300 C 420 250, 400 210, 385 180',
     'M520 300 C 545 250, 565 210, 580 180',
   ],
+  mounds: [
+    [118, 150, 105, 30],
+    [846, 122, 120, 34],
+    [70, 392, 62, 20],
+    [898, 452, 56, 18],
+    [300, 548, 70, 18],
+  ],
 };
 
 /**
@@ -141,6 +150,12 @@ export const COMPACT: SceneLayout = {
     'M200 440 C 230 445, 250 460, 266 466',
     'M200 290 C 160 290, 120 288, 84 288',
     'M200 290 C 240 290, 280 288, 318 288',
+  ],
+  mounds: [
+    [128, 96, 62, 17],
+    [286, 100, 56, 15],
+    [36, 520, 34, 11],
+    [200, 596, 60, 12],
   ],
 };
 

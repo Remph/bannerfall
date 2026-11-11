@@ -5,8 +5,9 @@
 #
 # It asks the origin for the release tags, and when a higher patch of the running minor version
 # exists (1.6.1 -> 1.6.2, never 1.6.x -> 1.7.0) and its image is published, it runs
-# ops/bannerfall-update for it: backup, warning popup, restart, health check and automatic
-# rollback as described there. Then it moves the shared Caddy checkout (EDGE_DIR) to the same tag
+# ops/bannerfall-update for it: signature check of the tag against the pinned release key (a tag
+# that fails is never installed), image by the digest the signed tag names, backup, warning popup,
+# restart, health check and automatic rollback as described there. Then it moves the shared Caddy checkout (EDGE_DIR) to the same tag
 # and reloads it. A new minor or major version is only mentioned in the log; update to it by hand
 # with ops/bannerfall-update after reading its release notes.
 #
@@ -135,7 +136,8 @@ run() {
 
   local image repo
   image="$(sed -n 's/^BANNERFALL_IMAGE=//p' .env | tail -n 1)"
-  repo="${image%:*}"
+  repo="${image%%@*}" # without a digest ...
+  [[ "${repo##*/}" != *:* ]] || repo="${repo%:*}" # ... and without a tag
   [[ "$repo" == */* ]] \
     || { echo "$image was built on this server; automatic updates need an image from a registry" >&2; return 1; }
   # The tag exists before the tag's run has published the image.
@@ -178,8 +180,19 @@ run() {
       echo "the edge checkout $edge is on $edge_now, newer than v$version: left alone"
     else
       echo "== the edge checkout $edge to v$version"
+      # The edge checkout runs the release's compose file and Caddyfile, so it only takes the tag
+      # that ops/bannerfall-update has just verified here: the very same tag object (a tag that
+      # was swapped on the origin since would be another one).
+      local world_tag edge_tag
+      world_tag="$(git rev-parse -q --verify "refs/tags/v$version" || true)"
+      git -C "$edge" fetch --tags --quiet origin || true
+      edge_tag="$(git -C "$edge" rev-parse -q --verify "refs/tags/v$version" || true)"
+      if [ -z "$world_tag" ] || [ "$world_tag" != "$edge_tag" ]; then
+        echo "THE WORLD RUNS $version, but the edge checkout $edge has another tag v$version than the verified one; left alone. Do it by hand (bfe up -d && bfe-reload) after looking at why." >&2
+        return 1
+      fi
       # shellcheck disable=SC2015  # the || is the failure branch of the whole chain, on purpose
-      git -C "$edge" fetch --tags --quiet origin && git -C "$edge" -c advice.detachedHead=false checkout --quiet "v$version" \
+      git -C "$edge" -c advice.detachedHead=false checkout --quiet "v$version" \
         && docker compose -f "$edge/edge/compose.yaml" up -d \
         && docker compose -f "$edge/edge/compose.yaml" exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null \
         || { echo "THE WORLD RUNS $version, but moving the edge checkout to v$version failed; do it by hand (bfe up -d && bfe-reload)." >&2; return 1; }

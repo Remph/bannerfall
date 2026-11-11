@@ -3,6 +3,8 @@
   display: grid;
   gap: var(--space-3);
   max-width: 60rem;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 /* desktop: the page fills the frame; its head and chips run across the list and the open report (1.4.1) */
@@ -82,20 +84,15 @@
   gap: var(--space-2);
 }
 
-/* the parchment panel of Card, without a title (the page's h1 names the list) */
+/* 2.0: the list lies on the land, no panel (the page's h1 names the list) */
 .panel {
   min-width: 0;
-  overflow: clip;
   margin: 0;
-  background: var(--color-surface);
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
 }
 
 .empty {
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-3) var(--card-inset, var(--space-3));
   color: var(--color-text-muted);
 }
 
@@ -112,7 +109,7 @@
 .line {
   display: flex;
   align-items: center;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .line:first-child {
@@ -127,12 +124,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--card-inset, var(--space-3));
   color: inherit;
   text-decoration: none;
 }
 
 .lineLink:hover {
+  margin-left: calc(-1 * var(--space-2));
+  padding-left: var(--space-2);
+  border-radius: var(--radius);
   background: var(--color-well);
 }
 
@@ -187,6 +187,9 @@
 }
 
 .chosen .lineLink {
+  margin-left: calc(-1 * var(--space-2));
+  padding-left: var(--space-2);
+  border-radius: var(--radius);
   background: var(--color-well);
 }
 
@@ -212,13 +215,31 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* the bar is dark by day too: its quiet buttons are drawn in the bar's own text colour (the armed
+   delete keeps its red) */
+.selectBar :is(button):not(.deleteArmed),
+.selectBar :is(button):not(.deleteArmed):hover:not(:disabled),
+.selectBar :is(button):not(.deleteArmed):focus-visible {
+  border-color: color-mix(in srgb, var(--color-on-bar) 55%, transparent);
+  background: transparent;
+  color: var(--color-on-bar);
+}
+
+.selectBar :is(button):not(.deleteArmed):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-on-bar) 14%, transparent);
+}
+
+.selectBar :is(button):focus-visible {
+  outline-color: var(--color-on-bar);
+}
+
 @media (min-width: 1024px) {
   .selectBar {
     bottom: var(--space-3);
   }
 }
 
-/* kind icon in a round well; green for a win, red for a loss */
+/* kind icon; a win or a loss keeps a round tint in green or red (2.0: no well otherwise) */
 .kindIcon {
   width: 2.25rem;
   height: 2.25rem;
@@ -226,7 +247,6 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
   font-size: var(--font-size-lg);
 }
@@ -248,36 +268,30 @@
   outline-offset: 2px;
 }
 
+/* the result: a plain bold word in its colour, no pill (2.0 UI review) */
 .resultPill {
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
-  font-weight: 700;
-  line-height: 1.5;
+  font-weight: 800;
 }
 
 .resultPill.won {
-  background: var(--color-success-bg);
   color: var(--color-success);
 }
 
+/* Won green, Lost red */
 .resultPill.lost {
-  background: var(--color-danger-bg);
   color: var(--color-danger);
 }
 
 /* a banner the reader gained there: its small picture (or two) and "New banner" */
+/* 2.0 UI review (13): a plain word, no pill */
 .bannerPill {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-title);
   font-size: var(--font-size-xs);
   font-weight: 700;
-  line-height: 1.5;
 }
 
 /* ---------- delete with two taps ---------- */
@@ -288,12 +302,13 @@
   justify-content: center;
   gap: var(--space-2);
   padding: 0 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  /* 2.0: a quiet button, outlined on the land like the ones in the list's head */
+  border: var(--line) solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
   color: var(--color-text);
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -353,6 +368,12 @@
 .verdict.lost {
   background: var(--color-danger-bg);
   color: var(--color-danger);
+}
+
+/* The stamp starts at 1.6 times its width: the box cuts it at the page's edge, so the page never gets wider
+   than a phone for the half second the stamp lands (2.0 F2). `clip` only: the height stays free. */
+.stampClip {
+  overflow-x: clip;
 }
 
 /* When a report opens, its verdict lands like a stamp; a lost village shakes once (UI review 1.3,
@@ -424,7 +445,7 @@
 .cardBody {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .village {
@@ -449,7 +470,7 @@
   align-items: baseline;
   gap: var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .facts dt {
@@ -488,7 +509,7 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .stack:first-child {
@@ -588,8 +609,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
   font-size: var(--font-size-sm);
 }
@@ -613,12 +632,18 @@
   min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
-  padding: 0 1rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 600;
+  padding: 0 1.25rem;
+  /* 2.0: the report's one main action, in the action colour like Button's primary (dark green is never a button) */
+  border-radius: var(--radius);
+  background: var(--color-action);
+  color: var(--color-on-action);
+  box-shadow: 0 2.5px 0 var(--color-action-edge);
+  font-weight: 700;
   text-decoration: none;
+}
+
+.action:hover {
+  filter: brightness(1.06);
 }
 
 /* the loyalty line of a battle that conquered the village */
@@ -646,6 +671,12 @@
 
 .reportAction:hover {
   text-decoration: underline;
+}
+
+/* the "›" at the end: these links open another page (2.0 UI review) */
+.reportArrow {
+  flex: none;
+  margin-left: calc(0.15rem - var(--space-2));
 }
 
 /* ---------- sending a report (M40) ---------- */
@@ -680,7 +711,7 @@
   align-items: center;
   gap: var(--space-2);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 /* the inbox's players as one-tap picks */
@@ -723,7 +754,6 @@
 .shared {
   margin: 0;
   padding: var(--space-2) var(--space-3);
-  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius);
   background: var(--color-well);
 }
@@ -737,31 +767,33 @@
 }
 
 /* "from Anna" on a copy's line in the list */
+/* 2.0 UI review (13): a plain word, no pill */
 .sharedPill {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-text);
   font-size: var(--font-size-xs);
   font-weight: 700;
-  line-height: 1.5;
 }
 
 /* ---------- filters and days (1.3) ---------- */
-/* a row of chips that scrolls sideways on phones (to the screen's edge) */
+/* 2.0: a switch like every other (ui-design-principles-2-0, Controls; the picked reports mock): the
+   words stand on the land over one thin line, the open filter is bold with the 4 px line in the
+   action colour, counts follow in small grey figures. On phones the row scrolls sideways, to the
+   screen's edge. */
 .chips {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-4);
   overflow-x: auto;
   scrollbar-width: none;
   margin: 0 calc(-1 * var(--space-3));
+  /* as much as the margin takes, so the first word starts under the page title */
   padding: 0 var(--space-3);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
-/* desktop: the chips wrap instead of running out of the list's column (1.3) */
+/* desktop: the filters wrap instead of running out of the list's column (1.3) */
 @media (min-width: 1024px) {
   .chips {
     flex-wrap: wrap;
@@ -773,40 +805,36 @@
 
 .chip {
   flex: none;
-  min-height: 2.25rem;
+  min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0 0.85rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
   color: var(--color-text);
-  font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .chip:hover {
-  border-color: var(--color-accent);
+  color: var(--color-title);
+  box-shadow: inset 0 -4px 0 var(--color-divider);
+}
+
+.chip:focus-visible {
+  outline-offset: -2px;
 }
 
 .chip[aria-current='page'] {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  color: var(--color-title);
+  font-weight: 800;
+  box-shadow: inset 0 -4px 0 var(--color-action);
 }
 
 .chipCount {
-  font-size: var(--font-size-xs);
-  opacity: 0.75;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-}
-
-@media (pointer: coarse) {
-  .chip {
-    min-height: var(--touch-target);
-  }
 }
 
 .days {
@@ -856,16 +884,17 @@
   font-size: var(--font-size-xs);
 }
 
+/* 2.0 UI review (13): a plain word, no pill */
 .fullHaul {
-  padding: 0 0.4rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-success-bg);
   color: var(--color-success);
   font-weight: 700;
 }
 
 /* desktop (1.3): the report open next to the list */
+/* 2.0: a rounded shade of the land that reaches a little past the row's text */
 .open .lineLink {
+  margin-left: calc(-1 * var(--space-2));
+  padding-left: var(--space-2);
+  border-radius: var(--radius);
   background: var(--color-well);
-  box-shadow: inset 3px 0 0 var(--color-accent);
 }

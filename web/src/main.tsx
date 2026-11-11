@@ -10,11 +10,13 @@ import { router } from './router';
 import { followThemeColor } from './theme/theme';
 // Self-hosted fonts (05-frontend §8): only the weights we use. The browser downloads a file only
 // when a character on the page needs it.
-import '@fontsource/alegreya-sans/400.css';
-import '@fontsource/alegreya-sans/500.css';
-import '@fontsource/alegreya-sans/700.css';
-import '@fontsource/alegreya-sc/700.css';
-import '@fontsource/uncial-antiqua/400.css';
+import '@fontsource/bricolage-grotesque/400.css';
+import '@fontsource/bricolage-grotesque/500.css';
+import '@fontsource/bricolage-grotesque/600.css';
+import '@fontsource/bricolage-grotesque/700.css';
+import '@fontsource/bricolage-grotesque/800.css';
+// the title face of the stitched theme (styles/looks.css); the browser fetches the file only when it is used
+import '@fontsource/almendra/latin-700.css';
 import './styles/global.css';
 
 reloadOnStaleChunks();

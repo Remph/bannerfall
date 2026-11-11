@@ -279,7 +279,9 @@ public class AccountService implements UserDetailsService {
             throw new ApiException(
                     HttpStatus.TOO_MANY_REQUESTS,
                     ErrorCode.TOO_MANY_LOGIN_ATTEMPTS,
-                    "Too many wrong passwords, try again in a minute");
+                    rateLimiter.isLocked(key)
+                            ? "Too many wrong passwords for this account, try again in half an hour"
+                            : "Too many wrong passwords, try again in a minute");
         }
         if (account.getPasswordHash() == null
                 || !passwordEncoder.matches(currentPassword, account.getPasswordHash())) {

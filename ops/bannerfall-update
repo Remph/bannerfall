@@ -4,11 +4,13 @@
 #
 #   ops/bannerfall-update 1.4.1
 #
-# In order: checks that the checkout is clean, fetches the tags, pulls the image for exactly that
-# version (or builds it with --build), checks it out and that its compose.prod.yaml works with
-# .env, backs the database up (stops if that fails), warns the players with a popup, waits (60 s,
-# --wait), switches BANNERFALL_IMAGE in .env, restarts the app and waits until it is healthy and
-# reports the new version, then runs bannerfall-admin check. Nothing changes for the players before
+# In order: checks that the checkout is clean, fetches the tags, checks that the release tag is
+# signed by the pinned release key (ops/bannerfall-verify-tag; nothing of the release is used
+# before that), pulls the image for exactly that version by the digest the signed tag names (or
+# builds it with --build), checks it out and that its compose.prod.yaml works with .env, backs the
+# database up (stops if that fails), warns the players with a popup, waits (60 s, --wait),
+# switches BANNERFALL_IMAGE in .env, restarts the app and waits until it is healthy and reports
+# the new version, then runs bannerfall-admin check. Nothing changes for the players before
 # the backup is done; Ctrl+C (or a dropped connection) before the restart puts the old checkout
 # back. Exits 0 only when all of it, the check included, went fine.
 #
@@ -21,7 +23,8 @@
 #   --wait <s>     seconds between the popup warning and the restart (default 60, 0 = no warning)
 #   --build        build the image here (docker build, bannerfall:<version>) instead of pulling it
 #   --repo <name>  the image to pull without its tag (default: BANNERFALL_IMAGE_REPO, else the one
-#                  BANNERFALL_IMAGE in .env names now)
+#                  BANNERFALL_IMAGE in .env names now). The digest of the signed tag is used only
+#                  for the image the release names; another name is pulled by its tag.
 #
 # UPDATE_MESSAGE: the popup warning ({version} and {wait} are filled in).
 # HEALTH_TIMEOUT: how long to wait for the new app, in seconds (default 300).
@@ -60,7 +63,7 @@ main() {
   if $build; then
     new_image="bannerfall:$version"
   else
-    [ -n "$repo" ] || repo="${old_image%:*}"
+    [ -n "$repo" ] || repo="$(image_repo "$old_image")"
     # A name without a registry is an image built on this server: there is nothing to pull.
     [[ "$repo" == */* ]] || fail "$old_image was built here; use --build, or --repo <registry/name> to pull"
     new_image="$repo:$version"
@@ -78,11 +81,31 @@ main() {
   step "fetching the release tags"
   git fetch --tags --quiet origin || fail "can't fetch the tags from origin"
   git rev-parse -q --verify "refs/tags/$tag" > /dev/null || fail "there is no tag $tag (yet)"
+  # The signature is checked against the key pinned in THIS checkout (the version that runs now),
+  # before anything of the new release is checked out, pulled or run.
+  step "checking the signature of $tag"
+  local verdict verified pin
+  verdict="$(ops/bannerfall-verify-tag "$tag")" \
+    || fail "$tag did not pass ops/bannerfall-verify-tag (see above); nothing changed"
+  verified="$(sed -n 's/^verified=//p' <<< "$verdict")"
+  if ! $build; then
+    pin="$(sed -n 's/^image=//p' <<< "$verdict")"
+    if [ -z "$pin" ]; then
+      echo "WARNING: $tag names no image digest; the image is pulled by its tag, which is not pinned." >&2
+    elif [ "${pin%@*}" != "$repo" ]; then
+      echo "WARNING: $tag names ${pin%@*}, you pull $repo; the image is pulled by its tag, which is not pinned." >&2
+    else
+      new_image="$repo:$version@${pin#*@}"
+    fi
+  fi
 
   echo
   echo "Update this world from $old_version to $version:"
-  echo "  checkout  $old_ref -> $tag"
-  echo "  image     $old_image -> $new_image ($($build && echo "built here" || echo "pulled"))"
+  local signature="signature checked" how="pulled by tag"
+  [ "$verified" = yes ] || signature="SIGNATURE NOT CHECKED: no release key pinned"
+  if $build; then how="built here"; elif [[ "$new_image" == *@sha256:* ]]; then how="pulled by digest"; fi
+  echo "  checkout  $old_ref -> $tag ($signature)"
+  echo "  image     $old_image -> $new_image ($how)"
   if [ "$wait" -gt 0 ]; then
     echo "  players   warned with a popup, restart $wait s later"
   else
@@ -120,7 +143,9 @@ main() {
   # ---- 3. backup, which has to work ----
   step "backing up the database"
   local backup_out backup_file
-  if ! backup_out="$(ops/bannerfall-backup < /dev/null)"; then
+  # No off-site copy here (BACKUP_OFFSITE_CMD empty): a second place that is down must not hold
+  # an update up, and the local dump is what the rollback below uses.
+  if ! backup_out="$(BACKUP_OFFSITE_CMD='' ops/bannerfall-backup < /dev/null)"; then
     git checkout --quiet "$old_ref"
     fail "the backup failed (see above); nothing changed"
   fi
@@ -217,6 +242,12 @@ running_version() {
 applied_migrations() {
   "${compose[@]}" exec -T db psql -U bannerfall -d bannerfall -tAc \
     'select count(*) from flyway_schema_history where success' < /dev/null
+}
+
+# The image name without tag and digest: ghcr.io/x/bannerfall:1.7.1@sha256:… -> ghcr.io/x/bannerfall
+image_repo() {
+  local image="${1%%@*}"
+  if [[ "${image##*/}" == *:* ]]; then echo "${image%:*}"; else echo "$image"; fi
 }
 
 set_image() {

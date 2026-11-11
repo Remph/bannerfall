@@ -49,9 +49,11 @@ export function BattleDetails({ kind, battle, villageId }: BattleDetailsProps) {
 
   return (
     <>
-      <p className={[styles.verdict, styles.stamp, styles[result]].filter(Boolean).join(' ')}>
-        {t.reports.verdicts[verdict]}
-      </p>
+      <div className={styles.stampClip}>
+        <p className={[styles.verdict, styles.stamp, styles[result]].filter(Boolean).join(' ')}>
+          {t.reports.verdicts[verdict]}
+        </p>
+      </div>
       <div className={styles.columns}>
         <Card title={t.reports.attacker}>
           <div className={styles.cardBody}>

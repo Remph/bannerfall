@@ -1,6 +1,8 @@
 .page {
   display: grid;
   gap: var(--space-3);
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -15,12 +17,13 @@
   overflow-wrap: anywhere;
 }
 
-/* link to the attack simulator under the village name */
+/* link to the attack simulator under the village name: a link to another page ends in "›" (2.0 UI review) */
 .simulatorLink {
   width: fit-content;
   min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
+  gap: 0.15rem;
   color: var(--color-accent);
   font-weight: 600;
   text-decoration: none;
@@ -87,13 +90,23 @@
   .dev {
     grid-area: dev;
   }
+
+  /* from 1600 px the movements are in the Now column (2.0): sending and troops side by side */
+  .layout[data-without-moves] {
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      'send troops'
+      'dev dev';
+  }
 }
 
 /* ---------- send card ---------- */
 .body {
   display: grid;
+  /* as wide as the column: the target field's own width pushed it past the edge on a 360 px phone */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .target {
@@ -125,7 +138,7 @@
   align-items: center;
   gap: 2px var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .pickRow:first-child {
@@ -152,8 +165,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
@@ -163,7 +174,8 @@
   position: sticky;
   bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px) + var(--space-2));
   z-index: 1;
-  margin: 0 calc(-1 * var(--space-2));
+  /* no negative side margin: the section starts at the page's edge and clips (2.0), so the bar's
+     rounded corners would be cut off */
   padding: var(--space-2);
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -175,8 +187,10 @@
 @media (min-width: 1024px) {
   .sendFooter {
     position: static;
-    margin: 0;
     padding: 0;
+    border-radius: 0;
+    /* not floating here, so no surface (2.0) */
+    background: none;
     box-shadow: none;
   }
 }
@@ -266,7 +280,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .trainRow:first-child {
@@ -289,7 +303,7 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .trainConfirmAttack:first-child {
@@ -322,7 +336,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .facts > div:first-child {
@@ -409,8 +423,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .move:first-child,
@@ -429,13 +443,13 @@
   align-self: flex-start;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
 /* incoming attacks */
+/* room for the red line: the row itself starts at the page's edge (2.0) */
 .hostile {
+  padding-left: var(--space-2);
   box-shadow: inset 3px 0 0 var(--color-danger);
 }
 
@@ -496,35 +510,23 @@
   font-size: var(--font-size-sm);
 }
 
-/* how far an own command has come (1.3), in the map's colours for its kind */
+/* how far an own command has come (1.3): the action colour on the track, like the build queue's bar */
 .moveBar {
   display: block;
   height: 4px;
   margin: 3px 0 1px;
   border-radius: var(--radius-pill);
-  background: var(--color-well);
+  background: var(--color-track);
   overflow: hidden;
 }
 
 .moveFill {
   display: block;
   height: 100%;
-  background: var(--color-accent);
+  background: var(--color-action);
   transform-origin: left;
   /* glides between the seconds instead of jumping, like the build queue's bar */
   transition: transform 1s linear;
-}
-
-.barAttack .moveFill {
-  background: var(--map-attack);
-}
-
-.barSupport .moveFill {
-  background: var(--map-support);
-}
-
-.barReturn .moveFill {
-  background: var(--map-return);
 }
 
 .moveActions {
@@ -564,7 +566,7 @@
 .groups {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .group {
@@ -593,7 +595,7 @@
 .overview th,
 .overview td {
   padding: var(--space-1) 0 var(--space-1) var(--space-2);
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   text-align: right;
   white-space: nowrap;
 }
@@ -630,8 +632,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
   font-size: var(--font-size-sm);
 }
@@ -643,7 +643,7 @@
 
 /* support of other villages is not part of the total: a line sets it apart */
 .overview .overviewSupport {
-  border-left: 1px solid var(--color-divider);
+  border-left: var(--line) var(--line-style) var(--color-divider);
 }
 
 .overviewNone {
@@ -680,18 +680,18 @@
 
 .empty {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
   color: var(--color-text-muted);
 }
 
 .cardError {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 /* incoming: said once above the list instead of "Units unknown" on every attack (1.3) */
 .incomingNote {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-2);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -720,16 +720,13 @@
   gap: var(--space-2);
 }
 
-/* what a folded movement card still says next to its title (1.6.1): how many, and hostile attacks in red */
+/* what a folded movement card still says next to its title (1.6.1): how many, and hostile attacks in red;
+   plain words since the 2.0 UI review */
 .foldCount,
 .foldAttack {
   flex: none;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  line-height: 1.6;
   font-variant-numeric: tabular-nums;
 }
 

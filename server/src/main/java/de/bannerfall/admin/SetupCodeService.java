@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,18 @@ import org.springframework.transaction.annotation.Transactional;
  * The first admin of a new world (1.6, guided world setup, 08-host-console §5): {@code
  * bannerfall-admin setup} asks for a one-time code, and the logged-in account that sends it becomes
  * an admin and lands in the setup wizard. Pre-game only. One code at a time, kept in memory (a
- * restart forgets it), valid for {@link #LIFETIME} and used once.
+ * restart forgets it), valid for {@link #LIFETIME} and used once. After {@link #MAX_WRONG_CLAIMS}
+ * wrong claims the code is gone and the host runs the command again (security review of 1.7: the
+ * write limit alone made guessing slow, not impossible).
  */
 @Service
 public class SetupCodeService {
 
     static final Duration LIFETIME = Duration.ofMinutes(30);
     static final int CODE_LENGTH = 10;
+
+    /** Wrong claims a code survives; the next one is the last of this code. */
+    static final int MAX_WRONG_CLAIMS = 5;
 
     /** No look-alikes (i, l, o, 0, 1): the host may type it from a terminal. */
     private static final String ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -45,7 +51,7 @@ public class SetupCodeService {
     private final SecureRandom random = new SecureRandom();
     private final AtomicReference<Pending> pending = new AtomicReference<>();
 
-    private record Pending(String code, Instant expiresAt) {}
+    private record Pending(String code, Instant expiresAt, AtomicInteger wrongClaims) {}
 
     SetupCodeService(
             WorldService world,
@@ -71,31 +77,36 @@ public class SetupCodeService {
         for (int i = 0; i < CODE_LENGTH; i++) {
             code.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
         }
-        Pending next = new Pending(code.toString(), clock.instant().plus(LIFETIME));
+        Pending next =
+                new Pending(code.toString(), clock.instant().plus(LIFETIME), new AtomicInteger());
         pending.set(next);
         return new SetupCodeDto(next.code(), next.expiresAt());
     }
 
     /**
      * Makes the account an admin if {@code code} is the current code; the code is used up either
-     * way it matches. An admin who claims stays an admin.
+     * way it matches, and after {@link #MAX_WRONG_CLAIMS} wrong claims too. An admin who claims
+     * stays an admin.
      *
-     * @throws ApiException {@code 400 SETUP_CODE_INVALID} for a wrong, used or expired code, {@code
-     *     409 WORLD_ALREADY_OPEN} once the world is open
+     * @throws ApiException {@code 400 SETUP_CODE_INVALID} for a wrong, used, expired or given-up
+     *     code, {@code 409 WORLD_ALREADY_OPEN} once the world is open
      */
     @Transactional
     public void claim(long accountId, String code) {
         requirePregame();
         Pending current = pending.get();
-        if (current == null
-                || !clock.instant().isBefore(current.expiresAt())
-                || !matches(current.code(), code)
-                || !pending.compareAndSet(current, null)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    ErrorCode.SETUP_CODE_INVALID,
-                    "This setup code is wrong, used or expired; run `bannerfall-admin setup`"
-                            + " again");
+        if (current == null || !clock.instant().isBefore(current.expiresAt())) {
+            throw invalid();
+        }
+        if (!matches(current.code(), code)) {
+            if (current.wrongClaims().incrementAndGet() >= MAX_WRONG_CLAIMS) {
+                // only this code: a newer one (a new `setup` run) stays
+                pending.compareAndSet(current, null);
+            }
+            throw invalid();
+        }
+        if (!pending.compareAndSet(current, null)) {
+            throw invalid();
         }
         Account account = accounts.findById(accountId).orElseThrow();
         Role before = account.getRole();
@@ -108,6 +119,13 @@ public class SetupCodeService {
                 "player",
                 playerId,
                 Map.of("name", account.getUsername(), "from", before, "to", Role.ADMIN));
+    }
+
+    private static ApiException invalid() {
+        return new ApiException(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.SETUP_CODE_INVALID,
+                "This setup code is wrong, used or expired; run `bannerfall-admin setup` again");
     }
 
     private void requirePregame() {

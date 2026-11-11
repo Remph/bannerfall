@@ -20,6 +20,15 @@ import org.springframework.stereotype.Component;
  * guesses over many addresses is held back by the per-address limit ({@code AuthAddressLimiter}).
  * An IPv6 address counts by its /64 network, the way that whole network is one client (security
  * review of 1.7).
+ *
+ * <p>On top of that the account has a budget of its own, over all addresses (2.0, F4): {@value
+ * #ACCOUNT_MAX_FAILURES} failed logins within {@link #ACCOUNT_WINDOW} (counted from the first) stop
+ * the logins of that name until the window is over. Without it, guesses from many networks (each
+ * with its own five) were limited only by the address limits. The price: someone who knows a name
+ * can keep that player from <em>logging in anew</em> for half an hour, and one address is enough
+ * (five wrong passwords a minute stay under the address limits: twenty take four minutes); open
+ * sessions go on, and the host's password reset lifts the block ({@link #forget}). A name that does
+ * not exist counts the same, so the answer tells nothing about the name.
  */
 @Component
 class LoginRateLimiter {
@@ -27,15 +36,22 @@ class LoginRateLimiter {
     static final int MAX_FAILURES = 5;
     static final Duration BLOCK_DURATION = Duration.ofMinutes(1);
 
+    static final int ACCOUNT_MAX_FAILURES = 20;
+    static final Duration ACCOUNT_WINDOW = Duration.ofMinutes(30);
+
     /** Clean up when the map gets this big (someone trying lots of random usernames). */
     private static final int CLEANUP_THRESHOLD = 10_000;
 
     private record Failures(int count, Instant last) {}
 
+    /** Failures of one name over all addresses; the window starts with the first. */
+    private record AccountFailures(int count, Instant first) {}
+
     private record Key(String usernameKey, String address) {}
 
     private final Clock clock;
     private final Map<Key, Failures> failuresByKey = new ConcurrentHashMap<>();
+    private final Map<String, AccountFailures> failuresByAccount = new ConcurrentHashMap<>();
 
     LoginRateLimiter(Clock clock) {
         this.clock = clock;
@@ -57,7 +73,8 @@ class LoginRateLimiter {
      * requests all pass the check, hundreds of guesses instead of {@value #MAX_FAILURES} (code
      * review 1.2).
      *
-     * @return false, and nothing counted, if the username is blocked for this address
+     * @return false, and nothing counted for the name, if the username is blocked for this address
+     *     or the name used up its budget over all addresses ({@link #isLocked})
      */
     boolean tryAttempt(String usernameKey, String address) {
         Instant now = clock.instant();
@@ -74,14 +91,39 @@ class LoginRateLimiter {
                     }
                     return new Failures(old.count() + 1, now);
                 });
-        if (failuresByKey.size() > CLEANUP_THRESHOLD) {
-            failuresByKey.values().removeIf(this::isExpired);
+        if (allowed[0]) {
+            // only an attempt the address was allowed to make counts for the name: a blocked
+            // script must not use up the budget of the player it hammers
+            failuresByAccount.compute(
+                    usernameKey,
+                    (name, old) -> {
+                        if (old == null || isOver(old)) {
+                            return new AccountFailures(1, now);
+                        }
+                        if (old.count() >= ACCOUNT_MAX_FAILURES) {
+                            allowed[0] = false;
+                            return old;
+                        }
+                        return new AccountFailures(old.count() + 1, old.first());
+                    });
+        }
+        if (failuresByKey.size() > CLEANUP_THRESHOLD
+                || failuresByAccount.size() > CLEANUP_THRESHOLD) {
+            forgetExpired();
         }
         return allowed[0];
     }
 
+    /** True while the name has used up its failures over all addresses (2.0, F4). */
+    boolean isLocked(String usernameKey) {
+        AccountFailures failures = failuresByAccount.get(usernameKey);
+        return failures != null && failures.count() >= ACCOUNT_MAX_FAILURES && !isOver(failures);
+    }
+
     void recordSuccess(String usernameKey, String address) {
         failuresByKey.remove(key(usernameKey, address));
+        // whoever knew the password is the owner: the name's failures start over
+        failuresByAccount.remove(usernameKey);
     }
 
     /**
@@ -91,6 +133,7 @@ class LoginRateLimiter {
     @Scheduled(fixedDelay = 60_000)
     void forgetExpired() {
         failuresByKey.values().removeIf(this::isExpired);
+        failuresByAccount.values().removeIf(this::isOver);
     }
 
     /** How many name and address pairs are held (tests). */
@@ -98,9 +141,19 @@ class LoginRateLimiter {
         return failuresByKey.size();
     }
 
+    /** How many names are held (tests). */
+    int accountsHeld() {
+        return failuresByAccount.size();
+    }
+
     /** Lifts every block of the username (the host set a new password). */
     void forget(String usernameKey) {
         failuresByKey.keySet().removeIf(key -> key.usernameKey().equals(usernameKey));
+        failuresByAccount.remove(usernameKey);
+    }
+
+    private boolean isOver(AccountFailures failures) {
+        return !clock.instant().isBefore(failures.first().plus(ACCOUNT_WINDOW));
     }
 
     private boolean isExpired(Failures failures) {

@@ -18,7 +18,9 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ConfirmSheet } from '../../components/ConfirmSheet';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { Icon } from '../../components/Icon';
 import { useInListDetail } from '../../components/listDetailContext';
+import { MoreMenu } from '../../components/MoreMenu';
 import { CHAT_LENGTH_HINT_FROM, CHAT_MAX_LENGTH, chatLength, clampChatText } from '../../game/chat';
 import { formatRecent } from '../../game/format';
 import { newestIncomingId, olderMessagesBefore } from '../../game/messages';
@@ -101,7 +103,11 @@ function Thread({ playerId, name }: { playerId: number; name: string }) {
       <header className={styles.head}>
         <h1>{t.messages.withPlayer(name)}</h1>
         <div className={styles.tools}>
-          <Link to={playerPath(playerId)}>{t.messages.profile}</Link>
+          <Link to={playerPath(playerId)}>
+            {t.messages.profile}
+            <Icon name="chevronRight" />
+          </Link>
+          {!blocked && <BlockMenu playerId={playerId} name={name} />}
         </div>
       </header>
       <Card title={t.messages.list} className={styles.threadCard}>
@@ -118,7 +124,6 @@ function Thread({ playerId, name }: { playerId: number; name: string }) {
         )}
         {blocked ? <BlockedNote playerId={playerId} /> : <Composer playerId={playerId} />}
       </Card>
-      {!blocked && <BlockButton playerId={playerId} name={name} />}
     </div>
   );
 }
@@ -262,18 +267,22 @@ function BlockedNote({ playerId }: { playerId: number }) {
   );
 }
 
-/** "Block" with a question first: blocking hides the whole conversation. */
-function BlockButton({ playerId, name }: { playerId: number; name: string }) {
+/**
+ * "Block" behind "…" next to Profile (2.0 UI review: as an outlined button right under "Send" it was
+ * the first thing under the message field, rarely needed and easy to hit), with a question first:
+ * blocking hides the whole conversation.
+ */
+function BlockMenu({ playerId, name }: { playerId: number; name: string }) {
   const { t } = useI18n();
   const block = useBlockPlayer();
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div>
-        <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-          {t.messages.block}
-        </Button>
-      </div>
+      <MoreMenu
+        label={t.messages.moreFor(name)}
+        align="left"
+        items={[{ label: t.messages.blockPlayer, icon: 'lock', danger: true, onSelect: () => setOpen(true) }]}
+      />
       <ConfirmSheet
         open={open}
         title={t.messages.blockTitle(name)}

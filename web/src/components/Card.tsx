@@ -18,7 +18,7 @@ interface CardProps {
   children: ReactNode;
 }
 
-/** A parchment panel with a title (05-frontend §8). The title also names the section for screen readers. */
+/** A section of a page with a title (05-frontend §8; a parchment panel until 2.0, now it lies on the land). The title also names the section for screen readers. */
 export function Card({ title, id, className, action, collapse, children }: CardProps) {
   const titleId = useId();
   const bodyId = useId();

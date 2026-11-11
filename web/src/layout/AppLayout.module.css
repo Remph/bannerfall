@@ -5,24 +5,157 @@
   flex-direction: column;
 }
 
+/* The sky (2.0): the header of every game screen. Behind the other grid items lie the sky itself
+   (.sky: three flat bands, stars at night), the sun or moon (.orbSlot) and two bands of hills (.hills);
+   on phones they span the row with the village and the gap under it, and the four stocks follow on
+   the land. */
 .header {
   position: sticky;
   top: 0;
   z-index: 10;
   padding-top: env(safe-area-inset-top, 0px);
-  background: var(--color-bar);
-  color: var(--color-on-bar);
-  border-bottom: 2px solid var(--color-bar-edge);
+  /* the top band's colour, behind a phone's status bar */
+  background: var(--color-sky-1);
+  color: var(--color-text);
 }
 
 .topBar {
+  --sky-gap: 2.25rem; /* the room for the hills under the village's name */
   display: grid;
   grid-template-areas:
-    'switcher attacks details'
-    'resources resources resources';
-  grid-template-columns: minmax(0, 1fr) auto auto;
+    'switcher orb attacks details'
+    '. . . .'
+    'resources resources resources resources';
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto auto;
+  grid-template-rows: auto var(--sky-gap) auto;
   align-items: center;
-  padding: 0 var(--space-2) var(--space-2);
+  transition: grid-template-rows 0.18s ease-out;
+}
+
+.topBar > * {
+  position: relative;
+}
+
+.sky {
+  grid-area: 1 / 1 / 3 / -1;
+  align-self: stretch;
+  overflow: hidden;
+  background:
+    var(--texture), linear-gradient(var(--color-sky-1) 0 34%, var(--color-sky-2) 34% 66%, var(--color-sky-3) 66%);
+}
+
+/* a few stars (--color-star is transparent by day) */
+.sky::after {
+  content: '';
+  position: absolute;
+  left: 58%;
+  top: 2rem;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    120px 14px 0 0 var(--color-star),
+    -150px 6px 0 0 var(--color-star),
+    -60px 26px 0 -0.25px var(--color-star),
+    70px -8px 0 0 var(--color-star),
+    -215px 20px 0 -0.25px var(--color-star);
+}
+
+/* The sun or moon stands in the room the village's name and the alarm leave free, so it never lies
+   under text (a long name, light text on the moon). The whole sky on a phone always shows it: there
+   it stands below the line of text. Where it would stand behind the text (the slim sky, the desktop)
+   it is left out when the room is narrower than itself. */
+.orbSlot {
+  grid-area: 1 / 2 / 3 / 3;
+  align-self: stretch;
+  min-width: 0;
+  container: orb-slot / inline-size;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  left: 50%;
+  bottom: 0.4rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--color-orb);
+  transition:
+    width 0.18s ease-out,
+    height 0.18s ease-out;
+}
+
+/* look switch: a thin ring just inside the sun or moon (nothing in the plain themes) */
+.orb::after {
+  content: '';
+  position: absolute;
+  inset: 18%;
+  border: var(--orb-seam);
+  border-radius: 50%;
+}
+
+.hills {
+  grid-area: 1 / 1 / 3 / -1;
+  align-self: end;
+  display: block;
+  width: 100%;
+  height: 1.9rem;
+  margin-bottom: -1px;
+  pointer-events: none;
+  transition: height 0.18s ease-out;
+}
+
+.hillFar {
+  fill: var(--color-hill);
+}
+
+.hillNear {
+  fill: var(--color-bg);
+}
+
+/* Phones: a pull down on the sky opens the Now sheet (NowSheet), so the sky takes no panning of its own */
+@media (max-width: 1023.98px) {
+  .header {
+    touch-action: none;
+  }
+}
+
+/* Phones, slim (slimSky.ts: scrolled down, or the map): one slim band, the name and the stocks stay */
+@media (max-width: 1023.98px) {
+  .header[data-slim] .topBar {
+    --sky-gap: 0.4rem;
+  }
+
+  .header[data-slim] .sky::after {
+    display: none;
+  }
+
+  .header[data-slim] .orb {
+    width: 1.6rem;
+    height: 1.6rem;
+    bottom: 0.5rem;
+  }
+
+  @container orb-slot (max-width: 2.19rem) {
+    .header[data-slim] .orb {
+      visibility: hidden;
+    }
+  }
+
+  .header[data-slim] .hills {
+    height: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topBar,
+  .orb,
+  .hills {
+    transition: none;
+  }
 }
 
 .brand,
@@ -34,41 +167,68 @@
 .switcher {
   grid-area: switcher;
   min-width: 0;
+  padding-left: var(--space-2);
 }
 
-/* the red counter of incoming attacks (only while there are any) */
+/* the red alarm of incoming attacks (only while there are any) */
 .attacks {
   grid-area: attacks;
 }
 
+/* the four stocks lie on the land, under the hills */
 .resources {
   grid-area: resources;
   /* reserve the height while the village loads, so the page doesn't jump */
   min-height: 3.2rem;
+  padding: 0.35rem var(--space-2) 0.5rem;
+  background: var(--color-bg);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
-/* phones: only the amounts, in one row (the details button opens the rest) */
-.resourcesSlim {
-  min-height: 1.4rem;
+/* phones: only the amounts, in one row; the whole row is one 44 px target that opens the details, like the
+   button with the arrow (2.0 UI review: three 25 px links side by side were too small to hit) */
+@media (max-width: 1023.98px) {
+  .resourcesSlim {
+    min-height: var(--touch-target);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 0.15rem 0.2rem;
+    cursor: pointer;
+  }
+
+  .resourcesSlim > ul {
+    width: 100%;
+  }
 }
 
 .detailsButton {
   grid-area: details;
   width: var(--touch-target);
   height: var(--touch-target);
+  margin-right: var(--space-1);
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: transparent;
-  color: var(--color-on-bar-muted);
+  color: var(--color-text);
   font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
 .detailsButton:hover {
-  background: var(--color-bar-hover);
-  color: var(--color-on-bar);
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+}
+
+/* under the sky: the rail (desktop) beside the page's column */
+.body,
+.column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .main {
@@ -95,12 +255,77 @@
 }
 
 @media (min-width: 1024px) {
+  .body {
+    flex-direction: row;
+  }
+
   .topBar {
-    grid-template-areas: 'brand switcher attacks resources settings';
-    grid-template-columns: auto minmax(8rem, max-content) auto 1fr auto;
+    grid-template-areas: 'brand switcher attacks orb resources settings';
+    grid-template-columns: auto minmax(8rem, max-content) auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto;
     align-items: center;
     gap: var(--space-4);
-    padding: var(--space-2) var(--space-3);
+    /* the hills take the lower part of the sky */
+    padding: var(--space-3) var(--space-4) 2rem;
+    transition: none;
+  }
+
+  /* the narrowest desktop windows, with room for a Windows scroll bar: everything moves closer, so the
+     row never gets wider than the window */
+  @media (max-width: 1199.98px) {
+    .topBar {
+      gap: 0.6rem;
+      padding-inline: var(--space-3);
+    }
+  }
+
+  .sky,
+  .hills {
+    position: absolute;
+  }
+
+  .sky {
+    inset: 0;
+  }
+
+  .sky::after {
+    left: calc(24rem + 4vw);
+    top: 2.6rem;
+    box-shadow:
+      95px 10px 0 0 var(--color-star),
+      170px -12px 0 -0.25px var(--color-star),
+      -52px 24px 0 -0.5px var(--color-star),
+      250px 16px 0 -0.25px var(--color-star),
+      -95px -10px 0 -0.5px var(--color-star),
+      -260px 8px 0 -0.25px var(--color-star);
+  }
+
+  /* between the alarm and the stocks, near the village in a wide window */
+  .orbSlot {
+    grid-area: orb;
+  }
+
+  .orb {
+    left: min(50%, 9rem);
+    bottom: -0.5rem;
+    width: 3.1rem;
+    height: 3.1rem;
+  }
+
+  @container orb-slot (max-width: 3.59rem) {
+    .orb {
+      visibility: hidden;
+    }
+  }
+
+  .hills {
+    inset: auto 0 -1px;
+    height: 2.1rem;
+    margin-bottom: 0;
+  }
+
+  .switcher {
+    padding-left: 0;
   }
 
   .brand {
@@ -108,17 +333,18 @@
     grid-area: brand;
     font-family: var(--font-brand);
     font-size: var(--font-size-2xl);
+    font-weight: 800;
+    letter-spacing: -0.01em;
     line-height: 1;
-    color: var(--color-highlight);
+    color: var(--color-text);
     text-decoration: none;
   }
 
   .brand:hover {
-    color: var(--color-on-bar);
+    color: var(--color-accent);
   }
 
   .brand:focus-visible {
-    outline: 2px solid var(--color-highlight);
     outline-offset: 4px;
     border-radius: 2px;
   }
@@ -128,10 +354,14 @@
     display: none;
   }
 
+  /* on the sky, beside the village */
   .resources,
   .resourcesSlim {
     justify-self: end;
     min-height: 0;
+    padding: 0;
+    background: transparent;
+    border-bottom: 0;
   }
 
   .settingsButton {
@@ -141,31 +371,31 @@
     display: grid;
     place-items: center;
     border: 0;
-    border-radius: var(--radius-pill);
-    background: transparent;
-    color: var(--color-on-bar);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+    color: var(--color-text);
     font-size: var(--font-size-xl);
     cursor: pointer;
   }
 
   .settingsButton:hover {
-    background: var(--color-bar-hover);
+    background: var(--color-surface);
   }
 
-  /* on a page of the gear menu (the own profile, the settings pages), like the tab row's lit item (1.5.1) */
+  /* on a page of the gear menu (the own profile, the settings pages): dark green, like the rail's open page */
   .settingsButton[aria-current='page'] {
-    background: var(--color-bar-hover);
-    color: var(--color-highlight);
+    background: var(--color-bar);
+    color: var(--color-on-bar);
   }
 
-  /* at the bottom: room for the chat button, so it never covers the end of a page */
+  /* at the bottom: room for the chat panel's corner, so it never covers the end of a page */
   .main {
-    padding: var(--space-4) var(--space-3) 5rem;
+    padding: var(--space-4) var(--space-4) 5rem;
     /* the padding above and below, for pages that fill the window (ListDetail's fill) */
     --main-padding-block: calc(var(--space-4) + 5rem);
   }
 
-  /* the map on the desktop (M11b): the whole width and height between the bars and the footer */
+  /* the map on the desktop (M11b): the whole width and height between the sky and the footer */
   .main.mainWide {
     min-height: 0;
     display: flex;
@@ -174,13 +404,20 @@
     padding: var(--space-2) var(--space-3);
   }
 
+  /* 1024 to 1599 px (2.0): the Now tab at the right edge lies over nothing of the page, its banners or the
+     footer; the page centres in what is left. Not on the map, which is a picture under the tab. */
+  .appNowTab:not(.appFull) .column {
+    padding-right: var(--now-tab-width);
+  }
+
+  /* the server time, quiet under the page */
   .footer {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-1);
-    padding: 0.35rem var(--space-3);
-    background: var(--color-bar-edge);
-    color: var(--color-on-bar-muted);
+    padding: 0.35rem var(--space-4);
+    border-top: var(--line) var(--line-style) var(--color-divider);
+    color: var(--color-text-muted);
     font-size: var(--font-size-xs);
     font-variant-numeric: tabular-nums;
   }
@@ -192,24 +429,24 @@
   }
 
   .footerLink:hover {
-    color: var(--color-on-bar);
+    color: var(--color-text);
   }
 }
 
-/* The chat column (1.3, ChatDock from 1600 px, not on the map): fixed at the right edge below the
-   bars, so the page, the banners above it and the footer's server time make room for it. The page
-   keeps its width and moves left, centred in what is left of the window. */
-.app:has([data-chat-column]) .main {
+/* The right column (the chat since 1.3, the Now list since 2.0; from 1600 px, not on the map): fixed at the
+   right edge below the bars, so the page, the banners above it and the footer's server time make room for
+   it. The page keeps its width and moves left, centred in what is left of the window. */
+.app:has([data-chat-column], [data-now-column]) .main {
   max-width: calc(var(--content-width) + var(--chat-column-width));
   padding-right: calc(var(--chat-column-width) + var(--space-3));
 }
 
-.app:has([data-chat-column]) > aside {
+.app:has([data-chat-column], [data-now-column]) .column > aside {
   width: auto;
   margin-left: calc(max(0px, (100% - var(--content-width) - var(--chat-column-width)) / 2) + var(--space-3));
 }
 
-.app:has([data-chat-column]) .footer {
+.app:has([data-chat-column], [data-now-column]) .footer {
   padding-right: calc(var(--chat-column-width) + var(--space-3));
 }
 

@@ -5,16 +5,16 @@
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border: 0;
+  border-radius: var(--radius);
   background: transparent;
-  color: var(--color-on-bar);
+  color: var(--color-text);
   font: inherit;
   cursor: pointer;
 }
 
 .trigger:hover {
-  border-color: var(--color-on-bar-muted);
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
 }
 
 .name {
@@ -22,11 +22,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .coords {
-  color: var(--color-on-bar-muted);
+  color: var(--color-sky-muted);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -34,17 +36,17 @@
 .chevron {
   flex: none;
   font-size: var(--font-size-base);
-  color: var(--color-on-bar-muted);
+  color: var(--color-sky-muted);
 }
 
 @media (min-width: 1024px) {
   .trigger {
     padding: 0 var(--space-3);
-    border-color: var(--color-on-bar-muted);
+    background: color-mix(in srgb, var(--color-surface) 45%, transparent);
   }
 
   .trigger:hover {
-    border-color: var(--color-highlight);
+    background: var(--color-surface);
   }
 }
 
@@ -65,31 +67,33 @@
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-1);
   margin: 0 0 var(--space-3);
 }
 
 .chip {
   min-height: var(--touch-target);
   min-width: var(--touch-target);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  border: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font: inherit;
   font-weight: 700;
+  text-underline-offset: 0.3em;
   cursor: pointer;
 }
 
 .chip:hover {
-  background: var(--color-well);
+  color: var(--color-text);
 }
 
+/* the chosen filter: the word itself, underlined, no filled pill (2.0 UI review) */
 .chip[aria-pressed='true'] {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--color-accent);
 }
 
 .chip:focus-visible {
@@ -97,13 +101,23 @@
   outline-offset: 2px;
 }
 
-/* the list inside the sheet */
+/* the list inside the sheet: rows split by thin lines, no boxes (2.0 UI review: the boxed rows with a
+   bar on the current one looked generic) */
 .list {
   display: grid;
-  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.list > li + li {
+  border-top: var(--line) var(--line-style) var(--color-divider);
+}
+
+/* the lines beside the shaded row step back, so the shade reads as one soft shape */
+.list > li:has(> [aria-current='page']),
+.list > li:has(> [aria-current='page']) + li {
+  border-top-color: transparent;
 }
 
 .village {
@@ -111,19 +125,19 @@
   display: grid;
   align-content: center;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-divider);
   border-radius: var(--radius);
   color: var(--color-text);
   text-decoration: none;
 }
 
 .village:hover {
-  background: var(--color-well);
+  /* lighter than the current row's shade, so a hovered row never looks like the current one */
+  background: color-mix(in srgb, var(--color-current) 50%, transparent);
 }
 
+/* where you are: a soft, rounded shade behind the row, nothing else */
 .village[aria-current='page'] {
-  border-color: var(--color-accent);
-  box-shadow: inset 3px 0 0 var(--color-accent);
+  background: var(--color-current);
 }
 
 .villageName {
@@ -144,13 +158,16 @@
 }
 
 /* the village held longest, first in the list (1.3) */
+/* 2.0 UI review (13): a plain word, no pill */
 .main {
   margin-left: 0.5rem;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-title);
   font-size: var(--font-size-xs);
   font-weight: 700;
   vertical-align: 0.1em;
+}
+
+/* on the current row's shade the soft grey falls under 4.5 : 1 at night: the coordinates take the text colour */
+.village[aria-current='page'] .villageMeta {
+  color: var(--color-text);
 }

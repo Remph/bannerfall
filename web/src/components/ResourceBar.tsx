@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { Village } from '../api/queries/villages';
 import { formatNumber } from '../game/format';
@@ -17,8 +18,18 @@ import { useCountedValue } from './useCountedValue';
  * with maximum, production and a fill bar per resource (`compact` is ignored there). Wood, clay and iron open
  * the warehouse page (M35); population stays plain text, as the warehouse page doesn't cover the farm. A jump
  * (loot, a trade, a payment) counts to the new amount, a gain glowing gold for a moment (UI review 1.3).
+ * Without `linked` they are plain text: the phone's slim row is one target that opens the details (2.0 UI
+ * review: three 25 px links side by side were too small to hit).
  */
-export function ResourceBar({ village, compact = false }: { village: Village; compact?: boolean }) {
+export function ResourceBar({
+  village,
+  compact = false,
+  linked = true,
+}: {
+  village: Village;
+  compact?: boolean;
+  linked?: boolean;
+}) {
   const { t, language } = useI18n();
   const now = useGameNow();
   const amounts = projectResources(village, now);
@@ -37,7 +48,7 @@ export function ResourceBar({ village, compact = false }: { village: Village; co
         return (
           // keyed by village too, so switching villages shows the other amounts at once
           <li key={`${village.id}-${type}`} className={full ? `${styles.item} ${styles.full}` : styles.item}>
-            <Link className={styles.link} to={warehousePath(village.id)} title={t.resources.toWarehouse}>
+            <StockCell linked={linked} villageId={village.id} title={t.resources.toWarehouse}>
               <Icon name={type} className={styles.icon} />
               <span className={styles.text}>
                 <span className="sr-only">{t.resources[type]}: </span>
@@ -50,7 +61,7 @@ export function ResourceBar({ village, compact = false }: { village: Village; co
                 </span>
                 <Fill fraction={amount / capacity} />
               </span>
-            </Link>
+            </StockCell>
           </li>
         );
       })}
@@ -104,5 +115,27 @@ function Fill({ fraction }: { fraction: number }) {
     <span className={styles.fill} aria-hidden="true">
       <span style={{ width: `${percent}%` }} />
     </span>
+  );
+}
+
+/** A stock's box: a link to the warehouse page, or the same box as plain text. */
+function StockCell({
+  linked,
+  villageId,
+  title,
+  children,
+}: {
+  linked: boolean;
+  villageId: number;
+  title: string;
+  children: ReactNode;
+}) {
+  if (!linked) {
+    return <span className={styles.link}>{children}</span>;
+  }
+  return (
+    <Link className={styles.link} to={warehousePath(villageId)} title={title}>
+      {children}
+    </Link>
   );
 }

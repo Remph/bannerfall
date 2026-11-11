@@ -1,7 +1,7 @@
 import type { BuildingEffect } from '../api/queries/buildings';
 import type { EndReason, VictoryMode } from '../api/queries/world';
 import { tierName } from '../game/banners';
-import type { BannerType, BuildingType, UnitType } from '../game/gameData';
+import type { BannerType, UnitType } from '../game/gameData';
 import type { MarkerKind } from '../game/mapMovements';
 import type { VillageKind } from '../game/mapView';
 import type { ReportKind, TheftResult } from '../game/reports';
@@ -9,8 +9,8 @@ import type { CommandKind, MovementKind } from '../game/troops';
 import type { WorldRow, WorldSection } from '../pages/admin/worldTabForm';
 import type { MapActionKey } from '../pages/map/mapActions';
 import type { RankingKind } from '../api/queries/ranking';
-import type { PushKind } from '../push/pushMessage';
 import type { Palette } from '../theme/theme';
+import { enPushTexts } from './push-en';
 
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st (the automation's "from your 3rd village"). */
 function ordinal(n: number): string {
@@ -140,16 +140,15 @@ export const en = {
     loggedInAs: (name: string) => `Logged in as ${name}`,
     language: 'Language',
     theme: 'Theme',
-    themeModes: { system: 'Device', light: 'Light', dark: 'Dark' },
-    /** Colour themes (1.6, theme/theme.ts `palettes`), each with a light and a dark set. */
+    themeModes: { system: 'Device', light: 'Day', dark: 'Night', black: 'Black' },
+    /** Colour themes (1.6; the five of 2.0, theme/theme.ts `palettes`), each for the day and the night. */
     palette: 'Colours',
     palettes: {
-      green: 'Green banner',
-      blue: 'Royal blue',
-      black: 'Black and gold',
-      oled: 'Black and gold (OLED)',
-      purple: 'Purple',
-      leather: 'Leather and forest',
+      wiese: 'Meadow',
+      kornfeld: 'Cornfield',
+      frost: 'Frost',
+      heide: 'Heath',
+      gestickt: 'Stitched',
     } satisfies Record<Palette, string>,
     /** 1.6: the medieval icons from game-icons.net or the classic hand-drawn ones. */
     icons: 'Icons',
@@ -162,65 +161,7 @@ export const en = {
     source: 'GitHub',
     sourceTitle: 'Source code on GitHub (opens a new tab)',
   },
-  /**
-   * 1.5: push notifications. The Notifications page, and the notifications themselves (the service
-   * worker writes them; the realtime texts above are reused where they fit).
-   */
-  push: {
-    link: 'Notifications',
-    title: 'Notifications',
-    back: 'Back to the game',
-    intro: 'Get a notification on this device while the game is closed, for example as soon as an attack is sent.',
-    deviceTitle: 'This device',
-    deviceOn: 'Notifications are on for this device.',
-    deviceOff: 'Notifications are off for this device.',
-    turnOn: 'Turn on',
-    turnOff: 'Turn off',
-    working: 'One moment…',
-    test: 'Send a test',
-    testSent: 'Test sent. It should arrive within a few seconds.',
-    devices: (count: number) =>
-      count === 1 ? 'Notifications reach 1 of your devices.' : `Notifications reach ${count} of your devices.`,
-    blocked:
-      'Notifications are blocked for this game in your browser. Allow them in the browser’s settings for this site, then try again.',
-    unsupported: 'This browser can’t show notifications from the game.',
-    iosInstall:
-      'On an iPhone or iPad, notifications only work from the home screen: tap Share, then “Add to Home Screen”, and open the game from there.',
-    unavailable: 'This world doesn’t send notifications.',
-    failed: 'Notifications could not be turned on on this device.',
-    kindsTitle: 'What to notify',
-    kinds: {
-      ATTACK: 'Incoming attacks',
-      VILLAGE_LOST: 'Lost villages',
-      MESSAGE: 'Private messages',
-      GUILD_INVITE: 'Guild invitations',
-      WORLD_END: 'Victory clock and end of the world',
-      BUILDS_DONE: 'Build queue empty',
-      ATTACK_RETURNED: 'Returning attacks',
-      STORAGE_FULL: 'Warehouse full',
-    } satisfies Record<PushKind, string>,
-    kindHints: {
-      ATTACK: 'As soon as an attack on one of your villages is sent, with its arrival.',
-      VILLAGE_LOST: 'When one of your villages is conquered.',
-      MESSAGE: 'When another player writes to you.',
-      GUILD_INVITE: 'When a guild invites you.',
-      WORLD_END: 'When a side starts or stops the victory clock, and when the world ends.',
-      BUILDS_DONE: 'When the last building in a village’s build queue is done.',
-      ATTACK_RETURNED:
-        'When attacks you asked about are home again: one attack, a train or a farm list run. You choose when you send them, or with the bell.',
-      STORAGE_FULL: 'When wood, clay or iron reaches the warehouse limit in a village. Once, until it drops again.',
-    } satisfies Record<PushKind, string>,
-    /** The notifications themselves. */
-    testBody: 'Notifications work on this device.',
-    attacks: (count: number, target: string, first: string) =>
-      `${count} attacks on the way to ${target} – first arrival ${first}`,
-    villageLost: (village: string, by: string | null) =>
-      by === null ? `${village} was conquered` : `${by} conquered ${village}`,
-    buildsDone: (village: string, building: string, level: number) =>
-      `${village}: the build queue is empty. ${building} reached level ${level}.`,
-    demolishedDone: (village: string, building: string, level: number) =>
-      `${village}: the build queue is empty. ${building} was demolished to level ${level}.`,
-  },
+  push: enPushTexts.push,
   /** The banner after a new version was deployed (M28): links to the changelog on bannerfall.de. */
   changelogBanner: {
     label: 'What is new',
@@ -523,43 +464,8 @@ export const en = {
     saving: 'Changing…',
     saved: 'Your password is changed. Use the new one the next time you log in.',
   },
-  resources: {
-    title: 'Resources',
-    wood: 'Wood',
-    clay: 'Clay',
-    iron: 'Iron',
-    population: 'Population',
-    /** Production, e.g. "+30/h". The amount is already formatted. */
-    perHour: (amount: string) => `+${amount}/h`,
-    perHourLong: (amount: string) => `${amount} per hour`,
-    capacity: (amount: string) => `max. ${amount}`,
-    full: 'warehouse full',
-    populationFull: 'farm full',
-    populationAlmostFull: 'farm almost full',
-    showDetails: 'Show resource details',
-    hideDetails: 'Hide resource details',
-    /** Tooltip on wood, clay and iron in the top bar: they link to the warehouse page. */
-    toWarehouse: 'Open the warehouse',
-  },
-  /** Keyed by BuildingType (02-game-rules §4.1). `satisfies` makes the compiler check that all 15 are there. */
-  buildings: {
-    HEADQUARTERS: 'Town Hall',
-    BARRACKS: 'Barracks',
-    STABLE: 'Stable',
-    WORKSHOP: 'Workshop',
-    ACADEMY: 'Academy',
-    SMITHY: 'Smithy',
-    RALLY_POINT: 'Rally Point',
-    MARKET: 'Market',
-    WOODCUTTER: 'Woodcutter',
-    CLAY_PIT: 'Clay Pit',
-    IRON_MINE: 'Iron Mine',
-    FARM: 'Farm',
-    WAREHOUSE: 'Warehouse',
-    HIDING_PLACE: 'Hiding Place',
-    WALL: 'Wall',
-    BANNER_HALL: 'Banner Hall',
-  } satisfies Record<BuildingType, string>,
+  resources: enPushTexts.resources,
+  buildings: enPushTexts.buildings,
   /** Keyed by UnitType (02-game-rules §5.1). */
   units: {
     SPEARMAN: 'Spearman',
@@ -1151,8 +1057,6 @@ export const en = {
     /** Both slots locked by the same attack: said once above the cards (1.7 design review). */
     bothLocked:
       'An attack is on its way here: neither the banner nor the standard can be changed until it has arrived.',
-    /** The short lock chip on each card while `bothLocked` says why. */
-    lockedShort: 'Locked',
     /** The fold with the rules of a card (1.7 design review). */
     howItWorks: 'How it works',
     stashTitle: (count: number) => `Stash (${count})`,
@@ -1262,6 +1166,44 @@ export const en = {
     waiting: (count: number) => (count === 1 ? '+1 more order waiting' : `+${count} more orders waiting`),
     toRecruit: 'Open recruitment',
   },
+  /** The Now list (2.0): everything that runs, in the column, the drawer and the phone's pull-down sheet. */
+  now: {
+    title: 'Now',
+    /** Name of the right-edge tab and of the pull-down sheet. */
+    tab: (count: number) => (count === 0 ? 'Now: nothing is running' : `Now: ${count} running`),
+    /** The count on the Now tile of "More", read out after the number. */
+    running: (count: number) => `${count} running`,
+    tabAttacks: (count: number) => (count === 1 ? 'one attack is coming' : `${count} attacks are coming`),
+    /** The switch between the current village and all of them. */
+    scopeLabel: 'Show',
+    /** The switch's first half: short, so a long village name doesn't take two lines (2.0 UI review). */
+    scopeThis: 'This village',
+    scopeAll: 'All villages',
+    empty: 'Nothing is running.',
+    emptyHere: 'Nothing is running in this village.',
+    sections: {
+      attacks: 'Attacks on you',
+      building: 'Being built',
+      training: 'In training',
+      way: 'On the way',
+    },
+    protection: 'Beginner protection',
+    protectionEnds: (when: string) => `ends ${when}`,
+    waits: 'waits',
+    /** "+2 waiting": more orders of the same building behind the running one. */
+    moreWaiting: (count: number) => `+${count} waiting`,
+    dismissing: (count: string, unit: string) => `Dismissing ${count} × ${unit}`,
+    researching: (unit: string, level: number) => `Research: ${unit} to Lv ${level}`,
+    merchantsTo: (target: string) => `Merchants to ${target}`,
+    merchantsHome: (target: string) => `Merchants back from ${target}`,
+    merchantsCount: (count: number) => (count === 1 ? '1 merchant' : `${count} merchants`),
+    close: 'Close the Now list',
+    /** The phone's first-time hint, a strip under the sky, and its close button. */
+    hint: 'Pull the sky down to see everything that is running.',
+    hintOk: 'Got it',
+    /** The grip at the bottom edge of the open sheet. */
+    lipLabel: 'Close the Now list',
+  },
   /** The count field with − / + and "max" (UnitCountInput). */
   unitCount: {
     less: 'One less',
@@ -1295,7 +1237,7 @@ export const en = {
       npc: 'NPC lords',
       barbarian: 'Barbarians',
     } satisfies Record<VillageKind, string>,
-    barbarianVillage: 'Barbarian village',
+    barbarianVillage: enPushTexts.map.barbarianVillage,
     owner: 'Owner',
     noOwner: 'nobody (barbarians)',
     /** The village panel of a barbarian village. */
@@ -1992,68 +1934,7 @@ export const en = {
     lostBannerTaken: 'The conqueror took it.',
     lostBannerStays: 'It stays in the village with its new owner.',
   },
-  /** Live notifications (M9b): toasts, the red counter of incoming attacks, the connection. */
-  realtime: {
-    yourVillage: 'your village',
-    incomingAttack: (target: string, from: string, player: string | null, arrival: string) =>
-      player === null
-        ? `Attack on ${target} from ${from} – arrives ${arrival}`
-        : `${player} attacks ${target} from ${from} – arrives ${arrival}`,
-    newReport: (kind: string) => `New report: ${kind}`,
-    /** M40: a copy of a report another player sent. */
-    reportShared: (player: string, kind: string) => `${player} sent you a report: ${kind}`,
-    buildComplete: (village: string, building: string, level: number) =>
-      `${village}: ${building} reached level ${level}`,
-    /** A demolition is done (1.6). */
-    demolished: (village: string, building: string, level: number) =>
-      `${village}: ${building} demolished to level ${level}`,
-    /** Screen-reader name of the red counter in the top bar. */
-    incomingBadge: (count: number) =>
-      count === 1 ? '1 attack on the way to your villages' : `${count} attacks on the way to your villages`,
-    notifications: 'Notifications',
-    dismiss: 'Dismiss',
-    worldOpened: 'The world has opened. Your village is ready!',
-    worldEnded: (winner: string | null) =>
-      winner === null ? 'The world has ended.' : `The world has ended: ${winner} won!`,
-    /** v1.3: the victory clock started or passed on (`when` is "Sat 17 Oct, 01:49"), or stopped. */
-    victoryClock: (side: string, when: string) =>
-      `${side} meets the victory condition: they win on ${when} unless someone stops them`,
-    victoryClockYours: (when: string) => `Your guild meets the victory condition: you win on ${when} if you hold on`,
-    victoryClockYou: (when: string) => `You meet the victory condition: you win on ${when} if you hold on`,
-    victoryClockStopped: (side: string) =>
-      `${side} no longer meets the victory condition. The victory clock has stopped.`,
-    victoryClockStoppedYours: 'Your guild no longer meets the victory condition. The victory clock has stopped.',
-    victoryClockStoppedYou: 'You no longer meet the victory condition. The victory clock has stopped.',
-    guildInvited: (guild: string) => `${guild} invited you to join their guild`,
-    guildBannerRaised: (level: number) => `Your guild raised its banner to level ${level}`,
-    messageReceived: (player: string) => `New message from ${player}`,
-    achievementEarned: (name: string, level: string | null) =>
-      level === null ? `Achievement earned: ${name}` : `Achievement earned: ${name} (${level})`,
-    /** M32b; `banner` is "War banner, tier II". */
-    bannerFound: (banner: string, village: string) => `Banner found at ${village}: ${banner}`,
-    bannerLost: (banner: string, village: string) => `Banner stolen from ${village}: ${banner}`,
-    bannerStolen: (banner: string, village: string) => `Your thieves stole a banner at ${village}: ${banner}`,
-    /** 1.6: attacks the player asked about are home; `loot` is "1,240" (resources), null for none. */
-    troopsBack: (village: string, from: string, loot: string | null) =>
-      loot === null
-        ? `Your troops from ${from} are back in ${village}.`
-        : `Your troops from ${from} are back in ${village} with ${loot} resources.`,
-    nobodyBack: (from: string) => `Nobody came back from ${from}.`,
-    /** A train (`from` is its target) or a farm list run (`from` null). */
-    attacksBack: (count: number, village: string, from: string | null, loot: string | null, lost: number) => {
-      const attacks = count === 1 ? '1 attack' : `${count} attacks`;
-      if (lost === count) {
-        return from === null
-          ? `Farm run from ${village}: nobody came back from ${count === 1 ? 'the attack' : `the ${attacks}`}.`
-          : `Nobody came back from the ${attacks} on ${from}.`;
-      }
-      const head =
-        from === null ? `Farm run back in ${village}: ${attacks}` : `${attacks} on ${from} back in ${village}`;
-      return `${head}${loot === null ? '' : `, ${loot} resources`}${lost === 0 ? '' : `, ${lost} lost`}.`;
-    },
-    /** 1.6: `resources` is "wood, clay". */
-    storageFull: (village: string, resources: string) => `Warehouse full in ${village}: ${resources}.`,
-  },
+  realtime: enPushTexts.realtime,
   /** The farm helper (M18): targets with the usual troops, one tap sends one attack. */
   farm: {
     title: 'Farm list',
@@ -2215,12 +2096,14 @@ export const en = {
     blockedNone:
       'You have not blocked anyone. Blocked players can still write to you, but you will not see their messages.',
     unblock: 'Unblock',
-    block: 'Block',
     blockedNote: 'You blocked this player. Their messages are hidden.',
     blockTitle: (name: string) => `Block ${name}?`,
     blockText:
       'You will not see their messages or be told about new ones, and they will not know. You can unblock them any time.',
     blockConfirm: 'Block',
+    // behind "…" next to Profile at the top of a conversation (2.0 UI review)
+    moreFor: (name: string) => `More for ${name}`,
+    blockPlayer: 'Block this player',
     write: 'Write a message',
   },
   chat: {
@@ -2701,7 +2584,7 @@ export const en = {
     graphicsLicence: 'Licence CC BY 3.0',
     fontsTitle: 'Fonts',
     fonts:
-      'Uncial Antiqua, Alegreya SC and Alegreya Sans, all under the SIL Open Font License 1.1, served from this server.',
+      'Bricolage Grotesque and Almendra (the titles of the stitched theme) under the SIL Open Font License 1.1, served from this server.',
     softwareTitle: 'Software',
     software:
       'Built with React, TanStack Query and Vite in the browser, and Spring Boot, Hibernate, Flyway and PostgreSQL on the server, all open source.',
@@ -3283,7 +3166,7 @@ export const en = {
     INVALID_INVITE_CODE: 'The invite code is wrong.',
     USERNAME_TAKEN: 'This username is already taken.',
     BAD_CREDENTIALS: 'Wrong username or password.',
-    TOO_MANY_LOGIN_ATTEMPTS: 'Too many failed attempts. Please wait a minute.',
+    TOO_MANY_LOGIN_ATTEMPTS: 'Too many failed attempts. Please wait a while and try again.',
     ACCOUNT_NOT_FOUND: 'This account no longer exists.',
     WORLD_FULL: 'The world is full. There is no free spot for a new village.',
     WORLD_NOT_OPEN: 'The world has not opened yet.',

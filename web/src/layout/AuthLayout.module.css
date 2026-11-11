@@ -4,10 +4,83 @@
   flex-direction: column;
 }
 
-.header {
+/* The sky (2.0): three flat bands, the sun or moon, two bands of hills, as in the game's header
+   (AppLayout), only higher. The name of the game stands on it; the forms lie on the land below. */
+.sky {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 11rem;
+  padding-top: env(safe-area-inset-top, 0px);
+  overflow: hidden;
+  background:
+    var(--texture), linear-gradient(var(--color-sky-1) 0 34%, var(--color-sky-2) 34% 66%, var(--color-sky-3) 66%);
+  color: var(--color-text);
+}
+
+/* a few stars (--color-star is transparent by day); ::before, so they lie behind the language button */
+.sky::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 2rem;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  box-shadow:
+    120px 14px 0 0 var(--color-star),
+    -150px 6px 0 0 var(--color-star),
+    -60px 46px 0 -0.25px var(--color-star),
+    70px -8px 0 0 var(--color-star),
+    150px 60px 0 -0.25px var(--color-star);
+}
+
+.orb {
+  position: absolute;
+  /* a little right of the form's column, so it never stands under the name */
+  left: calc(50% + 5.5rem);
+  bottom: 1.1rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--color-orb);
+}
+
+.hills {
+  position: absolute;
+  inset: auto 0 -1px;
+  display: block;
+  width: 100%;
+  height: 2.6rem;
+  pointer-events: none;
+}
+
+.hillFar {
+  fill: var(--color-hill);
+}
+
+.hillNear {
+  fill: var(--color-bg);
+}
+
+.tools {
+  position: relative;
   display: flex;
   justify-content: flex-end;
   padding: var(--space-2) var(--space-3);
+}
+
+.brand {
+  position: relative;
+  align-self: center;
+  width: 100%;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 0 var(--space-3) var(--space-4);
+  font-family: var(--font-brand);
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .main {
@@ -20,22 +93,6 @@
 
 .mainWide {
   max-width: 40rem;
-}
-
-.brand {
-  margin: var(--space-3) 0 var(--space-4);
-  text-align: center;
-  font-family: var(--font-brand);
-  font-size: var(--font-size-4xl);
-  color: var(--color-title);
-}
-
-.card {
-  padding: var(--space-4) var(--space-3);
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
 }
 
 /* Under the forms: the privacy page, quiet but easy to tap. */

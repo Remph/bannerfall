@@ -164,7 +164,7 @@ export function OutgoingCard({
  * The bell on an outgoing attack (1.6): lit while the player gets told when the troops are home,
  * quiet while not; a tap switches it.
  */
-function ReturnBell({
+export function ReturnBell({
   movement,
   pending,
   onChange,
@@ -310,12 +310,6 @@ interface MovementLineProps {
   action?: ReactNode;
 }
 
-const barStyles: Record<MovementKind, string | undefined> = {
-  ATTACK: styles.barAttack,
-  SUPPORT: styles.barSupport,
-  RETURN: styles.barReturn,
-};
-
 /** One movement: what and where, countdown and arrival time (to the second), progress, the units. */
 function MovementLine(props: MovementLineProps) {
   const {
@@ -357,7 +351,7 @@ function MovementLine(props: MovementLineProps) {
           )}
         </span>
         {departAt !== undefined && (
-          <span className={`${styles.moveBar} ${barStyles[kind] ?? ''}`} aria-hidden="true">
+          <span className={styles.moveBar} aria-hidden="true">
             <span
               className={styles.moveFill}
               style={{ transform: `scaleX(${travelProgress({ departAt, arriveAt }, now)})` }}

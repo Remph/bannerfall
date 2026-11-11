@@ -1,417 +1,503 @@
 /*
- * Colour themes (1.6): each one swaps the colours of the bars, the main buttons, the paper and the
- * text, in a light and a dark set; the map, the village picture, banners, charts and the war colours
+ * Colour themes (2.0, Horizont): each one is the land, its sky and the colour of the one main button,
+ * for the day and for the night; the map, the village picture, banners, charts and the war colours
  * (danger, success) stay as tokens.css has them. theme.ts sets data-palette on <html>; without it
- * the page shows tokens.css, which is the same as 'green'. The menu's colour picker puts
- * data-palette on each choice too, so its little preview shows that theme in the current light or
- * dark mode: hence the selectors without :root.
+ * the page shows tokens.css, which is the same as 'wiese'. The menu's colour picker puts
+ * data-palette on each choice too, so its little preview shows that theme by day or at night:
+ * hence the selectors without :root.
  *
- * Specificity: a light block [data-palette] beats tokens.css's :root (same weight, later file), a dark
- * one (three parts) beats tokens.css's dark blocks (two). Every palette sets the same tokens in all
- * three blocks, and the two dark blocks are identical, as in tokens.css (palettes.test.ts checks both).
+ * Specificity: a day block [data-palette] beats tokens.css's :root (same weight, later file), a night
+ * one (three parts) beats tokens.css's night blocks (two). Every theme sets the same tokens in all
+ * three blocks, and the two night blocks are identical, as in tokens.css (palettes.test.ts checks both).
+ * Black (the last block) is not a theme but a third mode: the chosen theme's night on a black ground.
  */
-/* Green banner: today's look, the default */
-[data-palette='green'] {
-  --color-bg: #f4eee2;
-  --color-surface: #fdfaf3;
-  --color-well: #eee5d3;
-  --color-border: #d6c9b0;
-  --color-divider: #ece3d2;
-  --color-stain: rgba(110, 90, 60, 0.07);
-  --color-text: #29241e;
-  --color-text-muted: #6f665a;
-  --color-title: #2b4537;
-  --color-accent: #2f5d45;
-  --color-on-accent: #fffaf2;
-  --color-bar: #2f4a3c;
-  --color-bar-edge: #253c30;
-  --color-on-bar: #f3ecdc;
-  --color-on-bar-muted: #b0c2b5;
-  --color-highlight: #e9c46a;
-  --map-edge: #2f4a3c;
-  --map-axis: rgba(37, 60, 48, 0.9);
-  --map-outside: #e2d9c4;
+/* Meadow: green land, a sun-yellow main button, dark green signs (the default) */
+[data-palette='wiese'] {
+  --color-bg: #c8d7b0;
+  --color-surface: #f4f6e8;
+  --color-well: #bac9a5;
+  --color-border: #86957a;
+  --color-divider: #a9b896;
+  --color-text: #1b2a21;
+  --color-text-muted: #435443;
+  --color-title: #1b2a21;
+  --color-accent: #1f3d2d;
+  --color-on-accent: #f4f6e8;
+  --color-action: #f6c843;
+  --color-action-edge: #d49a1f;
+  --color-on-action: #1b2a21;
+  --color-bar: #1f3d2d;
+  --color-bar-edge: #162b20;
+  --color-on-bar: #f4f6e8;
+  --color-on-bar-muted: #b0bbac;
+  --color-highlight: #f6c843;
+  --color-badge: #1f3d2d;
+  --color-on-badge: #f4f6e8;
+  --color-track: #6c7b64;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #a8d2e2;
+  --color-sky-2: #bfdfe9;
+  --color-sky-3: #d8ece5;
+  --color-hill: #b3ca9f;
+  --color-orb: #f6c843;
 }
 
-/* Royal blue: navy bars, blue main buttons; pale blue in the dark */
-[data-palette='blue'] {
-  --color-bg: #efede6;
-  --color-surface: #fcfbf7;
-  --color-well: #e6e4dc;
-  --color-border: #cdc8b8;
-  --color-divider: #e7e3d8;
-  --color-stain: rgba(50, 60, 90, 0.06);
-  --color-text: #22252b;
-  --color-text-muted: #5e646c;
-  --color-title: #22395c;
-  --color-accent: #2a4f86;
-  --color-on-accent: #fbfaf5;
-  --color-bar: #233a5c;
-  --color-bar-edge: #1a2c47;
-  --color-on-bar: #eef0f4;
-  --color-on-bar-muted: #a9b8cd;
-  --color-highlight: #e9c46a;
-  --map-edge: #233a5c;
-  --map-axis: rgba(26, 44, 71, 0.9);
-  --map-outside: #e2d9c4;
+/* Cornfield: straw-coloured land, a blue main button, brown signs */
+[data-palette='kornfeld'] {
+  --color-bg: #e6d9ac;
+  --color-surface: #f8f2dc;
+  --color-well: #d7cba0;
+  --color-border: #9f9473;
+  --color-divider: #c4b891;
+  --color-text: #2a2416;
+  --color-text-muted: #5f5236;
+  --color-title: #2a2416;
+  --color-accent: #4a3a24;
+  --color-on-accent: #f8f2dc;
+  --color-action: #2f5f93;
+  --color-action-edge: #1f426b;
+  --color-on-action: #ffffff;
+  --color-bar: #33291b;
+  --color-bar-edge: #241d13;
+  --color-on-bar: #f5eed6;
+  --color-on-bar-muted: #b7af9a;
+  --color-highlight: #f0c555;
+  --color-badge: #4a3a24;
+  --color-on-badge: #f5eed6;
+  --color-track: #aea37f;
+  --color-sky-muted: #574b31;
+  --color-sky-1: #9ccbe0;
+  --color-sky-2: #bcdde6;
+  --color-sky-3: #e1ebd6;
+  --color-hill: #d6c68d;
+  --color-orb: #f3a93a;
 }
 
-/* Black and gold: charcoal bars, ochre-gold main buttons */
-[data-palette='black'] {
-  --color-bg: #f1eee7;
-  --color-surface: #fdfbf6;
-  --color-well: #eae5da;
-  --color-border: #d1c9b8;
-  --color-divider: #eae4d8;
-  --color-stain: rgba(40, 35, 25, 0.06);
-  --color-text: #24211d;
-  --color-text-muted: #69635a;
-  --color-title: #3b3127;
-  --color-accent: #7d5a12;
-  --color-on-accent: #fffaf0;
-  --color-bar: #272522;
-  --color-bar-edge: #1a1917;
-  --color-on-bar: #f1ead9;
-  --color-on-bar-muted: #b4ab99;
-  --color-highlight: #e2b54a;
-  --map-edge: #272522;
-  --map-axis: rgba(26, 25, 23, 0.9);
-  --map-outside: #e2d9c4;
+/* Frost: pale winter land, an orange main button, navy signs */
+[data-palette='frost'] {
+  --color-bg: #dde7e6;
+  --color-surface: #f6f9f9;
+  --color-well: #cdd7d7;
+  --color-border: #929da0;
+  --color-divider: #b9c4c5;
+  --color-text: #17252e;
+  --color-text-muted: #475963; /* 2.0 UI review: #4d5f69 measured 4.43 : 1 on a shaded row */
+  --color-title: #17252e;
+  --color-accent: #28475f;
+  --color-on-accent: #f6f9f9;
+  --color-action: #f29a3e;
+  --color-action-edge: #c26d17;
+  --color-on-action: #22180a;
+  --color-bar: #1c3145;
+  --color-bar-edge: #142230;
+  --color-on-bar: #eef3f4;
+  --color-on-bar-muted: #abb5bc;
+  --color-highlight: #f6b25f;
+  --color-badge: #1c3145;
+  --color-on-badge: #eef3f4;
+  --color-track: #546167;
+  --color-sky-muted: #435560;
+  --color-sky-1: #b4cbe2;
+  --color-sky-2: #cfdcea;
+  --color-sky-3: #e9eeef;
+  --color-hill: #c9d8d9;
+  --color-orb: #f8e7a0;
 }
 
-/* Black and gold, OLED: the same in the light; in the dark the pages are pure black (below) */
-[data-palette='oled'] {
-  --color-bg: #f1eee7;
-  --color-surface: #fdfbf6;
-  --color-well: #eae5da;
-  --color-border: #d1c9b8;
-  --color-divider: #eae4d8;
-  --color-stain: rgba(40, 35, 25, 0.06);
-  --color-text: #24211d;
-  --color-text-muted: #69635a;
-  --color-title: #3b3127;
-  --color-accent: #7d5a12;
-  --color-on-accent: #fffaf0;
-  --color-bar: #272522;
-  --color-bar-edge: #1a1917;
-  --color-on-bar: #f1ead9;
-  --color-on-bar-muted: #b4ab99;
-  --color-highlight: #e2b54a;
-  --map-edge: #272522;
-  --map-axis: rgba(26, 25, 23, 0.9);
-  --map-outside: #e2d9c4;
+/* Heath: an evening sky over heather, a purple main button, plum signs */
+[data-palette='heide'] {
+  --color-bg: #d6d3b2;
+  --color-surface: #f6f3e4;
+  --color-well: #c8c4a7;
+  --color-border: #928d7e;
+  --color-divider: #b6b29a;
+  --color-text: #231c2a;
+  --color-text-muted: #524b56;
+  --color-title: #231c2a;
+  --color-accent: #4a3a5a;
+  --color-on-accent: #f6f3e4;
+  --color-action: #6a4c93;
+  --color-action-edge: #4a3169;
+  --color-on-action: #ffffff;
+  --color-bar: #2e2338;
+  --color-bar-edge: #201827;
+  --color-on-bar: #f3ecf2;
+  --color-on-bar-muted: #b4acb6;
+  --color-highlight: #f3b98a;
+  --color-badge: #2e2338;
+  --color-on-badge: #f3ecf2;
+  --color-track: #a4a08c;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #f2c3a0;
+  --color-sky-2: #f6d6b4;
+  --color-sky-3: #f8e8cc;
+  --color-hill: #c2b3c6;
+  --color-orb: #f08a4b;
 }
 
-/* Purple: plum bars, plum main buttons; lilac in the dark */
-[data-palette='purple'] {
-  --color-bg: #f2ede7;
-  --color-surface: #fdfaf6;
-  --color-well: #ebe3dc;
-  --color-border: #d4c7bc;
-  --color-divider: #ebe2d9;
-  --color-stain: rgba(80, 50, 80, 0.06);
-  --color-text: #28222a;
-  --color-text-muted: #6b626e;
-  --color-title: #4a2a52;
-  --color-accent: #6a3577;
-  --color-on-accent: #fcf8f4;
-  --color-bar: #47294d;
-  --color-bar-edge: #371f3c;
-  --color-on-bar: #f4ecef;
-  --color-on-bar-muted: #c4b0c8;
-  --color-highlight: #e9c46a;
-  --map-edge: #47294d;
-  --map-axis: rgba(55, 31, 60, 0.9);
-  --map-outside: #e2d9c4;
-}
-
-/* Leather and forest: brown bars, the green main buttons stay; mint green in the dark */
-[data-palette='leather'] {
-  --color-bg: #f0e7d8;
-  --color-surface: #fcf6ec;
-  --color-well: #e9ddc8;
-  --color-border: #d0bd9d;
-  --color-divider: #e8dac3;
-  --color-stain: rgba(110, 75, 40, 0.08);
-  --color-text: #2b231b;
-  --color-text-muted: #6b5e4e;
-  --color-title: #4a3220;
-  --color-accent: #2f5d45;
-  --color-on-accent: #fffaf2;
-  --color-bar: #4d3627;
-  --color-bar-edge: #3b291d;
-  --color-on-bar: #f4e9d6;
-  --color-on-bar-muted: #c8b298;
-  --color-highlight: #e9c46a;
-  --map-edge: #4d3627;
-  --map-axis: rgba(59, 41, 29, 0.9);
-  --map-outside: #e2d9c4;
+/* Stitched: Horizont as a tapestry. Wool colours, a gold main button, indigo signs; its weave, dashed
+   seams and title face are look switches (looks.css), not colours */
+[data-palette='gestickt'] {
+  --color-bg: #d2d3b2;
+  --color-surface: #ebe1c9;
+  --color-well: #c3c4a2;
+  --color-border: #7d745e;
+  --color-divider: #8f8870;
+  --color-text: #3f2e22;
+  --color-text-muted: #5a4838;
+  --color-title: #3f2e22;
+  --color-accent: #34506c;
+  --color-on-accent: #f6eeda;
+  --color-action: #d9a93c;
+  --color-action-edge: #a97c1e;
+  --color-on-action: #3f2e22;
+  --color-bar: #2b4560;
+  --color-bar-edge: #1f3348;
+  --color-on-bar: #efe6cf;
+  --color-on-bar-muted: #b3bcc4;
+  --color-highlight: #e2b955;
+  --color-badge: #34506c;
+  --color-on-badge: #f6eeda;
+  --color-track: #6b604d;
+  --color-sky-muted: #4a382b;
+  --color-sky-1: #aac6d5;
+  --color-sky-2: #b7cfd8;
+  --color-sky-3: #cedcd3;
+  --color-hill: #b7c096;
+  --color-orb: #d9a93c;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light'])[data-palette='green'],
-  :root:not([data-theme='light']) [data-palette='green'] {
-    --color-bg: #1a1713;
-    --color-surface: #24201b;
-    --color-well: #302a23;
-    --color-border: #4a4135;
-    --color-divider: #302a23;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #eee6d6;
-    --color-text-muted: #aaa08f;
-    --color-title: #e9c46a;
-    --color-accent: #e9c46a;
-    --color-on-accent: #1a1713;
-    --color-bar: #18261f;
-    --color-bar-edge: #111b16;
-    --color-on-bar: #e6dfcd;
-    --color-on-bar-muted: #8ea596;
-    --color-highlight: #e9c46a;
-    --map-edge: #8ea596;
-    --map-axis: rgba(17, 27, 22, 0.9);
-    --map-outside: #1d1a15;
+  :root:not([data-theme='light'])[data-palette='wiese'],
+  :root:not([data-theme='light']) [data-palette='wiese'] {
+    --color-bg: #1b2921;
+    --color-surface: #26372c;
+    --color-well: #303d34;
+    --color-border: #697469;
+    --color-divider: #404c43;
+    --color-text: #e8eede;
+    --color-text-muted: #a3b29f;
+    --color-title: #e8eede;
+    --color-accent: #9fc0a0;
+    --color-on-accent: #1b2921;
+    --color-action: #f6c843;
+    --color-action-edge: #d49a1f;
+    --color-on-action: #1b2a21;
+    --color-bar: #0f1813;
+    --color-bar-edge: #0a110d;
+    --color-on-bar: #e8eede;
+    --color-on-bar-muted: #a3aa9d;
+    --color-highlight: #f6c843;
+    --color-badge: #35523f;
+    --color-on-badge: #e8eede;
+    --color-track: #636e63;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-1: #0e1830;
+    --color-sky-2: #142344;
+    --color-sky-3: #1c3150;
+    --color-hill: #22352a;
+    --color-orb: #ece8cf;
   }
-  :root:not([data-theme='light'])[data-palette='blue'],
-  :root:not([data-theme='light']) [data-palette='blue'] {
-    --color-bg: #13161b;
-    --color-surface: #1b1f26;
-    --color-well: #252a32;
-    --color-border: #3b4250;
-    --color-divider: #252a32;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #e8e6e0;
-    --color-text-muted: #a1a6ae;
-    --color-title: #e9c46a;
-    --color-accent: #93b8e8;
-    --color-on-accent: #10141a;
-    --color-bar: #152139;
-    --color-bar-edge: #0e172a;
-    --color-on-bar: #e3e7ee;
-    --color-on-bar-muted: #8b9ab1;
-    --color-highlight: #e9c46a;
-    --map-edge: #8b9ab1;
-    --map-axis: rgba(14, 23, 42, 0.9);
-    --map-outside: #15181d;
+
+  :root:not([data-theme='light'])[data-palette='kornfeld'],
+  :root:not([data-theme='light']) [data-palette='kornfeld'] {
+    --color-bg: #231f15;
+    --color-surface: #322b1c;
+    --color-well: #383328;
+    --color-border: #716b5d;
+    --color-divider: #484337;
+    --color-text: #f0e8d2;
+    --color-text-muted: #b3a88c;
+    --color-title: #f0e8d2;
+    --color-accent: #cdb98a;
+    --color-on-accent: #231f15;
+    --color-action: #86b1e3;
+    --color-action-edge: #4f7fb6;
+    --color-on-action: #101a2a;
+    --color-bar: #15120b;
+    --color-bar-edge: #0f0d08;
+    --color-on-bar: #f0e8d2;
+    --color-on-bar-muted: #aaa492;
+    --color-highlight: #f0c555;
+    --color-badge: #4f432c;
+    --color-on-badge: #f0e8d2;
+    --color-track: #5a5548;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-1: #101a33;
+    --color-sky-2: #182647;
+    --color-sky-3: #243554;
+    --color-hill: #2e281a;
+    --color-orb: #f1dfae;
   }
-  :root:not([data-theme='light'])[data-palette='black'],
-  :root:not([data-theme='light']) [data-palette='black'] {
-    --color-bg: #121211;
-    --color-surface: #1c1b19;
-    --color-well: #272522;
-    --color-border: #45403a;
-    --color-divider: #272522;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #ece6d8;
-    --color-text-muted: #a8a093;
-    --color-title: #e2b54a;
-    --color-accent: #e2b54a;
-    --color-on-accent: #141210;
-    --color-bar: #0b0b0a;
-    --color-bar-edge: #000000;
-    --color-on-bar: #e8e0cc;
-    --color-on-bar-muted: #9c9483;
-    --color-highlight: #e2b54a;
-    --map-edge: #9c9483;
-    --map-axis: rgba(0, 0, 0, 0.9);
-    --map-outside: #141413;
+
+  :root:not([data-theme='light'])[data-palette='frost'],
+  :root:not([data-theme='light']) [data-palette='frost'] {
+    --color-bg: #17212a;
+    --color-surface: #22303c;
+    --color-well: #2c353e;
+    --color-border: #666f75;
+    --color-divider: #3c464e;
+    --color-text: #e6edf0;
+    --color-text-muted: #9db0bb;
+    --color-title: #e6edf0;
+    --color-accent: #9fbdd2;
+    --color-on-accent: #17212a;
+    --color-action: #f29a3e;
+    --color-action-edge: #c26d17;
+    --color-on-action: #22180a;
+    --color-bar: #0d141b;
+    --color-bar-edge: #090e13;
+    --color-on-bar: #e6edf0;
+    --color-on-bar-muted: #a1a8ac;
+    --color-highlight: #f6b25f;
+    --color-badge: #31485c;
+    --color-on-badge: #e6edf0;
+    --color-track: #4f585f;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-1: #0a1222;
+    --color-sky-2: #111d36;
+    --color-sky-3: #1a2b48;
+    --color-hill: #1e2c38;
+    --color-orb: #eef1f4;
   }
-  :root:not([data-theme='light'])[data-palette='oled'],
-  :root:not([data-theme='light']) [data-palette='oled'] {
-    --color-bg: #000000;
-    --color-surface: #0c0b0a;
-    --color-well: #181715;
-    --color-border: #38342d;
-    --color-divider: #1a1917;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #ece6d8;
-    --color-text-muted: #a8a093;
-    --color-title: #e2b54a;
-    --color-accent: #e2b54a;
-    --color-on-accent: #141210;
-    --color-bar: #000000;
-    --color-bar-edge: #12110f;
-    --color-on-bar: #e8e0cc;
-    --color-on-bar-muted: #9c9483;
-    --color-highlight: #e2b54a;
-    --map-edge: #9c9483;
-    --map-axis: rgba(0, 0, 0, 0.9);
-    --map-outside: #000000;
+
+  :root:not([data-theme='light'])[data-palette='heide'],
+  :root:not([data-theme='light']) [data-palette='heide'] {
+    --color-bg: #1f1b24;
+    --color-surface: #2c2634;
+    --color-well: #343038;
+    --color-border: #6e6971;
+    --color-divider: #444048;
+    --color-text: #efe8ee;
+    --color-text-muted: #aea3b3;
+    --color-title: #efe8ee;
+    --color-accent: #c3b0d6;
+    --color-on-accent: #1f1b24;
+    --color-action: #b99be0;
+    --color-action-edge: #8565b3;
+    --color-on-action: #1c1326;
+    --color-bar: #120f16;
+    --color-bar-edge: #0d0a0f;
+    --color-on-bar: #efe8ee;
+    --color-on-bar-muted: #a8a3a9;
+    --color-highlight: #f3b98a;
+    --color-badge: #4a3c5c;
+    --color-on-badge: #efe8ee;
+    --color-track: #555059;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-1: #150f26;
+    --color-sky-2: #22163a;
+    --color-sky-3: #35204a;
+    --color-hill: #2c2436;
+    --color-orb: #f3e3d0;
   }
-  :root:not([data-theme='light'])[data-palette='purple'],
-  :root:not([data-theme='light']) [data-palette='purple'] {
-    --color-bg: #17141a;
-    --color-surface: #211c23;
-    --color-well: #2c2530;
-    --color-border: #4a3f4e;
-    --color-divider: #2c2530;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #ece4ea;
-    --color-text-muted: #a99fab;
-    --color-title: #e9c46a;
-    --color-accent: #d3a8e0;
-    --color-on-accent: #17141a;
-    --color-bar: #23162a;
-    --color-bar-edge: #190f1f;
-    --color-on-bar: #ebe1ec;
-    --color-on-bar-muted: #a593a9;
-    --color-highlight: #e9c46a;
-    --map-edge: #a593a9;
-    --map-axis: rgba(25, 15, 31, 0.9);
-    --map-outside: #18151a;
-  }
-  :root:not([data-theme='light'])[data-palette='leather'],
-  :root:not([data-theme='light']) [data-palette='leather'] {
-    --color-bg: #19140f;
-    --color-surface: #231c15;
-    --color-well: #2f261d;
-    --color-border: #4d3f30;
-    --color-divider: #2f261d;
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #efe4d2;
-    --color-text-muted: #ad9e88;
-    --color-title: #e9c46a;
-    --color-accent: #86c9a0;
-    --color-on-accent: #10170f;
-    --color-bar: #2b1e14;
-    --color-bar-edge: #1f150d;
-    --color-on-bar: #ecdfc8;
-    --color-on-bar-muted: #aa977e;
-    --color-highlight: #e9c46a;
-    --map-edge: #aa977e;
-    --map-axis: rgba(31, 21, 13, 0.9);
-    --map-outside: #1a150f;
+
+  :root:not([data-theme='light'])[data-palette='gestickt'],
+  :root:not([data-theme='light']) [data-palette='gestickt'] {
+    --color-bg: #1e2a24;
+    --color-surface: #2a382f;
+    --color-well: #2c3a32;
+    --color-border: #6f7566;
+    --color-divider: #59604f;
+    --color-text: #efe6cf;
+    --color-text-muted: #b9ae98;
+    --color-title: #efe6cf;
+    --color-accent: #a9c1d9;
+    --color-on-accent: #14202c;
+    --color-action: #d9a93c;
+    --color-action-edge: #a97c1e;
+    --color-on-action: #2a1f16;
+    --color-bar: #101822;
+    --color-bar-edge: #0a1018;
+    --color-on-bar: #efe6cf;
+    --color-on-bar-muted: #9aa3ac;
+    --color-highlight: #e2b955;
+    --color-badge: #3d5a78;
+    --color-on-badge: #f6eeda;
+    --color-track: #545b50;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-1: #131c2e;
+    --color-sky-2: #1a2740;
+    --color-sky-3: #24364f;
+    --color-hill: #27362c;
+    --color-orb: #efe6cf;
   }
 }
 
-:root[data-theme='dark'][data-palette='green'],
-:root[data-theme='dark'] [data-palette='green'] {
-  --color-bg: #1a1713;
-  --color-surface: #24201b;
-  --color-well: #302a23;
-  --color-border: #4a4135;
-  --color-divider: #302a23;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #eee6d6;
-  --color-text-muted: #aaa08f;
-  --color-title: #e9c46a;
-  --color-accent: #e9c46a;
-  --color-on-accent: #1a1713;
-  --color-bar: #18261f;
-  --color-bar-edge: #111b16;
-  --color-on-bar: #e6dfcd;
-  --color-on-bar-muted: #8ea596;
-  --color-highlight: #e9c46a;
-  --map-edge: #8ea596;
-  --map-axis: rgba(17, 27, 22, 0.9);
-  --map-outside: #1d1a15;
+:root[data-theme='dark'][data-palette='wiese'],
+:root[data-theme='dark'] [data-palette='wiese'] {
+  --color-bg: #1b2921;
+  --color-surface: #26372c;
+  --color-well: #303d34;
+  --color-border: #697469;
+  --color-divider: #404c43;
+  --color-text: #e8eede;
+  --color-text-muted: #a3b29f;
+  --color-title: #e8eede;
+  --color-accent: #9fc0a0;
+  --color-on-accent: #1b2921;
+  --color-action: #f6c843;
+  --color-action-edge: #d49a1f;
+  --color-on-action: #1b2a21;
+  --color-bar: #0f1813;
+  --color-bar-edge: #0a110d;
+  --color-on-bar: #e8eede;
+  --color-on-bar-muted: #a3aa9d;
+  --color-highlight: #f6c843;
+  --color-badge: #35523f;
+  --color-on-badge: #e8eede;
+  --color-track: #636e63;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #0e1830;
+  --color-sky-2: #142344;
+  --color-sky-3: #1c3150;
+  --color-hill: #22352a;
+  --color-orb: #ece8cf;
 }
-:root[data-theme='dark'][data-palette='blue'],
-:root[data-theme='dark'] [data-palette='blue'] {
-  --color-bg: #13161b;
-  --color-surface: #1b1f26;
-  --color-well: #252a32;
-  --color-border: #3b4250;
-  --color-divider: #252a32;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #e8e6e0;
-  --color-text-muted: #a1a6ae;
-  --color-title: #e9c46a;
-  --color-accent: #93b8e8;
-  --color-on-accent: #10141a;
-  --color-bar: #152139;
-  --color-bar-edge: #0e172a;
-  --color-on-bar: #e3e7ee;
-  --color-on-bar-muted: #8b9ab1;
-  --color-highlight: #e9c46a;
-  --map-edge: #8b9ab1;
-  --map-axis: rgba(14, 23, 42, 0.9);
-  --map-outside: #15181d;
+
+:root[data-theme='dark'][data-palette='kornfeld'],
+:root[data-theme='dark'] [data-palette='kornfeld'] {
+  --color-bg: #231f15;
+  --color-surface: #322b1c;
+  --color-well: #383328;
+  --color-border: #716b5d;
+  --color-divider: #484337;
+  --color-text: #f0e8d2;
+  --color-text-muted: #b3a88c;
+  --color-title: #f0e8d2;
+  --color-accent: #cdb98a;
+  --color-on-accent: #231f15;
+  --color-action: #86b1e3;
+  --color-action-edge: #4f7fb6;
+  --color-on-action: #101a2a;
+  --color-bar: #15120b;
+  --color-bar-edge: #0f0d08;
+  --color-on-bar: #f0e8d2;
+  --color-on-bar-muted: #aaa492;
+  --color-highlight: #f0c555;
+  --color-badge: #4f432c;
+  --color-on-badge: #f0e8d2;
+  --color-track: #5a5548;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #101a33;
+  --color-sky-2: #182647;
+  --color-sky-3: #243554;
+  --color-hill: #2e281a;
+  --color-orb: #f1dfae;
 }
-:root[data-theme='dark'][data-palette='black'],
-:root[data-theme='dark'] [data-palette='black'] {
-  --color-bg: #121211;
-  --color-surface: #1c1b19;
-  --color-well: #272522;
-  --color-border: #45403a;
-  --color-divider: #272522;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #ece6d8;
-  --color-text-muted: #a8a093;
-  --color-title: #e2b54a;
-  --color-accent: #e2b54a;
-  --color-on-accent: #141210;
-  --color-bar: #0b0b0a;
-  --color-bar-edge: #000000;
-  --color-on-bar: #e8e0cc;
-  --color-on-bar-muted: #9c9483;
-  --color-highlight: #e2b54a;
-  --map-edge: #9c9483;
-  --map-axis: rgba(0, 0, 0, 0.9);
-  --map-outside: #141413;
+
+:root[data-theme='dark'][data-palette='frost'],
+:root[data-theme='dark'] [data-palette='frost'] {
+  --color-bg: #17212a;
+  --color-surface: #22303c;
+  --color-well: #2c353e;
+  --color-border: #666f75;
+  --color-divider: #3c464e;
+  --color-text: #e6edf0;
+  --color-text-muted: #9db0bb;
+  --color-title: #e6edf0;
+  --color-accent: #9fbdd2;
+  --color-on-accent: #17212a;
+  --color-action: #f29a3e;
+  --color-action-edge: #c26d17;
+  --color-on-action: #22180a;
+  --color-bar: #0d141b;
+  --color-bar-edge: #090e13;
+  --color-on-bar: #e6edf0;
+  --color-on-bar-muted: #a1a8ac;
+  --color-highlight: #f6b25f;
+  --color-badge: #31485c;
+  --color-on-badge: #e6edf0;
+  --color-track: #4f585f;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #0a1222;
+  --color-sky-2: #111d36;
+  --color-sky-3: #1a2b48;
+  --color-hill: #1e2c38;
+  --color-orb: #eef1f4;
 }
-:root[data-theme='dark'][data-palette='oled'],
-:root[data-theme='dark'] [data-palette='oled'] {
+
+:root[data-theme='dark'][data-palette='heide'],
+:root[data-theme='dark'] [data-palette='heide'] {
+  --color-bg: #1f1b24;
+  --color-surface: #2c2634;
+  --color-well: #343038;
+  --color-border: #6e6971;
+  --color-divider: #444048;
+  --color-text: #efe8ee;
+  --color-text-muted: #aea3b3;
+  --color-title: #efe8ee;
+  --color-accent: #c3b0d6;
+  --color-on-accent: #1f1b24;
+  --color-action: #b99be0;
+  --color-action-edge: #8565b3;
+  --color-on-action: #1c1326;
+  --color-bar: #120f16;
+  --color-bar-edge: #0d0a0f;
+  --color-on-bar: #efe8ee;
+  --color-on-bar-muted: #a8a3a9;
+  --color-highlight: #f3b98a;
+  --color-badge: #4a3c5c;
+  --color-on-badge: #efe8ee;
+  --color-track: #555059;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #150f26;
+  --color-sky-2: #22163a;
+  --color-sky-3: #35204a;
+  --color-hill: #2c2436;
+  --color-orb: #f3e3d0;
+}
+
+:root[data-theme='dark'][data-palette='gestickt'],
+:root[data-theme='dark'] [data-palette='gestickt'] {
+  --color-bg: #1e2a24;
+  --color-surface: #2a382f;
+  --color-well: #2c3a32;
+  --color-border: #6f7566;
+  --color-divider: #59604f;
+  --color-text: #efe6cf;
+  --color-text-muted: #b9ae98;
+  --color-title: #efe6cf;
+  --color-accent: #a9c1d9;
+  --color-on-accent: #14202c;
+  --color-action: #d9a93c;
+  --color-action-edge: #a97c1e;
+  --color-on-action: #2a1f16;
+  --color-bar: #101822;
+  --color-bar-edge: #0a1018;
+  --color-on-bar: #efe6cf;
+  --color-on-bar-muted: #9aa3ac;
+  --color-highlight: #e2b955;
+  --color-badge: #3d5a78;
+  --color-on-badge: #f6eeda;
+  --color-track: #545b50;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-1: #131c2e;
+  --color-sky-2: #1a2740;
+  --color-sky-3: #24364f;
+  --color-hill: #27362c;
+  --color-orb: #efe6cf;
+}
+
+/*
+ * Black (for OLED screens): theme.ts sets data-theme='dark' and data-black together, so everything
+ * made for the night applies, and this block (after the themes, same weight) turns the ground, the
+ * sky and the bars pure black. The theme keeps its own colours for buttons, signs and text; what
+ * lifts off the black is mixed from the theme's badge colour.
+ */
+:root[data-theme='dark'][data-black],
+/* the theme picker's tiles carry their own data-palette: they show the black mode too */
+:root[data-theme='dark'][data-black] [data-palette] {
   --color-bg: #000000;
-  --color-surface: #0c0b0a;
-  --color-well: #181715;
-  --color-border: #38342d;
-  --color-divider: #1a1917;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #ece6d8;
-  --color-text-muted: #a8a093;
-  --color-title: #e2b54a;
-  --color-accent: #e2b54a;
-  --color-on-accent: #141210;
+  --color-surface: color-mix(in srgb, var(--color-badge) 42%, #000000);
+  --color-well: color-mix(in srgb, var(--color-badge) 34%, #000000);
   --color-bar: #000000;
-  --color-bar-edge: #12110f;
-  --color-on-bar: #e8e0cc;
-  --color-on-bar-muted: #9c9483;
-  --color-highlight: #e2b54a;
-  --map-edge: #9c9483;
-  --map-axis: rgba(0, 0, 0, 0.9);
+  --color-bar-edge: color-mix(in srgb, var(--color-badge) 34%, #000000);
+  --color-sky-1: #000000;
+  --color-sky-2: #03060d;
+  --color-sky-3: #070c19;
+  --color-hill: color-mix(in srgb, var(--color-badge) 30%, #000000);
   --map-outside: #000000;
-}
-:root[data-theme='dark'][data-palette='purple'],
-:root[data-theme='dark'] [data-palette='purple'] {
-  --color-bg: #17141a;
-  --color-surface: #211c23;
-  --color-well: #2c2530;
-  --color-border: #4a3f4e;
-  --color-divider: #2c2530;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #ece4ea;
-  --color-text-muted: #a99fab;
-  --color-title: #e9c46a;
-  --color-accent: #d3a8e0;
-  --color-on-accent: #17141a;
-  --color-bar: #23162a;
-  --color-bar-edge: #190f1f;
-  --color-on-bar: #ebe1ec;
-  --color-on-bar-muted: #a593a9;
-  --color-highlight: #e9c46a;
-  --map-edge: #a593a9;
-  --map-axis: rgba(25, 15, 31, 0.9);
-  --map-outside: #18151a;
-}
-:root[data-theme='dark'][data-palette='leather'],
-:root[data-theme='dark'] [data-palette='leather'] {
-  --color-bg: #19140f;
-  --color-surface: #231c15;
-  --color-well: #2f261d;
-  --color-border: #4d3f30;
-  --color-divider: #2f261d;
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #efe4d2;
-  --color-text-muted: #ad9e88;
-  --color-title: #e9c46a;
-  --color-accent: #86c9a0;
-  --color-on-accent: #10170f;
-  --color-bar: #2b1e14;
-  --color-bar-edge: #1f150d;
-  --color-on-bar: #ecdfc8;
-  --color-on-bar-muted: #aa977e;
-  --color-highlight: #e9c46a;
-  --map-edge: #aa977e;
-  --map-axis: rgba(31, 21, 13, 0.9);
-  --map-outside: #1a150f;
+  /* the mound's shade is the ground's own black here: hilly fields far out take the theme's outline grey */
+  --map-hill-far: var(--color-border);
 }

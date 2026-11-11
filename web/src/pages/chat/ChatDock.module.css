@@ -15,10 +15,11 @@
   gap: var(--space-2);
   min-height: var(--touch-target);
   padding: 0 1.1rem;
-  border: 2px solid var(--color-bar-edge);
-  border-radius: var(--radius-pill);
-  background: var(--color-bar);
-  color: var(--color-on-bar);
+  /* 2.0: a quiet button that floats over the page (the pre-game's chat entry; in the game the rail opens the chat) */
+  border: var(--line) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: var(--shadow-float);
   font: inherit;
   font-weight: 600;
@@ -26,12 +27,12 @@
 }
 
 .launcher:hover {
-  color: var(--color-highlight);
+  background: var(--color-well);
 }
 
 .launcher:focus-visible,
 .minimize:focus-visible {
-  outline: 2px solid var(--color-highlight);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -54,27 +55,27 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 3px double var(--color-border);
+  border: 0;
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-float);
 }
 
-/* the green banner bar of the design direction */
+/* the panel's head: the title and the minimise button on the panel, split from the lines by the thin line */
 .header {
   flex: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-1) 0 var(--space-3);
-  background: var(--color-bar);
-  color: var(--color-highlight);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
+  color: var(--color-accent);
 }
 
 .title {
   flex: 1;
   margin: 0;
-  color: var(--color-on-bar);
+  color: var(--color-title);
   font-size: var(--font-size-lg);
 }
 
@@ -86,13 +87,19 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--color-on-bar);
+  color: var(--color-text);
   font-size: var(--font-size-xl);
   cursor: pointer;
 }
 
 .minimize:hover {
-  background: var(--color-bar-hover);
+  background: var(--color-well);
+}
+
+/* The Now tab at the right edge (1024 to 1599 px and on the map, 2.0): the panel stands left of it, so the
+   two never share a corner */
+.dock.besideNowTab {
+  right: calc(var(--now-tab-width) + var(--space-2));
 }
 
 /* From 1600 px (1.3): a column at the right edge, from below the bars to the bottom of the window */
@@ -105,4 +112,11 @@
   border-width: 0 0 0 3px;
   border-radius: 0;
   box-shadow: none;
+}
+
+/* Under the Now list (2.0): the lower part of the strip */
+.dock.column.belowNow {
+  top: auto;
+  height: var(--chat-dock-height);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }

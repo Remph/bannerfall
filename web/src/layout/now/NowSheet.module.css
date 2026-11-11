@@ -1,0 +1,111 @@
+/* The phone's pull-down sheet. It lies under the sky (z-index 9 against the header's 10) and is
+   revealed from the sky's bottom edge down: the sky's land pulled down, not a window that appears. */
+.live {
+  position: fixed;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  top: var(--app-header-height, 0px);
+  visibility: hidden;
+  /* the shadow follows the clipped shape */
+  filter: drop-shadow(0 10px 14px rgba(20, 35, 25, 0.28));
+}
+
+.clip {
+  max-height: min(68dvh, calc(100dvh - var(--app-header-height, 0px) - 5.5rem));
+  overflow-y: auto;
+  padding: 0.9rem var(--space-3) 1.6rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  clip-path: inset(0 0 100% 0);
+  overscroll-behavior: contain;
+}
+
+.inner {
+  will-change: transform, opacity;
+}
+
+.lip {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 4.4rem;
+  height: 1.5rem;
+  margin: 0 0 0 -2.2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0 0 1rem 1rem;
+  background: var(--color-bg);
+  opacity: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* the grip is small to look at; its target reaches past it to 44 px and more (2.0 UI review) */
+.lip::before {
+  content: '';
+  position: absolute;
+  inset: -0.25rem -1rem -1.15rem;
+}
+
+.lip span {
+  width: 2.4rem;
+  height: 0.28rem;
+  border-radius: 0.2rem;
+  background: var(--color-border);
+}
+
+.lip:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.scrim {
+  position: fixed;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--app-header-height, 0px);
+  background: rgba(20, 35, 25, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  touch-action: none;
+}
+
+/* a soft shadow where the sky meets the sheet */
+.shade {
+  position: fixed;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  top: var(--app-header-height, 0px);
+  height: 1.1rem;
+  background: linear-gradient(rgba(20, 35, 25, 0.3), transparent);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.live[data-animate='true'] .clip,
+.live[data-animate='true'] .inner,
+.live[data-animate='true'] .lip,
+.scrim[data-animate='true'],
+.shade[data-animate='true'] {
+  transition:
+    clip-path 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.28s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live[data-animate='true'] .clip,
+  .live[data-animate='true'] .inner,
+  .live[data-animate='true'] .lip,
+  .scrim[data-animate='true'],
+  .shade[data-animate='true'] {
+    transition: none;
+  }
+}

@@ -1,17 +1,12 @@
 .card {
   min-width: 0;
-  /* clip, not hidden: hidden would make the card a scroll container, and position: sticky inside it
-     (the rally point's send buttons) would stick to the card instead of the screen */
-  overflow: clip;
-  background: var(--color-surface);
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
+  /* 2.0: a plain section on the land. No fill, no border, and nothing to clip: only what floats has a
+     surface. A row's highlight may reach a little past the section's text. */
 }
 
 .title {
-  padding: var(--space-2) var(--space-3) var(--space-1);
-  font-size: var(--font-size-lg);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-1);
+  font-size: var(--font-size-xl);
   color: var(--color-text);
 }
 
@@ -26,7 +21,7 @@
   gap: var(--space-2);
   width: 100%;
   min-height: var(--touch-target);
-  padding: var(--space-2) var(--space-3) var(--space-1);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-1);
   border: 0;
   background: none;
   color: inherit;
@@ -50,10 +45,13 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1) var(--space-2);
-  padding: 0 var(--space-3) var(--space-2) 0;
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-2) 0;
 }
 
 .action {
+  /* never wider than the section: a long switch scrolls inside itself (the section clips nothing since 2.0) */
+  min-width: 0;
+  max-width: 100%;
   margin-left: auto;
   padding-top: var(--space-1);
 }

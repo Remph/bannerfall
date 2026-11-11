@@ -13,7 +13,7 @@ import java.time.Instant;
 public record ResearchOrderDto(
         long id, long villageId, UnitType unit, int level, Instant startAt, Instant endAt) {
 
-    static ResearchOrderDto of(ResearchOrder order) {
+    public static ResearchOrderDto of(ResearchOrder order) {
         return new ResearchOrderDto(
                 order.getId(),
                 order.getVillageId(),

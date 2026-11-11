@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, type RefObject } from 'react';
 import { Icon } from '../../components/Icon';
 import { badgeText } from '../../game/reports';
 import { useT } from '../../i18n';
@@ -6,24 +6,43 @@ import { CHAT_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { useChatUnread } from '../../realtime/chatSeen';
 import { ChatPanel } from './ChatPanel';
 import styles from './ChatDock.module.css';
-import { loadChatDockOpen, saveChatDockOpen } from './chatDockStorage';
+import { useChatDock } from './useChatDock';
+
+interface ChatDockProps {
+  onMap?: boolean;
+  /**
+   * From `useChatDock`, when the frame holds the state: the game's rail has a Chat entry that opens
+   * and closes the panel (2.0), so there is no button here. Without them (the pre-game frame, which
+   * has no rail) the dock keeps its own state and minimises to a button with the unread count.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Where the keyboard focus goes when the panel is minimised (the rail's Chat entry), so it isn't lost. */
+  focusAfterMinimise?: RefObject<HTMLElement | null>;
+  /** The right column has the Now list above it (2.0): the chat takes the lower part of the strip. */
+  belowNow?: boolean;
+  /** The Now tab sits at the right edge (2.0): the floating panel keeps clear of it. */
+  besideNowTab?: boolean;
+}
 
 /**
- * Desktop (≥ 1024 px): the world chat as a floating panel at the bottom right, minimised to a
- * button with the unread count (05-frontend §8). The choice is remembered. From 1600 px the open
- * chat is a column at the right edge below the bars instead, and the page moves left (1.3).
- * `onMap`: on the map it starts minimised, so it doesn't cover the side column (M11b review);
- * opening or minimising it there isn't remembered, the other pages keep the stored choice.
+ * Desktop (≥ 1024 px): the world chat as a floating panel at the bottom right (05-frontend §8).
+ * The choice is remembered. From 1600 px the open chat is a column at the right edge below the sky
+ * instead, and the page moves left (1.3); not on the map, where it floats over the side column.
  */
-export function ChatDock({ onMap = false }: { onMap?: boolean }) {
+export function ChatDock({
+  onMap = false,
+  open: givenOpen,
+  onOpenChange,
+  focusAfterMinimise,
+  belowNow = false,
+  besideNowTab = false,
+}: ChatDockProps) {
   const t = useT();
-  const [open, setOpenState] = useState(() => !onMap && loadChatDockOpen());
-  // Entering or leaving the map: adjust while rendering (react.dev "Storing information from previous renders").
-  const [wasOnMap, setWasOnMap] = useState(onMap);
-  if (onMap !== wasOnMap) {
-    setWasOnMap(onMap);
-    setOpenState(!onMap && loadChatDockOpen());
-  }
+  const [ownOpen, setOwnOpen] = useChatDock(onMap);
+  const framed = givenOpen !== undefined && onOpenChange !== undefined;
+  const open = framed ? givenOpen : ownOpen;
+  const setOpen = framed ? onOpenChange : setOwnOpen;
   const unread = useChatUnread();
   const badge = badgeText(unread);
   const panelId = useId();
@@ -31,13 +50,9 @@ export function ChatDock({ onMap = false }: { onMap?: boolean }) {
   // not on the map: there it would take the map's width (it floats over the side column instead)
   const column = useMediaQuery(CHAT_COLUMN_QUERY) && !onMap;
 
-  function setOpen(next: boolean) {
-    setOpenState(next);
-    if (!onMap) {
-      saveChatDockOpen(next);
-    }
+  if (!open && framed) {
+    return null;
   }
-
   if (!open) {
     return (
       <button
@@ -62,7 +77,14 @@ export function ChatDock({ onMap = false }: { onMap?: boolean }) {
   return (
     <section
       id={panelId}
-      className={column ? `${styles.dock} ${styles.column}` : styles.dock}
+      className={[
+        styles.dock,
+        column && styles.column,
+        column && belowNow && styles.belowNow,
+        !column && besideNowTab && styles.besideNowTab,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       aria-labelledby={titleId}
       // AppLayout's CSS makes room for it
       data-chat-column={column || undefined}
@@ -75,7 +97,11 @@ export function ChatDock({ onMap = false }: { onMap?: boolean }) {
         <button
           type="button"
           className={styles.minimize}
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            // focus first: the button that has it is about to leave the page
+            focusAfterMinimise?.current?.focus();
+            setOpen(false);
+          }}
           aria-expanded={true}
           aria-controls={panelId}
           aria-label={t.chat.minimize}

@@ -1,0 +1,112 @@
+/* The tab sits on the right edge below the sky; the drawer slides in over the page. */
+.tab {
+  position: fixed;
+  z-index: 14;
+  right: 0;
+  top: calc(var(--app-header-height, 0px) + 4.5rem);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 0.35rem 0.8rem;
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-float);
+  font: 700 var(--font-size-sm) / 1 var(--font-body);
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--color-well);
+}
+
+.tab:focus-visible,
+.close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.label {
+  writing-mode: vertical-rl;
+  letter-spacing: 0.04em;
+}
+
+.count {
+  color: var(--color-text-muted);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* an attack is coming: the red dot, the only red of the tab */
+.dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--color-war);
+}
+
+.scrim {
+  position: fixed;
+  z-index: 13;
+  inset: var(--app-header-height, 0px) 0 0 0;
+  background: rgba(20, 35, 25, 0.35);
+  animation: fade 0.2s ease-out;
+}
+
+.drawer {
+  position: fixed;
+  z-index: 15;
+  top: var(--app-header-height, 0px);
+  right: 0;
+  bottom: 0;
+  width: min(22rem, 100vw);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-quiet);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  color: var(--color-text);
+  overscroll-behavior: contain;
+  animation: slide-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.close {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin-right: calc(var(--space-2) * -1);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-well);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .scrim {
+    animation: none;
+  }
+}

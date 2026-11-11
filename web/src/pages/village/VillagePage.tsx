@@ -21,7 +21,7 @@ import { useGameNow } from '../../game/serverTime';
 import { presentUnits, supportTotals } from '../../game/troops';
 import { useI18n, useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
-import { DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
+import { CHAT_COLUMN_QUERY, DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { useWorldEnded } from '../../layout/worldEnd';
 import { bannersPath } from '../banners/bannerPaths';
 import { warehousePath } from '../warehouse/warehousePaths';
@@ -48,6 +48,8 @@ function VillageOverview({ villageId }: { villageId: number }) {
   const { t, language } = useI18n();
   const village = useVillage(villageId);
   const desktop = useMediaQuery(DESKTOP_QUERY);
+  // from 1600 px the Now column beside the page shows the build queue, the training and the attacks (2.0)
+  const nowColumn = useMediaQuery(CHAT_COLUMN_QUERY);
 
   if (village.isPending) {
     return <p>{t.common.loading}</p>;
@@ -65,7 +67,7 @@ function VillageOverview({ villageId }: { villageId: number }) {
           {formatCoords(data.x, data.y)} · {t.village.points(formatNumber(data.points, language))}
         </p>
         <ProtectionNotice />
-        <IncomingAttacksNotice village={data} />
+        {!nowColumn && <IncomingAttacksNotice village={data} />}
       </header>
       <TutorialCard villageId={data.id} />
       {/* desktop: buildings over troops | training, queue and facts at the side (1.3); phones and
@@ -77,11 +79,11 @@ function VillageOverview({ villageId }: { villageId: number }) {
             <Buildings village={data} />
             <div className={styles.pair}>
               <TroopsAtHome village={data} />
-              <TrainingSummary villageId={data.id} />
+              {nowColumn ? <UnitsDoneRefresh villageId={data.id} /> : <TrainingSummary villageId={data.id} />}
             </div>
           </div>
           <div className={styles.side}>
-            <QueueSummary village={data} />
+            {!nowColumn && <QueueSummary village={data} />}
             <VillageFacts village={data} />
           </div>
         </div>
@@ -202,6 +204,7 @@ function QueueSummary({ village }: { village: Village }) {
       <p className={styles.cardFooter}>
         <Link className={styles.link} to={`/v/${village.id}/hq`}>
           {t.buildQueue.toTownHall}
+          <Icon name="chevronRight" />
         </Link>
       </p>
     </Card>
@@ -355,10 +358,21 @@ function TrainingSummary({ villageId }: { villageId: number }) {
       <p className={styles.cardFooter}>
         <Link className={styles.link} to={`/v/${villageId}/recruit`}>
           {t.training.toRecruit}
+          <Icon name="chevronRight" />
         </Link>
       </p>
     </Card>
   );
+}
+
+/**
+ * From 1600 px the training card is in the Now column, but the troops at home and the population on
+ * this page still change with every finished unit: the card's refresh stays (2.0 N1 review).
+ */
+function UnitsDoneRefresh({ villageId }: { villageId: number }) {
+  const recruitment = useRecruitment(villageId);
+  useRefreshWhenUnitsDone(villageId, recruitment.data, recruitment.dataUpdatedAt, recruitment.errorUpdatedAt);
+  return null;
 }
 
 /**

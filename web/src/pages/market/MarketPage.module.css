@@ -2,6 +2,8 @@
   display: grid;
   gap: var(--space-3);
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -60,7 +62,7 @@
 .body {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .target {
@@ -81,12 +83,21 @@
   gap: var(--space-2);
 }
 
+/* rows split by thin lines, the chosen one on a soft shade, like the village switcher (2.0 UI review) */
 .ownList {
   display: grid;
-  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.ownList > li + li {
+  border-top: var(--line) var(--line-style) var(--color-divider);
+}
+
+.ownList > li:has(> [aria-pressed='true']),
+.ownList > li:has(> [aria-pressed='true']) + li {
+  border-top-color: transparent;
 }
 
 .ownVillage {
@@ -95,7 +106,7 @@
   display: grid;
   align-content: center;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-divider);
+  border: 0;
   border-radius: var(--radius);
   background: transparent;
   color: var(--color-text);
@@ -105,12 +116,12 @@
 }
 
 .ownVillage:hover {
-  background: var(--color-well);
+  /* lighter than the current row's shade, so a hovered row never looks like the current one */
+  background: color-mix(in srgb, var(--color-current) 50%, transparent);
 }
 
 .ownVillage[aria-pressed='true'] {
-  border-color: var(--color-accent);
-  box-shadow: inset 3px 0 0 var(--color-accent);
+  background: var(--color-current);
 }
 
 .ownName {
@@ -124,9 +135,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* on the chosen row's shade the soft grey falls under 4.5 : 1 at night */
+.ownVillage[aria-pressed='true'] .ownMeta {
+  color: var(--color-text);
+}
+
 .empty {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
   color: var(--color-text-muted);
 }
 
@@ -154,7 +170,7 @@
   align-items: center;
   gap: 2px var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .amountRow:first-child {
@@ -184,7 +200,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .facts > div:first-child {
@@ -260,7 +276,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .offer:first-child {
@@ -324,7 +340,7 @@
   display: flex;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .move:first-child {

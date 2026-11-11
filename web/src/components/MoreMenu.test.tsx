@@ -74,4 +74,58 @@ describe('MoreMenu', () => {
     fireEvent.click(button);
     expect(item('Edit')!.parentElement!.style).toMatchObject({ bottom: '104px', right: '56px' });
   });
+
+  it('opens to the right under a "…" at the left of the window, so the edge does not cut it off', () => {
+    const { button } = setup();
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(400);
+    button.getBoundingClientRect = () => ({ top: 100, bottom: 144, left: 60, right: 104 }) as DOMRect;
+
+    fireEvent.click(button);
+
+    const style = item('Edit')!.parentElement!.style;
+    expect(style).toMatchObject({ top: '148px', left: '60px' });
+    expect(style.right).toBe('');
+  });
+
+  it('slides a list that would end past the right edge back into the window', () => {
+    const { button } = setup();
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(320);
+    button.getBoundingClientRect = () => ({ top: 100, bottom: 144, left: 84, right: 128 }) as DOMRect;
+    // jsdom has no layout: the list is 238 px wide, as a long German label makes it
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    rect.mockImplementation(function (this: HTMLElement) {
+      const left = Number.parseFloat(this.style.left);
+      return (
+        this.style.left === ''
+          ? { left: 0, right: 0, width: 0, top: 0, bottom: 0 }
+          : { left, right: left + 238, width: 238, top: 0, bottom: 0 }
+      ) as DOMRect;
+    });
+
+    fireEvent.click(button);
+
+    // 320 - 8 - 238 = 74
+    expect(item('Edit')!.parentElement!.style.left).toBe('74px');
+    rect.mockRestore();
+  });
+
+  it('settles when the list is wider than the window or still drawn at its old place', () => {
+    const { button } = setup();
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(320);
+    button.getBoundingClientRect = () => ({ top: 100, bottom: 144, left: 84, right: 128 }) as DOMRect;
+    // 400 px wide: never fits; a transition keeps it drawn at 84 px for a moment (reduced motion: 0.01 ms)
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    rect.mockImplementation(function (this: HTMLElement) {
+      const left = this.style.left === '' ? 0 : 84;
+      return { left, right: left + 400, width: 400, top: 0, bottom: 0 } as DOMRect;
+    });
+
+    fireEvent.click(button);
+
+    expect(item('Edit')!.parentElement!.style.left).toBe('8px');
+    rect.mockRestore();
+  });
 });

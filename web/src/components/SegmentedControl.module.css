@@ -1,10 +1,10 @@
+/* A switch (2.0): plain words on a thin line, the open one bold with a mark in the action colour
+   under it. `track` (settings) is the other kind: a track with the chosen segment in dark green. */
 .group {
   position: relative;
   display: flex;
   gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 /* like the admin tabs: the options keep their width and the row scrolls (where they don't fit) */
@@ -27,48 +27,42 @@
 .option {
   flex: 1;
   min-height: var(--touch-target);
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-2);
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font: inherit;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .option:hover {
-  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .option[aria-pressed='true'] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 700;
+  color: var(--color-text);
+  font-weight: 800;
+  box-shadow: inset 0 -4px 0 var(--color-action);
 }
 
-/* in a card's header: less padding around and beside the options, the same height to tap */
+/* in a section's header: less padding beside the options, the same height to tap, no line of its own */
 .compact {
   gap: 0;
-  padding: 2px;
+  border-bottom: 0;
 }
 
 .compact .option {
   padding: 0 0.75rem;
 }
 
-.compact .pill {
-  top: 2px;
-  bottom: 2px;
-}
-
-/* the selected option's pill, measured from its button; it slides to the next choice */
+/* the open option's mark, measured from its button; it slides to the next choice */
 .pill {
   position: absolute;
-  top: var(--space-1);
-  bottom: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
+  bottom: 0;
+  height: 4px;
+  background: var(--color-action);
   transition:
     left 0.22s cubic-bezier(0.3, 0.7, 0.4, 1),
     width 0.22s cubic-bezier(0.3, 0.7, 0.4, 1);
@@ -80,6 +74,39 @@
 }
 
 .sliding .option[aria-pressed='true'] {
+  box-shadow: none;
+}
+
+/* settings choices: a track, the chosen segment in dark green */
+.track {
+  gap: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-well);
+}
+
+.track .option {
+  border-radius: calc(var(--radius) - 3px);
+  color: var(--color-text);
+}
+
+.track .option[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.track .pill {
+  top: 3px;
+  bottom: 3px;
+  height: auto;
+  border-radius: calc(var(--radius) - 3px);
+  background: var(--color-accent);
+}
+
+.track.sliding .option[aria-pressed='true'] {
   background: transparent;
 }
 

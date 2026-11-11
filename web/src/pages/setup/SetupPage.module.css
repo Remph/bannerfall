@@ -3,6 +3,8 @@
 .page {
   display: grid;
   gap: var(--space-3);
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .stepper {
@@ -10,17 +12,14 @@
 }
 
 .panel {
+  /* 2.0: on the land, no panel */
   min-width: 0;
-  background: var(--color-surface);
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
 }
 
 .header {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-3) 0;
+  padding: var(--space-3) var(--card-inset, var(--space-3)) 0;
 }
 
 .kicker {
@@ -40,11 +39,11 @@
 .progressPart {
   height: 0.3rem;
   border-radius: var(--radius-pill);
-  background: var(--color-well);
+  background: var(--color-track);
 }
 
 .progressPart[data-filled] {
-  background: var(--color-accent);
+  background: var(--color-action);
 }
 
 .title {
@@ -62,7 +61,7 @@
 .body {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--card-inset, var(--space-3));
 }
 
 .group {
@@ -92,6 +91,14 @@
   display: grid;
   gap: var(--space-2);
   justify-items: start;
+}
+
+/* a long switch (German, 320 px) scrolls inside itself instead of widening the page */
+.setting > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .settingLabel {
@@ -128,10 +135,12 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  /* 2.0: the land's own colour under one line: a plain row at the end of a short step, and it covers
+     what scrolls under it on a long one */
+  padding: var(--space-2) 0;
   padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--color-divider);
-  background: var(--color-surface);
+  border-top: var(--line) var(--line-style) var(--color-divider);
+  background: var(--color-bg);
 }
 
 .quiet {
@@ -146,7 +155,7 @@
   cursor: pointer;
 }
 
-/* the presets: one card each, the picked one in the accent colour */
+/* the presets (2.0): outlined like a quiet button, the picked one a shade of the land with a dark outline */
 .presets {
   display: grid;
   gap: var(--space-2);
@@ -157,14 +166,15 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-3);
-  border: 2px solid var(--color-border);
+  border: var(--line) solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: transparent;
   cursor: pointer;
 }
 
 .preset[data-picked] {
   border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
   background: var(--color-well);
 }
 
@@ -194,20 +204,24 @@
   color: var(--color-text-muted);
 }
 
+/* 2.0: small facts as plain words with a dot between them, no pills */
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: 0 var(--space-2);
   margin-top: var(--space-1);
 }
 
 .chip {
-  padding: 0.1rem 0.6rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg);
-  border: 1px solid var(--color-divider);
   font-size: var(--font-size-sm);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.chip + .chip::before {
+  content: '·';
+  margin-right: var(--space-2);
+  color: var(--color-text-muted);
 }
 
 /* the switches: one row each, the switch in a fixed slot at the right */
@@ -215,11 +229,11 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .switches > li {
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .switchRow,
@@ -271,9 +285,7 @@
 
 .comingChip {
   flex: none;
-  padding: 0.1rem 0.6rem;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-pill);
+  /* 2.0: a quiet note, no dashed pill */
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -284,10 +296,10 @@
   gap: var(--space-2);
 }
 
+/* 2.0: a group is a row under one line, no box */
 .summaryGroup {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius);
+  padding: var(--space-2) 0;
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .summaryHead {

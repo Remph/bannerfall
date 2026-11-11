@@ -1,6 +1,7 @@
 package de.bannerfall.market;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +27,17 @@ public interface TradeTransportRepository extends JpaRepository<TradeTransport, 
             order by t.departAt, t.id
             """)
     List<TradeTransport> findOutgoing(long villageId, Instant now);
+
+    /** The merchants of several villages that are away at {@code now}, oldest first (Now list). */
+    @Query(
+            """
+            select t from TradeTransport t
+              join fetch t.sourceVillage sv left join fetch sv.player
+              join fetch t.targetVillage tv left join fetch tv.player
+            where t.sourceVillage.id in :villageIds and t.returnAt > :now
+            order by t.departAt, t.id
+            """)
+    List<TradeTransport> findOutgoingOf(Collection<Long> villageIds, Instant now);
 
     /** The village's merchants still away after {@code at} (a change of owner). */
     List<TradeTransport> findBySourceVillageIdAndReturnAtAfter(long villageId, Instant at);

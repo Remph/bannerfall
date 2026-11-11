@@ -82,7 +82,8 @@ describe('BannersPage', () => {
         'An attack is on its way here: neither the banner nor the standard can be changed until it has arrived.',
       ),
     ).toBeTruthy();
-    expect(screen.getAllByText('Locked')).toHaveLength(2);
+    // the cards add nothing to it (2.0 UI review: a "Locked" chip on each said it twice more)
+    expect(screen.queryAllByText('Locked')).toHaveLength(0);
     expect(
       screen.queryByText('An attack is on its way: banners cannot be changed here until it has arrived.'),
     ).toBeNull();

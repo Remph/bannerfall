@@ -150,7 +150,7 @@ function AvailableBuildings({ preview, buildings }: AvailableProps) {
   const surcharge = queueFull ? 0 : (buildings.find((info) => info.next !== null)?.next?.surchargePercent ?? 0);
 
   return (
-    <Card title={t.townHall.buildingsTitle}>
+    <Card className={styles.rowsCard} title={t.townHall.buildingsTitle}>
       {queueFull && <p className={styles.notice}>{t.townHall.queueFull}</p>}
       {surcharge > 0 && <p className={styles.notice}>{t.townHall.surchargeNote(surcharge)}</p>}
       <ul className={styles.list}>
@@ -256,7 +256,7 @@ function LockedBuildings({ buildings, preview }: { buildings: BuildingInfo[]; pr
   const t = useT();
   const target = useLocation().hash.slice(1);
   return (
-    <Card title={t.townHall.lockedTitle}>
+    <Card className={styles.rowsCard} title={t.townHall.lockedTitle}>
       <ul className={styles.list}>
         {buildings.map((info) => (
           <PreviewRow

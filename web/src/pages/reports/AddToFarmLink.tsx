@@ -32,6 +32,7 @@ export function AddToFarmLink({ village, villageId, sent }: AddToFarmLinkProps) 
     return (
       <Link className={styles.reportAction} to={farmPath(villageId)}>
         <Icon name="FARM" /> {t.reports.onFarmList(name)}
+        <Icon name="chevronRight" className={styles.reportArrow} />
       </Link>
     );
   }
@@ -42,6 +43,7 @@ export function AddToFarmLink({ village, villageId, sent }: AddToFarmLinkProps) 
       state={sent === undefined ? undefined : farmUnitsState(templateOf(sent))}
     >
       <Icon name="plus" /> {t.reports.addToFarm(name)}
+      <Icon name="chevronRight" className={styles.reportArrow} />
     </Link>
   );
 }

@@ -12,6 +12,25 @@ export function parseTab(value: string | null, cheatsEnabled: boolean): AdminTab
   return visibleTabs(cheatsEnabled).find((tab) => tab === value) ?? 'status';
 }
 
+/**
+ * Where a row of tabs that scrolls sideways has to be scrolled so the open tab is in view: unchanged while
+ * the tab is fully visible, otherwise the tab is centred (as far as the row allows). Pure, for the test.
+ */
+export function tabRowScroll(
+  scrollLeft: number,
+  rowWidth: number,
+  scrollWidth: number,
+  tabLeft: number,
+  tabWidth: number,
+): number {
+  const fullyVisible = tabLeft >= scrollLeft && tabLeft + tabWidth <= scrollLeft + rowWidth;
+  if (fullyVisible) {
+    return scrollLeft;
+  }
+  const centred = tabLeft + tabWidth / 2 - rowWidth / 2;
+  return Math.min(Math.max(0, centred), Math.max(0, scrollWidth - rowWidth));
+}
+
 /** Uptime and lag in words: "42 s", "5 min", "3 h 5 min", "2 d 4 h" (like the CLI). */
 export function shortDuration(seconds: number): string {
   if (seconds < 60) {

@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 import { ApiError } from './errors';
 import { forgetIfAccountChanged, meQueryKey, rememberBan, type Me } from './queries/auth';
+import { followWhatFeedsNow } from './queries/now';
 
 /** Retry network and server errors up to two times, but never 4xx answers (they won't change on retry). */
 export function shouldRetry(failureCount: number, error: Error): boolean {
@@ -29,3 +30,5 @@ export const queryClient: QueryClient = new QueryClient({
   mutationCache: new MutationCache({ onError }),
   defaultOptions: { queries: { retry: shouldRetry } },
 });
+
+followWhatFeedsNow(queryClient);

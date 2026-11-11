@@ -26,7 +26,7 @@ public record IncomingDto(
         Instant arriveAt,
         @Schema(nullable = true) Map<UnitType, Integer> units) {
 
-    static IncomingDto of(Movement movement) {
+    public static IncomingDto of(Movement movement) {
         VillageRefDto source = VillageRefDto.of(movement.getSourceVillage());
         return new IncomingDto(
                 movement.getId(),

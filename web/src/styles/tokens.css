@@ -1,52 +1,80 @@
 /*
- * Design tokens – "green banner parchment" (05-frontend §8). Light values on :root; the dark values
- * appear twice: once for "follow the device" (media query) and once for the manual choice
- * (data-theme="dark", set by the theme switch). Keep both dark blocks identical.
+ * Design tokens – "Horizont" (2.0, 05-frontend §8): the page is the land the village stands on, the
+ * header is the sky above it. These are the colours of the default theme, Wiese; the other themes
+ * are in palettes.css. Day values on :root; the night values appear twice: once for "follow the
+ * device" (media query) and once for the manual choice (data-theme="dark", set by the theme switch).
+ * Keep both night blocks identical.
  */
 :root {
   color-scheme: light;
 
-  /* surfaces */
-  --color-bg: #f4eee2; /* linen ground */
-  --color-surface: #fdfaf3; /* panels */
-  --color-well: #eee5d3; /* icon wells, hovered rows */
-  --color-border: #d6c9b0; /* panel double border, inputs */
-  --color-divider: #ece3d2; /* lines between rows */
-  --color-glow: rgba(255, 255, 255, 0.55);
-  --color-stain: rgba(110, 90, 60, 0.07);
+  /* the land and what floats over it */
+  --color-bg: #c8d7b0; /* the land: the page ground, and the village's own ground */
+  --color-surface: #f4f6e8; /* only what floats over the page: sheets, menus, popovers */
+  --color-well: #bac9a5; /* a shade of the land: icon wells, hovered rows, tracks */
+  /* where you are in a list of choices (the village switch, the menu, More, the market's own villages):
+     the land's shade by day; at night a see-through light shade, because the well is nearly the colour
+     of a sheet there (2.0 UI review follow-up). A hovered row takes half of it. */
+  --color-current: var(--color-well);
+  --color-border: #86957a; /* outlines of quiet buttons and fields */
+  --color-divider: #a9b896; /* the thin line between rows */
 
   /* text */
-  --color-text: #29241e;
-  --color-text-muted: #6f665a;
-  --color-title: #2b4537;
+  --color-text: #1b2a21;
+  --color-text-muted: #435443;
+  --color-title: #1b2a21;
 
-  /* accents */
-  --color-accent: #2f5d45; /* main actions, active tabs, own things */
-  --color-on-accent: #fffaf2;
-  --color-danger: #b42318; /* war only: attacks, losses, cancel, delete, unread counts */
-  --color-on-danger: #fffaf2;
-  --color-danger-bg: #fbeae6;
-  --color-success: #2f6b46; /* won battles (reports) */
-  --color-success-bg: #e6f0e3;
+  /* dark green says where you are and what something is (signs, links, chosen things); never a main button */
+  --color-accent: #1f3d2d;
+  --color-on-accent: #f4f6e8;
+  /* the one sun per place: the main button, fills of progress bars, marks under switches, unread dots */
+  --color-action: #f6c843;
+  --color-action-edge: #d49a1f; /* the darker edge below a main button */
+  --color-on-action: #1b2a21;
+  --color-danger: #96241a; /* war only: attacks, losses, cancel, delete, unread counts; 4.5:1 as text on every theme's land, wells and red tint */
+  --color-on-danger: #fff8f0;
+  --color-danger-bg: rgba(196, 64, 47, 0.13);
+  --color-war: #c4402f; /* the fill of the attack button, by day and at night; danger is the red that works as text */
+  --color-on-war: #ffffff;
+  --color-success: #245a39; /* won battles (reports) */
+  --color-success-bg: rgba(47, 138, 78, 0.16);
 
-  /* the green banner bars */
-  --color-bar: #2f4a3c;
-  --color-bar-edge: #253c30;
-  --color-on-bar: #f3ecdc;
-  --color-on-bar-muted: #b0c2b5;
+  /* the bars (the phone's tab bar; the header until the sky replaces it) */
+  --color-bar: #1f3d2d;
+  --color-bar-edge: #162b20;
+  --color-on-bar: #f4f6e8;
+  --color-on-bar-muted: #b0bbac;
   --color-on-bar-warn: #ffb27a; /* full warehouse */
   --color-on-bar-caution: #ffd166; /* farm almost full */
-  --color-highlight: #e9c46a; /* active item and fills on the bars */
+  --color-highlight: #f6c843; /* active item and fills on the bars */
   --color-bar-hover: rgba(255, 255, 255, 0.12);
-  --color-track: rgba(0, 0, 0, 0.3);
+  /* the empty part of a progress bar: darker than the land, so the bar's length shows by day and the
+     action colour's fill stands out from it (palettes.test.ts checks 1.7:1 against the land and 2.4:1 under the action fill); each theme sets its own */
+  --color-track: #6c7b64;
+  --color-badge: #1f3d2d; /* level badges, round signs in lists */
+  --color-on-badge: #f4f6e8;
 
-  --shadow-panel: 0 1px 3px rgba(60, 40, 20, 0.08), inset 0 0 14px var(--color-stain);
-  --shadow-float: 0 10px 30px rgba(30, 15, 5, 0.3);
+  /* the sky header: three flat bands from the top to the horizon, the far hills, the sun or moon */
+  --color-sky-1: #a8d2e2;
+  --color-sky-2: #bfdfe9;
+  --color-sky-3: #d8ece5;
+  --color-hill: #b3ca9f;
+  --color-orb: #f6c843;
+  /* on the sky: text is the page's own text, soft text too unless a theme's top band needs it darker
+     (Kornfeld, Frost); a full warehouse, a nearly full farm (4.5:1 on every theme's upper two bands
+     and land, palettes.test.ts); no stars by day */
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-warn: #96241a;
+  --color-sky-caution: #6b4800;
+  --color-star: transparent;
+
+  --shadow-panel: none; /* nothing on the page is a panel any more */
+  --shadow-float: 0 10px 30px rgba(20, 35, 25, 0.28);
 
   /* type */
-  --font-brand: 'Uncial Antiqua', 'Alegreya SC', Georgia, serif;
-  --font-head: 'Alegreya SC', Georgia, serif;
-  --font-body: 'Alegreya Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-brand: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-head: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* font sizes (1.7 design review): one scale instead of 27 literal sizes; body text is base */
   --font-size-2xs: 0.7rem; /* tab bar labels, counts on badges */
@@ -64,19 +92,54 @@
   --space-2: 0.5rem;
   --space-3: 1rem;
   --space-4: 1.5rem;
-  --radius: 0.75rem; /* panels, inputs */
-  --radius-pill: 999px; /* buttons, badges, chips */
+  --radius: 0.8rem; /* buttons, fields, sheets */
+  --radius-pill: 0.8rem; /* badges, chips: the same corners, small things come out round */
+  --line: 1.5px; /* rows, outlines of quiet buttons and fields */
+
+  /* Look switches (2.0, step 9): the fixed list a theme may set besides its colours (styles/looks.css
+     sets them for the stitched theme). Pages only use the tokens and never ask which theme is on.
+     - --line-style: the style of every row line.
+     - --texture: an image laid over the land, the sky and the main button.
+     - --seam: the border of a seam just inside the main button (--seam-on-dark on the red ones: the
+       attack button and the alarm in the sky).
+     - --orb-seam: the border of a thin ring just inside the sun or moon.
+     - --plate-fill, --plate-stroke, --plate-stroke-width and --plate-dash: the box round a building's
+       label in the village picture (no box in the plain themes: transparent fill, no stroke).
+     - --font-head and --font-brand (above): the title face.
+     - --picture-outline, --picture-outline-width and --picture-outline-join: a thread round the shapes
+       of the village picture. Not set here on purpose: while they are unset the picture's own strokes
+       apply. */
+  --line-style: solid;
+  --texture: none;
+  --seam: 0 solid transparent;
+  --seam-on-dark: 0 solid transparent;
+  --orb-seam: 0 solid transparent;
+  --plate-fill: transparent;
+  --plate-stroke: none;
+  --plate-stroke-width: 1px;
+  --plate-dash: none;
   --touch-target: 44px;
+  /* a pane that scrolls inside the page (the Now column, an open report, the rail): a thin bar in the
+     outline colour on no track, so it never reads as a second page bar beside the window's (2.0 UI review) */
+  --scrollbar-quiet: var(--color-border) transparent;
+  /* A standalone text link shorter than a finger (2.0 UI review): `display: inline-block`,
+     `padding-block: var(--tap-pad)` and `margin-block: calc(-1 * var(--tap-pad))` make it 44 px to tap and
+     leave the layout as it was. Inline-block, because a plain inline link's box is the font's height, not
+     the line's, and came out 39 px. */
+  --tap-pad: max(0px, calc((var(--touch-target) - 1lh) / 2));
   --content-width: 72rem;
   /* the chat as a column at the right edge, from 1600 px (1.3) */
   --chat-column-width: 22rem;
+  --chat-dock-height: 22rem; /* the chat under the Now list in the right column (2.0) */
+  /* the Now tab at the right edge (1024 to 1599 px, 2.0): the page and the chat panel keep clear of it */
+  --now-tab-width: var(--touch-target);
 
   /* the map canvas (05-frontend §6), read by pages/map/mapDraw.ts */
-  --map-grass: #c8d3a4;
-  --map-grass-alt: #bfcb9a; /* every other 5 × 5 block */
+  --map-grass: var(--color-bg);
+  --map-grass-alt: var(--color-bg);
   --map-grid: rgba(43, 69, 55, 0.13);
   --map-grid-strong: rgba(43, 69, 55, 0.3);
-  --map-outside: #e2d9c4; /* beyond the map edge */
+  --map-outside: var(--color-well);
   --map-edge: #2f4a3c;
   --map-own: #a8372a; /* own villages keep their red, also with the green accent */
   --map-mate: #1f8a5b; /* guild mates (1.6.3) */
@@ -85,10 +148,10 @@
   --map-barbarian: #8b8579;
   --map-outline: #2a231b;
   --map-marker: #e9c46a; /* selection ring, NPC pennant */
-  --map-label: #29241e;
-  --map-label-halo: rgba(253, 250, 243, 0.85);
-  --map-axis: rgba(37, 60, 48, 0.9);
-  --map-axis-text: #f3ecdc;
+  --map-label: var(--color-text);
+  --map-label-halo: var(--color-bg);
+  --map-axis: var(--color-bg);
+  --map-axis-text: var(--color-text-muted);
   /* movement markers (M26): attacks, own attacks with nobles, supports, own returns (M36); the ink is the swords and arrow */
   --map-attack: #c22f24;
   --map-noble: #e9b830;
@@ -111,8 +174,9 @@
   --map-tree-shade: #4b6237;
   --map-tree-light: #a2bd78;
   --map-conifer: #5d7a46;
-  --map-hill: #dfe7bd;
-  --map-hill-shade: #98aa6c;
+  --map-hill: var(--color-hill);
+  --map-hill-shade: var(--color-border);
+  --map-hill-far: var(--map-hill-shade); /* hilly fields far out */
   --map-water: #9cc2d2;
   --map-water-bank: #6b91a3;
   --map-forest-far: #7f9b5b;
@@ -124,9 +188,8 @@
   --badge-once: #2f6b46;
 
   /* the village picture (1.3): ground, walls, roofs, trees; windows are lit at night */
-  --village-grass: #c8d3a4;
-  --village-yard: #d3dbac;
-  --village-path: #e6d9b5;
+  --village-yard: color-mix(in srgb, var(--color-bg), #ffffff 26%);
+  --village-path: color-mix(in srgb, var(--color-bg) 76%, #9a8a60);
   --village-plaster: #f1e6cc;
   --village-plaster-side: #d6c7a4;
   --village-stone: #c9c1b0;
@@ -174,45 +237,61 @@
   --village-paving-edge: #c2b593;
   --village-plot: #8a8170;
   --village-shadow: rgba(40, 30, 15, 0.2);
+  --village-cast: #1f3d2d;
+  --village-cast-strength: 0.24;
+  --village-pool: transparent;
   --village-smoke: rgba(110, 105, 100, 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --color-bg: #1a1713;
-    --color-surface: #24201b;
-    --color-well: #302a23;
-    --color-border: #4a4135;
-    --color-divider: #302a23;
-    --color-glow: rgba(255, 255, 255, 0.03);
-    --color-stain: rgba(0, 0, 0, 0.3);
-    --color-text: #eee6d6;
-    --color-text-muted: #aaa08f;
-    --color-title: #e9c46a;
-    --color-accent: #e9c46a;
-    --color-on-accent: #1a1713;
-    --color-danger: #f97066;
-    --color-on-danger: #1a1713;
-    --color-danger-bg: #2a1a19;
+    --color-bg: #1b2921;
+    --color-surface: #26372c;
+    --color-well: #303d34;
+    --color-current: rgba(255, 255, 255, 0.09);
+    --color-border: #697469;
+    --color-divider: #404c43;
+    --color-text: #e8eede;
+    --color-text-muted: #a3b29f;
+    --color-title: #e8eede;
+    --color-accent: #9fc0a0;
+    --color-on-accent: #1b2921;
+    --color-action: #f6c843;
+    --color-action-edge: #d49a1f;
+    --color-on-action: #1b2a21;
+    --color-danger: #ff9a88;
+    --color-on-danger: #1b1512;
+    --color-danger-bg: rgba(255, 120, 100, 0.14);
     --color-success: #7fc79b;
-    --color-success-bg: #1a2a20;
-    --color-bar: #18261f;
-    --color-bar-edge: #111b16;
-    --color-on-bar: #e6dfcd;
-    --color-on-bar-muted: #8ea596;
+    --color-success-bg: rgba(127, 199, 155, 0.14);
+    --color-bar: #0f1813;
+    --color-bar-edge: #0a110d;
+    --color-on-bar: #e8eede;
+    --color-on-bar-muted: #a3aa9d;
     --color-on-bar-warn: #ffa366;
     --color-on-bar-caution: #f2c75c;
-    --color-highlight: #e9c46a;
+    --color-highlight: #f6c843;
     --color-bar-hover: rgba(255, 255, 255, 0.08);
-    --color-track: rgba(255, 255, 255, 0.15);
-    --shadow-panel: inset 0 0 14px var(--color-stain);
+    --color-track: #636e63;
+    --color-badge: #35523f;
+    --color-on-badge: #e8eede;
+    --color-sky-1: #0e1830;
+    --color-sky-2: #142344;
+    --color-sky-3: #1c3150;
+    --color-hill: #22352a;
+    --color-orb: #ece8cf;
+    --color-sky-muted: var(--color-text-muted);
+    --color-sky-warn: #ffa366;
+    --color-sky-caution: #f2c75c;
+    --color-star: #ffffff;
+    --shadow-panel: none;
     --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
-    --map-grass: #36432f;
-    --map-grass-alt: #313d2a;
+    --map-grass: var(--color-bg);
+    --map-grass-alt: var(--color-bg);
     --map-grid: rgba(255, 255, 255, 0.06);
     --map-grid-strong: rgba(255, 255, 255, 0.14);
-    --map-outside: #1d1a15;
+    --map-outside: var(--color-well);
     --map-own: #e39a63;
     --map-edge: #8ea596;
     --map-mate: #6fcf9a;
@@ -220,10 +299,10 @@
     --map-npc: #c497dc;
     --map-barbarian: #9a9386;
     --map-outline: #120f0c;
-    --map-label: #eee6d6;
-    --map-label-halo: rgba(20, 17, 14, 0.8);
-    --map-axis: rgba(17, 27, 22, 0.9);
-    --map-axis-text: #e6dfcd;
+    --map-label: var(--color-text);
+    --map-label-halo: var(--color-bg);
+    --map-axis: var(--color-bg);
+    --map-axis-text: var(--color-text-muted);
     --map-attack: #e5484d;
     --map-noble: #f0c64a;
     --map-support: #3fa564;
@@ -241,8 +320,8 @@
     --map-tree-shade: #1c2617;
     --map-tree-light: #617a49;
     --map-conifer: #3b5030;
-    --map-hill: #46553a;
-    --map-hill-shade: #29331f;
+    --map-hill: var(--color-divider); /* at night the land is the darkest tone, so a mound is two lifted shades */
+    --map-hill-shade: var(--color-well);
     --map-water: #3f6474;
     --map-water-bank: #1d323d;
     --map-forest-far: #4c6139;
@@ -254,9 +333,8 @@
     --badge-once: #7fc79b;
 
     /* the village picture (1.3): an evening village, windows lit */
-    --village-grass: #36432f;
-    --village-yard: #3d4a35;
-    --village-path: #575039;
+    --village-yard: color-mix(in srgb, var(--color-bg), #ffffff 5%);
+    --village-path: color-mix(in srgb, var(--color-bg) 62%, #8f8562);
     --village-plaster: #c9bc9e;
     --village-plaster-side: #a19479;
     --village-stone: #9d968a;
@@ -304,45 +382,61 @@
     --village-paving-edge: #4a4435;
     --village-plot: #9a907f;
     --village-shadow: rgba(0, 0, 0, 0.3);
+    --village-cast: #000000;
+    --village-cast-strength: 0.3;
+    --village-pool: #f2a23a;
     --village-smoke: rgba(200, 195, 185, 0.35);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --color-bg: #1a1713;
-  --color-surface: #24201b;
-  --color-well: #302a23;
-  --color-border: #4a4135;
-  --color-divider: #302a23;
-  --color-glow: rgba(255, 255, 255, 0.03);
-  --color-stain: rgba(0, 0, 0, 0.3);
-  --color-text: #eee6d6;
-  --color-text-muted: #aaa08f;
-  --color-title: #e9c46a;
-  --color-accent: #e9c46a;
-  --color-on-accent: #1a1713;
-  --color-danger: #f97066;
-  --color-on-danger: #1a1713;
-  --color-danger-bg: #2a1a19;
+  --color-bg: #1b2921;
+  --color-surface: #26372c;
+  --color-well: #303d34;
+  --color-current: rgba(255, 255, 255, 0.09);
+  --color-border: #697469;
+  --color-divider: #404c43;
+  --color-text: #e8eede;
+  --color-text-muted: #a3b29f;
+  --color-title: #e8eede;
+  --color-accent: #9fc0a0;
+  --color-on-accent: #1b2921;
+  --color-action: #f6c843;
+  --color-action-edge: #d49a1f;
+  --color-on-action: #1b2a21;
+  --color-danger: #ff9a88;
+  --color-on-danger: #1b1512;
+  --color-danger-bg: rgba(255, 120, 100, 0.14);
   --color-success: #7fc79b;
-  --color-success-bg: #1a2a20;
-  --color-bar: #18261f;
-  --color-bar-edge: #111b16;
-  --color-on-bar: #e6dfcd;
-  --color-on-bar-muted: #8ea596;
+  --color-success-bg: rgba(127, 199, 155, 0.14);
+  --color-bar: #0f1813;
+  --color-bar-edge: #0a110d;
+  --color-on-bar: #e8eede;
+  --color-on-bar-muted: #a3aa9d;
   --color-on-bar-warn: #ffa366;
   --color-on-bar-caution: #f2c75c;
-  --color-highlight: #e9c46a;
+  --color-highlight: #f6c843;
   --color-bar-hover: rgba(255, 255, 255, 0.08);
-  --color-track: rgba(255, 255, 255, 0.15);
-  --shadow-panel: inset 0 0 14px var(--color-stain);
+  --color-track: #636e63;
+  --color-badge: #35523f;
+  --color-on-badge: #e8eede;
+  --color-sky-1: #0e1830;
+  --color-sky-2: #142344;
+  --color-sky-3: #1c3150;
+  --color-hill: #22352a;
+  --color-orb: #ece8cf;
+  --color-sky-muted: var(--color-text-muted);
+  --color-sky-warn: #ffa366;
+  --color-sky-caution: #f2c75c;
+  --color-star: #ffffff;
+  --shadow-panel: none;
   --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --map-grass: #36432f;
-  --map-grass-alt: #313d2a;
+  --map-grass: var(--color-bg);
+  --map-grass-alt: var(--color-bg);
   --map-grid: rgba(255, 255, 255, 0.06);
   --map-grid-strong: rgba(255, 255, 255, 0.14);
-  --map-outside: #1d1a15;
+  --map-outside: var(--color-well);
   --map-own: #e39a63;
   --map-edge: #8ea596;
   --map-mate: #6fcf9a;
@@ -350,10 +444,10 @@
   --map-npc: #c497dc;
   --map-barbarian: #9a9386;
   --map-outline: #120f0c;
-  --map-label: #eee6d6;
-  --map-label-halo: rgba(20, 17, 14, 0.8);
-  --map-axis: rgba(17, 27, 22, 0.9);
-  --map-axis-text: #e6dfcd;
+  --map-label: var(--color-text);
+  --map-label-halo: var(--color-bg);
+  --map-axis: var(--color-bg);
+  --map-axis-text: var(--color-text-muted);
   --map-attack: #e5484d;
   --map-noble: #f0c64a;
   --map-support: #3fa564;
@@ -371,8 +465,8 @@
   --map-tree-shade: #1c2617;
   --map-tree-light: #617a49;
   --map-conifer: #3b5030;
-  --map-hill: #46553a;
-  --map-hill-shade: #29331f;
+  --map-hill: var(--color-divider);
+  --map-hill-shade: var(--color-well);
   --map-water: #3f6474;
   --map-water-bank: #1d323d;
   --map-forest-far: #4c6139;
@@ -384,9 +478,8 @@
   --badge-once: #7fc79b;
 
   /* the village picture (1.3): an evening village, windows lit */
-  --village-grass: #36432f;
-  --village-yard: #3d4a35;
-  --village-path: #575039;
+  --village-yard: color-mix(in srgb, var(--color-bg), #ffffff 5%);
+  --village-path: color-mix(in srgb, var(--color-bg) 62%, #8f8562);
   --village-plaster: #c9bc9e;
   --village-plaster-side: #a19479;
   --village-stone: #9d968a;
@@ -434,5 +527,8 @@
   --village-paving-edge: #4a4435;
   --village-plot: #9a907f;
   --village-shadow: rgba(0, 0, 0, 0.3);
+  --village-cast: #000000;
+  --village-cast-strength: 0.3;
+  --village-pool: #f2a23a;
   --village-smoke: rgba(200, 195, 185, 0.35);
 }

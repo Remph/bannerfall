@@ -78,11 +78,17 @@ class LoginService {
         if (!rateLimiter.tryAttempt(key, address)) {
             // No name lookup here: a script hammering one name shouldn't cost a query each time.
             // The failed logins before the block already named the account.
-            log.info("Login refused: too many failed logins");
+            boolean locked = rateLimiter.isLocked(key);
+            log.info(
+                    locked
+                            ? "Login refused: too many failed logins for the name"
+                            : "Login refused: too many failed logins");
             throw new ApiException(
                     HttpStatus.TOO_MANY_REQUESTS,
                     ErrorCode.TOO_MANY_LOGIN_ATTEMPTS,
-                    "Too many failed logins, try again in a minute");
+                    locked
+                            ? "Too many failed logins for this name, try again in half an hour"
+                            : "Too many failed logins, try again in a minute");
         }
         Authentication authentication;
         try {

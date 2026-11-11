@@ -1,8 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { useAdminStatus } from '../../api/queries/admin';
 import { useT } from '../../i18n';
 import styles from './AdminPage.module.css';
-import { adminTabs, parseTab, visibleTabs, type AdminTab } from './adminTabs';
+import { adminTabs, parseTab, tabRowScroll, visibleTabs, type AdminTab } from './adminTabs';
 import { AuditCard } from './AuditCard';
 import { BroadcastCard, ChatSayCard } from './BroadcastCard';
 import { CheatsCard } from './CheatsCard';
@@ -26,11 +27,24 @@ export function AdminPage() {
   const cheatsEnabled = status.data?.cheatsEnabled ?? false;
   const [params, setParams] = useSearchParams();
   const tab = parseTab(params.get('tab'), cheatsEnabled);
+  // on a narrow phone the row scrolls sideways: a tab beyond the fifth (a link, a reload) has to be brought
+  // into view. The row is scrolled itself: scrollIntoView could shift the whole page sideways.
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = row.current;
+    const open = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (list && open) {
+      const left = tabRowScroll(list.scrollLeft, list.clientWidth, list.scrollWidth, open.offsetLeft, open.offsetWidth);
+      if (left !== list.scrollLeft) {
+        list.scrollLeft = left;
+      }
+    }
+  }, [tab, cheatsEnabled]);
 
   return (
     <div className={styles.page}>
       <h1>{t.admin.title}</h1>
-      <div className={styles.tabs} role="tablist" aria-label={t.admin.tabs.label}>
+      <div ref={row} className={styles.tabs} role="tablist" aria-label={t.admin.tabs.label}>
         {visibleTabs(cheatsEnabled).map((value: AdminTab) => (
           <button
             key={value}

@@ -101,8 +101,8 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
   const paladins = (useWorld().data?.paladinMaxSlots ?? 0) > 0;
   // the standard's card shows in worlds with paladins, and wherever a standard is to be had
   const showStandards = data.paladinsEnabled || standard !== null || standardStash.length > 0;
-  // one attack locking both slots is said once above the cards; each card keeps a short chip (1.7
-  // design review: two red boxes in a row said the same)
+  // one attack locking both slots is said once above the cards, and the cards say nothing more (1.7 design
+  // review: two red boxes in a row said the same; 2.0 UI review: a "Locked" chip on each card said it twice more)
   const bothLocked = here.locked && here.standardLocked && showStandards;
 
   const stashRows = (banners: OwnBanner[]) => (
@@ -152,10 +152,10 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
 
       <Card title={s.slotTitle}>
         <div className={styles.body}>
-          {here.locked && (
-            <p className={bothLocked ? styles.lockShort : styles.lockChip}>
+          {here.locked && !bothLocked && (
+            <p className={styles.lockChip}>
               <Icon name="lock" />
-              {bothLocked ? s.lockedShort : s.locked}
+              {s.locked}
             </p>
           )}
           <Slot data={data} here={here} flying={flying} busy={busy} onUnequip={() => unequip.mutate()} />
@@ -166,10 +166,10 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
       {showStandards && (
         <Card title={s.standardSlotTitle}>
           <div className={styles.body}>
-            {here.standardLocked && (
-              <p className={bothLocked ? styles.lockShort : styles.lockChip}>
+            {here.standardLocked && !bothLocked && (
+              <p className={styles.lockChip}>
                 <Icon name="lock" />
-                {bothLocked ? s.lockedShort : s.standardLocked}
+                {s.standardLocked}
               </p>
             )}
             <StandardSlot
@@ -240,7 +240,7 @@ function BannersView({ villageId, data, here }: { villageId: number; data: Banne
         </Card>
       )}
 
-      <Card title={s.villagesTitle}>
+      <Card className={styles.rowsCard} title={s.villagesTitle}>
         <ul className={styles.villages}>
           {data.villages.map((entry) => (
             <VillageRow
@@ -303,7 +303,14 @@ function Slot({
           </>
         )}
       </div>
-      <Button type="button" size="small" variant="secondary" disabled={busy || here.locked} onClick={onUnequip}>
+      <Button
+        type="button"
+        size="small"
+        variant="secondary"
+        className={styles.takeDown}
+        disabled={busy || here.locked}
+        onClick={onUnequip}
+      >
         {s.unequip}
       </Button>
     </div>
@@ -356,7 +363,14 @@ function StandardSlot({
           </>
         )}
       </div>
-      <Button type="button" size="small" variant="secondary" disabled={busy || here.standardLocked} onClick={onUnequip}>
+      <Button
+        type="button"
+        size="small"
+        variant="secondary"
+        className={styles.takeDown}
+        disabled={busy || here.standardLocked}
+        onClick={onUnequip}
+      >
         {s.unequip}
       </Button>
     </div>
@@ -668,7 +682,10 @@ function HowItWorks({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   return (
     <details className={styles.how}>
-      <summary className={styles.howSummary}>{t.banners.howItWorks}</summary>
+      <summary className={styles.howSummary}>
+        {t.banners.howItWorks}
+        <Icon name="chevronDown" className={styles.howChevron} />
+      </summary>
       <div className={styles.howBody}>{children}</div>
     </details>
   );

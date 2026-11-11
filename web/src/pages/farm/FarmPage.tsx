@@ -127,6 +127,7 @@ function Farm({ villageId }: { villageId: number }) {
         {initialTarget !== '' && <div className={styles.formColumn}>{add}</div>}
         <div className={styles.listColumn}>
           <Card
+            className={styles.rowsCard}
             title={t.farm.listTitle(village.data.name)}
             action={
               // the rarer action behind "…"; needs a second village and something to copy

@@ -1,5 +1,6 @@
 @import './tokens.css';
 @import './palettes.css';
+@import './looks.css';
 
 *,
 *::before,
@@ -13,12 +14,12 @@ body {
   font-size: var(--font-size-base);
   line-height: 1.5;
   color: var(--color-text);
+  /* the land: one flat colour, nothing imitates a material (2.0) */
   background-color: var(--color-bg);
-  /* the parchment glow: a lighter spot top left, a faint stain bottom right */
-  background-image:
-    radial-gradient(circle at 12% 0%, var(--color-glow), transparent 32rem),
-    radial-gradient(circle at 100% 100%, var(--color-stain), transparent 36rem);
-  background-repeat: no-repeat;
+  /* look switch: a weave over the land (none in the plain themes) */
+  background-image: var(--texture);
+  /* numbers line up in columns and never dip below the line */
+  font-variant-numeric: lining-nums tabular-nums;
   min-height: 100dvh;
 }
 
@@ -27,7 +28,8 @@ h2,
 h3 {
   margin: 0;
   font-family: var(--font-head);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   color: var(--color-title);
   text-wrap: balance;

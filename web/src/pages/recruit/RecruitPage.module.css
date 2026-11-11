@@ -1,6 +1,8 @@
 .page {
   display: grid;
   gap: var(--space-3);
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -20,9 +22,9 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius);
-  background: var(--color-well);
+  /* 2.0: a switch like every other (ui-design-principles-2-0, Controls): the names stand on the
+     land over one thin line, the open one is bold with the 4 px line in the action colour */
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .tab {
@@ -35,7 +37,7 @@
   justify-content: center;
   gap: 1px;
   padding: var(--space-1) 2px;
-  border-radius: calc(var(--radius) - 0.25rem);
+  border-radius: calc(var(--radius) - 0.25rem) calc(var(--radius) - 0.25rem) 0 0;
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: 600;
@@ -43,13 +45,13 @@
 }
 
 .tab:hover {
-  background: var(--color-surface);
+  background: var(--color-well);
 }
 
 .tab[aria-current='page'] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 700;
+  color: var(--color-title);
+  font-weight: 800;
+  box-shadow: inset 0 -4px 0 var(--color-action);
 }
 
 .tabEmpty:not([aria-current='page']) {
@@ -90,9 +92,23 @@
   }
 }
 
-/* the narrowest phones (320 px): "Workshop" is one word and can't break, so smaller still */
-@media (max-width: 359.98px) {
+/* below 390 px the wider typeface of 2.0 no longer fits "Workshop", "Werkstatt" and "Akademie", which
+   are one word and can't break: the five tabs give their side padding and half their gaps to the names */
+@media (max-width: 389.98px) {
+  .tabs:has(> :nth-child(5)) {
+    gap: 2px;
+  }
+
   .tabs:has(> :nth-child(5)) .tab {
+    padding-inline: 0;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* the narrowest phones (320 px): smaller still, the level line too ("Stufe 10") */
+@media (max-width: 359.98px) {
+  .tabs:has(> :nth-child(5)) .tab,
+  .tabs:has(> :nth-child(5)) .tabLevel {
     font-size: var(--font-size-2xs);
   }
 }
@@ -120,7 +136,28 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (min-width: 640px) {
+/* Name and level in one line only where every tab has the room for it (a German "Bannerhalle Stufe 10"
+   with its count): the row of tabs decides, not the window, so an upright tablet keeps the two-line
+   tabs instead of cutting them to "Kas… Stu…" (2.0 UI review). Four tabs need less room than five. */
+.tabs {
+  container: recruit-tabs / inline-size;
+}
+
+@container recruit-tabs (min-width: 50rem) {
+  .tabs:not(:has(> :nth-child(5))) .tab {
+    min-height: var(--touch-target);
+    flex-direction: row;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-sm);
+  }
+
+  .tabs:not(:has(> :nth-child(5))) .tabBadge {
+    position: static;
+  }
+}
+
+@container recruit-tabs (min-width: 62rem) {
   .tab {
     min-height: var(--touch-target);
     flex-direction: row;
@@ -201,8 +238,8 @@
 .row {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-3);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
@@ -220,7 +257,7 @@
   position: relative;
   min-height: 1.6rem;
   padding: 0 var(--space-2);
-  border: 1px solid var(--color-divider);
+  border: var(--line) var(--line-style) var(--color-divider);
   border-radius: var(--radius-pill);
   background: var(--color-well);
   color: var(--color-title);
@@ -268,8 +305,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
@@ -364,7 +399,7 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 2px solid var(--color-divider);
+  border-top: 2px var(--line-style) var(--color-divider);
   background: var(--color-well);
   border-radius: 0 0 var(--radius) var(--radius);
 }
@@ -443,7 +478,7 @@
 
 /* ---------- small things in cards ---------- */
 .notice {
-  margin: 0 var(--space-3) var(--space-2);
+  margin: 0 var(--card-inset, var(--space-3)) var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   background: var(--color-well);
@@ -452,12 +487,12 @@
 
 .empty {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
   color: var(--color-text-muted);
 }
 
 .cardError {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .confirm {
@@ -551,7 +586,7 @@
 .planTable th,
 .planTable td {
   padding: var(--space-1) 0 var(--space-1) var(--space-2);
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   text-align: right;
   white-space: nowrap;
 }

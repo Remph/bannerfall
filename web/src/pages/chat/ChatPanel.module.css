@@ -90,30 +90,23 @@
   font-weight: 700;
 }
 
-/* own messages: the name in the accent colour and a line at the left */
+/* own messages: the name in the accent colour (2.0: no bar at the left of a line) */
 .mine .name {
   color: var(--color-accent);
 }
 
-.mine .text {
-  border-left-color: var(--color-accent);
-}
-
-/* a broadcast by the host (M14d): the banner green, so it doesn't read as one more player */
+/* a broadcast by the host (M14d): bold, so it doesn't read as one more player */
 .broadcast .name {
   color: var(--color-title);
   font-weight: 700;
 }
 
 .broadcast .text {
-  border-left-color: var(--color-bar);
   font-weight: 600;
 }
 
 .text {
   margin: 0;
-  padding-left: var(--space-2);
-  border-left: 2px solid var(--color-divider);
   /* line breaks as written; long words and links wrap instead of widening the panel */
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -129,10 +122,11 @@
   gap: var(--space-1);
   min-height: 2.25rem;
   padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--color-bar);
-  color: var(--color-on-bar);
+  /* 2.0: a quiet button that floats over the lines (dark green is never a button; the composer's Send is the sun) */
+  border: var(--line) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: var(--shadow-float);
   font: inherit;
   font-size: var(--font-size-sm);
@@ -140,8 +134,8 @@
   cursor: pointer;
 }
 
-/* touch screens keep the full touch target height (05-frontend §8) */
-@media (pointer: coarse) {
+/* touch screens keep the full touch target height (05-frontend §8), as does all below the PC frame */
+@media (pointer: coarse), (max-width: 1023.98px) {
   .newMessages {
     min-height: var(--touch-target);
   }
@@ -150,7 +144,7 @@
 .composer {
   flex: none;
   padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   background: var(--color-surface);
 }
 

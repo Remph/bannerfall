@@ -6,8 +6,8 @@
   width: 2.75rem;
   height: 1.6rem;
   margin: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
+  border: var(--line) solid var(--color-border);
+  border-radius: 999px;
   background: var(--color-well);
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -21,10 +21,8 @@
   width: 1.2rem;
   height: 1.2rem;
   border-radius: 50%;
-  /* the muted text colour, so an off switch shows in the dark theme too (its well and surface are
-     nearly the same) */
+  /* the muted text colour, so an off switch shows at night too */
   background: var(--color-text-muted);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
   transition: transform 0.15s ease;
 }
 
@@ -34,7 +32,7 @@
 }
 
 .switch:checked::after {
-  background: var(--color-surface);
+  background: var(--color-on-accent);
   transform: translateX(1.15rem);
 }
 

@@ -1,5 +1,6 @@
 package de.bannerfall.building;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +16,9 @@ public interface BuildOrderRepository extends JpaRepository<BuildOrder, Long> {
      * order was moved).
      */
     List<BuildOrder> findByVillageIdOrderByEndAtAscIdAsc(long villageId);
+
+    /** The queues of several villages in running order, for the Now list (1.7 → 2.0 N1). */
+    List<BuildOrder> findByVillageIdInOrderByEndAtAscIdAsc(Collection<Long> villageIds);
 
     /**
      * Only the village id, not the order: lets {@code BuildCompleteHandler} lock the village first

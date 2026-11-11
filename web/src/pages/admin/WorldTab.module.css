@@ -5,15 +5,12 @@
   gap: var(--space-3);
 }
 
-/* ---------- the sections: a pill row on phones ---------- */
+/* ---------- the sections: a switch on phones (plain words, the open one bold with the 4 px line) ---------- */
 .sections {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   gap: 2px;
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
 }
 
 .sectionsTitle {
@@ -26,18 +23,18 @@
   min-height: var(--touch-target);
   padding: 0 var(--space-1);
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
 .section[aria-current='true'] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 700;
+  color: var(--color-text);
+  font-weight: 800;
+  box-shadow: inset 0 -4px 0 var(--color-action);
 }
 
 .section:focus-visible {
@@ -100,7 +97,7 @@
 }
 
 .rows > * + * {
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row,
@@ -129,7 +126,7 @@
 .plain {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .plain p {
@@ -141,7 +138,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
   cursor: pointer;
 }
 
@@ -165,7 +162,7 @@
 .nested {
   display: grid;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .fields {
@@ -231,7 +228,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
   color: var(--color-accent);
   font-weight: 700;
   cursor: pointer;
@@ -264,7 +261,7 @@
 }
 
 .moreBody {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 /* a row that opens another tab: like the other rows, with a chevron */
@@ -274,7 +271,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   min-height: var(--touch-target);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
   color: var(--color-accent);
   font-weight: 700;
   text-decoration: none;
@@ -300,18 +297,21 @@
   position: sticky;
   bottom: calc(3.5rem + 2px + env(safe-area-inset-bottom, 0px) + var(--space-2));
   z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* the buttons drop under the words where both do not fit in one line (German at 320 px) */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border: 3px double var(--color-border);
+  /* 2.0: it floats over the page, so it keeps a plate; one plain line */
+  border: var(--line) solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-float);
 }
 
 .what {
+  flex: 1 1 9rem;
   min-width: 0;
   display: grid;
   gap: 0.1rem;
@@ -325,7 +325,8 @@
 
 /* a row that can't be saved, or a save that failed: the whole width under the changes */
 .wrong {
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
+  order: 1;
   margin: 0;
   color: var(--color-danger);
   font-size: var(--font-size-sm);
@@ -333,9 +334,8 @@
 }
 
 .barActions {
-  grid-column: 2;
-  grid-row: 1;
   display: flex;
+  margin-left: auto;
   gap: var(--space-2);
 }
 
@@ -352,9 +352,6 @@
     top: 4rem;
     grid-auto-flow: row;
     gap: var(--space-1);
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
   }
 
   .sectionsTitle {
@@ -380,7 +377,7 @@
   .section[aria-current='true'] {
     background: var(--color-well);
     color: var(--color-title);
-    box-shadow: inset 3px 0 0 var(--color-accent);
+    box-shadow: none;
   }
 
   .section .dot {

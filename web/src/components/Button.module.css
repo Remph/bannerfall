@@ -1,58 +1,82 @@
+/* Buttons (2.0): the main one is the place's one sun, in the action colour with a darker edge below;
+   every other one is quiet: no fill, an outline. */
 .button {
   min-height: var(--touch-target);
   padding: 0 1.25rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
+  border-radius: var(--radius);
+  border: var(--line) solid transparent;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-}
-
-.button {
   transition:
     transform 0.1s ease-out,
+    box-shadow 0.1s ease-out,
     filter 0.12s;
 }
 
 .button:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 
-/* a small dip while pressed (1.6.3): the tap is felt */
-.button:active:not(:disabled) {
-  transform: scale(0.97);
+.primary,
+.attack {
+  position: relative;
+  background-image: var(--texture);
 }
 
-/* "not yet" (1.3): a quiet grey pill in every variant, not a faded main action; the border keeps
-   its shape on a well-coloured background */
-.button:disabled {
-  background: var(--color-well);
-  color: var(--color-text-muted);
-  border-color: var(--color-border);
-  cursor: default;
+/* look switch: a seam just inside the main button (no border in the plain themes) */
+.primary::before,
+.attack::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: var(--seam);
+  border-radius: calc(var(--radius) - 3px);
+  pointer-events: none;
+}
+
+.attack::before {
+  border: var(--seam-on-dark);
 }
 
 .primary {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background-color: var(--color-action);
+  color: var(--color-on-action);
+  box-shadow: 0 2.5px 0 var(--color-action-edge);
 }
 
-/* red is kept for war: sending an attack (the other main actions use the accent) */
+/* red is kept for war: sending an attack (the other main actions use the action colour) */
 .attack {
-  background: var(--color-danger);
-  color: var(--color-on-danger);
+  background-color: var(--color-war);
+  color: var(--color-on-war);
+  box-shadow: 0 2.5px 0 color-mix(in srgb, var(--color-war) 70%, #000000);
 }
 
-.secondary {
-  background: var(--color-surface);
+/* pressed (1.6.3: the tap is felt): a main button sinks onto its edge */
+.primary:active:not(:disabled),
+.attack:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.secondary,
+.danger {
+  background: transparent;
   color: var(--color-text);
   border-color: var(--color-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-well);
+  filter: none;
+}
+
+.secondary:active:not(:disabled),
+.danger:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .danger {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-color: var(--color-border);
   transition:
     transform 0.1s ease-out,
     background-color 0.12s,
@@ -67,6 +91,21 @@
   color: var(--color-danger);
   border-color: var(--color-danger);
   filter: none;
+}
+
+/* "not yet" (1.3): quiet and grey in every variant, not a faded main action; after the variants,
+   so it wins over their fills */
+.button:disabled {
+  background: var(--color-well);
+  color: var(--color-text-muted);
+  border-color: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* "not yet" is quiet in every look: no seam on the grey */
+.button:disabled::before {
+  border-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -86,8 +125,9 @@
   font-size: var(--font-size-sm);
 }
 
-/* touch screens keep the full touch target height (05-frontend §8) */
-@media (pointer: coarse) {
+/* touch screens keep the full touch target height (05-frontend §8), and so does everything narrower than
+   the PC frame: an upright tablet may report a fine pointer (2.0 UI review) */
+@media (pointer: coarse), (max-width: 1023.98px) {
   .small {
     min-height: var(--touch-target);
   }

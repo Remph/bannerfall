@@ -1,6 +1,8 @@
 .page {
   display: grid;
   gap: var(--space-3);
+  /* 2.0: rows on the land, lined up with the page title (no card indent) */
+  --card-inset: 0;
 }
 
 .head {
@@ -32,6 +34,7 @@
 @media (min-width: 1024px) {
   .layout {
     grid-template-columns: minmax(0, 1fr) 22rem;
+    column-gap: var(--space-4);
     grid-template-rows: auto 1fr;
     align-items: start;
   }
@@ -58,21 +61,31 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  /* the rows choose their layout by the list's own width (2.0 UI review), see below */
+  container: building-rows / inline-size;
 }
 
 .row {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-3);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
   border-top: 0;
 }
 
-/* the building the village overview linked to */
+/* the building the village overview linked to: a well that reaches a little past the row's text,
+   so the section must not clip it (`.rowsCard`) */
+.rowsCard {
+  overflow: visible;
+}
+
 .target {
+  margin-inline: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  border-radius: var(--radius);
   background: var(--color-well);
 }
 
@@ -103,8 +116,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
@@ -117,19 +128,17 @@
 .badge,
 .badgeEmpty {
   flex: none;
-  padding: 1px 9px;
-  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  border-radius: 0.45rem;
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* neutral (1.3): a paper well with dark text (gold in dark mode), so the upgrade buttons stay the
-   strongest green on the page */
+/* 2.0: the level is a small dark sign, as on the village picture */
 .badge {
-  background: var(--color-well);
-  color: var(--color-title);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+  background: var(--color-badge);
+  color: var(--color-on-badge);
   font-weight: 700;
 }
 
@@ -146,9 +155,24 @@
   white-space: nowrap;
 }
 
-/* the cost list itself is components/CostList; this class only places it in the row */
+/* the cost list itself is components/CostList; this class only places it in the row. Phones (2.0):
+   four cells, so wood stands under wood from row to row; the population is at most three digits and
+   gets a narrower cell, which leaves room for a bold five-digit cost at 320 px. The build time has
+   its own line. */
 .costs {
   min-width: 0;
+}
+
+@media (max-width: 639.98px) {
+  .row .costs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.68fr);
+    column-gap: var(--space-1);
+  }
+
+  .row .costs > :nth-child(n + 5) {
+    grid-column: 1 / -1;
+  }
 }
 
 .action {
@@ -189,9 +213,11 @@
     padding-bottom: var(--space-2);
   }
 
+  /* three fixed cells: wood, clay, iron in the first line, population and time in the second, in every
+     row and at every width (2.0 UI review: a free number of cells gave one to five lines) */
   .row .costs {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 4.75rem);
+    grid-template-columns: repeat(3, 4.75rem);
     column-gap: var(--space-1);
   }
 
@@ -227,9 +253,24 @@
   }
 }
 
+/* A list too narrow for name, costs and button side by side (the PC from 1024 px beside the queue, from
+   1600 px beside the Now column, an upright tablet): the name takes its own line, the costs and the button
+   share the next (2.0 UI review: the button lay over the iron at 1024 px, rows grew to five lines). */
+@media (min-width: 640px) {
+  @container building-rows (max-width: 41.49rem) {
+    .row:has(> .costs) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .row:has(> .costs) > :not(.costs, .action) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
 /* ---------- small things in cards ---------- */
 .notice {
-  margin: 0 var(--space-3) var(--space-2);
+  margin: 0 var(--card-inset, var(--space-3)) var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   background: var(--color-well);
@@ -238,12 +279,12 @@
 
 .empty {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
   color: var(--color-text-muted);
 }
 
 .cardError {
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .confirm {
@@ -262,12 +303,9 @@
   gap: var(--space-2);
 }
 
-/* M13c: the surcharge of a paid build slot on the build button ("+25%") */
+/* M13c: the surcharge of a paid build slot on the build button ("+25%"), a plain word since the 2.0 UI review */
 .surcharge {
   margin-left: var(--space-2);
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-text);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -275,12 +313,9 @@
   white-space: nowrap;
 }
 
-/* an order in a paid slot of the queue: no move buttons, this label instead */
+/* an order in a paid slot of the queue: no move buttons, this word instead */
 .paidSlot {
   align-self: center;
-  padding: 1px 8px;
-  border: 1px dashed var(--color-text-muted);
-  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   white-space: nowrap;
@@ -288,7 +323,7 @@
 
 .queueNote {
   margin: 0;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -300,8 +335,8 @@
   align-items: center;
   gap: var(--space-2);
   /* the × lines up with the running order's */
-  padding: 2px var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: 2px var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .waiting:first-child {
@@ -314,8 +349,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-text-muted);
 }
 
@@ -480,12 +513,9 @@
   padding-left: 1.2rem;
 }
 
-/* next to a demolition in the queue: red like everything that takes something away */
+/* next to a demolition in the queue: red like everything that takes something away, a plain word */
 .demolishChip {
   align-self: center;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-danger-bg);
   color: var(--color-danger);
   font-size: var(--font-size-xs);
   font-weight: 700;

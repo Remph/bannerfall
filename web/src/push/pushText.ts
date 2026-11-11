@@ -1,6 +1,6 @@
 import { formatCoords, formatDateTime, formatWhenExact } from '../game/format';
 import { sideName } from '../game/victory';
-import type { Dictionary } from '../i18n/en';
+import type { PushTexts } from '../i18n/push-en';
 import type { Language } from '../i18n/language';
 import { conversationPath } from '../pages/messages/messagePaths';
 import { rankingPath } from '../pages/ranking/rankingPaths';
@@ -23,7 +23,7 @@ export interface PushNotificationContent {
  */
 export function pushNotificationContent(
   message: PushMessage,
-  t: Dictionary,
+  t: PushTexts,
   language: Language,
   nowMs: number,
 ): PushNotificationContent | undefined {
@@ -102,14 +102,14 @@ export function pushNotificationContent(
 }
 
 /** "Hilltop 48|52"; a barbarian village by its localized name. */
-function villageLabel(village: NonNullable<PushMessage['village']>, t: Dictionary): string {
+function villageLabel(village: NonNullable<PushMessage['village']>, t: PushTexts): string {
   return `${village.name ?? t.map.barbarianVillage} ${formatCoords(village.x, village.y)}`;
 }
 
 /** The toast's words for the victory clock (`notifications.ts`), without its link. */
 function victoryClockText(
   event: Extract<NonNullable<PushMessage['event']>, { type: 'VICTORY_CLOCK' }>,
-  t: Dictionary,
+  t: PushTexts,
   language: Language,
 ): string | undefined {
   const { leader, winsAt, previous } = event;

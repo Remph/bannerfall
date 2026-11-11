@@ -1,0 +1,23 @@
+/* Fixed at the right edge from below the sky; the page, the banners and the footer make room (AppLayout.module.css). */
+.column {
+  position: fixed;
+  z-index: 19;
+  top: var(--app-header-height, 0px);
+  right: 0;
+  bottom: 0;
+  width: var(--chat-column-width);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-quiet);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  background: var(--color-bg);
+  border-left: var(--line) var(--line-style) var(--color-divider);
+  overscroll-behavior: contain;
+  /* page changes cross-fade (global.css); the column stays put, like the bars */
+  view-transition-name: now-column;
+}
+
+/* the open chat takes the lower part of the strip */
+.column[data-with-chat] {
+  bottom: var(--chat-dock-height);
+}

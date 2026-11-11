@@ -24,9 +24,11 @@ export function ConquestDetails({ kind, report, villageId }: ConquestDetailsProp
   const won = kind === 'CONQUEST';
   return (
     <>
-      <p className={[styles.verdict, styles.stamp, won ? styles.won : `${styles.lost} ${styles.shake}`].join(' ')}>
-        {won ? t.reports.conquestWon : t.reports.conquestLost}
-      </p>
+      <div className={styles.stampClip}>
+        <p className={[styles.verdict, styles.stamp, won ? styles.won : `${styles.lost} ${styles.shake}`].join(' ')}>
+          {won ? t.reports.conquestWon : t.reports.conquestLost}
+        </p>
+      </div>
       <div className={styles.columns}>
         <Card title={t.reports.conquestVillage}>
           <div className={styles.cardBody}>

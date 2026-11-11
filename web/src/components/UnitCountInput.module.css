@@ -15,9 +15,9 @@
   width: 4.75rem;
   min-height: var(--touch-target);
   padding: 0 var(--space-2);
-  border: 1px solid var(--color-border);
+  border: var(--line) solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: transparent;
   color: var(--color-text);
   font: inherit;
   /* 16px or more stops iOS Safari from zooming into the field */
@@ -38,18 +38,23 @@
 }
 
 .input:disabled {
-  opacity: 0.6;
+  color: var(--color-text-muted);
+  background: var(--color-well);
 }
 
-/* "max 42": a pill, full touch height; a minimum width keeps the fields of a list in one column */
+/* "max 42": a link beside the field that fills it (2.0; a pill before), full touch height; a minimum
+   width keeps the fields of a list in one column */
 .chip {
   min-width: 5.5rem;
   min-height: var(--touch-target);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
-  color: var(--color-text);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: var(--line);
+  text-underline-offset: 0.2em;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: 600;
@@ -59,10 +64,13 @@
 }
 
 .chip:hover:not(:disabled) {
-  border-color: var(--color-accent);
+  background: var(--color-well);
 }
 
+/* off (a full queue, nothing to fill): the soft text colour, never opacity, which the contrast test can't
+   see (2.0 UI review: 2.1 to 3.3 : 1) */
 .chip:disabled {
-  opacity: 0.5;
+  color: var(--color-text-muted);
+  text-decoration: none;
   cursor: default;
 }

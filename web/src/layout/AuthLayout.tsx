@@ -10,14 +10,20 @@ export function AuthLayout() {
   const onPrivacy = useMatch('/privacy') !== null;
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <LanguageToggle />
+      {/* 2.0: the same sky as in the game, higher, with the name of the game on it */}
+      <header className={styles.sky}>
+        <span className={styles.orb} aria-hidden="true" />
+        <svg className={styles.hills} viewBox="0 0 400 30" preserveAspectRatio="none" aria-hidden="true">
+          <path className={styles.hillFar} d="M0 30V15C60 3 110 2 170 12S300 25 400 7V30Z" />
+          <path className={styles.hillNear} d="M0 30V23C80 11 150 25 230 19S340 9 400 21V30Z" />
+        </svg>
+        <div className={styles.tools}>
+          <LanguageToggle />
+        </div>
+        <p className={styles.brand}>{t.common.appName}</p>
       </header>
       <main className={onPrivacy ? `${styles.main} ${styles.mainWide}` : styles.main}>
-        <p className={styles.brand}>{t.common.appName}</p>
-        <div className={styles.card}>
-          <Outlet />
-        </div>
+        <Outlet />
         <PregameNotice />
         {!onPrivacy && (
           <p className={styles.legal}>

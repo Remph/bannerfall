@@ -3,6 +3,14 @@
   display: grid;
   gap: var(--space-3);
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
+}
+
+/* the shade of an opened target reaches a little past the row's text, so its section must not clip it
+   (as in the Town Hall) */
+.rowsCard {
+  overflow: visible;
 }
 
 .columns {
@@ -62,8 +70,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .list > li:first-child .templateRow {
@@ -119,7 +127,7 @@
 .body {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .body p {
@@ -140,7 +148,7 @@
   align-items: center;
   gap: 2px var(--space-3);
   padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .pickRow:first-child {
@@ -167,8 +175,6 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-well);
   color: var(--color-accent);
 }
 
@@ -177,8 +183,8 @@
 .sendAll {
   display: grid;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
-  border-bottom: 1px solid var(--color-divider);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .list {
@@ -191,7 +197,7 @@
 /* a target in two short lines (1.6): the tap area (letter, name, facts, chevron) and Send */
 .target {
   display: grid;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .list > li:first-child .target {
@@ -200,6 +206,10 @@
 
 /* opened: shaded like a well, its details below */
 .target[data-open] {
+  margin-inline: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  border-top-color: transparent;
+  border-radius: var(--radius);
   background: var(--color-well);
 }
 
@@ -207,7 +217,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding-right: var(--space-3);
+  padding-right: var(--card-inset, var(--space-3));
 }
 
 /* the whole left part opens the row; at least a touch target high */
@@ -218,7 +228,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.35rem 0 0.35rem var(--space-3);
+  padding: 0.35rem 0 0.35rem var(--card-inset, var(--space-3));
   border: 0;
   background: none;
   color: inherit;
@@ -316,18 +326,15 @@
   color: var(--color-danger);
 }
 
-/* the banner chance used, night bonus, morale, protection: small pills instead of whole lines */
+/* the banner chance used, night bonus, morale, protection: small words instead of whole lines (plain words
+   since the 2.0 UI review) */
 .mark {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  padding: 0 0.4rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  line-height: 1.5;
 }
 
 .target[data-open] .mark,
@@ -383,7 +390,7 @@
 .details {
   display: grid;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-2) calc(var(--space-3) + 1.5rem + var(--space-2));
+  padding: 0 0 var(--space-2) calc(1.5rem + var(--space-2));
 }
 
 .details {
@@ -461,26 +468,20 @@
   font-size: var(--font-size-sm);
 }
 
-/* the run's summary, next to the buttons that started it */
+/* the run's summary, next to the buttons that started it: a plain green line (2.0 UI review) */
 .sentChip {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.2rem 0.7rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-success-bg);
   color: var(--color-success);
   font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
-/* a run that sent nothing (every target skipped): the same chip without the success colour */
+/* a run that sent nothing (every target skipped): the same line without the success colour */
 .noneSentChip {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.7rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: 600;
@@ -578,7 +579,7 @@
 .copySheet {
   display: grid;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .copyList {
@@ -595,7 +596,7 @@
   min-height: 3.25rem;
   padding: var(--space-2) 0;
   border: 0;
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   background: none;
   color: var(--color-text);
   font: inherit;

@@ -2052,6 +2052,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["now"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/noble": {
         parameters: {
             query?: never;
@@ -4942,6 +4958,19 @@ export interface components {
             nextSlotAtVillages: number | null;
             /** Format: double */
             minutesPerField: number;
+        };
+        NowDto: {
+            villages: components["schemas"]["NowVillageDto"][];
+        };
+        NowVillageDto: {
+            village: components["schemas"]["VillageRefDto"];
+            builds: components["schemas"]["BuildOrderDto"][];
+            training: components["schemas"]["RecruitOrderDto"][];
+            dismissals: components["schemas"]["DismissOrderDto"][];
+            research: components["schemas"]["ResearchOrderDto"][];
+            outgoing: components["schemas"]["MovementDto"][];
+            incoming: components["schemas"]["IncomingDto"][];
+            merchants: components["schemas"]["TransportDto"][];
         };
         NobleDto: {
             /** Format: int32 */
@@ -8772,6 +8801,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OfferDto"][];
+                };
+            };
+        };
+    };
+    now: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NowDto"];
                 };
             };
         };

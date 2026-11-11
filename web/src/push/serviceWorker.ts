@@ -6,8 +6,8 @@
  * The worker's own types (ServiceWorkerGlobalScope …) clash with the page's DOM types in one
  * TypeScript program, so the few parts used here are declared below.
  */
-import { de } from '../i18n/de';
-import { en } from '../i18n/en';
+import { dePushTexts } from '../i18n/push-de';
+import { enPushTexts } from '../i18n/push-en';
 import { parsePushMessage } from './pushMessage';
 import { pushNotificationContent } from './pushText';
 
@@ -74,7 +74,7 @@ async function show(data: PushEvent['data']): Promise<void> {
     return;
   }
   const language = message.lang === 'de' ? 'de' : 'en';
-  const content = pushNotificationContent(message, language === 'de' ? de : en, language, Date.now());
+  const content = pushNotificationContent(message, language === 'de' ? dePushTexts : enPushTexts, language, Date.now());
   if (content === undefined) {
     return;
   }

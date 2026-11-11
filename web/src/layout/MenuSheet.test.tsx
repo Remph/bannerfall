@@ -144,30 +144,39 @@ describe('MenuSheet: colour themes (1.6)', () => {
   });
   afterEach(() => {
     cleanup();
-    applyPalette('green');
+    applyPalette('wiese');
   });
 
-  it('offers the six themes, green chosen by default, and switches the page on a tap', () => {
+  it('offers the five themes, Meadow chosen by default, and switches the page on a tap', () => {
     open('settings', {});
     const group = screen.getByRole('radiogroup', { name: 'Colours' });
     const choices = within(group).getAllByRole('radio');
     expect(choices.map((choice) => choice.getAttribute('aria-label'))).toEqual([
-      'Green banner',
-      'Royal blue',
-      'Black and gold',
-      'Black and gold (OLED)',
-      'Purple',
-      'Leather and forest',
+      'Meadow',
+      'Cornfield',
+      'Frost',
+      'Heath',
+      'Stitched',
     ]);
-    expect(screen.getByRole('radio', { name: 'Green banner' })).toHaveProperty('checked', true);
-    expect(screen.getByText('Green banner')).toBeDefined();
+    expect(screen.getByRole('radio', { name: 'Meadow' })).toHaveProperty('checked', true);
+    expect(screen.getByText('Meadow')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Royal blue' }));
-    expect(document.documentElement.getAttribute('data-palette')).toBe('blue');
-    expect(screen.getByRole('radio', { name: 'Royal blue' })).toHaveProperty('checked', true);
-    expect(screen.getByText('Royal blue')).toBeDefined();
+    fireEvent.click(screen.getByRole('radio', { name: 'Frost' }));
+    expect(document.documentElement.getAttribute('data-palette')).toBe('frost');
+    expect(screen.getByRole('radio', { name: 'Frost' })).toHaveProperty('checked', true);
+    expect(screen.getByText('Frost')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Black and gold (OLED)' }));
-    expect(document.documentElement.getAttribute('data-palette')).toBe('oled');
+    fireEvent.click(screen.getByRole('radio', { name: 'Heath' }));
+    expect(document.documentElement.getAttribute('data-palette')).toBe('heide');
+  });
+
+  it('black is a mode of its own: the night with data-black, and it goes away again', () => {
+    open('settings', {});
+    fireEvent.click(screen.getByRole('button', { name: 'Black' }));
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.hasAttribute('data-black')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Device' }));
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-black')).toBe(false);
   });
 });

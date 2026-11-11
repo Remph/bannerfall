@@ -35,9 +35,10 @@ export interface PlateProps {
 }
 
 /**
- * The name plate under a building: name and level in a pill. It is a second link to the building's
- * screen, so tapping the plate works too, but hidden from screen readers and the tab order (the
- * drawing's link has the label and the focus; `focused` draws the focus ring here).
+ * The label under a building, written on the land (2.0): the name with a thin halo in the ground's
+ * colour and the level in a small dark badge; a box only where the theme draws one. It is a second
+ * link to the building's screen, so tapping the plate works too, but hidden from screen readers and
+ * the tab order (the drawing's link has the label and the focus; `focused` draws the focus ring here).
  */
 export function Plate({ x, y, font, name, levelText, faded, to, focused, done }: PlateProps) {
   const nameRef = useRef<SVGTextElement>(null);
@@ -70,7 +71,8 @@ export function Plate({ x, y, font, name, levelText, faded, to, focused, done }:
           rx={height / 2 + 3}
         />
       )}
-      <rect className={s.plateBox} x={left} y={y} width={width} height={height} rx={height / 2} />
+      {/* the tap area of the label; a box only where the theme draws one (plate look switches) */}
+      <rect className={s.plateBox} x={left} y={y} width={width} height={height} rx={font * 0.45} />
       <text ref={nameRef} className={s.plateName} x={left + font * PLATE_PAD} y={middle} fontSize={font}>
         {name}
       </text>
@@ -80,7 +82,7 @@ export function Plate({ x, y, font, name, levelText, faded, to, focused, done }:
         y={y + font * PILL_INSET}
         width={pill}
         height={pillHeight}
-        rx={pillHeight / 2}
+        rx={font * 0.38}
       />
       <text ref={levelRef} className={s.plateLevel} x={pillLeft + pill / 2} y={middle} fontSize={font * 0.88}>
         {levelText}

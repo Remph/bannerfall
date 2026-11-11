@@ -26,9 +26,7 @@
 .page > .viewport {
   flex: none;
   min-height: 0;
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
+  /* 2.0: no frame. The map's ground is the page's ground, so the land runs on into the map */
 }
 
 .side {
@@ -74,11 +72,7 @@
   min-height: 14rem;
   display: flex;
   flex-direction: column;
-  overflow: clip;
-  background: var(--color-surface);
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
+  /* 2.0: on the land, no card */
 }
 
 .sideHint {
@@ -104,16 +98,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  /* 2.0: the tools lie on the land above the map, no bar of their own */
   padding: var(--space-2) var(--space-3);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
 }
 
-/* in the desktop side column: a card, the legend as a list below the go-to row */
+/* in the desktop side column: the legend as a list below the go-to row, a row line above (2.0) */
 .toolbarSide {
-  border: 3px double var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-panel);
+  padding-inline: 0;
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .toolbarSide .goTo {
@@ -293,7 +285,10 @@
   gap: var(--space-2);
 }
 
-.zoom > button {
+.zoom > button,
+.devSpawn > button {
+  /* over the map: a plate, so trees and villages don't show through */
+  background: var(--color-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
@@ -371,8 +366,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-1) var(--space-1) var(--space-2) var(--space-3);
+  /* 2.0: it floats over the map, so it keeps a plate; one plain line, not the double frame */
   background: var(--color-surface);
-  border: 3px double var(--color-border);
+  border: var(--line) solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-float);
 }
@@ -392,7 +388,13 @@
   width: auto;
   max-height: none;
   overflow: visible;
-  box-shadow: var(--shadow-panel);
+  /* 2.0: in the side column it lies on the land */
+  padding: 0 0 var(--space-2);
+  border: 0;
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .panelHead {
@@ -449,10 +451,8 @@
 }
 
 .tag {
+  /* 2.0: a quiet note beside the value, no pill */
   margin-left: 0.4rem;
-  padding: 0 0.45rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-well);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   white-space: nowrap;
@@ -480,29 +480,57 @@
   justify-content: center;
   gap: 0.45rem;
   padding: 0 1rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  border: var(--line) solid transparent;
+  border-radius: var(--radius);
   font: inherit; /* also as a button (the line panel's "Show target") */
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
 
-/* red is kept for war: an attack leads in red */
+/* the panel's one sun: the main link looks like a main Button (action colour, darker edge below) */
+.lead {
+  position: relative;
+  background-color: var(--color-action);
+  background-image: var(--texture);
+  color: var(--color-on-action);
+  box-shadow: 0 2.5px 0 var(--color-action-edge);
+}
+
+/* look switch: the seam just inside the main button, like Button's (empty in the plain themes) */
+.lead::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: var(--seam);
+  border-radius: calc(var(--radius) - 3px);
+  pointer-events: none;
+}
+
+.lead.attack::before {
+  border: var(--seam-on-dark);
+}
+
+/* red is kept for war: an attack leads in red, like the Attack button (rule 5) */
 .lead.attack {
-  background: var(--color-danger);
-  color: var(--color-on-danger);
+  background-color: var(--color-war);
+  color: var(--color-on-war);
+  box-shadow: 0 2.5px 0 color-mix(in srgb, var(--color-war) 70%, #000000);
 }
 
 .lead:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 
+.lead:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* the second choice is quiet: an outline on the panel */
 .second {
   border-color: var(--color-border);
-  background: var(--color-surface);
+  background: transparent;
   color: var(--color-text);
   font-weight: 600;
 }
@@ -566,13 +594,13 @@
   position: absolute;
   inset: 0;
   z-index: 1; /* over the detailed map, which stays mounted underneath */
-  background: var(--color-surface);
+  background: var(--color-bg);
 }
 
 .overviewBox {
   position: relative;
   aspect-ratio: 1;
-  background: var(--map-outside);
+  background: var(--color-bg); /* as overviewDraw paints around the square */
 }
 
 /* Phones: no box of its own. Desktop side column: as high as the column is wide, shrinking down to
@@ -627,7 +655,7 @@
   display: flex;
   justify-content: center;
   padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .guildLegend {
@@ -636,7 +664,7 @@
   gap: var(--space-1) var(--space-2);
   margin: 0;
   padding: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: var(--line) var(--line-style) var(--color-divider);
   list-style: none;
   font-size: var(--font-size-sm);
 }
@@ -667,7 +695,7 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .overviewStatus {
@@ -860,7 +888,7 @@
   min-height: var(--touch-target);
   padding: var(--space-2) 0;
   border: 0;
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
   background: none;
   color: var(--color-text);
   font: inherit;
@@ -945,7 +973,7 @@
   gap: var(--space-2);
   margin: 0 var(--space-2) var(--space-3) 0;
   padding-top: var(--space-2);
-  border-top: 1px solid var(--color-divider);
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .farmLineHead {

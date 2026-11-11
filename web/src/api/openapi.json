@@ -4056,6 +4056,24 @@
         }
       }
     },
+    "/api/now" : {
+      "get" : {
+        "tags" : [ "now-controller" ],
+        "operationId" : "now",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NowDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/noble" : {
       "get" : {
         "tags" : [ "noble-controller" ],
@@ -10972,6 +10990,69 @@
           }
         },
         "required" : [ "maxSlots", "minutesPerField", "nextSlotAtVillages", "slots", "used", "villages", "villagesPerSlot" ]
+      },
+      "NowDto" : {
+        "type" : "object",
+        "properties" : {
+          "villages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NowVillageDto"
+            }
+          }
+        },
+        "required" : [ "villages" ]
+      },
+      "NowVillageDto" : {
+        "type" : "object",
+        "properties" : {
+          "village" : {
+            "$ref" : "#/components/schemas/VillageRefDto"
+          },
+          "builds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BuildOrderDto"
+            }
+          },
+          "training" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RecruitOrderDto"
+            }
+          },
+          "dismissals" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DismissOrderDto"
+            }
+          },
+          "research" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ResearchOrderDto"
+            }
+          },
+          "outgoing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MovementDto"
+            }
+          },
+          "incoming" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IncomingDto"
+            }
+          },
+          "merchants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TransportDto"
+            }
+          }
+        },
+        "required" : [ "builds", "dismissals", "incoming", "merchants", "outgoing", "research", "training", "village" ]
       },
       "NobleDto" : {
         "type" : "object",

@@ -166,13 +166,10 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/alegreya-sans':
+      '@fontsource/almendra':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource/alegreya-sc':
-        specifier: ^5.3.0
-        version: 5.3.0
-      '@fontsource/uncial-antiqua':
+      '@fontsource/bricolage-grotesque':
         specifier: ^5.3.0
         version: 5.3.0
       '@stomp/stompjs':
@@ -424,14 +421,11 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@fontsource/alegreya-sans@5.3.0':
-    resolution: {integrity: sha512-Uf0RbuwzhSS3NQrBFcRzEUm7TxDQW3qdAbQ6JIOhsIW6V+YN2dqlR99lhfEE38R3GHgMCMJBzqSp7aJxhNXSOw==}
+  '@fontsource/almendra@5.3.0':
+    resolution: {integrity: sha512-edtEANMc9SKccDhYmtcxmlrvzzjHTQ/enLiOgWc4ODQDjdMf6zfoUdwpBHPPw+0pekeI7PyBsP4JqjyviiIuGg==}
 
-  '@fontsource/alegreya-sc@5.3.0':
-    resolution: {integrity: sha512-MksAO+rnvCMXBfrzcznuaoNtGgGwqORHhz5/UP0V4bHq0M9mL9EpOrW44ilAgI/yjzYtWoVlVjvvvEXPJI9PCw==}
-
-  '@fontsource/uncial-antiqua@5.3.0':
-    resolution: {integrity: sha512-HA/cOSbmAt+RQniolOzckWYOzVUBg3YgczkVD01rRO61ErT9PYN3frgqvH7JqN5/7wg+W05EYY/7MbPdtgT0gw==}
+  '@fontsource/bricolage-grotesque@5.3.0':
+    resolution: {integrity: sha512-MdOVb/5in11IfN/IQJOExMuu6AroCIQbirl0yX7NUvKk+h0HYIKfGaVAXRS/gCPil4aFxWhjZnOw28tUwv7tFw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1780,11 +1774,9 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@fontsource/alegreya-sans@5.3.0': {}
+  '@fontsource/almendra@5.3.0': {}
 
-  '@fontsource/alegreya-sc@5.3.0': {}
-
-  '@fontsource/uncial-antiqua@5.3.0': {}
+  '@fontsource/bricolage-grotesque@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

@@ -12,6 +12,9 @@ public interface ResearchOrderRepository extends JpaRepository<ResearchOrder, Lo
     /** The researches of a player that are done by {@code at}: what his unit levels come from. */
     List<ResearchOrder> findByPlayerIdAndEndAtLessThanEqual(long playerId, Instant at);
 
+    /** The player's researches that are not done by {@code at}, soonest first (the Now list). */
+    List<ResearchOrder> findByPlayerIdAndEndAtAfterOrderByEndAtAscIdAsc(long playerId, Instant at);
+
     /** The researches started in a village that are not done by {@code at}. */
     List<ResearchOrder> findByVillageIdAndEndAtAfter(long villageId, Instant at);
 }

@@ -21,7 +21,7 @@ import { drawKeepMark, type MapColors } from './mapDraw';
  * already scaled the context for the device pixel ratio.
  */
 
-const FONT = '"Alegreya Sans", system-ui, sans-serif';
+const FONT = '"Bricolage Grotesque", system-ui, sans-serif';
 /** A village is at least this many CSS px wide, so it stays visible on a whole big map. */
 const SQUARE_MIN = 3;
 /** The reach of a village's area on the political layer: this many fields, at least this many CSS px. */
@@ -50,7 +50,9 @@ export interface OverviewScene {
 export function drawOverview(ctx: CanvasRenderingContext2D, scene: OverviewScene): void {
   const { overview, size, mapSize, colors } = scene;
   const scale = overview.tile;
-  ctx.fillStyle = colors.outside;
+  // around the small map is the page, not more land: the page's ground (the axis colour), not the shade
+  // beyond the map's edge, which stood as two grey bands above and below the square on a phone (2.0)
+  ctx.fillStyle = colors.axis;
   ctx.fillRect(0, 0, size.width, size.height);
   const range = visibleFields(overview, size, mapSize);
   const origin = toScreen(overview, size, { x: 0, y: 0 }); // the map's corner (0|0) on screen

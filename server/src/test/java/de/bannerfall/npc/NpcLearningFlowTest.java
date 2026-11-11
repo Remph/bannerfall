@@ -133,6 +133,8 @@ class NpcLearningFlowTest {
                 .update();
         jdbc.sql("delete from movement where owner_player_id in (select id from player where npc)")
                 .update();
+        jdbc.sql("delete from research_order where player_id in (select id from player where npc)")
+                .update();
         jdbc.sql("delete from village where player_id in (select id from player where npc)")
                 .update();
         jdbc.sql("delete from report where player_id in (select id from player where npc)")

@@ -4,6 +4,8 @@
   gap: var(--space-3);
   max-width: 44rem;
   align-content: start;
+  /* 2.0: rows on the land, lined up with the page title */
+  --card-inset: 0;
 }
 
 .head {
@@ -23,6 +25,9 @@
 .link {
   color: var(--color-accent);
   font-weight: 600;
+  display: inline-block;
+  padding-block: var(--tap-pad);
+  margin-block: calc(-1 * var(--tap-pad));
 }
 
 .hint {
@@ -33,7 +38,7 @@
 .body {
   display: grid;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--card-inset, var(--space-3)) var(--space-3);
 }
 
 .body p {
@@ -41,7 +46,7 @@
 }
 
 .note {
-  padding: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--card-inset, var(--space-3)) var(--space-3);
   font-size: var(--font-size-sm);
 }
 
@@ -56,8 +61,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-top: 1px solid var(--color-divider);
+  padding: var(--space-3) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
 }
 
 .row:first-child {
@@ -68,10 +73,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 2.5rem;
+  width: 2rem;
   height: 2.5rem;
-  border-radius: var(--radius);
-  background: var(--color-well);
 }
 
 .icon svg {

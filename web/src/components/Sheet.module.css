@@ -1,5 +1,7 @@
 /* Phone first: a sheet at the bottom of the screen. */
 .sheet {
+  /* a sheet floats: sections inside it keep their own inset, whatever the page under it uses */
+  --card-inset: var(--space-3);
   width: 100%;
   max-width: 100%;
   max-height: 85dvh;
@@ -19,7 +21,7 @@
 }
 
 .sheet::backdrop {
-  background: rgba(20, 15, 10, 0.45);
+  background: rgba(12, 22, 16, 0.5);
 }
 
 /* closing mirrors opening (Sheet.tsx waits for it, then closes the dialog) */
@@ -46,7 +48,7 @@
   gap: var(--space-2);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
 }
 
 .title {
@@ -84,8 +86,7 @@
     /* centred, so it may use the window's height (the gear menu fits a 700 px window, 1.5.1) */
     max-height: calc(100dvh - 2rem);
     margin: auto;
-    border: 3px double var(--color-border);
-    border-radius: var(--radius);
+    border-radius: 1rem;
   }
 
   .sheet[open] {

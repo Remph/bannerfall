@@ -3,11 +3,13 @@ import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-r
 import { useRefreshWhenMovementsArrive, useTroops, type Troops } from '../../api/queries/troops';
 import { useVillage, type Village } from '../../api/queries/villages';
 import { DevCheats } from '../../components/DevCheats';
+import { Icon } from '../../components/Icon';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { TutorialHint } from '../../components/TutorialHint';
 import { formatCoords } from '../../game/format';
 import { useT } from '../../i18n';
 import { parseVillageId } from '../../layout/currentVillage';
+import { CHAT_COLUMN_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { VillageError } from '../village/VillageError';
 import { cardOfHash, useFoldedCards } from './collapsedCards';
 import { IncomingCard, OutgoingCard } from './MovementCards';
@@ -88,6 +90,8 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
     }
   }
   const moving = troops.outgoing.length + troops.incoming.length;
+  // from 1600 px the Now column beside the page lists the movements, with their cancel buttons (2.0)
+  const nowColumn = useMediaQuery(CHAT_COLUMN_QUERY);
   return (
     <div className={styles.page}>
       <header className={styles.head}>
@@ -98,6 +102,7 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
         <TutorialHint steps={['ATTACK']} />
         <Link className={styles.simulatorLink} to={simulatorPath(village.id)}>
           {t.simulator.title}
+          <Icon name="chevronRight" />
         </Link>
       </header>
       <div className={styles.switchRow}>
@@ -112,25 +117,27 @@ function RallyParts({ village, troops }: { village: Village; troops: Troops }) {
           onChange={setPart}
         />
       </div>
-      <div className={styles.layout} data-part={part}>
+      <div className={styles.layout} data-part={part} data-without-moves={nowColumn || undefined}>
         <div className={styles.send}>
           <SendCard village={village} home={troops.home} />
         </div>
-        <div className={styles.moves}>
-          {/* what comes at the village first, also above a long list of own farm runs (1.3) */}
-          <IncomingCard
-            villageId={village.id}
-            incoming={troops.incoming}
-            folded={cards.folded('incoming')}
-            onToggle={() => cards.toggle('incoming')}
-          />
-          <OutgoingCard
-            villageId={village.id}
-            movements={troops.outgoing}
-            folded={cards.folded('outgoing')}
-            onToggle={() => cards.toggle('outgoing')}
-          />
-        </div>
+        {!nowColumn && (
+          <div className={styles.moves}>
+            {/* what comes at the village first, also above a long list of own farm runs (1.3) */}
+            <IncomingCard
+              villageId={village.id}
+              incoming={troops.incoming}
+              folded={cards.folded('incoming')}
+              onToggle={() => cards.toggle('incoming')}
+            />
+            <OutgoingCard
+              villageId={village.id}
+              movements={troops.outgoing}
+              folded={cards.folded('outgoing')}
+              onToggle={() => cards.toggle('outgoing')}
+            />
+          </div>
+        )}
         <div className={styles.troops}>
           <TroopsCard villageId={village.id} troops={troops} />
         </div>

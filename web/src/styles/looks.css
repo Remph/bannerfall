@@ -1,0 +1,54 @@
+/*
+ * Looks (2.0, step 9): what a theme may change besides its colours, through the fixed list of look
+ * switches in tokens.css (line style, texture, seam, title face, picture outline). Only the stitched
+ * theme sets them: Horizont's frame as a tapestry, with a weave over the land and the sky, row lines
+ * as running stitches, a seam inside the main button and a thread round the shapes of the village.
+ * Colours stay in palettes.css; pages never ask which theme is on.
+ */
+[data-palette='gestickt'] {
+  --line-style: dashed;
+  --texture:
+    repeating-linear-gradient(0deg, rgba(63, 46, 34, 0.07) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.13) 0 1px, transparent 1px 3px);
+  --seam: 1.5px dashed rgba(63, 46, 34, 0.6);
+  --seam-on-dark: 1.5px dashed rgba(246, 238, 218, 0.7);
+  --orb-seam: 1.5px dashed rgba(63, 46, 34, 0.55);
+  --plate-fill: color-mix(in srgb, var(--color-bg) 78%, transparent);
+  --plate-stroke: rgba(63, 46, 34, 0.7);
+  --plate-dash: 3 2.2;
+  --font-head: 'Almendra', 'Bricolage Grotesque', Georgia, serif;
+  --font-brand: 'Almendra', 'Bricolage Grotesque', Georgia, serif;
+  --picture-outline: rgba(63, 46, 34, 0.85);
+  --picture-outline-width: 0.7px;
+  --picture-outline-join: round;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-palette='gestickt'],
+  :root:not([data-theme='light']) [data-palette='gestickt'] {
+    --texture:
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px);
+    --seam: 1.5px dashed rgba(42, 31, 22, 0.6);
+    --orb-seam: 1.5px dashed rgba(42, 31, 22, 0.45);
+    --plate-stroke: rgba(239, 230, 207, 0.45);
+    --picture-outline: rgba(239, 230, 207, 0.3);
+  }
+}
+
+:root[data-theme='dark'][data-palette='gestickt'],
+:root[data-theme='dark'] [data-palette='gestickt'] {
+  --texture:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px);
+  --seam: 1.5px dashed rgba(42, 31, 22, 0.6);
+  --orb-seam: 1.5px dashed rgba(42, 31, 22, 0.45);
+  --plate-stroke: rgba(239, 230, 207, 0.45);
+  --picture-outline: rgba(239, 230, 207, 0.3);
+}
+
+/* Black keeps its pure black ground and sky (OLED): no weave there, its pale threads would light a
+   third of the pixels */
+:root[data-theme='dark'][data-black][data-palette='gestickt'] {
+  --texture: none;
+}

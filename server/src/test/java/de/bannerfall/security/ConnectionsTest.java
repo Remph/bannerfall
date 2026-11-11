@@ -168,21 +168,27 @@ class ConnectionsTest {
         assertThat(session.isConnected()).isTrue();
     }
 
+    /**
+     * The count is world-wide, and the connections earlier tests closed on the client side close on
+     * the server a little later. So the test first waits until nobody is online any more and then
+     * counts from zero: a count taken right away could still include such a connection, which then
+     * goes away in the middle of the test (1.7.1).
+     */
     @Test
     void thePublicStatusCountsPlayersWithAnOpenConnectionOnce() throws Exception {
         Player player = register();
-        int before = onlineCount(player);
+        await("the connections of earlier tests have closed", () -> onlineCount(player) == 0);
 
         StompSession first = connect(player);
-        await("the player counts as online", () -> onlineCount(player) == before + 1);
+        await("the player counts as online", () -> onlineCount(player) == 1);
         // a second tab of the same player is not a second player
         StompSession second = connect(player.loginAgain());
-        assertThat(onlineCount(player)).isEqualTo(before + 1);
+        assertThat(onlineCount(player)).isEqualTo(1);
 
         first.disconnect();
-        assertThat(onlineCount(player)).isEqualTo(before + 1);
+        assertThat(onlineCount(player)).isEqualTo(1);
         second.disconnect();
-        await("nobody of this player is online", () -> onlineCount(player) == before);
+        await("nobody of this player is online", () -> onlineCount(player) == 0);
     }
 
     // ---- helpers ----

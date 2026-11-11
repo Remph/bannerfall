@@ -9,17 +9,20 @@
   min-height: var(--touch-target);
   margin: var(--space-2) auto 0;
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--badge-gold);
+  /* 2.0: it lies in the page, so it is a shade of the land: no plate, no outline, no bar at the left */
   border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
+  background: var(--color-well);
   color: var(--color-text);
   text-decoration: none;
 }
 
 .clockMine {
-  background: color-mix(in srgb, var(--badge-gold) 12%, var(--color-surface));
+  background: color-mix(in srgb, var(--badge-gold) 22%, var(--color-bg));
+}
+
+/* soft text falls under 4.5:1 on the gold tint at night */
+.clockMine .time {
+  color: var(--color-text);
 }
 
 .icon {
@@ -53,8 +56,7 @@
 /* the ended world: the winner in the heading font, on gold */
 .ended {
   padding-block: var(--space-2);
-  border-color: var(--badge-gold);
-  background: color-mix(in srgb, var(--badge-gold) 16%, var(--color-surface));
+  background: color-mix(in srgb, var(--badge-gold) 22%, var(--color-bg));
 }
 
 .ended .icon {

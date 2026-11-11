@@ -201,6 +201,7 @@ function ReportContent({ report, back, onDeleted }: ReportContentProps) {
             // the numbers of this battle in the attack simulator (M23)
             <Link className={styles.reportAction} to={simulatorPath(villageId, report.id)}>
               {t.simulator.simulateReport}
+              <Icon name="chevronRight" className={styles.reportArrow} />
             </Link>
           )}
         </>
