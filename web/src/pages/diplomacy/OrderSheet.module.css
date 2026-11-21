@@ -1,0 +1,144 @@
+/* The order sheet (2.1 S3, 12-solo-and-allies §8, direction A): rows on the sheet's surface, split by
+   one thin line; the travel time is the biggest thing in a row. */
+.body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.target {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.targetName {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-title);
+  overflow-wrap: anywhere;
+}
+
+.coords {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.owner {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.whoTitle {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* the whole row ticks the ally */
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
+  cursor: pointer;
+}
+
+.check {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.rowMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rowFacts,
+.rowNow {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.rowNow {
+  font-style: italic;
+}
+
+/* the travel time: the biggest figure of the row */
+.time {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-title);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.land {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--line) var(--line-style) var(--color-divider);
+  cursor: pointer;
+}
+
+.land:has(input:disabled) {
+  cursor: default;
+}
+
+.landText {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.landTitle {
+  font-weight: 600;
+}
+
+.landHint,
+.hint,
+.decides {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.decides {
+  font-size: var(--font-size-base);
+}
+
+.send {
+  width: 100%;
+}

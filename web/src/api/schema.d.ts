@@ -292,6 +292,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/world-clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["clock"];
+        put: operations["change"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/npc-settings": {
         parameters: {
             query?: never;
@@ -1118,6 +1134,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diplomacy/requests/{requestId}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diplomacy/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diplomacy/lords/{lordId}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["invite"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2260,6 +2324,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diplomacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diplomacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diplomacy/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diplomacy/orders/{villageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orderSheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dev/fail": {
         parameters: {
             query?: never;
@@ -2268,6 +2380,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["fail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chronicle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["chronicle"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2708,6 +2836,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diplomacy/orders/{lordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["cancelOrder"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/chat/{messageId}": {
         parameters: {
             query?: never;
@@ -2912,7 +3056,7 @@ export interface components {
         };
         PushKindDto: {
             /** @enum {string} */
-            kind: "ATTACK" | "VILLAGE_LOST" | "ATTACK_RETURNED" | "MESSAGE" | "GUILD_INVITE" | "WORLD_END" | "BUILDS_DONE" | "STORAGE_FULL";
+            kind: "ATTACK" | "VILLAGE_LOST" | "ATTACK_RETURNED" | "MESSAGE" | "GUILD_INVITE" | "WORLD_END" | "BUILDS_DONE" | "STORAGE_FULL" | "HELP_REQUEST";
             enabled: boolean;
         };
         PushPreferencesRequest: {
@@ -3188,6 +3332,7 @@ export interface components {
             /** Format: int32 */
             automationVillages: number | null;
             tutorialEnabled: boolean | null;
+            soloMode: boolean | null;
             /** @enum {string|null} */
             mapSpread: "CLOSE" | "NORMAL" | "WIDE" | "VAST" | null;
         };
@@ -3289,6 +3434,7 @@ export interface components {
             /** Format: int32 */
             automationVillages: number;
             tutorialEnabled: boolean;
+            soloMode: boolean;
             /** @enum {string} */
             phase: "PREGAME" | "OPEN" | "ENDED";
             setupDone: boolean;
@@ -3306,6 +3452,19 @@ export interface components {
         WorldEndRequest: {
             /** Format: date-time */
             endsAt: string | null;
+        };
+        WorldClockRequest: {
+            paused: boolean | null;
+            /** Format: int32 */
+            speed: number | null;
+        };
+        WorldClockDto: {
+            soloMode: boolean;
+            /** Format: date-time */
+            asleepSince: string | null;
+            paused: boolean;
+            /** Format: int32 */
+            speed: number;
         };
         NpcSettingsDto: {
             /** @enum {string} */
@@ -3646,7 +3805,7 @@ export interface components {
             notifyReturn: boolean | null;
         };
         TrainAttackPreviewDto: {
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "WORLD_PAUSED" | "WORLD_NOT_SOLO" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "LORD_NOT_READY" | "LORD_ALLIED" | "NOT_AN_ALLY" | "ORDER_TARGET_INVALID" | "HELP_REQUEST_CLOSED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
         };
         TrainPreviewDto: {
             targetVillage: components["schemas"]["VillageRefDto"];
@@ -3668,7 +3827,7 @@ export interface components {
             travelSeconds: number | null;
             /** Format: date-time */
             arriveAt: string | null;
-            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
+            errors: ("VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "WORLD_PAUSED" | "WORLD_NOT_SOLO" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "LORD_NOT_READY" | "LORD_ALLIED" | "NOT_AN_ALLY" | "ORDER_TARGET_INVALID" | "HELP_REQUEST_CLOSED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE")[];
             /** Format: double */
             morale: number | null;
         };
@@ -3882,6 +4041,33 @@ export interface components {
         MessageSendRequest: {
             text: string;
         };
+        CourtRefDto: {
+            key: string | null;
+            numeral: string | null;
+        };
+        LordLetter: {
+            /** @enum {string} */
+            kind: "JOINED" | "REFUSED_TRUST" | "REFUSED_FULL" | "LEFT_TRUST" | "LEFT_ATTACKED" | "ORDER_ATTACK" | "ORDER_ATTACK_PLANNED" | "ORDER_SUPPORT" | "ORDER_SEND" | "ORDER_HOLD" | "ORDER_REFUSED_TRUST" | "ORDER_REFUSED_BOUND" | "ORDER_TOO_STRONG" | "ORDER_NO_TROOPS" | "ORDER_NO_SURPLUS" | "ORDER_NO_ROOM" | "ORDER_NOT_IN_TIME" | "ORDER_UNSEEN" | "ORDER_CAPS" | "ORDER_PROTECTED" | "HELP_SUPPORT" | "HELP_RESOURCES" | "THANKS" | "WARNING" | "COURT_TAUNT";
+            guild: string | null;
+            target: components["schemas"]["VillageRefDto"] | null;
+            units: {
+                [key: string]: number;
+            } | null;
+            resources: components["schemas"]["ResourceAmounts"] | null;
+            /** Format: date-time */
+            arriveAt: string | null;
+            /** Format: date-time */
+            departAt: string | null;
+            /** @enum {string|null} */
+            voice: "CAREFUL" | "STEADY" | "BOLD" | null;
+            /** Format: int64 */
+            request: number | null;
+            /** Format: int32 */
+            count: number | null;
+            attacker: string | null;
+            goal: string | null;
+            court: components["schemas"]["CourtRefDto"] | null;
+        };
         MessageDto: {
             /** Format: int64 */
             id: number;
@@ -3889,6 +4075,7 @@ export interface components {
             text: string;
             /** Format: date-time */
             createdAt: string;
+            letter: components["schemas"]["LordLetter"] | null;
         };
         SetupClaimRequest: {
             code: string;
@@ -3972,6 +4159,153 @@ export interface components {
             clay: number;
             /** Format: int32 */
             iron: number;
+        };
+        HelpRequestDto: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "SUPPORT" | "RESOURCES";
+            /** Format: int64 */
+            lordId: number;
+            lordName: string;
+            village: components["schemas"]["VillageRefDto"];
+            /** Format: int32 */
+            defenders: number;
+            goal: string | null;
+            resources: components["schemas"]["ResourceAmounts"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deadline: string;
+            letter: components["schemas"]["LordLetter"] | null;
+            from: components["schemas"]["VillageRefDto"] | null;
+            fill: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            seconds: number | null;
+            /** Format: int32 */
+            answered: number;
+            /** Format: int32 */
+            declined: number;
+            /** Format: int32 */
+            ignored: number;
+        };
+        OrderRequest: {
+            /** @enum {string} */
+            kind: "ATTACK" | "SUPPORT" | "SEND" | "HOLD";
+            /** Format: int64 */
+            villageId: number;
+            lordIds: number[];
+            landTogether: boolean;
+        };
+        OrderAllyDto: {
+            /** Format: int64 */
+            playerId: number;
+            name: string;
+            /** Format: int32 */
+            trust: number;
+            /** Format: double */
+            fields: number | null;
+            /** Format: int64 */
+            attackSeconds: number | null;
+            /** Format: int64 */
+            supportSeconds: number | null;
+            /** Format: int64 */
+            sendSeconds: number | null;
+            order: components["schemas"]["OrderDto"] | null;
+        };
+        OrderDto: {
+            /** @enum {string} */
+            kind: "ATTACK" | "SUPPORT" | "SEND" | "HOLD";
+            target: components["schemas"]["VillageRefDto"] | null;
+            /** @enum {string} */
+            state: "OPEN" | "SCOUTING" | "PLANNED" | "ACTIVE" | "REFUSED";
+            landTogether: boolean;
+            /** @enum {string|null} */
+            answer: "JOINED" | "REFUSED_TRUST" | "REFUSED_FULL" | "LEFT_TRUST" | "LEFT_ATTACKED" | "ORDER_ATTACK" | "ORDER_ATTACK_PLANNED" | "ORDER_SUPPORT" | "ORDER_SEND" | "ORDER_HOLD" | "ORDER_REFUSED_TRUST" | "ORDER_REFUSED_BOUND" | "ORDER_TOO_STRONG" | "ORDER_NO_TROOPS" | "ORDER_NO_SURPLUS" | "ORDER_NO_ROOM" | "ORDER_NOT_IN_TIME" | "ORDER_UNSEEN" | "ORDER_CAPS" | "ORDER_PROTECTED" | "HELP_SUPPORT" | "HELP_RESOURCES" | "THANKS" | "WARNING" | "COURT_TAUNT" | null;
+            /** Format: date-time */
+            givenAt: string;
+            /** Format: date-time */
+            departAt: string | null;
+            /** Format: date-time */
+            arriveAt: string | null;
+        };
+        OrderSheetDto: {
+            target: components["schemas"]["VillageRefDto"];
+            targetGuildTag: string | null;
+            kinds: ("ATTACK" | "SUPPORT" | "SEND" | "HOLD")[];
+            /** Format: date-time */
+            ownAttackArrivesAt: string | null;
+            allies: components["schemas"]["OrderAllyDto"][];
+        };
+        DiplomacyDto: {
+            soloMode: boolean;
+            leader: boolean;
+            guildFull: boolean;
+            court: components["schemas"]["VictorySide"] | null;
+            mine: components["schemas"]["VictorySide"] | null;
+            /** Format: int32 */
+            allVillages: number;
+            allies: components["schemas"]["LordDto"][];
+            lords: components["schemas"]["LordDto"][];
+        };
+        GuildRefDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            tag: string;
+        };
+        LordDto: {
+            /** Format: int64 */
+            playerId: number;
+            name: string;
+            guild: components["schemas"]["GuildRefDto"] | null;
+            ally: boolean;
+            /** Format: int32 */
+            trust: number | null;
+            /** Format: int32 */
+            bar: number | null;
+            changes: components["schemas"]["TrustChangeDto"][];
+            /** Format: int32 */
+            villages: number;
+            /** Format: int64 */
+            points: number;
+            home: components["schemas"]["VillageRefDto"] | null;
+            /** Format: int64 */
+            invitationId: number | null;
+            /** Format: date-time */
+            inviteAfter: string | null;
+            variant: components["schemas"]["LordVariantDto"] | null;
+            order: components["schemas"]["OrderDto"] | null;
+        };
+        LordVariantDto: {
+            key: string | null;
+            /** Format: date-time */
+            since: string;
+        };
+        TrustChangeDto: {
+            /** @enum {string} */
+            reason: "SUPPORT" | "SHIPPED" | "GRUDGE_WIN" | "ATTACKED" | "SCOUTED" | "MATE_ATTACKED" | "CONQUERED" | "HELP_ANSWERED" | "HELP_DECLINED" | "HELP_IGNORED";
+            /** Format: int32 */
+            delta: number;
+            village: string | null;
+        };
+        VictorySide: {
+            /** @enum {string} */
+            kind: "GUILD" | "PLAYER";
+            /** Format: int64 */
+            id: number;
+            name: string;
+            tag: string | null;
+            npc: boolean;
+            /** Format: int32 */
+            villages: number;
+            /** Format: int64 */
+            points: number;
+            /** Format: int32 */
+            keeps: number;
+            court: components["schemas"]["CourtRefDto"] | null;
         };
         AddUnitsRequest: {
             units: {
@@ -4170,6 +4504,7 @@ export interface components {
         SpawnNpcLordRequest: {
             /** @enum {string} */
             personality: "DEFENSIVE" | "OFFENSIVE" | "BALANCED";
+            variant: string | null;
         };
         InvariantProblemDto: {
             kind: string;
@@ -4304,6 +4639,12 @@ export interface components {
             moraleFloor: number | null;
             /** Format: double */
             noblePriceStep: number;
+            soloMode: boolean;
+            /** Format: date-time */
+            pausedAt: string | null;
+            /** Format: int32 */
+            clockSpeed: number;
+            npcGuildsEnabled: boolean;
         };
         VictoryDto: {
             /** @enum {string} */
@@ -4331,21 +4672,6 @@ export interface components {
             /** Format: date-time */
             winsAt: string | null;
             result: components["schemas"]["WorldResultDto"] | null;
-        };
-        VictorySide: {
-            /** @enum {string} */
-            kind: "GUILD" | "PLAYER";
-            /** Format: int64 */
-            id: number;
-            name: string;
-            tag: string | null;
-            npc: boolean;
-            /** Format: int32 */
-            villages: number;
-            /** Format: int64 */
-            points: number;
-            /** Format: int32 */
-            keeps: number;
         };
         WorldResultDto: {
             /** @enum {string} */
@@ -4531,7 +4857,7 @@ export interface components {
             locksBuildings: ("HEADQUARTERS" | "BARRACKS" | "STABLE" | "WORKSHOP" | "ACADEMY" | "SMITHY" | "RALLY_POINT" | "MARKET" | "WOODCUTTER" | "CLAY_PIT" | "IRON_MINE" | "FARM" | "WAREHOUSE" | "HIDING_PLACE" | "WALL" | "BANNER_HALL")[];
             locksUnits: ("SPEARMAN" | "SWORDSMAN" | "AXEMAN" | "SCOUT" | "LIGHT_CAVALRY" | "HEAVY_CAVALRY" | "RAM" | "CATAPULT" | "NOBLE" | "PALADIN" | "BANNER_THIEF" | "ARCHER" | "MOUNTED_ARCHER")[];
             /** @enum {string|null} */
-            blocker: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE" | null;
+            blocker: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "WORLD_PAUSED" | "WORLD_NOT_SOLO" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "LORD_NOT_READY" | "LORD_ALLIED" | "NOT_AN_ALLY" | "ORDER_TARGET_INVALID" | "HELP_REQUEST_CLOSED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE" | null;
         };
         NextLevelDto: {
             /** Format: int32 */
@@ -4872,12 +5198,6 @@ export interface components {
             /** Format: date-time */
             earnedAt: string;
         };
-        GuildRefDto: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            tag: string;
-        };
         PlayerProfileDto: {
             /** Format: int64 */
             id: number;
@@ -4892,6 +5212,7 @@ export interface components {
             achievements: components["schemas"]["EarnedAchievementDto"][];
             stats: components["schemas"]["PlayerStatsDto"];
             careerUrl: string | null;
+            lordVariant: components["schemas"]["LordVariantDto"] | null;
         };
         PlayerStatsDto: {
             /** Format: int64 */
@@ -4971,6 +5292,7 @@ export interface components {
             outgoing: components["schemas"]["MovementDto"][];
             incoming: components["schemas"]["IncomingDto"][];
             merchants: components["schemas"]["TransportDto"][];
+            incomingMerchants: components["schemas"]["TransportDto"][];
         };
         NobleDto: {
             /** Format: int32 */
@@ -5006,6 +5328,8 @@ export interface components {
             lastMine: boolean;
             /** Format: int32 */
             unread: number;
+            npc: boolean;
+            lastLetter: components["schemas"]["LordLetter"] | null;
         };
         MapVillageDto: {
             /** Format: int64 */
@@ -5076,6 +5400,104 @@ export interface components {
             memberCount: number;
             /** Format: int64 */
             points: number;
+        };
+        ChronicleDot: {
+            /** Format: int32 */
+            x: number;
+            /** Format: int32 */
+            y: number;
+            keep: boolean;
+        };
+        ChronicleDto: {
+            /** Format: date-time */
+            endedAt: string;
+            /** Format: int32 */
+            days: number;
+            guilds: boolean;
+            entries: components["schemas"]["ChronicleEntry"][];
+            map: components["schemas"]["ChronicleMap"];
+        };
+        ChronicleEntry: {
+            /** Format: int32 */
+            day: number;
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "CONQUEST" | "CONQUESTS" | "GUILD_FOUNDED" | "GUILD_DISBANDED" | "WAR" | "ALLY_JOINED" | "ALLY_LEFT" | "ORDER_ATTACK" | "HELP_ANSWERED" | "HELP_IGNORED" | "COURT" | "LEAD" | "VICTORY_CLOCK" | "WORLD_ENDED";
+            facts: components["schemas"]["ChronicleFacts"];
+            mine: boolean;
+        };
+        ChronicleFacts: {
+            village: components["schemas"]["ChronicleVillage"] | null;
+            keep: boolean | null;
+            from: components["schemas"]["ChroniclePlayer"] | null;
+            to: components["schemas"]["ChroniclePlayer"] | null;
+            eliminated: boolean | null;
+            first: boolean | null;
+            side: components["schemas"]["ChronicleSide"] | null;
+            other: components["schemas"]["ChronicleSide"] | null;
+            lord: components["schemas"]["ChroniclePlayer"] | null;
+            player: components["schemas"]["ChroniclePlayer"] | null;
+            attacked: boolean | null;
+            /** Format: date-time */
+            winsAt: string | null;
+            reason: string | null;
+            /** Format: int32 */
+            count: number | null;
+            /** Format: int32 */
+            topCount: number | null;
+        };
+        ChronicleFrame: {
+            /** Format: int32 */
+            day: number;
+            /** Format: date-time */
+            at: string;
+            changes: number[];
+        };
+        ChronicleMap: {
+            /** Format: int32 */
+            size: number;
+            villages: components["schemas"]["ChronicleDot"][];
+            sides: components["schemas"]["ChronicleMapSide"][];
+            frames: components["schemas"]["ChronicleFrame"][];
+        };
+        ChronicleMapSide: {
+            /** @enum {string} */
+            kind: "GUILD" | "PLAYER";
+            /** Format: int64 */
+            id: number;
+            name: string;
+            tag: string | null;
+            npc: boolean;
+            mine: boolean;
+        };
+        ChroniclePlayer: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            npc: boolean;
+            /** Format: int64 */
+            guildId: number | null;
+            guildTag: string | null;
+        };
+        ChronicleSide: {
+            /** @enum {string} */
+            kind: "GUILD" | "PLAYER";
+            /** Format: int64 */
+            id: number;
+            name: string;
+            tag: string | null;
+            npc: boolean;
+            court: components["schemas"]["CourtRefDto"] | null;
+        };
+        ChronicleVillage: {
+            /** Format: int64 */
+            id: number;
+            name: string | null;
+            /** Format: int32 */
+            x: number;
+            /** Format: int32 */
+            y: number;
         };
         PlanBuildingDto: {
             /** @enum {string} */
@@ -5183,7 +5605,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
-            kind: "BUILD_COMPLETE" | "MOVEMENT_ARRIVE" | "TRADE_ARRIVE" | "BARBARIAN_GROWTH" | "NPC_THINK" | "WORLD_OPEN" | "VICTORY_CHECK" | "WORLD_END" | "AUTOMATION_CHECK" | "STORAGE_CHECK" | "TEST" | "TEST_UNHANDLED";
+            kind: "BUILD_COMPLETE" | "MOVEMENT_ARRIVE" | "TRADE_ARRIVE" | "BARBARIAN_GROWTH" | "NPC_THINK" | "WORLD_OPEN" | "VICTORY_CHECK" | "WORLD_END" | "AUTOMATION_CHECK" | "STORAGE_CHECK" | "NPC_ORDER_MARCH" | "TEST" | "TEST_UNHANDLED";
             /** Format: int64 */
             refId: number | null;
             /** Format: date-time */
@@ -5294,6 +5716,16 @@ export interface components {
              */
             type: "BUILD_COMPLETE";
         };
+        CourtChanged: Omit<components["schemas"]["GameNotification"], "type"> & {
+            court: components["schemas"]["VictorySide"];
+            previous: components["schemas"]["VictorySide"] | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "COURT_CHANGED";
+        };
         GameNotification: {
             type: string;
         };
@@ -5324,6 +5756,27 @@ export interface components {
              * @enum {string}
              */
             type: "GUILD_INVITED";
+        };
+        HelpRequested: Omit<components["schemas"]["GameNotification"], "type"> & {
+            /** Format: int64 */
+            requestId: number;
+            /** Format: int64 */
+            lordId: number;
+            lordName: string;
+            kind: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "HELP_REQUESTED";
+        };
+        HelpRequestsChanged: Omit<components["schemas"]["GameNotification"], "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "HELP_REQUESTS_CHANGED";
         };
         IncomingAttack: Omit<components["schemas"]["GameNotification"], "type"> & {
             /** Format: int64 */
@@ -5446,9 +5899,16 @@ export interface components {
              */
             type: "WORLD_OPENED";
         };
+        WorldTimeMoved: Omit<components["schemas"]["GameNotification"], "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "WORLD_TIME_MOVED";
+        };
         ChatErrorDto: {
             /** @enum {string} */
-            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE";
+            code: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "CSRF_TOKEN_INVALID" | "INTERNAL_ERROR" | "NOT_FOUND" | "BAD_REQUEST" | "INVALID_INVITE_CODE" | "USERNAME_TAKEN" | "BAD_CREDENTIALS" | "TOO_MANY_LOGIN_ATTEMPTS" | "ACCOUNT_NOT_FOUND" | "WORLD_FULL" | "VILLAGE_NOT_FOUND" | "NOT_ENOUGH_RESOURCES" | "NOT_ENOUGH_POPULATION" | "REQUIREMENTS_NOT_MET" | "MAX_LEVEL_REACHED" | "QUEUE_FULL" | "BUILD_ORDER_NOT_FOUND" | "ORDER_NOT_MOVABLE" | "MIN_LEVEL_REACHED" | "BUILD_ORDER_CONFLICT" | "RECRUIT_ORDER_NOT_FOUND" | "RECRUIT_TEMPLATE_NOT_FOUND" | "DISMISS_ORDER_NOT_FOUND" | "DISMISS_LOCKED" | "TARGET_NOT_FOUND" | "MOVEMENT_NOT_FOUND" | "STACK_NOT_FOUND" | "NOT_ENOUGH_UNITS" | "EMPTY_COMMAND" | "OWN_VILLAGE" | "SAME_VILLAGE" | "PROTECTED_TARGET" | "NOBLE_TOO_FAR" | "NOBLE_ONLY_IN_ATTACK" | "CANCEL_WINDOW_OVER" | "REPORT_NOT_FOUND" | "REPORT_UNREADABLE" | "CHAT_RATE_LIMIT" | "FIELD_NOT_FREE" | "RESPAWN_NOT_ALLOWED" | "NOT_ENOUGH_MERCHANTS" | "INVALID_RATIO" | "SAME_RESOURCE" | "EMPTY_TRANSPORT" | "OWN_OFFER" | "OFFER_EXHAUSTED" | "OFFER_NOT_FOUND" | "EXCHANGE_OFF" | "EXCHANGE_LIMIT" | "WAREHOUSE_FULL" | "PLAYER_NOT_FOUND" | "CANNOT_DELETE_SELF" | "MESSAGE_NOT_FOUND" | "EVENT_NOT_FOUND" | "EVENT_NOT_FAILED" | "LAST_ADMIN" | "TOO_MANY_ADMIN_ATTEMPTS" | "WRONG_PASSWORD" | "PASSWORD_TOO_COMMON" | "ACCOUNT_BANNED" | "TOO_MANY_REQUESTS" | "CANNOT_BAN_ADMIN" | "BODY_TOO_LARGE" | "WORLD_NOT_OPEN" | "WORLD_ALREADY_OPEN" | "SETUP_CODE_INVALID" | "WORLD_ENDED" | "WORLD_NOT_ENDED" | "WORLD_PAUSED" | "WORLD_NOT_SOLO" | "SERVER_STARTING" | "GUILDS_DISABLED" | "GUILD_NOT_FOUND" | "ALREADY_IN_GUILD" | "NOT_IN_GUILD" | "NOT_GUILD_LEADER" | "GUILD_NAME_TAKEN" | "GUILD_TAG_TAKEN" | "GUILD_FULL" | "LEADER_MUST_TRANSFER" | "INVITATION_NOT_FOUND" | "ALREADY_INVITED" | "LORD_NOT_READY" | "LORD_ALLIED" | "NOT_AN_ALLY" | "ORDER_TARGET_INVALID" | "HELP_REQUEST_CLOSED" | "GUILD_MEMBER_NOT_FOUND" | "INVITATION_RATE_LIMIT" | "ENEMY_NOT_ALLOWED" | "ENEMY_LIMIT" | "GUILD_BANNERS_DISABLED" | "BANNER_MAX_LEVEL" | "DONATION_TOO_LARGE" | "BANNER_FUND_LOW" | "GUILD_BANNER_LOCKED" | "OWN_PLAYER" | "MESSAGE_RATE_LIMIT" | "INBOX_FULL" | "PLAYER_BLOCKED" | "BLOCK_LIST_FULL" | "ACHIEVEMENT_NOT_FOUND" | "FARM_TARGET_NOT_FOUND" | "ALREADY_IN_FARM_LIST" | "FARM_LIST_FULL" | "FARM_TEMPLATE_NOT_FOUND" | "BUILD_PLAN_NOT_FOUND" | "AUTOMATION_LOCKED" | "TUTORIAL_STEP_NOT_FOUND" | "TUTORIAL_STEP_NOT_OPEN" | "UNIT_LEVELS_DISABLED" | "RESEARCH_BUSY" | "RESEARCH_ORDER_NOT_FOUND" | "PALADIN_SLOTS_FULL" | "PALADIN_DISABLED" | "ARCHERS_DISABLED" | "BANNERS_DISABLED" | "BANNER_NOT_FOUND" | "BANNER_NOT_IN_STASH" | "BANNER_HALL_REQUIRED" | "BANNER_LOCKED" | "NO_BANNER_EQUIPPED" | "BANNER_TIERS_DIFFER" | "BANNER_TIER_MAX" | "BANNER_FUSE_TYPE" | "BANNER_FAMILIES_DIFFER" | "LOCAL_LOGIN_OFF" | "ACCOUNT_LINKED" | "EXTERNAL_LOGIN_MISSING" | "EXTERNAL_NAME_INVALID" | "LINK_NOT_ALLOWED" | "PUSH_UNAVAILABLE";
             detail: string;
         };
     };
@@ -6081,6 +6541,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AdminWorldSettingsDto"];
+                };
+            };
+        };
+    };
+    clock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorldClockDto"];
+                };
+            };
+        };
+    };
+    change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorldClockRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorldClockDto"];
                 };
             };
         };
@@ -7416,6 +7920,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MyGuildDto"];
+                };
+            };
+        };
+    };
+    decline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HelpRequestDto"][];
+                };
+            };
+        };
+    };
+    order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderSheetDto"];
+                };
+            };
+        };
+    };
+    invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lordId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiplomacyDto"];
                 };
             };
         };
@@ -9094,6 +9666,68 @@ export interface operations {
             };
         };
     };
+    diplomacy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiplomacyDto"];
+                };
+            };
+        };
+    };
+    requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HelpRequestDto"][];
+                };
+            };
+        };
+    };
+    orderSheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                villageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderSheetDto"];
+                };
+            };
+        };
+    };
     fail: {
         parameters: {
             query?: never;
@@ -9109,6 +9743,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    chronicle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChronicleDto"];
+                };
             };
         };
     };
@@ -9669,6 +10323,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MyGuildDto"];
+                };
+            };
+        };
+    };
+    cancelOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lordId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiplomacyDto"];
                 };
             };
         };

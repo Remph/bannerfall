@@ -75,4 +75,5 @@ public record WorldSettingsUpdateRequest(
         @Schema(nullable = true) @DecimalMin("0") @DecimalMax("1") Double noblePriceStep,
         @Schema(nullable = true) @Min(0) @Max(100) Integer automationVillages,
         @Schema(nullable = true) Boolean tutorialEnabled,
+        @Schema(nullable = true) Boolean soloMode,
         @Schema(nullable = true) MapSpread mapSpread) {}

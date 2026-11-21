@@ -25,6 +25,8 @@ public record NpcBalanceSettings(Balance balance) {
     /**
      * @param thinkJitter a round's interval varies by ±this share
      * @param ledgerDecay the spending ledger is multiplied by this each round
+     * @param nobleArmyShare a village saves for nobles only with clearing units of at least this
+     *     share of its farm's capacity (09 §6.6, 2.1)
      * @param guildRadius in fields: lords this close form guilds (09 §13.1)
      * @param learning the numbers of learning lords (09 §15)
      * @param difficulties EASY, NORMAL and HARD (CUSTOM lives in {@code world_settings.npc_custom})
@@ -39,6 +41,7 @@ public record NpcBalanceSettings(Balance balance) {
             double farmCooldownMinutes,
             int farmsPerRound,
             double nobleTroopShare,
+            double nobleArmyShare,
             double supportHorizonHours,
             double grudgeHours,
             double guildRadius,
@@ -58,6 +61,7 @@ public record NpcBalanceSettings(Balance balance) {
             inRange(problems, "think-jitter", thinkJitter, 0, 0.9);
             inRange(problems, "ledger-decay", ledgerDecay, 0.5, 1);
             inRange(problems, "noble-troop-share", nobleTroopShare, 0, 1);
+            inRange(problems, "noble-army-share", nobleArmyShare, 0, 1);
             positive(problems, "intel-max-age-hours", intelMaxAgeHours);
             positive(problems, "farm-margin", farmMargin);
             inRange(problems, "farm-max-loss", farmMaxLoss, 0, 1);

@@ -119,6 +119,11 @@ public class NowService {
                         transports.findOutgoingOf(ids, t),
                         transport -> transport.getSourceVillage().getId(),
                         TransportDto::of);
+        Map<Long, List<TransportDto>> incomingMerchants =
+                grouped(
+                        transports.findIncomingFromOthers(ids, playerId),
+                        transport -> transport.getTargetVillage().getId(),
+                        TransportDto::of);
 
         return new NowDto(
                 own.stream()
@@ -132,7 +137,8 @@ public class NowService {
                                                 of(research, village),
                                                 of(outgoing, village),
                                                 of(incoming, village),
-                                                of(merchants, village)))
+                                                of(merchants, village),
+                                                of(incomingMerchants, village)))
                         .toList());
     }
 

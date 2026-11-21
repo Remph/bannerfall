@@ -178,6 +178,7 @@ class PushNotifier {
             case GameNotification.AttacksReturned ignored ->
                     "returned-" + RETURNS.incrementAndGet();
             case GameNotification.StorageFull full -> "storage-" + full.villageId();
+            case GameNotification.HelpRequested help -> "help-" + help.lordId();
             default -> "world";
         };
     }
@@ -196,6 +197,7 @@ class PushNotifier {
             case GameNotification.BuildComplete ignored -> PushKind.BUILDS_DONE;
             case GameNotification.AttacksReturned ignored -> PushKind.ATTACK_RETURNED;
             case GameNotification.StorageFull ignored -> PushKind.STORAGE_FULL;
+            case GameNotification.HelpRequested ignored -> PushKind.HELP_REQUEST;
             default -> null;
         };
     }
@@ -261,6 +263,8 @@ class PushNotifier {
                     message = message.about(village);
                     delivery = new PushSender.Delivery(DAY, "normal", "storage-" + village.id());
                 }
+                case GameNotification.HelpRequested help ->
+                        delivery = new PushSender.Delivery(DAY, "high", "help-" + help.lordId());
                 case GameNotification.WorldEnded ignored ->
                         delivery = new PushSender.Delivery(DAY, "normal", "world");
                 case GameNotification.VictoryClock ignored ->

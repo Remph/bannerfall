@@ -3,7 +3,7 @@ spring:
     name: bannerfall
   config:
     # Game numbers (buildings, units, NPC lords) live in their own files; see docs/plan/01-architecture.md §4.2.
-    import: classpath:gamedata/buildings.yml,classpath:gamedata/units.yml,classpath:gamedata/achievements.yml,classpath:gamedata/banners.yml,classpath:gamedata/guild-banner.yml,classpath:gamedata/npc/offensive.yml,classpath:gamedata/npc/balanced.yml,classpath:gamedata/npc/defensive.yml,classpath:gamedata/npc/balance.yml
+    import: classpath:gamedata/buildings.yml,classpath:gamedata/units.yml,classpath:gamedata/achievements.yml,classpath:gamedata/banners.yml,classpath:gamedata/guild-banner.yml,classpath:gamedata/npc/offensive.yml,classpath:gamedata/npc/balanced.yml,classpath:gamedata/npc/defensive.yml,classpath:gamedata/npc/variants.yml,classpath:gamedata/npc/balance.yml
   jackson:
     deserialization:
       # 1.5 as a unit count is refused instead of cut to 1 (M14e, 01 §4.12).
@@ -102,6 +102,12 @@ bannerfall:
       events: 20
       window: 10m
       duration: 1h
+  host-check:
+    # The world's address with a scheme (the solo world on your own PC, `http://localhost:8461`): then
+    # only requests for that host or a loopback name (localhost, 127.0.0.1, [::1]) are answered, so a
+    # website can't reach the game through DNS rebinding (HostCheckFilter). Without a scheme (a domain
+    # behind Caddy, which routes only that domain) or empty: no check. Env BANNERFALL_DOMAIN.
+    domain: ${BANNERFALL_DOMAIN:}
   status:
     # Sites that may read GET /api/world/status from another origin (M19): the landing page shows the player counts
     # of every world. Comma-separated; env BANNERFALL_STATUS_ORIGINS. Empty = same origin only.

@@ -3,6 +3,7 @@ package de.bannerfall.npc;
 import de.bannerfall.common.Coordinates;
 import de.bannerfall.gamedata.BuildingType;
 import de.bannerfall.gamedata.GameData;
+import de.bannerfall.gamedata.ResourceAmounts;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.movement.MovementRepository;
@@ -19,6 +20,7 @@ import de.bannerfall.village.VillageRepository;
 import de.bannerfall.village.VillageStateService;
 import de.bannerfall.world.WorldService;
 import de.bannerfall.world.WorldSettings;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,10 +39,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * One decision round of an NPC lord (09-npc-lords §3), after the event's own transaction has
  * checked the lord and scheduled the next round. Every step is a short transaction of its own
- * ({@code REQUIRES_NEW}), loading what it needs fresh: reading the reports into memory, then one
+ * ({@code REQUIRES_NEW}), loading what it needs fresh: reading the reports into memory, in a solo
+ * world the orders step (2.1 S3: answer and carry out a human's order, {@link NpcOrders}), then one
  * transaction per village (so a village that fails is rolled back and logged, and the round goes on
- * with the next) – defend, fly the best banners, build and recruit, ship, attack – then the finish
- * step and fusing banners (lord banners, 09 §14.3).
+ * with the next) – defend, fly the best banners, build and recruit, ship, attack – in a solo world
+ * the help step (2.1 S4: ask a human of its guild for help, thank, {@link NpcHelp}), then the
+ * finish step, fusing banners (lord banners, 09 §14.3), the allies step (2.1, 12-solo-and-allies
+ * §5: answer invitations, leave a human's guild) and the guild step.
  */
 @Component
 public class NpcRound {
@@ -69,6 +74,9 @@ public class NpcRound {
     private final NpcBanners banners;
     private final NpcLessons lessons;
     private final NpcShipments shipments;
+    private final NpcAllies allies;
+    private final NpcOrders orders;
+    private final NpcHelp help;
 
     NpcRound(
             PlatformTransactionManager transactionManager,
@@ -92,7 +100,10 @@ public class NpcRound {
             NpcGuilds guilds,
             NpcBanners banners,
             NpcLessons lessons,
-            NpcShipments shipments) {
+            NpcShipments shipments,
+            NpcAllies allies,
+            NpcOrders orders,
+            NpcHelp help) {
         this.tx = new TransactionTemplate(transactionManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.brains = brains;
@@ -116,6 +127,9 @@ public class NpcRound {
         this.banners = banners;
         this.lessons = lessons;
         this.shipments = shipments;
+        this.allies = allies;
+        this.orders = orders;
+        this.help = help;
     }
 
     /**
@@ -132,6 +146,20 @@ public class NpcRound {
         } catch (RuntimeException e) {
             log.warn("NPC lord {}: looking at the world failed", playerId, e);
         }
+        if (view != null && view.world().soloMode()) {
+            // the orders step (2.1 S3): before the village turns, so an order answered in this
+            // round is carried out in it; the turns then see the order as it left it
+            orders.run(view, now);
+            NpcTurn.View before = view;
+            try {
+                view =
+                        view.withOrders(
+                                tx.execute(
+                                        status -> orders.standing(playerId, before.guildMates())));
+            } catch (RuntimeException e) {
+                log.warn("NPC lord {}: reading its order failed", playerId, e);
+            }
+        }
         if (view != null) {
             List<Long> villageIds = tx.execute(status -> villages.findIdsByPlayerId(playerId));
             for (long villageId : villageIds) {
@@ -141,9 +169,14 @@ public class NpcRound {
                         "the turn of village " + villageId,
                         () -> villageTurn(seen, villageId, now));
             }
+            if (view.world().soloMode()) {
+                // the help step (2.1 S4): after the turns, which know the threats and shortages
+                help.run(view, now);
+            }
         }
         step(playerId, "the finish step", () -> finish(playerId, now));
         step(playerId, "the fusing step", () -> fuse(playerId));
+        step(playerId, "the allies step", () -> allies.run(playerId, now));
         step(playerId, "the guild step", () -> guilds.form(playerId));
     }
 
@@ -173,7 +206,8 @@ public class NpcRound {
         WorldSettings settings = worldService.settings();
         double speed = settings.speed();
         NpcMemory.Draft memory = brain.getMemory().draft();
-        intel.read(playerId, memory, speed, balance.general());
+        NpcTemplates.Template template = templates.of(brain);
+        intel.read(playerId, memory, speed, balance.general(), template.grudgeFactor());
         Map<Long, NpcWorld.MapVillage> map = world.villages(now);
         Set<Long> mates = guilds.mates(playerId);
         if (!mates.isEmpty() || !memory.grudges.isEmpty()) {
@@ -191,9 +225,9 @@ public class NpcRound {
                     mateGrudges,
                     own,
                     map,
-                    settings.mapSpread()
-                            .scale(templates.of(brain.getPersonality()).conquestRadius()),
-                    now);
+                    settings.mapSpread().scale(template.conquestRadius()),
+                    now,
+                    longerGrudges(template, speed));
         }
         Set<Long> answered =
                 memory.supported.stream()
@@ -204,6 +238,19 @@ public class NpcRound {
         if (!updated.equals(brain.getMemory())) {
             brain.setMemory(updated);
         }
+    }
+
+    /**
+     * How much longer than its guild mate's a shared grudge lasts with this lord (09 §16.4): the
+     * extra {@code (grudge-factor − 1) × grudge-hours}, scaled by the speed; none for the types.
+     */
+    private Duration longerGrudges(NpcTemplates.Template template, double speed) {
+        if (template.grudgeFactor() <= 1) {
+            return Duration.ZERO;
+        }
+        long seconds =
+                Math.round(balance.general().grudgeHours() * (template.grudgeFactor() - 1) * 3600);
+        return NpcTargeting.scaled(Duration.ofSeconds(seconds), speed);
     }
 
     /** What the lord sees in this round (§4), loaded once for all its villages. */
@@ -232,10 +279,11 @@ public class NpcRound {
                                 carryUnderWay(playerId),
                                 productionPerHour(lord, settings),
                                 NpcBalance.farmHours(difficulty));
+        NpcTemplates.Template template = templates.of(brain);
         return new NpcTurn.View(
                 playerId,
                 brain.getPersonality(),
-                templates.of(brain.getPersonality()),
+                template,
                 difficulty,
                 balance.general(),
                 settings,
@@ -249,7 +297,9 @@ public class NpcRound {
                 mates.isEmpty() ? Set.of() : world.trainTargets(mates),
                 settings.npcLearningEnabled()
                         ? lessons.of(brain, mates, lessons.wins(now), now)
-                        : NpcLearning.Lesson.NONE);
+                        : NpcLearning.Lesson.NONE,
+                template.prefersFalling() ? world.fallingPlayers() : Set.of(),
+                settings.soloMode() ? orders.standing(playerId, mates) : NpcOrders.Standing.NONE);
     }
 
     /**
@@ -344,14 +394,47 @@ public class NpcRound {
                         wallGoal);
         memory.ledger.put(villageId, ledger);
         shipments.ship(turn, wallGoal);
+        if (view.world().soloMode()) {
+            shortage(turn, wallGoal, memory);
+        }
         warfare.attack(turn);
         brain.setMemory(memory.build());
+    }
+
+    /**
+     * 2.1 S4 (12 §9): notes how long the village's stock has been short of its next noble or wall
+     * level, so the help step can ask a human of its guild for the resources once it has held for
+     * {@code shortage-hours}. Another next step, or enough in stock, ends the wait.
+     */
+    private void shortage(NpcTurn turn, Integer wallGoal, NpcMemory.Draft memory) {
+        NpcEconomy.Goal goal =
+                economy.nextGoal(
+                        turn.village,
+                        turn.lordId(),
+                        turn.now,
+                        turn.template(),
+                        turn.wantsNobles,
+                        turn.view.lesson(),
+                        wallGoal);
+        ResourceAmounts missing =
+                goal.asksForHelp()
+                        ? NpcHelpRules.shortfall(goal.cost(), turn.village.floorResources())
+                        : ResourceAmounts.ZERO;
+        long villageId = turn.villageId();
+        if (missing.total() == 0) {
+            memory.shortages.remove(villageId);
+            return;
+        }
+        NpcMemory.Shortage before = memory.shortages.get(villageId);
+        Instant since =
+                before != null && before.goal().equals(goal.key()) ? before.since() : turn.now;
+        memory.shortages.put(villageId, new NpcMemory.Shortage(goal.key(), since, missing));
     }
 
     /** Lord banners (09 §14.3): the stash's triples fused, in a step of its own. */
     private void fuse(long playerId) {
         NpcBrain brain = brains.findById(playerId).orElseThrow();
-        banners.fuse(playerId, templates.of(brain.getPersonality()));
+        banners.fuse(playerId, templates.of(brain));
     }
 
     /**

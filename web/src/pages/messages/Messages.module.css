@@ -171,6 +171,12 @@
   background: var(--color-well);
 }
 
+/* 2.1 (UI review, finding 04): a button that is off is grey like the bubble it lies in; the outline
+   keeps it a button */
+.bubble button:disabled {
+  border-color: var(--color-border);
+}
+
 .bubble.mine {
   justify-self: end;
   background: var(--color-badge);
@@ -187,6 +193,11 @@
   /* line breaks as written; long words and links wrap instead of widening the page */
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* a lord's open help request (2.1 S4): the sheet's buttons under its letter */
+.letterActions {
+  margin: var(--space-2) 0 var(--space-1);
 }
 
 .bubbleWhen {

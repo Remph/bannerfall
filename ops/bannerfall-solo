@@ -1,0 +1,144 @@
+#!/bin/sh
+# bannerfall-solo – play Bannerfall on your own PC (2.1): one command for the solo world of
+# compose.solo.yaml (no domain, no Caddy; the game at http://localhost:8461).
+#
+#   ops/bannerfall-solo            start (the first time: secrets, image build, setup link)
+#   ops/bannerfall-solo stop       stop it; the world sleeps from the moment it stops
+#   ops/bannerfall-solo update     back up the world, rebuild the image from this repository, restart
+#   ops/bannerfall-solo backup     save the world to backups/bannerfall-solo-<date>.sql.gz
+#   ops/bannerfall-solo restore F  replace the world with the backup F (asks first)
+#   ops/bannerfall-solo reset      delete the world and start afresh (asks first)
+#   ops/bannerfall-solo admin ...  the host console, e.g. `admin world clock pause`
+#
+# Needs Docker (Docker Desktop on Windows and macOS) and runs from any directory. The secrets are
+# in .env.solo next to compose.solo.yaml, backups in backups/ next to it; the world itself is in the
+# Docker volume bannerfall-solo_pgdata (`reset` removes it, the same as
+# `docker compose -f compose.solo.yaml --env-file .env.solo down -v`).
+set -eu
+
+cd "$(dirname "$0")/.."
+ENV_FILE=.env.solo
+
+random_secret() {
+  od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
+}
+
+if [ ! -f "$ENV_FILE" ]; then
+  umask 077
+  {
+    echo "POSTGRES_PASSWORD=$(random_secret)"
+    echo "BANNERFALL_ADMIN_TOKEN=$(random_secret)"
+    echo "APP_PORT=8461"
+  } > "$ENV_FILE"
+  echo "Wrote $ENV_FILE with fresh secrets."
+fi
+
+compose() {
+  docker compose --env-file "$ENV_FILE" -f compose.solo.yaml "$@"
+}
+
+port=$(sed -n 's/^APP_PORT=//p' "$ENV_FILE")
+port=${port:-8461}
+
+wait_until_up() {
+  tries=0
+  until compose exec -T app bannerfall-admin status > /dev/null 2>&1; do
+    tries=$((tries + 1))
+    if [ "$tries" -ge 90 ]; then
+      echo "The game did not come up; see: docker compose -f compose.solo.yaml logs app" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+}
+
+# Asks before something that can't be undone; anything but "yes" stops.
+confirm() {
+  printf '%s Type yes to go on: ' "$1"
+  read -r answer
+  if [ "$answer" != yes ]; then
+    echo "Nothing changed."
+    exit 1
+  fi
+}
+
+# A pg_dump of the running database (it starts the database if needed) into backups/. The dump goes
+# to a file first: in a pipe, plain sh would only see gzip's exit code and call a failed dump saved.
+backup() {
+  compose up -d --wait db > /dev/null
+  mkdir -p backups
+  file="backups/bannerfall-solo-$(date +%Y-%m-%d-%H%M%S).sql"
+  if compose exec -T db pg_dump -U bannerfall --clean --if-exists bannerfall > "$file" \
+    && gzip "$file"; then
+    echo "Saved the world to $file.gz"
+  else
+    rm -f "$file" "$file.gz"
+    echo "The backup failed; nothing was changed." >&2
+    exit 1
+  fi
+}
+
+case "${1:-start}" in
+  backup)
+    backup
+    ;;
+  restore)
+    file=${2:-}
+    if [ -z "$file" ] || [ ! -f "$file" ]; then
+      echo "Usage: ops/bannerfall-solo restore backups/bannerfall-solo-<date>.sql.gz" >&2
+      exit 2
+    fi
+    # only a whole dump: a cut or broken file would leave an empty world after the drop below
+    if ! gzip -t "$file" 2> /dev/null \
+      || ! gzip -dc "$file" | tail -n 8 | grep -q 'PostgreSQL database dump complete'; then
+      echo "$file is no complete backup of this script; nothing was changed." >&2
+      exit 1
+    fi
+    confirm "This replaces the current world with $file."
+    compose stop app
+    compose up -d --wait db > /dev/null
+    # A fresh schema, in one transaction with the dump: a backup from before an update can't drop
+    # the newer tables that point at its own (and a failure leaves the world as it was).
+    {
+      echo 'set client_min_messages = warning; drop schema public cascade; create schema public;'
+      gzip -dc "$file"
+    } | compose exec -T db psql -q -v ON_ERROR_STOP=1 --single-transaction -U bannerfall bannerfall \
+      > /dev/null \
+      || { echo "The restore failed; the world is as it was." >&2; exit 1; }
+    echo "Restored $file; start the game with: ops/bannerfall-solo"
+    ;;
+  reset)
+    confirm "This deletes the world (villages, lords, reports) for good; backups/ stays."
+    compose down -v
+    echo "The world is gone; ops/bannerfall-solo starts a new one."
+    ;;
+  start | update)
+    if [ "${1:-start}" = update ]; then
+      # new migrations run on the only copy of the world: save it first
+      backup
+      compose up -d --build
+    else
+      compose up -d
+    fi
+    echo "Starting (the first build takes a few minutes) ..."
+    wait_until_up
+    echo "Bannerfall runs at http://localhost:$port"
+    # A new world waits in the pre-game for its host: the setup link makes you the admin.
+    if compose exec -T app bannerfall-admin setup 2> /dev/null; then
+      :
+    else
+      echo "Log in and play; the host console: ops/bannerfall-solo admin --help"
+    fi
+    ;;
+  stop)
+    compose stop
+    ;;
+  admin)
+    shift
+    compose exec app bannerfall-admin "$@"
+    ;;
+  *)
+    echo "Usage: ops/bannerfall-solo [start|stop|update|backup|restore FILE|reset|admin ...]" >&2
+    exit 2
+    ;;
+esac

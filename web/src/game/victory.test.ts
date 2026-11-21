@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Victory, VictorySide } from '../api/queries/world';
+import { en } from '../i18n/en';
+import { de } from '../i18n/de';
 import { isMine, isPlayer, NPC_SHOWN_TOP, sameSide, shownSides, sideMeasure, sideName, villageShare } from './victory';
 
 const guild: VictorySide = {
@@ -11,6 +13,7 @@ const guild: VictorySide = {
   villages: 30,
   points: 9000,
   keeps: 2,
+  court: null,
 };
 const player: VictorySide = { ...guild, kind: 'PLAYER', id: 3, name: 'Ada', tag: null };
 
@@ -33,8 +36,16 @@ const victory: Victory = {
 
 describe('victory helpers', () => {
   it('names a guild with its tag and a player alone', () => {
-    expect(sideName(guild)).toBe('[KN] Knights');
-    expect(sideName(player)).toBe('Ada');
+    expect(sideName(guild, en)).toBe('[KN] Knights');
+    expect(sideName(player, en)).toBe('Ada');
+  });
+
+  it('names the court of a solo world by its court (2.1 S2b)', () => {
+    const court: VictorySide = { ...guild, name: 'Ordo Ursi II', tag: 'URSI2', court: { key: 'BEAR', numeral: 'II' } };
+    expect(sideName(court, en)).toBe('The Bear Court II');
+    expect(sideName(court, de)).toBe('Der Bärenhof II');
+    const named: VictorySide = { ...guild, name: 'Hosts', court: { key: null, numeral: null } };
+    expect(sideName(named, en)).toBe('The court of Hosts');
   });
 
   it('counts the share against every village on the map', () => {

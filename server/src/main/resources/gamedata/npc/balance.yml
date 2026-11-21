@@ -11,6 +11,7 @@ npc:
     farm-cooldown-minutes: 720    # ÷ speed
     farms-per-round: 3
     noble-troop-share: 0.2
+    noble-army-share: 0.15        # nobles only with clearing units of this share of the farm (09 §6.6, 2.1)
     support-horizon-hours: 3      # ÷ speed
     grudge-hours: 48              # ÷ speed
     guild-radius: 15              # fields: lords this close form guilds (09 §13.1)
@@ -31,3 +32,42 @@ npc:
       EASY:   { production-factor: 0.7, boost-below: 0.0, boost-factor: 1.0,  lead-margin: 1.0,  attacks-per-player-per-day: 2, attacks-per-human-per-day: 3,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "22:00", build-quiet-to: "08:00", farm-loot-share: 0.25, farm-rest: true }
       NORMAL: { production-factor: 0.9, boost-below: 0.5, boost-factor: 1.25, lead-margin: 1.25, attacks-per-player-per-day: 4, attacks-per-human-per-day: 8,  quiet-hours: true,  spare-last-village: true,  build-quiet-from: "23:00", build-quiet-to: "07:00", farm-loot-share: 0.75, farm-rest: true }
       HARD:   { production-factor: 1.1, boost-below: 0.6, boost-factor: 1.5,  lead-margin: 1.6,  attacks-per-player-per-day: 8, attacks-per-human-per-day: 16, quiet-hours: false, spare-last-village: false, build-quiet-from: "00:00", build-quiet-to: "06:00", farm-loot-share: 1.0, farm-rest: false }
+  # Trust between lords and humans (2.1 S2b, 12-solo-and-allies §5). Days are game days ÷ speed.
+  trust:
+    drift-per-day: 2              # towards 0
+    support: 10                   # a support of the human's stands in the lord's village when a foreign attack arrives
+    support-per-day: 20
+    shipped-per-thousand: 1       # resources the human's merchants delivered to the lord
+    shipped-per-day: 10
+    grudge-win: 5                 # the human beat somebody the lord holds a grudge against, once per grudge
+    attacked: -40                 # the human attacked the lord (an ally leaves at once)
+    scouted: -10
+    mate-attacked: -15            # the human attacked one of the lord's guild mates
+    # conquest of one of the lord's villages: trust goes straight to -100
+    bars: { DEFENSIVE: 30, BALANCED: 50, OFFENSIVE: 70 }   # trust a lord joins a human's guild at
+    lord-guild-extra: 10          # the bar is this much higher while the lord is in a lord guild
+    refusal-wait-hours: 24        # after a no the next invitation waits this long
+  # Orders to allied lords (2.1 S3, 12-solo-and-allies §8). The lord decides with its own rules.
+  orders:
+    attack-share: { DEFENSIVE: 0.3, BALANCED: 0.6, OFFENSIVE: 0.8 }   # the most of a village's attack units an ordered attack takes
+    support-factor: 2.0           # an ordered support takes up to the lord's support share times this ...
+    support-min-share: 0.2        # ... but at least this (an OFFENSIVE lord's own share is 0; decided in S3)
+    refuse-below-trust: 20        # below this trust in the human it answers every order with "No"
+    land-after-seconds: 30        # "land together": it aims to land this long after the human's attack ...
+    land-window-seconds: 60       # ... and goes only if it lands within this window after it
+    scout-tries: 2                # scoutings of an unseen target before it answers "I can't see it"
+    candidates: 5                 # the lord's villages nearest the target it tries, nearest first
+  # Help requests from allied lords (2.1 S4, 12-solo-and-allies §9).
+  help:
+    per-day: 3                    # requests all allies together send one human a day (a day ÷ speed)
+    shortage-hours: 12            # a shortage that held a noble or the wall this long (÷ speed) becomes a request
+    resource-hours: 12            # a request for resources is open this long (÷ speed)
+    answered: 15                  # trust for an answer in time
+    declined: -5                  # "Not this time"
+    ignored: -10                  # no answer until the deadline
+    thanks-hours: 24              # a thank-you shipment at most once this long (÷ speed) per lord and human ...
+    thanks-share: 0.5             # ... with this share of what the lord holds above its own next goal
+    min-defenders: 100            # a request for support asks for at least this many ...
+    max-defenders: 5000           # ... and at most this many
+    warn-below: 25                # an ally whose trust falls below this writes a warning (before it refuses orders below 20), once ...
+    warn-again-above: 35          # ... and again only after its trust rose above this

@@ -114,6 +114,9 @@ class NpcWorld {
                     + " and r.payload ->> 'outcome' = 'ATTACKER_WON'"
                     + " and r.payload -> 'defender' ->> 'playerId' is not null";
 
+    /** A fall of at least this share of the points makes a player "falling" (09 §16.4). */
+    static final double FALL_SHARE = 0.03;
+
     private final JdbcClient jdbc;
     private final WorldService worldService;
 
@@ -229,6 +232,26 @@ class NpcWorld {
         return new HashSet<>(
                 jdbc.sql("select id from movement where id in (:ids)")
                         .param("ids", ids)
+                        .query(Long.class)
+                        .list());
+    }
+
+    /**
+     * The players whose points fell at least {@code 3 %} since their last daily snapshot (09 §16.4,
+     * the Vulture): today's points against the newest {@code player_day} row, the public daily
+     * history any player can see. A player without a row yet hasn't fallen.
+     */
+    Set<Long> fallingPlayers() {
+        return Set.copyOf(
+                jdbc.sql(
+                                """
+                                select p.id from player p
+                                join lateral (select d.points from player_day d
+                                              where d.player_id = p.id
+                                              order by d.day desc limit 1) last on true
+                                where p.points < last.points * :keep
+                                """)
+                        .param("keep", 1 - FALL_SHARE)
                         .query(Long.class)
                         .list());
     }

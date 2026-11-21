@@ -133,18 +133,40 @@ describe('staleQueries', () => {
 
   it('reloads everything when the pre-game ends or the host takes the end of the world back', () => {
     expect(staleQueries({ type: 'WORLD_OPENED' })).toEqual([[]]);
+    // 2.1: a solo world woke, was paused or fast-forwarded: every time moved, so everything
+    expect(staleQueries({ type: 'WORLD_TIME_MOVED' })).toEqual([[]]);
   });
 
-  it('reloads the world, its result, the player and the admin cards when the world ends', () => {
+  it('reloads the world, its result, the player, the admin cards and the chronicle when the world ends', () => {
     expect(staleQueries({ type: 'WORLD_ENDED', reason: 'DOMINATION', winnerName: 'Iron Wolves' })).toEqual([
       ['world'],
       ['me'],
       ['admin', 'world-settings'],
+      ['chronicle'],
     ]);
   });
 
-  it('reloads the victory state when the victory clock starts or stops', () => {
-    expect(staleQueries(clock(null, null, false, false))).toEqual([['world', 'victory']]);
+  it('reloads the victory state and the inbox (the court’s taunt) when the victory clock starts or stops', () => {
+    expect(staleQueries(clock(null, null, false, false))).toEqual([['world', 'victory'], ['messages']]);
+  });
+
+  it('reloads the help requests and the inbox when an ally asks for help (2.1 S4)', () => {
+    const asked = { type: 'HELP_REQUESTED', requestId: 12, lordId: 4, lordName: 'Aldric', kind: 'SUPPORT' } as const;
+    expect(staleQueries(asked)).toEqual([['guilds', 'diplomacy', 'requests'], ['messages']]);
+    expect(notificationToast(asked, en, me([]), 0, 'en')).toEqual({
+      text: 'Aldric asks you for defenders.',
+      tone: 'danger',
+      to: { pathname: '/diplomacy', search: '?help=12' },
+    });
+  });
+
+  it('reloads the diplomacy page when a help request ends', () => {
+    expect(staleQueries({ type: 'HELP_REQUESTS_CHANGED' })).toEqual([['guilds', 'diplomacy']]);
+    expect(notificationToast({ type: 'HELP_REQUESTS_CHANGED' }, en, me([]), 0, 'en')).toBeUndefined();
+  });
+
+  it('knows the help notifications', () => {
+    expect(parseNotification({ type: 'HELP_REQUESTS_CHANGED' })).toEqual({ type: 'HELP_REQUESTS_CHANGED' });
   });
 
   it('refreshes the invitations when a guild invites the player', () => {
@@ -221,17 +243,17 @@ describe('banner notifications (M32b)', () => {
 
   it('toast the banner and the village', () => {
     expect(notificationToast(found, en, ben, now, 'en')).toEqual({
-      text: 'Banner found at Tomburg (40|41): War banner, tier II',
+      text: 'Banner found at Tomburg (40\u2060|\u206041): War banner, tier II',
       tone: 'success',
       to: { pathname: '/v/1/banners' },
     });
     expect(notificationToast(lost, en, ben, now, 'en')).toEqual({
-      text: 'Banner stolen from Hilltop (50|52): Oath banner, tier I',
+      text: 'Banner stolen from Hilltop (50\u2060|\u206052): Oath banner, tier I',
       tone: 'danger',
       to: { pathname: '/v/2/banners' },
     });
     expect(notificationToast(stolen, de, ben, now, 'de')?.text).toBe(
-      'Deine Diebe haben in Tomburg (40|41) ein Banner gestohlen: Eilbanner, Stufe III',
+      'Deine Diebe haben in Tomburg (40\u2060|\u206041) ein Banner gestohlen: Eilbanner, Stufe III',
     );
   });
 });
@@ -245,6 +267,7 @@ const wolves: VictorySide = {
   villages: 9,
   points: 12000,
   keeps: 3,
+  court: null,
 };
 const benSide: VictorySide = { ...wolves, kind: 'PLAYER', id: 7, name: 'ben', tag: null };
 const winsAt = '2026-10-06T22:00:00Z';
@@ -266,6 +289,26 @@ function clock(
 }
 
 describe('notificationToast', () => {
+  it('tells every player when another lord guild becomes the court (2.1 S2b)', () => {
+    const court: VictorySide = {
+      ...wolves,
+      npc: true,
+      name: 'Ordo Lupi',
+      tag: 'OL',
+      court: { key: 'WOLF', numeral: 'II' },
+    };
+    const notification: GameNotification = { type: 'COURT_CHANGED', court, previous: wolves };
+    expect(notificationToast(notification, en, ben, now, 'en')).toMatchObject({
+      text: expect.stringContaining('Wolf Court') as string,
+      tone: 'info',
+      to: { pathname: '/diplomacy' },
+    });
+    expect(staleQueries(notification)).toEqual([
+      ['world', 'victory'],
+      ['guilds', 'diplomacy'],
+    ]);
+  });
+
   it('tells every player when a side starts the victory clock, and when it wins', () => {
     const when = formatDateTime(Date.parse(winsAt), 'en');
     expect(notificationToast(clock(wolves, null, false, false), en, ben, now, 'en')).toEqual({
@@ -310,6 +353,10 @@ describe('notificationToast', () => {
     expect(nobody?.text).toBe('The world has ended.');
   });
 
+  it('says nothing when the world’s time moved (2.1): every ten seconds while it runs fast', () => {
+    expect(notificationToast({ type: 'WORLD_TIME_MOVED' }, en, ben, now, 'en')).toBeUndefined();
+  });
+
   it('warns of an attack with the village names and the arrival to the second', () => {
     const toast = notificationToast(
       {
@@ -325,7 +372,7 @@ describe('notificationToast', () => {
       'en',
     );
     expect(toast?.tone).toBe('danger');
-    expect(toast?.text).toMatch(/^Tom attacks Hilltop from Tomburg \(40\|41\) – arrives \d\d:14:05$/);
+    expect(toast?.text).toMatch(/^Tom attacks Hilltop from Tomburg \(40\u2060\|\u206041\) – arrives \d\d:14:05$/);
     expect(toast?.to).toEqual({ pathname: '/v/2/rally', hash: 'incoming' });
   });
 
@@ -343,7 +390,7 @@ describe('notificationToast', () => {
       now,
       'en',
     );
-    expect(toast?.text).toContain('Attack on your village from Barbarian village (40|41) – arrives');
+    expect(toast?.text).toContain('Attack on your village from Barbarian village (40\u2060|\u206041) – arrives');
   });
 
   it('links a new report and a finished building', () => {
@@ -483,6 +530,7 @@ describe('every query key and the events', () => {
     blocksQueryKey: 'only the player changes them, on this page',
     reportQueryKey: 'a report doesn’t change once written',
     tutorialQueryKey: 'follows the village on screen (useTutorialSync)',
+    worldClockKey: 'the admin page polls it while open (falling asleep sends nothing); WORLD_TIME_MOVED reloads all',
     nowQueryKey: 'follows the village, troops, recruitment, market and smithy queries (followWhatFeedsNow)',
   };
 
@@ -547,18 +595,18 @@ describe('returning attacks and full warehouses (1.6)', () => {
 
   it('say where the troops came back from, with the loot, and lead to the reports', () => {
     expect(notificationToast(back, en, ben, now, 'en')).toEqual({
-      text: 'Your troops from Barbarian village (40|41) are back in Benhausen with 1,240 resources.',
+      text: 'Your troops from Barbarian village (40\u2060|\u206041) are back in Benhausen with 1,240 resources.',
       tone: 'success',
       to: { pathname: '/reports' },
     });
     expect(notificationToast({ ...back, loot: { wood: 0, clay: 0, iron: 0 } }, de, ben, now, 'de')?.text).toBe(
-      'Deine Truppen aus Barbarendorf (40|41) sind zurück in Benhausen.',
+      'Deine Truppen aus Barbarendorf (40\u2060|\u206041) sind zurück in Benhausen.',
     );
   });
 
   it('warn when nobody came back', () => {
     expect(notificationToast({ ...back, lost: 1 }, en, ben, now, 'en')).toEqual({
-      text: 'Nobody came back from Barbarian village (40|41).',
+      text: 'Nobody came back from Barbarian village (40\u2060|\u206041).',
       tone: 'danger',
       to: { pathname: '/reports' },
     });
@@ -566,7 +614,7 @@ describe('returning attacks and full warehouses (1.6)', () => {
 
   it('count the attacks of a train and of a farm list run', () => {
     expect(notificationToast({ ...back, attacks: 3, lost: 1 }, en, ben, now, 'en')?.text).toBe(
-      '3 attacks on Barbarian village (40|41) back in Benhausen, 1,240 resources, 1 lost.',
+      '3 attacks on Barbarian village (40\u2060|\u206041) back in Benhausen, 1,240 resources, 1 lost.',
     );
     expect(
       notificationToast({ ...back, target: null, farmRun: true, attacks: 12, lost: 0 }, de, ben, now, 'de')?.text,

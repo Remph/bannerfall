@@ -364,6 +364,57 @@ class NpcPlanningTest {
     }
 
     @Test
+    void theStepsANobleVillageRebuildsEndWithTheAcademy() {
+        // S2a (2.1): a village rebuilds these before it saves for nobles
+        for (NpcPersonality personality : NpcPersonality.values()) {
+            List<Map<BuildingType, Integer>> all =
+                    TestNpcData.templates().of(personality).buildSteps(true);
+            List<Map<BuildingType, Integer>> through = NpcPlanning.stepsThroughAcademy(all);
+
+            assertThat(through.getLast()).containsKey(BuildingType.ACADEMY);
+            assertThat(through)
+                    .hasSizeLessThan(all.size())
+                    .isEqualTo(all.subList(0, through.size()));
+            assertThat(through.subList(0, through.size() - 1))
+                    .noneMatch(step -> step.containsKey(BuildingType.ACADEMY));
+        }
+        // a list without the academy: all of it
+        List<Map<BuildingType, Integer>> noAcademy = List.of(Map.of(BuildingType.FARM, 2));
+        assertThat(NpcPlanning.stepsThroughAcademy(noAcademy)).isEqualTo(noAcademy);
+    }
+
+    @Test
+    void aVillageSavesForNoblesOnlyWithAnArmyOfAShareOfItsFarm() {
+        // S2a (2.1): farm 10 holds 1,151; 15 % of it is 172.65 population
+        List<UnitType> clearing = List.of(UnitType.AXEMAN, UnitType.LIGHT_CAVALRY);
+        int farm = 10;
+        assertThat(
+                        NpcPlanning.armyForNobles(
+                                Map.of(UnitType.AXEMAN, 173), clearing, DATA, farm, 0.15))
+                .isTrue();
+        assertThat(
+                        NpcPlanning.armyForNobles(
+                                Map.of(UnitType.AXEMAN, 172), clearing, DATA, farm, 0.15))
+                .isFalse();
+        // light cavalry weigh their population (4 each)
+        assertThat(
+                        NpcPlanning.armyForNobles(
+                                Map.of(UnitType.AXEMAN, 15, UnitType.LIGHT_CAVALRY, 40),
+                                clearing,
+                                DATA,
+                                farm,
+                                0.15))
+                .isTrue();
+        // units outside the clearing types don't count
+        assertThat(
+                        NpcPlanning.armyForNobles(
+                                Map.of(UnitType.SPEARMAN, 5_000), clearing, DATA, farm, 0.15))
+                .isFalse();
+        // a share of 0 switches the rule off
+        assertThat(NpcPlanning.armyForNobles(Map.of(), clearing, DATA, farm, 0)).isTrue();
+    }
+
+    @Test
     void aDearerNobleOfALordWithManyVillagesNeedsABiggerWarehouse() {
         var levels = start();
         levels.put(BuildingType.ACADEMY, 1);

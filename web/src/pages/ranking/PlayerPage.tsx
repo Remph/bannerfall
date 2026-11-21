@@ -6,17 +6,24 @@ import { useCurrentAccount } from '../../api/queries/auth';
 import { useEnemies, useInvitePlayer, useMyGuild } from '../../api/queries/guilds';
 import { usePlayerProfile, type PlayerProfile } from '../../api/queries/ranking';
 import { useWorld } from '../../api/queries/world';
+import { useDiplomacy, useInviteLord } from '../../api/queries/diplomacy';
+import { NameNote } from '../../components/NameNote';
 import { AchievementBadge } from '../../components/AchievementBadge';
 import { BackLink } from '../../components/BackLink';
+import { Icon } from '../../components/Icon';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Sheet } from '../../components/Sheet';
 import { sortEarned } from '../../game/achievements';
 import { enemySets, isEnemyPlayer } from '../../game/enemies';
-import { formatCoords, formatDateTime, formatNumber } from '../../game/format';
+import { inviteBlock, lordState, signedTrust } from '../../game/diplomacy';
+import { formatCoords, formatDateTime, formatNumber, formatWhen } from '../../game/format';
+import { useServerNow } from '../../game/serverTime';
 import { bracketTag, profileInvite } from '../../game/guilds';
+import { isFemaleLordName, lordVariantKey } from '../../game/lordVariants';
 import { useI18n } from '../../i18n';
+import { useWorldStill } from '../../layout/worldEnd';
 import { ActionsStayOn } from '../../layout/ActionsStayOn';
 import { useCurrentVillageId } from '../../layout/useCurrentVillageId';
 import { achievementName, levelName } from '../achievements/achievementText';
@@ -63,6 +70,30 @@ function ProfileError({ error }: { error: Error }) {
   );
 }
 
+/**
+ * A lord's variant (2.1, 09-npc-lords §16.7): its title and line once the player has met it, a
+ * muted "not met yet" before. A met lord without a variant (spawned before 2.1) shows nothing extra.
+ */
+function LordVariantLine({ profile }: { profile: PlayerProfile }) {
+  const { t } = useI18n();
+  if (profile.lordVariant == null) {
+    return <p className={styles.hint}>{t.profile.lordNotMet}</p>;
+  }
+  const key = profile.lordVariant.key == null ? null : lordVariantKey(profile.lordVariant.key);
+  if (key == null) {
+    return null;
+  }
+  const variant = t.profile.lordVariants[key];
+  return (
+    <div className={styles.lordVariant}>
+      <p className={styles.lordTitle}>
+        {t.profile.lordTitle(profile.name, isFemaleLordName(profile.name) ? variant.titleFemale : variant.title)}
+      </p>
+      <p className={styles.facts}>{variant.line}</p>
+    </div>
+  );
+}
+
 function ToRanking() {
   const { t } = useI18n();
   return <BackLink to={rankingPath(0)}>{t.profile.back}</BackLink>;
@@ -82,9 +113,9 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
       <header className={styles.head}>
         <h1>
           {profile.name}
-          {isMe && <span className={styles.tag}>{t.map.youTag}</span>}
-          {profile.npc && <span className={styles.tag}>{t.map.npcTag}</span>}
-          {isEnemy && <EnemyPill />}
+          {isMe && <NameNote className={styles.tag}>{t.map.youTag}</NameNote>}
+          {profile.npc && <NameNote className={styles.tag}>{t.map.npcTag}</NameNote>}
+          {isEnemy && <EnemyPill inText />}
         </h1>
         <p className={styles.facts}>
           {t.profile.rank(profile.rank)} · {t.profile.points(formatNumber(profile.points, language))}
@@ -97,6 +128,7 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
             </Link>
           </p>
         )}
+        {profile.npc && <LordVariantLine profile={profile} />}
         {profile.npc && <p className={styles.hint}>{t.profile.npcHint}</p>}
         {/* on the account server, which asks for its own login (1.5) */}
         {profile.careerUrl != null && (
@@ -121,6 +153,8 @@ function ProfileView({ profile }: { profile: PlayerProfile }) {
                 <InviteToGuild key={profile.id} profile={profile} />
               </>
             )}
+            {/* a lord: its trust, and the invite of a solo world (2.1 S2b) */}
+            {profile.npc && <InviteLord key={profile.id} lordId={profile.id} name={profile.name} />}
             {/* the guild leader's "…" (1.7); also for NPC lords */}
             <span key={`enemy${profile.id}`} className={styles.enemyMenu}>
               <EnemyMenu
@@ -199,6 +233,56 @@ function InviteToGuild({ profile }: { profile: PlayerProfile }) {
       )}
       {state === 'invited' && <p className={styles.hint}>{t.profile.invited}</p>}
       {state === 'full' && <p className={styles.hint}>{t.profile.inviteFull}</p>}
+      {invite.isError && <ErrorMessage>{errorMessage(t, invite.error)}</ErrorMessage>}
+    </>
+  );
+}
+
+/**
+ * A lord's trust in the player and, in a solo world, the same invite as on the Diplomacy page
+ * (2.1 S2b); a lord already allied or out of reach links to that page instead.
+ */
+function InviteLord({ lordId, name }: { lordId: number; name: string }) {
+  const { t, language } = useI18n();
+  const labels = t.diplomacy;
+  const world = useWorld().data;
+  const page = useDiplomacy(world?.guildsEnabled === true && world.npcGuildsEnabled);
+  const inGuild = useMyGuild().data?.guild != null;
+  const invite = useInviteLord();
+  const now = useServerNow();
+  // a paused or ended world takes no invite: the link instead (UI review 2.1, finding 04)
+  const still = useWorldStill();
+  const lord = [...(page.data?.allies ?? []), ...(page.data?.lords ?? [])].find((one) => one.playerId === lordId);
+  // outside a solo world no lord can join a player: no trust to show (2.1 feature review, 03)
+  if (page.data === undefined || lord === undefined || lord.trust === null) {
+    return null;
+  }
+  const state = lordState(lord, now);
+  const open = !still && state.kind === 'open' && inviteBlock(page.data, inGuild) === null;
+  return (
+    <>
+      <p className={styles.hint}>
+        {labels.trust} {signedTrust(lord.trust)}
+        {lord.bar !== null && !lord.ally && ` · ${labels.joinsAt(lord.bar)}`}
+        {state.kind === 'invited' && ` · ${labels.invited}`}
+        {state.kind === 'waiting' && ` · ${labels.askAgain(formatWhen(state.until, now, language))}`}
+      </p>
+      {open ? (
+        <Button
+          type="button"
+          variant="secondary"
+          aria-label={labels.inviteFor(name)}
+          disabled={invite.isPending}
+          onClick={() => invite.mutate(lordId)}
+        >
+          {labels.invite}
+        </Button>
+      ) : (
+        <Link to="/diplomacy" className={styles.pageLink}>
+          {labels.title}
+          <Icon name="chevronRight" />
+        </Link>
+      )}
       {invite.isError && <ErrorMessage>{errorMessage(t, invite.error)}</ErrorMessage>}
     </>
   );

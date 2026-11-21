@@ -15,6 +15,7 @@ import { projectResources, resourceTypes, type ResourceAmounts } from '../../gam
 import { useGameNow } from '../../game/serverTime';
 import { useI18n } from '../../i18n';
 import { targetFromSearch } from '../rally/rallyPaths';
+import { amountsFromSearch } from './marketPaths';
 import { useTargetVillage } from '../rally/useTargetVillage';
 import { villageLabel } from '../rally/villageLabel';
 import { AmountField } from './AmountField';
@@ -35,7 +36,16 @@ export function SendResourcesCard({ village, market }: { village: Village; marke
   const [searchParams] = useSearchParams();
   const [target, setTarget] = useState(() => targetFromSearch(searchParams));
   const [targetError, setTargetError] = useState<string | undefined>();
-  const [amounts, setAmounts] = useState<ResourceAmounts>(NOTHING);
+  // "Send resources" on an ally's help request (2.1 S4) fills in the amounts, at most what is in stock
+  const [amounts, setAmounts] = useState<ResourceAmounts>(() => {
+    const asked = amountsFromSearch(searchParams);
+    const held = projectResources(village, now);
+    return {
+      wood: Math.min(asked.wood, Math.floor(held.wood)),
+      clay: Math.min(asked.clay, Math.floor(held.clay)),
+      iron: Math.min(asked.iron, Math.floor(held.iron)),
+    };
+  });
   const [sent, setSent] = useState<Transport | null>(null);
   const send = useSendResources(village.id);
   const world = useWorld().data;

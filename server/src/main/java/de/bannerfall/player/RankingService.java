@@ -6,6 +6,8 @@ import de.bannerfall.achievement.AchievementService;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.NotFoundException;
 import de.bannerfall.guild.GuildRepository;
+import de.bannerfall.npc.LordVariantDto;
+import de.bannerfall.npc.NpcContacts;
 import de.bannerfall.statistics.StatisticsService;
 import de.bannerfall.village.VillageRepository;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +27,7 @@ public class RankingService {
     private final AccountRepository accounts;
     private final AccountServerSettings accountServer;
     private final StatisticsService statistics;
+    private final NpcContacts contacts;
 
     RankingService(
             PlayerRepository players,
@@ -33,7 +36,8 @@ public class RankingService {
             AchievementService achievements,
             AccountRepository accounts,
             AccountServerSettings accountServer,
-            StatisticsService statistics) {
+            StatisticsService statistics,
+            NpcContacts contacts) {
         this.players = players;
         this.villages = villages;
         this.guilds = guilds;
@@ -41,6 +45,7 @@ public class RankingService {
         this.accounts = accounts;
         this.accountServer = accountServer;
         this.statistics = statistics;
+        this.contacts = contacts;
     }
 
     @Transactional(readOnly = true)
@@ -68,8 +73,18 @@ public class RankingService {
         return new RankingPageDto(page, size, players.countRanked(), entries);
     }
 
+    /** A player's page for a viewer without a player of its own (no lord variant shown). */
     @Transactional(readOnly = true)
     public PlayerProfileDto profile(long playerId) {
+        return profile(playerId, null);
+    }
+
+    /**
+     * A player's page as the account {@code viewerAccountId} sees it: an NPC lord's variant only
+     * once the viewer's player has met the lord (09-npc-lords §16.7).
+     */
+    @Transactional(readOnly = true)
+    public PlayerProfileDto profile(long playerId, Long viewerAccountId) {
         long rank =
                 players.findRank(playerId)
                         .orElseThrow(() -> new NotFoundException(ErrorCode.PLAYER_NOT_FOUND));
@@ -84,7 +99,17 @@ public class RankingService {
                 guilds.findRefOf(playerId).orElse(null),
                 player.isNpc() ? List.of() : achievements.earned(playerId),
                 statistics.stats(playerId),
-                careerUrl(player));
+                careerUrl(player),
+                player.isNpc() ? lordVariant(player, viewerAccountId) : null);
+    }
+
+    private LordVariantDto lordVariant(Player lord, Long viewerAccountId) {
+        if (viewerAccountId == null) {
+            return null;
+        }
+        return players.findByAccountId(viewerAccountId)
+                .flatMap(viewer -> contacts.variantFor(viewer.getId(), lord.getId()))
+                .orElse(null);
     }
 
     /** The player's career page at the account server, if this world reports his career there. */

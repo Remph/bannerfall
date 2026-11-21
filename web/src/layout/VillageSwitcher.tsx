@@ -129,6 +129,8 @@ export function VillageSwitcher({ current }: { current: CurrentVillage | undefin
         }}
         aria-haspopup="dialog"
         aria-expanded={desktop ? menuOpen : undefined}
+        // a long name may be cut in a narrow window: the mouse shows it whole (the list has it too)
+        title={current?.name ?? undefined}
       >
         {current === undefined ? (
           <span className={styles.name}>{t.village.switcherTitle}</span>

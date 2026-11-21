@@ -126,6 +126,8 @@ tasks.register<Test>("simulationTest") {
         // world speed, number of lords and an SQL file with the world settings (1.6.1)
         "simSpeed" to "simulation.speed",
         "simLords" to "simulation.lords",
+        // lord variants (2.1, 09 §16.9): -PsimVariants=HOTHEAD,PLAIN,... in spawn order
+        "simVariants" to "simulation.variants",
         "simSqlFile" to "simulation.sqlFile",
         // lord guilds (09 §13): -PsimLordGuilds=true
         "simLordGuilds" to "simulation.lordGuilds",

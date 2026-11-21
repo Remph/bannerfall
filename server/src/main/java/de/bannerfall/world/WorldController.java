@@ -90,7 +90,11 @@ class WorldController {
                 WorldDto.NightBonusDto.of(nightBonus.current()),
                 settings.archersEnabled(),
                 settings.moraleEnabled() ? settings.moraleFloor() : null,
-                settings.noblePriceStep());
+                settings.noblePriceStep(),
+                settings.soloMode(),
+                worldService.paused() ? worldService.asleepSince() : null,
+                worldService.clockSpeed(),
+                settings.npcGuildsEnabled());
     }
 
     /**

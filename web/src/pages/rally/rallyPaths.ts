@@ -1,9 +1,37 @@
 import type { IncomingMovement } from '../../api/queries/troops';
 import { isOnMap, parseCoords, type Coords } from '../../game/coords';
+import { unitTypes, type UnitType } from '../../game/gameData';
+import type { UnitMap } from '../../game/troops';
 
 /** `/v/1/rally?x=48&y=52`: the rally point, with a target to fill in (05-frontend §3). */
 export function rallyPath(villageId: number, target?: Coords): string {
   return target === undefined ? `/v/${villageId}/rally` : `/v/${villageId}/rally?x=${target.x}&y=${target.y}`;
+}
+
+/**
+ * `/v/1/rally?x=48&y=52&units=SPEARMAN.120,SWORDSMAN.80`: the rally point with the target and the
+ * units filled in (2.1 S4: "Send support" on an ally's help request).
+ */
+export function rallySupportPath(villageId: number, target: Coords, units: UnitMap): string {
+  const list = unitTypes
+    .filter((type) => (units[type] ?? 0) > 0)
+    .map((type) => `${type}.${units[type] ?? 0}`)
+    .join(',');
+  const base = rallyPath(villageId, target);
+  return list === '' ? base : `${base}&units=${list}`;
+}
+
+/** The units of `?units=` ({@link rallySupportPath}): known types with whole counts above 0, else nothing. */
+export function unitsFromSearch(params: URLSearchParams): UnitMap {
+  const units: UnitMap = {};
+  for (const part of (params.get('units') ?? '').split(',')) {
+    const [type, count, rest] = part.split('.');
+    const value = Number(count);
+    if (rest === undefined && unitTypes.includes(type as UnitType) && Number.isInteger(value) && value > 0) {
+      units[type as UnitType] = value;
+    }
+  }
+  return units;
 }
 
 /**

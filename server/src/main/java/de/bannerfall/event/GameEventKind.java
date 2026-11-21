@@ -38,6 +38,11 @@ public enum GameEventKind {
      */
     STORAGE_CHECK,
     /**
+     * {@code refId} = player (NPC lord): its planned "land together" march on a human's order
+     * leaves (2.1 S3, 12-solo-and-allies §8).
+     */
+    NPC_ORDER_MARCH,
+    /**
      * Only for the event engine's own tests, which register a handler for it. The game has none: a
      * pending TEST event in a real database stops the server at startup.
      */

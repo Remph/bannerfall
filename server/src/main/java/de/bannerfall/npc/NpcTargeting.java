@@ -22,10 +22,12 @@ import de.bannerfall.rules.Storage;
 import de.bannerfall.world.WorldSettings;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 /**
  * The pure decisions of an NPC lord's warfare (09-npc-lords §6.1–§6.4, §6.6): the outcome estimate,
@@ -288,7 +290,10 @@ public final class NpcTargeting {
     /**
      * Whether a lord with this template may attack {@code target} from a village with {@code
      * attackerVillagePoints} (§6.4). Barbarian villages always; a grudge against the owner lifts
-     * the limits where the template says so.
+     * the limits where the template says so. The lord variants (09 §16.4): with {@code
+     * humans-only-on-grudge} a human's village only while the grudge is active; with {@code
+     * target-min-ratio} only an owner with at least that share of the lord's points, which no
+     * grudge lifts and which replaces the two ratios.
      */
     public static boolean targetAllowed(
             NpcTemplates.Template template,
@@ -298,6 +303,12 @@ public final class NpcTargeting {
             boolean grudge) {
         if (target.barbarian()) {
             return true;
+        }
+        if (template.humansOnlyOnGrudge() && target.human() && !grudge) {
+            return false;
+        }
+        if (template.targetMinRatio() != null) {
+            return target.ownerPoints() >= template.targetMinRatio() * lordPoints;
         }
         if (grudge && template.grudgeOpens()) {
             return true;
@@ -484,6 +495,28 @@ public final class NpcTargeting {
                 return null;
             }
         }
+    }
+
+    /**
+     * The order farms and raids are tried in (§6.2): first the villages {@code grudgeFirst} picks
+     * (the OFFENSIVE grudge holders, §6.7), then those of falling players ({@code prefers-falling},
+     * 09 §16.4), then raid targets ({@code raid-first}), each group nearest first (ties: the lower
+     * id). The predicates of a type without those fields are always false: nearest first.
+     */
+    public static List<MapVillage> farmOrder(
+            List<MapVillage> candidates,
+            ToDoubleFunction<MapVillage> distance,
+            Predicate<MapVillage> grudgeFirst,
+            Predicate<MapVillage> falling,
+            Predicate<MapVillage> raid) {
+        return candidates.stream()
+                .sorted(
+                        Comparator.comparing((MapVillage v) -> !grudgeFirst.test(v))
+                                .thenComparing(v -> !falling.test(v))
+                                .thenComparing(v -> !raid.test(v))
+                                .thenComparingDouble(distance)
+                                .thenComparingLong(MapVillage::id))
+                .toList();
     }
 
     // ---- conquest (§6.6) ----

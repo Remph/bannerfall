@@ -416,6 +416,14 @@ function BasicsStep({ form, update }: StepProps) {
           onChange={(value) => update({ villageNameLanguage: value })}
         />
       </div>
+      <ul className={styles.switches}>
+        <SwitchRow
+          label={t.setup.solo}
+          hint={t.setup.soloHint}
+          checked={form.soloMode}
+          onChange={(value) => update({ soloMode: value })}
+        />
+      </ul>
     </>
   );
 }
@@ -563,6 +571,10 @@ function MapStep({ form, update, stored }: StepProps & { stored: AdminWorldSetti
           value={form.npcDifficulty}
           onChange={(value) => update({ npcDifficulty: value })}
         />
+        {/* I3 (2.1): each difficulty says in one line what it means for you */}
+        <p className={styles.hint}>
+          <strong>{t.setup.difficultyNames[form.npcDifficulty]}.</strong> {t.setup.difficultyTexts[form.npcDifficulty]}
+        </p>
       </div>
       <ul className={styles.switches}>
         <SwitchRow
@@ -773,6 +785,7 @@ function OpeningStep({
       rows: [
         [t.setup.name, form.name],
         [t.setup.inviteCode, form.inviteCode],
+        [t.setup.solo, onOff(form.soloMode)],
       ],
     },
     {
@@ -789,7 +802,7 @@ function OpeningStep({
         [t.setup.mapSize, `${form.mapSize} × ${form.mapSize}`],
         [t.setup.nobleMaxDistance, form.nobleMaxDistance],
         [t.setup.barbarians, form.barbarianInitialCount],
-        [t.setup.lords, `${form.npcLordCount} · ${t.setup.difficulties[form.npcDifficulty]}`],
+        [t.setup.lords, `${form.npcLordCount} · ${t.setup.difficultyNames[form.npcDifficulty]}`],
         [t.setup.npcGuilds, onOff(form.npcGuildsEnabled)],
       ],
     },

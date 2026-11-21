@@ -27,6 +27,8 @@ import java.util.Set;
  * @param supported the incoming attacks a village of the lord already answered (09 §6.5)
  * @param conquest per academy village id: its current conquest target (09 §6.6)
  * @param lessons what the attacks on the lord taught it (learning lords, 09 §15)
+ * @param shortages per village id: the noble or wall its stock has been short of since when (2.1
+ *     S4, 12 §9: held long enough, an ally asks a human for the resources); solo worlds only
  */
 public record NpcMemory(
         long lastReportId,
@@ -38,9 +40,11 @@ public record NpcMemory(
         Map<Long, Instant> farmed,
         List<Supported> supported,
         Map<Long, ConquestTarget> conquest,
-        Lessons lessons) {
+        Lessons lessons,
+        Map<Long, Shortage> shortages) {
 
     public NpcMemory {
+        shortages = shortages == null ? Map.of() : Map.copyOf(shortages);
         ledger = ledger == null ? Map.of() : Map.copyOf(ledger);
         stance = stance == null ? Stance.NONE : stance;
         intel = intel == null ? Map.of() : Map.copyOf(intel);
@@ -73,11 +77,38 @@ public record NpcMemory(
                 farmed,
                 supported,
                 conquest,
+                null,
+                null);
+    }
+
+    /** Memory without shortages (written before 2.1 S4, and tests). */
+    public NpcMemory(
+            long lastReportId,
+            Map<Long, Ledger> ledger,
+            Stance stance,
+            Map<Long, Intel> intel,
+            Map<Long, Grudge> grudges,
+            List<SentAttack> attacksSent,
+            Map<Long, Instant> farmed,
+            List<Supported> supported,
+            Map<Long, ConquestTarget> conquest,
+            Lessons lessons) {
+        this(
+                lastReportId,
+                ledger,
+                stance,
+                intel,
+                grudges,
+                attacksSent,
+                farmed,
+                supported,
+                conquest,
+                lessons,
                 null);
     }
 
     public static NpcMemory empty() {
-        return new NpcMemory(0, null, null, null, null, null, null, null, null, null);
+        return new NpcMemory(0, null, null, null, null, null, null, null, null, null, null);
     }
 
     /** Spending on buildings (and nobles) and on troops, in resources, decayed every round. */
@@ -207,9 +238,27 @@ public record NpcMemory(
      *     (09 §6.3). 0 in memory written before this was kept
      * @param shared taken over from a guild mate (09 §13.4): not passed on again; false in memory
      *     written before lord guilds
+     * @param retaliations the retaliations sent for it so far (2.1, 09 §16.4: a variant can send
+     *     more than one); 0 in memory written before. {@code retaliated} is set once they reach the
+     *     template's {@code retaliations}
      */
     public record Grudge(
-            Instant until, long sourceVillageId, boolean retaliated, int scouts, boolean shared) {
+            Instant until,
+            long sourceVillageId,
+            boolean retaliated,
+            int scouts,
+            boolean shared,
+            int retaliations) {
+
+        /** A grudge without retaliations sent yet. */
+        public Grudge(
+                Instant until,
+                long sourceVillageId,
+                boolean retaliated,
+                int scouts,
+                boolean shared) {
+            this(until, sourceVillageId, retaliated, scouts, shared, 0);
+        }
 
         /** The lord's own grudge (an attack on itself). */
         public Grudge(Instant until, long sourceVillageId, boolean retaliated, int scouts) {
@@ -265,6 +314,16 @@ public record NpcMemory(
     /** A village's wall goal (09 §15.4): build the wall up to {@code level} until {@code until}. */
     public record WallGoal(int level, Instant until) {}
 
+    /**
+     * A shortage that holds a village's next step (2.1 S4, 12 §9).
+     *
+     * @param goal {@code NOBLE}, or {@code WALL} with the level ({@code WALL:5}): a new goal starts
+     *     the wait again
+     * @param since when the village first lacked the resources for it
+     * @param missing what it lacked in its latest round, rounded up to 100
+     */
+    public record Shortage(String goal, Instant since, ResourceAmounts missing) {}
+
     /** The ledger of a village (zero if it has none yet). */
     public Ledger ledgerOf(long villageId) {
         return ledger.getOrDefault(villageId, Ledger.ZERO);
@@ -293,6 +352,7 @@ public record NpcMemory(
         Draft draft = draft();
         draft.ledger.keySet().retainAll(villageIds);
         draft.conquest.keySet().retainAll(villageIds);
+        draft.shortages.keySet().retainAll(villageIds);
         Map<Long, WallGoal> walls = new HashMap<>(draft.lessons.walls());
         walls.keySet().retainAll(villageIds);
         draft.lessons = new Lessons(draft.lessons.seen(), walls);
@@ -321,6 +381,7 @@ public record NpcMemory(
         public final List<Supported> supported;
         public final Map<Long, ConquestTarget> conquest;
         public Lessons lessons;
+        public final Map<Long, Shortage> shortages;
 
         private Draft(NpcMemory m) {
             lastReportId = m.lastReportId;
@@ -333,6 +394,7 @@ public record NpcMemory(
             supported = new ArrayList<>(m.supported);
             conquest = new HashMap<>(m.conquest);
             lessons = m.lessons;
+            shortages = new HashMap<>(m.shortages);
         }
 
         public NpcMemory build() {
@@ -346,7 +408,8 @@ public record NpcMemory(
                     farmed,
                     supported,
                     conquest,
-                    lessons);
+                    lessons,
+                    shortages);
         }
     }
 }

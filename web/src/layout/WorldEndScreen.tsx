@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useChronicle } from '../api/queries/chronicle';
 import { Link } from 'react-router';
 import { useCurrentAccount } from '../api/queries/auth';
 import { usePlayerProfile, useRanking } from '../api/queries/ranking';
@@ -7,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { Sheet } from '../components/Sheet';
 import { formatDateTime, formatNumber } from '../game/format';
 import { useI18n } from '../i18n';
+import { ReplayMap } from '../pages/chronicle/ReplayMap';
 import { rankingPath } from '../pages/ranking/rankingPaths';
 import { endHeadline, placeText, useMySide } from '../pages/ranking/victoryState';
 import styles from './WorldEndScreen.module.css';
@@ -46,6 +48,7 @@ function EndScreen({ result, onClose: close }: { result: WorldResult; onClose: (
   const winner = result.winner;
   const won = mine(winner);
   const place = placeText(t, result, mine);
+  const chronicle = useChronicle().data;
   return (
     <Sheet open onClose={close} title={t.worldEnd.title}>
       <div className={styles.screen}>
@@ -79,16 +82,32 @@ function EndScreen({ result, onClose: close }: { result: WorldResult; onClose: (
             </dl>
           </section>
         )}
+        {chronicle !== undefined && chronicle.map.frames.length > 0 && <EndReplay chronicle={chronicle} />}
         <p className={styles.stays}>{t.worldEnd.stays}</p>
         <div className={styles.actions}>
-          <Link to={rankingPath(0)} className={styles.lead} onClick={close}>
+          <Link to="/chronicle" className={styles.lead} onClick={close}>
+            {t.chronicle.read}
+          </Link>
+          <Link to={rankingPath(0)} className={styles.second} onClick={close}>
             {t.worldEnd.seeResult}
           </Link>
-          <button type="button" className={styles.second} onClick={close}>
-            {t.worldEnd.lookAround}
-          </button>
         </div>
+        <button type="button" className={styles.third} onClick={close}>
+          {t.worldEnd.lookAround}
+        </button>
       </div>
     </Sheet>
+  );
+}
+
+/** The small replay on the end screen (2.1 I1): the whole world, from the first day to the end. */
+function EndReplay({ chronicle }: { chronicle: NonNullable<ReturnType<typeof useChronicle>['data']> }) {
+  const { t } = useI18n();
+  const [frame, setFrame] = useState(() => Math.max(0, chronicle.map.frames.length - 1));
+  return (
+    <section className={styles.replay} aria-label={t.chronicle.endScreenTitle}>
+      <h3>{t.chronicle.endScreenTitle}</h3>
+      <ReplayMap chronicle={chronicle} frame={frame} onFrame={setFrame} compact />
+    </section>
   );
 }

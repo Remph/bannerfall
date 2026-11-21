@@ -1,0 +1,232 @@
+/* The diplomacy page (2.1 S2b, 05-frontend §3): rows on the land, like the guild page. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+  align-content: start;
+  --card-inset: 0;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.hint,
+.empty,
+.howTrust {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.howTrust {
+  font-size: var(--font-size-sm);
+}
+
+.inlineLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  /* a touch target of 44 px without moving the line (like the guild page's names) */
+  display: inline-block;
+  padding-block: var(--tap-pad);
+  margin-block: calc(-1 * var(--tap-pad));
+}
+
+/* the court: its name is the card's headline */
+.court {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.goal {
+  margin: 0;
+}
+
+.sub {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.race {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.raceTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.raceList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.raceRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+}
+
+.raceName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.raceFigure {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The race (UI review 2.1, finding 08): the court in the text colour, the player in the accent (own
+   things), both on the well with a thin edge. The progress track (--color-track) is a mid tone that a
+   dark fill can't stand out from by day (1.14 in Frost); palettes.test.ts checks 3:1 in every look. */
+.track {
+  grid-column: 1 / -1;
+  display: block;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-well);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--color-text);
+}
+
+.fillMine {
+  background: var(--color-accent);
+}
+
+.note {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* the lords */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--card-inset, var(--space-3));
+  border-top: var(--line) var(--line-style) var(--color-divider);
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.rowMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* the line over the marked villages: what they are for */
+.blockedHint {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.rowName {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  padding-block: var(--tap-pad);
+  margin-block: calc(-1 * var(--tap-pad));
+}
+
+.tag {
+  margin-right: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+/* the trust: the biggest figure of the row */
+.trust {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.trustValue {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* "not met yet" in place of the bar: may wrap, so the name keeps its room on a narrow phone */
+.notMet {
+  max-width: 7em;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: end;
+}
+
+/* the status lines, then the row's button on its own line at the left: one place on every row (UI
+   review 2.1, finding 10: it jumped to the right edge when the line above fitted) */
+.rowFoot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.blocked {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-well);
+  font-size: var(--font-size-sm);
+}
+
+@media (hover: hover) {
+  a.rowName:hover {
+    color: var(--color-accent);
+  }
+}

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class NpcIntelTest {
 
     private static final GameData DATA = TestGameData.load();
-    private static final long LORD = 10;
+    static final long LORD = 10;
     private static final long HUMAN = 20;
     private static final Instant AT = Instant.parse("2026-10-07T10:00:00Z");
 
@@ -367,7 +367,7 @@ class NpcIntelTest {
         assertThat(other.grudges).isEmpty();
     }
 
-    private static BattleReport scoutsOnTheLord(VillageRefDto from, int sent, int lost) {
+    static BattleReport scoutsOnTheLord(VillageRefDto from, int sent, int lost) {
         return new BattleReport(
                 from,
                 LORD_VILLAGE,

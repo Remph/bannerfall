@@ -8,6 +8,6 @@ import { WorldEndContext } from './worldEnd';
 export function ActionsStayOn({ open = true, children }: { open?: boolean; children: ReactNode }) {
   const outer = useContext(WorldEndContext);
   const frozen = outer.frozen && !open;
-  const value = useMemo(() => ({ ended: outer.ended, frozen }), [outer.ended, frozen]);
+  const value = useMemo(() => ({ ...outer, frozen }), [outer, frozen]);
   return <WorldEndContext value={value}>{children}</WorldEndContext>;
 }

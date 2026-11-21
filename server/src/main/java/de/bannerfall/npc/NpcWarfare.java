@@ -71,11 +71,21 @@ class NpcWarfare {
     // ---- conquest target, before the economy (§6.6) ----
 
     /**
-     * Whether this village wants nobles (§6.6): it has an academy, the lord isn't braked, and a
-     * conquest target exists within reach. Picks or keeps the target in {@code memory.conquest}.
+     * Whether this village wants nobles (§6.6): it has an academy, the lord isn't braked, the
+     * village has the army to escort a train (2.1) and a conquest target exists within reach. Picks
+     * or keeps the target in {@code memory.conquest}.
      */
     boolean wantsNobles(NpcTurn turn) {
         if (turn.village.getBuildings().get(BuildingType.ACADEMY) < 1 || turn.view.braked()) {
+            return false;
+        }
+        if (!NpcPlanning.armyForNobles(
+                unitService.unitsOf(turn.villageId(), List.of()).all().toMap(),
+                clearingUnits(turn),
+                gameData,
+                turn.village.getBuildings().get(BuildingType.FARM),
+                balance.general().nobleArmyShare())) {
+            // a lord farmed flat would only save for nobles it can never escort (S2a, 2.1)
             return false;
         }
         turn.available =
@@ -121,6 +131,7 @@ class NpcWarfare {
     /** Everything about a conquest target except the lord's view of its defence (§6.6). */
     private boolean withinConquestRules(NpcTurn turn, MapVillage target) {
         if (turn.ownOrMate(target.playerId())
+                || turn.held(target)
                 || turn.view.mateTrainTargets().contains(target.id())) {
             return false; // a guild mate's train is on the way there (09 §13.2)
         }
@@ -136,7 +147,7 @@ class NpcWarfare {
         if (!target.barbarian()
                 && !(turn.template().conquersPlayers()
                         && !NpcTargeting.isProtected(target, turn.now)
-                        && !NpcBalance.spared(turn.view.difficulty(), target)
+                        && !NpcBalance.spared(turn.view.difficulty(), turn.template(), target)
                         && allowed(turn, target))) {
             return false;
         }
@@ -193,10 +204,13 @@ class NpcWarfare {
     // ---- the attack step (§6) ----
 
     void attack(NpcTurn turn) {
+        // the units a planned "land together" march waits for stay home (2.1 S3)
         turn.available =
-                NpcTargeting.available(
-                        unitService.homeUnits(turn.villageId()).toMap(),
-                        turn.template().homeGuard());
+                NpcTargeting.minus(
+                        NpcTargeting.available(
+                                unitService.homeUnits(turn.villageId()).toMap(),
+                                turn.template().homeGuard()),
+                        turn.view.orders().reservedAt(turn.villageId()));
         conquest(turn);
         retaliate(turn);
         scout(turn);
@@ -292,9 +306,10 @@ class NpcWarfare {
 
     /**
      * §6.7: OFFENSIVE and BALANCED lords attack the source village of whoever attacked them, once
-     * per grudge, if the estimate (with fresh intel) is a go. With lord banners on (09 §14.4,
-     * §14.5) the village's paladin at home goes along where the template says so, and its banner
-     * thieves at home if the intel saw a banner there.
+     * per grudge (the template's {@code retaliations}, 09 §16.4), if the estimate (with fresh
+     * intel) is a go. With lord banners on (09 §14.4, §14.5) the village's paladin at home goes
+     * along where the template says so, and its banner thieves at home if the intel saw a banner
+     * there.
      */
     private void retaliate(NpcTurn turn) {
         if (!turn.template().grudgeOpens()) {
@@ -307,10 +322,15 @@ class NpcWarfare {
                 continue;
             }
             MapVillage source = turn.view.villages().get(grudge.sourceVillageId());
+            if (source != null && turn.held(source)) {
+                continue; // a human's order holds it off for now (2.1 S3)
+            }
             if (source == null
                     || !Objects.equals(source.playerId(), playerId)
-                    || NpcTargeting.isProtected(source, turn.now)) {
-                retaliated(turn, playerId);
+                    || NpcTargeting.isProtected(source, turn.now)
+                    || (turn.template().targetMinRatio() != null && !allowed(turn, source))) {
+                // a Knight of Honour doesn't retaliate on a small player either (09 §16.3)
+                gaveUp(turn, playerId);
                 continue;
             }
             Intel intel = usableIntel(turn, source);
@@ -360,7 +380,7 @@ class NpcWarfare {
                     if (estimateAttack(turn, source, whole, intel, catapultTarget, level).go()) {
                         turn.gathering = true;
                     } else {
-                        retaliated(turn, playerId);
+                        gaveUp(turn, playerId);
                     }
                 }
                 continue;
@@ -415,7 +435,8 @@ class NpcWarfare {
                 .orElse(false);
     }
 
-    private static void retaliated(NpcTurn turn, long playerId) {
+    /** The lord gives up on this grudge's retaliation. */
+    private static void gaveUp(NpcTurn turn, long playerId) {
         Grudge grudge = turn.memory.grudges.get(playerId);
         turn.memory.grudges.put(
                 playerId,
@@ -424,7 +445,26 @@ class NpcWarfare {
                         grudge.sourceVillageId(),
                         true,
                         grudge.scouts(),
-                        grudge.shared()));
+                        grudge.shared(),
+                        grudge.retaliations()));
+    }
+
+    /**
+     * One retaliation sent: the grudge is done once the template's {@code retaliations} are (09
+     * §16.4; one for the types).
+     */
+    private static void retaliated(NpcTurn turn, long playerId) {
+        Grudge grudge = turn.memory.grudges.get(playerId);
+        int sent = grudge.retaliations() + 1;
+        turn.memory.grudges.put(
+                playerId,
+                new Grudge(
+                        grudge.until(),
+                        grudge.sourceVillageId(),
+                        sent >= turn.template().retaliations(),
+                        grudge.scouts(),
+                        grudge.shared(),
+                        sent));
     }
 
     /**
@@ -547,6 +587,9 @@ class NpcWarfare {
                                 if (!g.retaliated()
                                         && g.until().isAfter(turn.now)
                                         && source != null
+                                        && !turn.held(source)
+                                        && (turn.template().targetMinRatio() == null
+                                                || allowed(turn, source))
                                         && Objects.equals(source.playerId(), e.getKey())
                                         && usableIntel(turn, source) == null) {
                                     wishes.putIfAbsent(source.id(), source);
@@ -696,22 +739,38 @@ class NpcWarfare {
 
     /**
      * Villages within {@code farm-radius} (scaled by the world's spread) that are neither the
-     * lord's nor a guild mate's (§13.2), nearest first; for OFFENSIVE the grudge holders' villages
-     * come first (§6.7).
+     * lord's nor a guild mate's (§13.2) in the order of {@link NpcTargeting#farmOrder}: for
+     * OFFENSIVE the grudge holders' villages first (§6.7), then with {@code prefers-falling} the
+     * falling players' (09 §16.4), with {@code raid-first} the raid targets, then nearest first.
      */
     private List<MapVillage> farmCandidates(NpcTurn turn) {
         int radius = turn.view.world().mapSpread().scale(turn.template().farmRadius());
         boolean grudgeFirst = turn.view.personality() == NpcPersonality.OFFENSIVE;
-        return turn.view.villages().values().stream()
-                .filter(v -> !turn.ownOrMate(v.playerId()))
-                .filter(v -> turn.distanceTo(v) <= radius)
-                .sorted(
-                        Comparator.comparing(
-                                        (MapVillage v) ->
-                                                !(grudgeFirst && turn.grudgeAgainst(v.playerId())))
-                                .thenComparingDouble(turn::distanceTo)
-                                .thenComparingLong(MapVillage::id))
-                .toList();
+        boolean raidFirst = turn.template().raidFirst();
+        return NpcTargeting.farmOrder(
+                turn.view.villages().values().stream()
+                        .filter(v -> !turn.ownOrMate(v.playerId()))
+                        .filter(v -> !turn.held(v))
+                        .filter(v -> turn.distanceTo(v) <= radius)
+                        .toList(),
+                turn::distanceTo,
+                v -> grudgeFirst && turn.grudgeAgainst(v.playerId()),
+                v -> v.playerId() != null && turn.view.falling().contains(v.playerId()),
+                v -> raidFirst && raidable(turn, v));
+    }
+
+    /**
+     * A raid target as far as the lord knows (§6.2): a player village, fresh intel, no defenders.
+     */
+    private static boolean raidable(NpcTurn turn, MapVillage target) {
+        if (target.barbarian()) {
+            return false;
+        }
+        Intel intel = turn.memory.intel.get(target.id());
+        return intel != null
+                && intel.units() != null
+                && !intel.showedDefenders()
+                && isFresh(turn, intel);
     }
 
     // ---- helpers ----
@@ -726,7 +785,7 @@ class NpcWarfare {
     }
 
     /** Usable intel (§4); a barbarian wall the lord saw counts as grown since (M29). */
-    private Intel usableIntel(NpcTurn turn, MapVillage target) {
+    Intel usableIntel(NpcTurn turn, MapVillage target) {
         Intel intel =
                 NpcTargeting.usable(
                         turn.memory.intel.get(target.id()),
@@ -748,7 +807,7 @@ class NpcWarfare {
                 intel, turn.now, turn.view.general().intelMaxAgeHours(), turn.speed());
     }
 
-    private Estimate estimateAttack(
+    Estimate estimateAttack(
             NpcTurn turn,
             MapVillage target,
             Map<UnitType, Integer> army,
@@ -841,7 +900,7 @@ class NpcWarfare {
      * §7: whether {@code commands} more commands towards the target's owner stay within the caps.
      * Barbarian villages are never limited.
      */
-    private static boolean capsAllow(NpcTurn turn, MapVillage target, int commands) {
+    static boolean capsAllow(NpcTurn turn, MapVillage target, int commands) {
         if (target.barbarian()) {
             return true;
         }
@@ -855,7 +914,7 @@ class NpcWarfare {
      * The arrival of the attack if it may be sent now: {@code preview} finds no error and, towards
      * a human, it doesn't arrive in the quiet hours; else null.
      */
-    private Instant previewAttack(
+    Instant previewAttack(
             NpcTurn turn,
             MapVillage target,
             Map<UnitType, Integer> army,
@@ -872,7 +931,7 @@ class NpcWarfare {
         return preview.arriveAt();
     }
 
-    private void send(
+    void send(
             NpcTurn turn,
             MapVillage target,
             Map<UnitType, Integer> army,
@@ -883,7 +942,7 @@ class NpcWarfare {
     }
 
     /** A command towards a player village counts against the caps (a train once). */
-    private static void recordSent(NpcTurn turn, MapVillage target) {
+    static void recordSent(NpcTurn turn, MapVillage target) {
         if (!target.barbarian()) {
             turn.memory.attacksSent.add(new NpcMemory.SentAttack(target.playerId(), turn.now));
         }

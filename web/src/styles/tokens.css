@@ -157,6 +157,13 @@
   --map-noble: #e9b830;
   --map-support: #2f8a4e;
   --map-return: #2b78b8;
+  /* the rally point's march bars (2.1): the map's colours a shade deeper on a lighter track, so
+     every kind reads at about 3:1 against the track in every light theme (the plain track is as
+     dark as the map's green and blue in Wiese) */
+  --march-attack: #b02a20;
+  --march-support: #1d6a38;
+  --march-return: #22679f;
+  --march-track: color-mix(in srgb, var(--color-track) 25%, transparent);
 
   /* chart series (1.5 statistics), in this order; checked for colour blindness against the panel colour */
   --chart-1: #2a7a4f;
@@ -307,6 +314,13 @@
     --map-noble: #f0c64a;
     --map-support: #3fa564;
     --map-return: #4a97d8;
+    /* by night the map's own colours in a groove darker than the ground it lies on, the land or
+       the Now drawer's sheet, so each reads at 4.2:1 or more; on the plain track the red was
+       1.4:1 in Wiese, and on a lighter track 2.4:1 in the drawer (2.1 review) */
+    --march-attack: var(--map-attack);
+    --march-support: var(--map-support);
+    --march-return: var(--map-return);
+    --march-track: color-mix(in srgb, #000000 40%, transparent);
     --chart-1: #33a065;
     --chart-2: #3f86cf;
     --chart-3: #b88a22;
@@ -452,6 +466,13 @@
   --map-noble: #f0c64a;
   --map-support: #3fa564;
   --map-return: #4a97d8;
+  /* by night the map's own colours in a groove darker than the ground it lies on, the land or
+     the Now drawer's sheet, so each reads at 4.2:1 or more; on the plain track the red was
+     1.4:1 in Wiese, and on a lighter track 2.4:1 in the drawer (2.1 review) */
+  --march-attack: var(--map-attack);
+  --march-support: var(--map-support);
+  --march-return: var(--map-return);
+  --march-track: color-mix(in srgb, #000000 40%, transparent);
   --chart-1: #33a065;
   --chart-2: #3f86cf;
   --chart-3: #b88a22;

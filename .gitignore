@@ -55,3 +55,6 @@ START.md
 /auto-update.hold
 /auto-update.failed
 /.auto-update.lock
+
+# The secrets of the solo world on your own PC (ops/bannerfall-solo)
+.env.solo

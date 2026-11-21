@@ -14,6 +14,7 @@ function village(id: number, over: Partial<NowVillage> = {}): NowVillage {
     outgoing: [],
     incoming: [],
     merchants: [],
+    incomingMerchants: [],
     ...over,
   };
 }
@@ -110,6 +111,29 @@ describe('nowSections', () => {
     // returning merchants are due when they are home
     expect(sections.way.map((row) => row.key)).toEqual(['incoming-6', 'merchants-10']);
     expect(sections.count).toBe(2 + 3 + 2 + 2);
+  });
+
+  it('lists other players’ merchants coming to a village on the way, by their arrival (2.1)', () => {
+    const coming = {
+      id: 20,
+      sourceVillage: ref(98),
+      targetVillage: ref(1),
+      resources: { wood: 500, clay: 0, iron: 0 },
+      merchants: 1,
+      departAt: '2026-11-11T09:00:00Z',
+      arriveAt: '2026-11-11T10:12:00Z',
+      returnAt: '2026-11-11T11:24:00Z',
+      arrived: false,
+    };
+    const withMerchants: Now = {
+      villages: [{ ...now.villages[0]!, incomingMerchants: [coming] }, now.villages[1]!],
+    };
+    expect(nowSections(withMerchants, 'this', 1).way.map((row) => row.key)).toEqual(['merchants-in-20', 'incoming-6']);
+    // not in the other village's scope
+    expect(nowSections(withMerchants, 'this', 2).way.map((row) => row.key)).toEqual(['merchants-10']);
+    expect(nextNowEndMs({ villages: [village(1, { incomingMerchants: [coming] })] })).toBe(
+      Date.parse('2026-11-11T10:12:00Z'),
+    );
   });
 
   it('shows every village when none is current', () => {

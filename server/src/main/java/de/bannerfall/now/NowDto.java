@@ -30,6 +30,8 @@ public record NowDto(List<NowVillageDto> villages) {
      * @param outgoing attacks and supports this village has sent, still on the way, next first
      * @param incoming everything arriving here, next first: attacks, supports, own units returning
      * @param merchants the village's merchants that are away (on the way or coming back)
+     * @param incomingMerchants other players' merchants on their way here, next first (2.1); the
+     *     player's own merchants between his villages are only in the sender's {@code merchants}
      */
     public record NowVillageDto(
             VillageRefDto village,
@@ -39,5 +41,6 @@ public record NowDto(List<NowVillageDto> villages) {
             List<ResearchOrderDto> research,
             List<MovementDto> outgoing,
             List<IncomingDto> incoming,
-            List<TransportDto> merchants) {}
+            List<TransportDto> merchants,
+            List<TransportDto> incomingMerchants) {}
 }

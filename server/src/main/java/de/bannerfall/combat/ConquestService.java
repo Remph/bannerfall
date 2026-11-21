@@ -3,6 +3,10 @@ package de.bannerfall.combat;
 import de.bannerfall.achievement.Achievement;
 import de.bannerfall.achievement.AchievementService;
 import de.bannerfall.banner.BannerService;
+import de.bannerfall.chronicle.Chronicle;
+import de.bannerfall.chronicle.ChronicleFacts;
+import de.bannerfall.chronicle.ChronicleKind;
+import de.bannerfall.chronicle.ChronicleVillage;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.movement.Movement;
 import de.bannerfall.notify.GameNotification;
@@ -50,6 +54,7 @@ public class ConquestService {
     private final BannerService bannerService;
     private final WorldService worldService;
     private final StatisticsService statistics;
+    private final Chronicle chronicle;
 
     ConquestService(
             OwnerChange ownerChange,
@@ -62,7 +67,9 @@ public class ConquestService {
             AchievementService achievements,
             BannerService bannerService,
             WorldService worldService,
-            StatisticsService statistics) {
+            StatisticsService statistics,
+            Chronicle chronicle) {
+        this.chronicle = chronicle;
         this.ownerChange = ownerChange;
         this.stacks = stacks;
         this.villages = villages;
@@ -137,6 +144,20 @@ public class ConquestService {
         grantAchievements(conqueror, previousOwner);
         statistics.add(conqueror.getId(), Stat.VILLAGES_CONQUERED, 1);
         statistics.add(previousOwnerId, Stat.VILLAGES_LOST, 1);
+        chronicle.record(
+                ChronicleKind.CONQUEST,
+                at,
+                ChronicleFacts.empty()
+                        .withConquest(
+                                new ChronicleVillage(
+                                        village.getId(),
+                                        before.name(),
+                                        village.getX(),
+                                        village.getY()),
+                                village.isKeep(),
+                                chronicle.player(previousOwnerId),
+                                chronicle.player(conqueror.getId()),
+                                previousOwner != null && previousOwner.getVillageCount() == 0));
 
         ConquestReport report =
                 new ConquestReport(

@@ -28,6 +28,9 @@ import org.springframework.context.annotation.Import;
  * <p>Password hashes take one PBKDF2 round instead of the server's 310,000 ({@link
  * TestPasswordEncoderConfiguration}).
  *
+ * <p>The world's address is {@code http://localhost:8461}, so the Host check of a solo world is on
+ * (HostCheckFlowTest); MockMvc and the WebSocket tests use localhost.
+ *
  * <p>The host token is {@link #ADMIN_TOKEN}; the host cheats are off (the {@code dev} profile of
  * {@code DevCheatControllerTest} switches them on).
  *
@@ -49,6 +52,8 @@ import org.springframework.context.annotation.Import;
             "bannerfall.events.scheduler-enabled=false",
             "bannerfall.world.initializer-enabled=false",
             "bannerfall.admin.token=" + IntegrationTest.ADMIN_TOKEN,
+            // the solo world's address: every test passes the Host check (HostCheckFlowTest)
+            "bannerfall.host-check.domain=http://localhost:8461",
             // the privacy page's host (WorldOperatorTest)
             "bannerfall.operator.name=" + IntegrationTest.OPERATOR_NAME,
             "bannerfall.operator.contact=" + IntegrationTest.OPERATOR_CONTACT,

@@ -116,17 +116,18 @@ export function useServerNow(): number {
 
 /*
  * A world that has ended is frozen (v1.3, 02-game-rules §22): its game time stands still at the end,
- * so resources stop counting and countdowns stop. The app layout sets the end from GET /api/world.
- * The server clock itself (ServerClock) keeps running.
+ * so resources stop counting and countdowns stop. A solo world the host paused (2.1) stands still the
+ * same way at the moment he paused it. The app layout sets the moment from GET /api/world (`endedAt`
+ * or `pausedAt`). The server clock itself (ServerClock) keeps running.
  */
 let frozenAtMs: number | null = null;
 
-/** When the world ended, in milliseconds; null while it runs. */
-export function setFrozenAt(endedAtMs: number | null): void {
-  frozenAtMs = endedAtMs;
+/** When the world ended or was paused, in milliseconds; null while it runs. */
+export function setFrozenAt(atMs: number | null): void {
+  frozenAtMs = atMs;
 }
 
-/** `nowMs` in game time: the end of the world once it has ended, otherwise `nowMs` itself. */
+/** `nowMs` in game time: the end or the pause of the world once there is one, otherwise `nowMs` itself. */
 export function gameTime(nowMs: number): number {
   return frozenAtMs !== null && frozenAtMs < nowMs ? frozenAtMs : nowMs;
 }

@@ -231,9 +231,15 @@ export function formatClock(ms: number, language: Language, timeZone?: string): 
   }).format(ms);
 }
 
-/** Map coordinates as the game writes them: (48|52). */
+/**
+ * Map coordinates as the game writes them: (48|52). A word joiner (U+2060) on both sides of the bar
+ * keeps them on one line in Firefox, which breaks after "|" (UI review 2.1, finding 12); parseCoords
+ * drops it again when a player pastes them.
+ */
+export const WORD_JOINER = '\u2060';
+
 export function formatCoords(x: number, y: number): string {
-  return `(${x}|${y})`;
+  return `(${x}${WORD_JOINER}|${WORD_JOINER}${y})`;
 }
 
 function pad2(value: number): string {

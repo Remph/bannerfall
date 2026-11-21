@@ -755,6 +755,50 @@
         }
       }
     },
+    "/api/admin/world-clock" : {
+      "get" : {
+        "tags" : [ "world-clock-controller" ],
+        "operationId" : "clock",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorldClockDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "world-clock-controller" ],
+        "operationId" : "change",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorldClockRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorldClockDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/npc-settings" : {
       "get" : {
         "tags" : [ "npc-admin-controller" ],
@@ -2409,6 +2453,91 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MyGuildDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diplomacy/requests/{requestId}/decline" : {
+      "post" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "decline",
+        "parameters" : [ {
+          "name" : "requestId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/HelpRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diplomacy/orders" : {
+      "post" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "order",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderSheetDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diplomacy/lords/{lordId}/invite" : {
+      "post" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "invite",
+        "parameters" : [ {
+          "name" : "lordId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiplomacyDto"
                 }
               }
             }
@@ -4382,6 +4511,72 @@
         }
       }
     },
+    "/api/diplomacy" : {
+      "get" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "diplomacy",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiplomacyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diplomacy/requests" : {
+      "get" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "requests",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/HelpRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diplomacy/orders/{villageId}" : {
+      "get" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "orderSheet",
+        "parameters" : [ {
+          "name" : "villageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderSheetDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dev/fail" : {
       "get" : {
         "tags" : [ "dev-fail-controller" ],
@@ -4389,6 +4584,24 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/chronicle" : {
+      "get" : {
+        "tags" : [ "chronicle-controller" ],
+        "operationId" : "chronicle",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChronicleDto"
+                }
+              }
+            }
           }
         }
       }
@@ -5039,6 +5252,33 @@
         }
       }
     },
+    "/api/diplomacy/orders/{lordId}" : {
+      "delete" : {
+        "tags" : [ "diplomacy-controller" ],
+        "operationId" : "cancelOrder",
+        "parameters" : [ {
+          "name" : "lordId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiplomacyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/chat/{messageId}" : {
       "delete" : {
         "tags" : [ "admin-controller" ],
@@ -5535,7 +5775,7 @@
         "properties" : {
           "kind" : {
             "type" : "string",
-            "enum" : [ "ATTACK", "VILLAGE_LOST", "ATTACK_RETURNED", "MESSAGE", "GUILD_INVITE", "WORLD_END", "BUILDS_DONE", "STORAGE_FULL" ]
+            "enum" : [ "ATTACK", "VILLAGE_LOST", "ATTACK_RETURNED", "MESSAGE", "GUILD_INVITE", "WORLD_END", "BUILDS_DONE", "STORAGE_FULL", "HELP_REQUEST" ]
           },
           "enabled" : {
             "type" : "boolean"
@@ -6314,12 +6554,15 @@
           "tutorialEnabled" : {
             "type" : [ "boolean", "null" ]
           },
+          "soloMode" : {
+            "type" : [ "boolean", "null" ]
+          },
           "mapSpread" : {
             "type" : [ "string", "null" ],
             "enum" : [ "CLOSE", "NORMAL", "WIDE", "VAST" ]
           }
         },
-        "required" : [ "archersEnabled", "automationVillages", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleEnabled", "moraleFloor", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "noblePriceStep", "npcBannersEnabled", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLearningEnabled", "npcLordCount", "npcShipmentsEnabled", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "tutorialEnabled", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "archersEnabled", "automationVillages", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleEnabled", "moraleFloor", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "noblePriceStep", "npcBannersEnabled", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLearningEnabled", "npcLordCount", "npcShipmentsEnabled", "npcThinkMinutes", "paladinMaxSlots", "paladinVillagesPerSlot", "recruitQueueSize", "soloMode", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "tutorialEnabled", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "AdminWorldSettingsDto" : {
         "type" : "object",
@@ -6537,6 +6780,9 @@
           "tutorialEnabled" : {
             "type" : "boolean"
           },
+          "soloMode" : {
+            "type" : "boolean"
+          },
           "phase" : {
             "type" : "string",
             "enum" : [ "PREGAME", "OPEN", "ENDED" ]
@@ -6557,7 +6803,7 @@
             "format" : "date-time"
           }
         },
-        "required" : [ "archersEnabled", "automationVillages", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleEnabled", "moraleFloor", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "noblePriceStep", "npcBannersEnabled", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLearningEnabled", "npcLordCount", "npcShipmentsEnabled", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "setupDone", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "tutorialEnabled", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
+        "required" : [ "archersEnabled", "automationVillages", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianInitialCount", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "barbariansPerNewPlayer", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "inviteCode", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleEnabled", "moraleFloor", "name", "nightBonusEnabled", "nightBonusEndHour", "nightBonusFactor", "nightBonusStartHour", "nobleMaxDistance", "noblePriceStep", "npcBannersEnabled", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLearningEnabled", "npcLordCount", "npcShipmentsEnabled", "npcThinkMinutes", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "setupDone", "soloMode", "speed", "standardTheftEnabled", "startResources", "tradeMaxRatio", "tutorialEnabled", "unitLevelsEnabled", "unitSpeed", "victoryHoldHours", "victoryMode", "villageNameLanguage" ]
       },
       "WorldOpeningRequest" : {
         "type" : "object",
@@ -6578,6 +6824,39 @@
           }
         },
         "required" : [ "endsAt" ]
+      },
+      "WorldClockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "paused" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "speed" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "paused", "speed" ]
+      },
+      "WorldClockDto" : {
+        "type" : "object",
+        "properties" : {
+          "soloMode" : {
+            "type" : "boolean"
+          },
+          "asleepSince" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "paused" : {
+            "type" : "boolean"
+          },
+          "speed" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "asleepSince", "paused", "soloMode", "speed" ]
       },
       "NpcSettingsDto" : {
         "type" : "object",
@@ -7437,7 +7716,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "WORLD_PAUSED", "WORLD_NOT_SOLO", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "LORD_NOT_READY", "LORD_ALLIED", "NOT_AN_ALLY", "ORDER_TARGET_INVALID", "HELP_REQUEST_CLOSED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
             }
           }
         },
@@ -7496,7 +7775,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
+              "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "WORLD_PAUSED", "WORLD_NOT_SOLO", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "LORD_NOT_READY", "LORD_ALLIED", "NOT_AN_ALLY", "ORDER_TARGET_INVALID", "HELP_REQUEST_CLOSED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
             }
           },
           "morale" : {
@@ -8082,6 +8361,85 @@
         },
         "required" : [ "text" ]
       },
+      "CourtRefDto" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : [ "string", "null" ]
+          },
+          "numeral" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "key", "numeral" ]
+      },
+      "LordLetter" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "JOINED", "REFUSED_TRUST", "REFUSED_FULL", "LEFT_TRUST", "LEFT_ATTACKED", "ORDER_ATTACK", "ORDER_ATTACK_PLANNED", "ORDER_SUPPORT", "ORDER_SEND", "ORDER_HOLD", "ORDER_REFUSED_TRUST", "ORDER_REFUSED_BOUND", "ORDER_TOO_STRONG", "ORDER_NO_TROOPS", "ORDER_NO_SURPLUS", "ORDER_NO_ROOM", "ORDER_NOT_IN_TIME", "ORDER_UNSEEN", "ORDER_CAPS", "ORDER_PROTECTED", "HELP_SUPPORT", "HELP_RESOURCES", "THANKS", "WARNING", "COURT_TAUNT" ]
+          },
+          "guild" : {
+            "type" : [ "string", "null" ]
+          },
+          "target" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VillageRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "units" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "resources" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ResourceAmounts"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "arriveAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "departAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "voice" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "CAREFUL", "STEADY", "BOLD" ]
+          },
+          "request" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "count" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "attacker" : {
+            "type" : [ "string", "null" ]
+          },
+          "goal" : {
+            "type" : [ "string", "null" ]
+          },
+          "court" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CourtRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "arriveAt", "attacker", "count", "court", "departAt", "goal", "guild", "kind", "request", "resources", "target", "units", "voice" ]
+      },
       "MessageDto" : {
         "type" : "object",
         "properties" : {
@@ -8098,9 +8456,16 @@
           "createdAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "letter" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LordLetter"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "createdAt", "id", "mine", "text" ]
+        "required" : [ "createdAt", "id", "letter", "mine", "text" ]
       },
       "SetupClaimRequest" : {
         "type" : "object",
@@ -8338,6 +8703,427 @@
           }
         },
         "required" : [ "clay", "iron", "villageId", "wood" ]
+      },
+      "HelpRequestDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SUPPORT", "RESOURCES" ]
+          },
+          "lordId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lordName" : {
+            "type" : "string"
+          },
+          "village" : {
+            "$ref" : "#/components/schemas/VillageRefDto"
+          },
+          "defenders" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "goal" : {
+            "type" : [ "string", "null" ]
+          },
+          "resources" : {
+            "$ref" : "#/components/schemas/ResourceAmounts"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "deadline" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "letter" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LordLetter"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "from" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VillageRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fill" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "seconds" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "answered" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "declined" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ignored" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "answered", "createdAt", "deadline", "declined", "defenders", "fill", "from", "goal", "id", "ignored", "kind", "letter", "lordId", "lordName", "resources", "seconds", "village" ]
+      },
+      "OrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ATTACK", "SUPPORT", "SEND", "HOLD" ]
+          },
+          "villageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lordIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          },
+          "landTogether" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "kind", "landTogether", "lordIds", "villageId" ]
+      },
+      "OrderAllyDto" : {
+        "type" : "object",
+        "properties" : {
+          "playerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "trust" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fields" : {
+            "type" : [ "number", "null" ],
+            "format" : "double"
+          },
+          "attackSeconds" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "supportSeconds" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "sendSeconds" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "order" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OrderDto"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "attackSeconds", "fields", "name", "order", "playerId", "sendSeconds", "supportSeconds", "trust" ]
+      },
+      "OrderDto" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ATTACK", "SUPPORT", "SEND", "HOLD" ]
+          },
+          "target" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VillageRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "state" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "SCOUTING", "PLANNED", "ACTIVE", "REFUSED" ]
+          },
+          "landTogether" : {
+            "type" : "boolean"
+          },
+          "answer" : {
+            "type" : [ "string", "null" ],
+            "enum" : [ "JOINED", "REFUSED_TRUST", "REFUSED_FULL", "LEFT_TRUST", "LEFT_ATTACKED", "ORDER_ATTACK", "ORDER_ATTACK_PLANNED", "ORDER_SUPPORT", "ORDER_SEND", "ORDER_HOLD", "ORDER_REFUSED_TRUST", "ORDER_REFUSED_BOUND", "ORDER_TOO_STRONG", "ORDER_NO_TROOPS", "ORDER_NO_SURPLUS", "ORDER_NO_ROOM", "ORDER_NOT_IN_TIME", "ORDER_UNSEEN", "ORDER_CAPS", "ORDER_PROTECTED", "HELP_SUPPORT", "HELP_RESOURCES", "THANKS", "WARNING", "COURT_TAUNT" ]
+          },
+          "givenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "departAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "arriveAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "answer", "arriveAt", "departAt", "givenAt", "kind", "landTogether", "state", "target" ]
+      },
+      "OrderSheetDto" : {
+        "type" : "object",
+        "properties" : {
+          "target" : {
+            "$ref" : "#/components/schemas/VillageRefDto"
+          },
+          "targetGuildTag" : {
+            "type" : [ "string", "null" ]
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "ATTACK", "SUPPORT", "SEND", "HOLD" ]
+            }
+          },
+          "ownAttackArrivesAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "allies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrderAllyDto"
+            }
+          }
+        },
+        "required" : [ "allies", "kinds", "ownAttackArrivesAt", "target", "targetGuildTag" ]
+      },
+      "DiplomacyDto" : {
+        "type" : "object",
+        "properties" : {
+          "soloMode" : {
+            "type" : "boolean"
+          },
+          "leader" : {
+            "type" : "boolean"
+          },
+          "guildFull" : {
+            "type" : "boolean"
+          },
+          "court" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VictorySide"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "mine" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VictorySide"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "allVillages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "allies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LordDto"
+            }
+          },
+          "lords" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LordDto"
+            }
+          }
+        },
+        "required" : [ "allVillages", "allies", "court", "guildFull", "leader", "lords", "mine", "soloMode" ]
+      },
+      "GuildRefDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tag" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "tag" ]
+      },
+      "LordDto" : {
+        "type" : "object",
+        "properties" : {
+          "playerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "guild" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/GuildRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "ally" : {
+            "type" : "boolean"
+          },
+          "trust" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "bar" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "changes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrustChangeDto"
+            }
+          },
+          "villages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "home" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/VillageRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "invitationId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "inviteAfter" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "variant" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LordVariantDto"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "order" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OrderDto"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "ally", "bar", "changes", "guild", "home", "invitationId", "inviteAfter", "name", "order", "playerId", "points", "trust", "variant", "villages" ]
+      },
+      "LordVariantDto" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : [ "string", "null" ]
+          },
+          "since" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "key", "since" ]
+      },
+      "TrustChangeDto" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "enum" : [ "SUPPORT", "SHIPPED", "GRUDGE_WIN", "ATTACKED", "SCOUTED", "MATE_ATTACKED", "CONQUERED", "HELP_ANSWERED", "HELP_DECLINED", "HELP_IGNORED" ]
+          },
+          "delta" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "village" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "delta", "reason", "village" ]
+      },
+      "VictorySide" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "GUILD", "PLAYER" ]
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tag" : {
+            "type" : [ "string", "null" ]
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "villages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "points" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "keeps" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "court" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CourtRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "court", "id", "keeps", "kind", "name", "npc", "points", "tag", "villages" ]
       },
       "AddUnitsRequest" : {
         "type" : "object",
@@ -8868,9 +9654,12 @@
           "personality" : {
             "type" : "string",
             "enum" : [ "DEFENSIVE", "OFFENSIVE", "BALANCED" ]
+          },
+          "variant" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "personality" ]
+        "required" : [ "personality", "variant" ]
       },
       "InvariantProblemDto" : {
         "type" : "object",
@@ -9192,9 +9981,23 @@
           "noblePriceStep" : {
             "type" : "number",
             "format" : "double"
+          },
+          "soloMode" : {
+            "type" : "boolean"
+          },
+          "pausedAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "clockSpeed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "npcGuildsEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "archersEnabled", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "dominationPercent", "endedAt", "endsAt", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleFloor", "name", "nightBonus", "nobleMaxDistance", "noblePriceStep", "npcDifficulty", "npcGuildMaxMembers", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "phase", "recruitQueueSize", "registeredPlayers", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
+        "required" : [ "archersEnabled", "bannerDropFactor", "bannersEnabled", "barbarianGrowthEnabled", "barbarianWallMaxLevel", "barbarianWallStartDays", "barbarianWallsEnabled", "barbarianWallsRebuild", "beginnerProtectionHours", "buildQueueMax", "buildQueueSize", "cancelWindowSeconds", "clockSpeed", "dominationPercent", "endedAt", "endsAt", "guildBannersEnabled", "guildMaxMembers", "guildStartTogether", "guildsEnabled", "keepCount", "keepPercent", "loyaltyRegenPerHour", "luckRange", "mapSize", "mapSpread", "marketExchangeRatio", "moraleFloor", "name", "nightBonus", "nobleMaxDistance", "noblePriceStep", "npcDifficulty", "npcGuildMaxMembers", "npcGuildsEnabled", "npcLordCount", "opensAt", "paladinMaxSlots", "paladinVillagesPerSlot", "pausedAt", "phase", "recruitQueueSize", "registeredPlayers", "soloMode", "speed", "startResources", "startedAt", "tradeMaxRatio", "unitLevelsEnabled", "unitSpeed", "version", "victoryHoldHours", "victoryMode" ]
       },
       "VictoryDto" : {
         "type" : "object",
@@ -9265,41 +10068,6 @@
           }
         },
         "required" : [ "allVillages", "dominationPercent", "endsAt", "holdHours", "keepCount", "keepPercent", "keepsNeeded", "leader", "leaderSince", "mode", "phase", "result", "sides", "winsAt" ]
-      },
-      "VictorySide" : {
-        "type" : "object",
-        "properties" : {
-          "kind" : {
-            "type" : "string",
-            "enum" : [ "GUILD", "PLAYER" ]
-          },
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "tag" : {
-            "type" : [ "string", "null" ]
-          },
-          "npc" : {
-            "type" : "boolean"
-          },
-          "villages" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "points" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "keeps" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "id", "keeps", "kind", "name", "npc", "points", "tag", "villages" ]
       },
       "WorldResultDto" : {
         "type" : "object",
@@ -9833,7 +10601,7 @@
           },
           "blocker" : {
             "type" : [ "string", "null" ],
-            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
+            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "WORLD_PAUSED", "WORLD_NOT_SOLO", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "LORD_NOT_READY", "LORD_ALLIED", "NOT_AN_ALLY", "ORDER_TARGET_INVALID", "HELP_REQUEST_CLOSED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
           }
         },
         "required" : [ "blocker", "durationSeconds", "level", "locksBuildings", "locksUnits", "points", "pop" ]
@@ -10779,22 +11547,6 @@
         },
         "required" : [ "category", "earnedAt", "key", "level", "leveled" ]
       },
-      "GuildRefDto" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "tag" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "id", "name", "tag" ]
-      },
       "PlayerProfileDto" : {
         "type" : "object",
         "properties" : {
@@ -10840,9 +11592,16 @@
           },
           "careerUrl" : {
             "type" : [ "string", "null" ]
+          },
+          "lordVariant" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LordVariantDto"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "achievements", "careerUrl", "guild", "id", "name", "npc", "points", "rank", "stats", "villages" ]
+        "required" : [ "achievements", "careerUrl", "guild", "id", "lordVariant", "name", "npc", "points", "rank", "stats", "villages" ]
       },
       "PlayerStatsDto" : {
         "type" : "object",
@@ -11050,9 +11809,15 @@
             "items" : {
               "$ref" : "#/components/schemas/TransportDto"
             }
+          },
+          "incomingMerchants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TransportDto"
+            }
           }
         },
-        "required" : [ "builds", "dismissals", "incoming", "merchants", "outgoing", "research", "training", "village" ]
+        "required" : [ "builds", "dismissals", "incoming", "incomingMerchants", "merchants", "outgoing", "research", "training", "village" ]
       },
       "NobleDto" : {
         "type" : "object",
@@ -11133,9 +11898,19 @@
           "unread" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "lastLetter" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/LordLetter"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "guildTag", "lastAt", "lastMine", "lastText", "playerId", "playerName", "unread" ]
+        "required" : [ "guildTag", "lastAt", "lastLetter", "lastMine", "lastText", "npc", "playerId", "playerName", "unread" ]
       },
       "MapVillageDto" : {
         "type" : "object",
@@ -11296,6 +12071,304 @@
           }
         },
         "required" : [ "id", "memberCount", "name", "points", "tag" ]
+      },
+      "ChronicleDot" : {
+        "type" : "object",
+        "properties" : {
+          "x" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "y" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "keep" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "keep", "x", "y" ]
+      },
+      "ChronicleDto" : {
+        "type" : "object",
+        "properties" : {
+          "endedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "days" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "guilds" : {
+            "type" : "boolean"
+          },
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChronicleEntry"
+            }
+          },
+          "map" : {
+            "$ref" : "#/components/schemas/ChronicleMap"
+          }
+        },
+        "required" : [ "days", "endedAt", "entries", "guilds", "map" ]
+      },
+      "ChronicleEntry" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "CONQUEST", "CONQUESTS", "GUILD_FOUNDED", "GUILD_DISBANDED", "WAR", "ALLY_JOINED", "ALLY_LEFT", "ORDER_ATTACK", "HELP_ANSWERED", "HELP_IGNORED", "COURT", "LEAD", "VICTORY_CLOCK", "WORLD_ENDED" ]
+          },
+          "facts" : {
+            "$ref" : "#/components/schemas/ChronicleFacts"
+          },
+          "mine" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "at", "day", "facts", "kind", "mine" ]
+      },
+      "ChronicleFacts" : {
+        "type" : "object",
+        "properties" : {
+          "village" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChronicleVillage"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "keep" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "from" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChroniclePlayer"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "to" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChroniclePlayer"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "eliminated" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "first" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "side" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChronicleSide"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "other" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChronicleSide"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lord" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChroniclePlayer"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "player" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/ChroniclePlayer"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "attacked" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "winsAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "count" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "topCount" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "attacked", "count", "eliminated", "first", "from", "keep", "lord", "other", "player", "reason", "side", "to", "topCount", "village", "winsAt" ]
+      },
+      "ChronicleFrame" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "changes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "at", "changes", "day" ]
+      },
+      "ChronicleMap" : {
+        "type" : "object",
+        "properties" : {
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "villages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChronicleDot"
+            }
+          },
+          "sides" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChronicleMapSide"
+            }
+          },
+          "frames" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChronicleFrame"
+            }
+          }
+        },
+        "required" : [ "frames", "sides", "size", "villages" ]
+      },
+      "ChronicleMapSide" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "GUILD", "PLAYER" ]
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tag" : {
+            "type" : [ "string", "null" ]
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "mine" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "kind", "mine", "name", "npc", "tag" ]
+      },
+      "ChroniclePlayer" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "guildId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "guildTag" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "guildId", "guildTag", "id", "name", "npc" ]
+      },
+      "ChronicleSide" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "GUILD", "PLAYER" ]
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tag" : {
+            "type" : [ "string", "null" ]
+          },
+          "npc" : {
+            "type" : "boolean"
+          },
+          "court" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/CourtRefDto"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "court", "id", "kind", "name", "npc", "tag" ]
+      },
+      "ChronicleVillage" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "x" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "y" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "name", "x", "y" ]
       },
       "PlanBuildingDto" : {
         "type" : "object",
@@ -11562,7 +12635,7 @@
           },
           "kind" : {
             "type" : "string",
-            "enum" : [ "BUILD_COMPLETE", "MOVEMENT_ARRIVE", "TRADE_ARRIVE", "BARBARIAN_GROWTH", "NPC_THINK", "WORLD_OPEN", "VICTORY_CHECK", "WORLD_END", "AUTOMATION_CHECK", "STORAGE_CHECK", "TEST", "TEST_UNHANDLED" ]
+            "enum" : [ "BUILD_COMPLETE", "MOVEMENT_ARRIVE", "TRADE_ARRIVE", "BARBARIAN_GROWTH", "NPC_THINK", "WORLD_OPEN", "VICTORY_CHECK", "WORLD_END", "AUTOMATION_CHECK", "STORAGE_CHECK", "NPC_ORDER_MARCH", "TEST", "TEST_UNHANDLED" ]
           },
           "refId" : {
             "type" : [ "integer", "null" ],
@@ -11788,6 +12861,26 @@
           "required" : [ "building", "demolished", "level", "villageId" ]
         } ]
       },
+      "CourtChanged" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/GameNotification"
+        }, {
+          "type" : "object",
+          "properties" : {
+            "court" : {
+              "$ref" : "#/components/schemas/VictorySide"
+            },
+            "previous" : {
+              "oneOf" : [ {
+                "$ref" : "#/components/schemas/VictorySide"
+              }, {
+                "type" : "null"
+              } ]
+            }
+          },
+          "required" : [ "court", "previous" ]
+        } ]
+      },
       "GameNotification" : {
         "discriminator" : {
           "propertyName" : "type",
@@ -11801,7 +12894,9 @@
             "VILLAGE_CONQUERED" : "#/components/schemas/VillageConquered",
             "WORLD_OPENED" : "#/components/schemas/WorldOpened",
             "WORLD_ENDED" : "#/components/schemas/WorldEnded",
+            "WORLD_TIME_MOVED" : "#/components/schemas/WorldTimeMoved",
             "VICTORY_CLOCK" : "#/components/schemas/VictoryClock",
+            "COURT_CHANGED" : "#/components/schemas/CourtChanged",
             "GUILD_INVITED" : "#/components/schemas/GuildInvited",
             "GUILD_CHANGED" : "#/components/schemas/GuildChanged",
             "GUILD_BANNER_RAISED" : "#/components/schemas/GuildBannerRaised",
@@ -11810,7 +12905,9 @@
             "BANNER_FOUND" : "#/components/schemas/BannerFound",
             "BANNER_STOLEN" : "#/components/schemas/BannerStolen",
             "ATTACKS_RETURNED" : "#/components/schemas/AttacksReturned",
-            "STORAGE_FULL" : "#/components/schemas/StorageFull"
+            "STORAGE_FULL" : "#/components/schemas/StorageFull",
+            "HELP_REQUESTED" : "#/components/schemas/HelpRequested",
+            "HELP_REQUESTS_CHANGED" : "#/components/schemas/HelpRequestsChanged"
           }
         },
         "properties" : {
@@ -11854,6 +12951,35 @@
             }
           },
           "required" : [ "guildId", "guildName" ]
+        } ]
+      },
+      "HelpRequested" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/GameNotification"
+        }, {
+          "type" : "object",
+          "properties" : {
+            "requestId" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "lordId" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "lordName" : {
+              "type" : "string"
+            },
+            "kind" : {
+              "type" : "string"
+            }
+          },
+          "required" : [ "kind", "lordId", "lordName", "requestId" ]
+        } ]
+      },
+      "HelpRequestsChanged" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/GameNotification"
         } ]
       },
       "IncomingAttack" : {
@@ -12051,12 +13177,17 @@
           "$ref" : "#/components/schemas/GameNotification"
         } ]
       },
+      "WorldTimeMoved" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/GameNotification"
+        } ]
+      },
       "ChatErrorDto" : {
         "type" : "object",
         "properties" : {
           "code" : {
             "type" : "string",
-            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
+            "enum" : [ "VALIDATION", "UNAUTHENTICATED", "FORBIDDEN", "CSRF_TOKEN_INVALID", "INTERNAL_ERROR", "NOT_FOUND", "BAD_REQUEST", "INVALID_INVITE_CODE", "USERNAME_TAKEN", "BAD_CREDENTIALS", "TOO_MANY_LOGIN_ATTEMPTS", "ACCOUNT_NOT_FOUND", "WORLD_FULL", "VILLAGE_NOT_FOUND", "NOT_ENOUGH_RESOURCES", "NOT_ENOUGH_POPULATION", "REQUIREMENTS_NOT_MET", "MAX_LEVEL_REACHED", "QUEUE_FULL", "BUILD_ORDER_NOT_FOUND", "ORDER_NOT_MOVABLE", "MIN_LEVEL_REACHED", "BUILD_ORDER_CONFLICT", "RECRUIT_ORDER_NOT_FOUND", "RECRUIT_TEMPLATE_NOT_FOUND", "DISMISS_ORDER_NOT_FOUND", "DISMISS_LOCKED", "TARGET_NOT_FOUND", "MOVEMENT_NOT_FOUND", "STACK_NOT_FOUND", "NOT_ENOUGH_UNITS", "EMPTY_COMMAND", "OWN_VILLAGE", "SAME_VILLAGE", "PROTECTED_TARGET", "NOBLE_TOO_FAR", "NOBLE_ONLY_IN_ATTACK", "CANCEL_WINDOW_OVER", "REPORT_NOT_FOUND", "REPORT_UNREADABLE", "CHAT_RATE_LIMIT", "FIELD_NOT_FREE", "RESPAWN_NOT_ALLOWED", "NOT_ENOUGH_MERCHANTS", "INVALID_RATIO", "SAME_RESOURCE", "EMPTY_TRANSPORT", "OWN_OFFER", "OFFER_EXHAUSTED", "OFFER_NOT_FOUND", "EXCHANGE_OFF", "EXCHANGE_LIMIT", "WAREHOUSE_FULL", "PLAYER_NOT_FOUND", "CANNOT_DELETE_SELF", "MESSAGE_NOT_FOUND", "EVENT_NOT_FOUND", "EVENT_NOT_FAILED", "LAST_ADMIN", "TOO_MANY_ADMIN_ATTEMPTS", "WRONG_PASSWORD", "PASSWORD_TOO_COMMON", "ACCOUNT_BANNED", "TOO_MANY_REQUESTS", "CANNOT_BAN_ADMIN", "BODY_TOO_LARGE", "WORLD_NOT_OPEN", "WORLD_ALREADY_OPEN", "SETUP_CODE_INVALID", "WORLD_ENDED", "WORLD_NOT_ENDED", "WORLD_PAUSED", "WORLD_NOT_SOLO", "SERVER_STARTING", "GUILDS_DISABLED", "GUILD_NOT_FOUND", "ALREADY_IN_GUILD", "NOT_IN_GUILD", "NOT_GUILD_LEADER", "GUILD_NAME_TAKEN", "GUILD_TAG_TAKEN", "GUILD_FULL", "LEADER_MUST_TRANSFER", "INVITATION_NOT_FOUND", "ALREADY_INVITED", "LORD_NOT_READY", "LORD_ALLIED", "NOT_AN_ALLY", "ORDER_TARGET_INVALID", "HELP_REQUEST_CLOSED", "GUILD_MEMBER_NOT_FOUND", "INVITATION_RATE_LIMIT", "ENEMY_NOT_ALLOWED", "ENEMY_LIMIT", "GUILD_BANNERS_DISABLED", "BANNER_MAX_LEVEL", "DONATION_TOO_LARGE", "BANNER_FUND_LOW", "GUILD_BANNER_LOCKED", "OWN_PLAYER", "MESSAGE_RATE_LIMIT", "INBOX_FULL", "PLAYER_BLOCKED", "BLOCK_LIST_FULL", "ACHIEVEMENT_NOT_FOUND", "FARM_TARGET_NOT_FOUND", "ALREADY_IN_FARM_LIST", "FARM_LIST_FULL", "FARM_TEMPLATE_NOT_FOUND", "BUILD_PLAN_NOT_FOUND", "AUTOMATION_LOCKED", "TUTORIAL_STEP_NOT_FOUND", "TUTORIAL_STEP_NOT_OPEN", "UNIT_LEVELS_DISABLED", "RESEARCH_BUSY", "RESEARCH_ORDER_NOT_FOUND", "PALADIN_SLOTS_FULL", "PALADIN_DISABLED", "ARCHERS_DISABLED", "BANNERS_DISABLED", "BANNER_NOT_FOUND", "BANNER_NOT_IN_STASH", "BANNER_HALL_REQUIRED", "BANNER_LOCKED", "NO_BANNER_EQUIPPED", "BANNER_TIERS_DIFFER", "BANNER_TIER_MAX", "BANNER_FUSE_TYPE", "BANNER_FAMILIES_DIFFER", "LOCAL_LOGIN_OFF", "ACCOUNT_LINKED", "EXTERNAL_LOGIN_MISSING", "EXTERNAL_NAME_INVALID", "LINK_NOT_ALLOWED", "PUSH_UNAVAILABLE" ]
           },
           "detail" : {
             "type" : "string"

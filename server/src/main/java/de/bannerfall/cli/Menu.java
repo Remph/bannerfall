@@ -3,7 +3,9 @@ package de.bannerfall.cli;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -122,9 +124,16 @@ class Menu {
     private void npc() {
         cli.execute("npc", "list");
         cli.execute("npc", "difficulty");
-        String action = ask("Spawn a lord: balanced, offensive, defensive (Enter = back)");
+        String action =
+                ask(
+                        "Spawn a lord: balanced, offensive, defensive, optionally with a variant"
+                                + " (e.g. offensive hothead) (Enter = back)");
         if (!blank(action)) {
-            cli.execute("npc", "spawn", action.strip());
+            cli.execute(
+                    Stream.concat(
+                                    Stream.of("npc", "spawn"),
+                                    Arrays.stream(action.strip().split("\\s+")))
+                            .toArray(String[]::new));
         }
     }
 

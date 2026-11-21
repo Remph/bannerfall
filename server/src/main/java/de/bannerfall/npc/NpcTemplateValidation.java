@@ -7,6 +7,7 @@ import de.bannerfall.gamedata.GameData;
 import de.bannerfall.gamedata.UnitType;
 import de.bannerfall.rules.BuildRules;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,9 @@ class NpcTemplateValidation {
      * 0..1; a mix for every stage with positive shares of units that can be recruited by the end of
      * the build list (and no nobles, they are never in the mix); no unit in a unit list twice; the
      * banner and standard favourites name every type of their family once, thieves at least 0 and
-     * only with a Banner Hall step.
+     * only with a Banner Hall step; the fields of the lord variants (09 §16.4) within their ranges.
+     * Every variant (09 §16.5) names a base that exists, its key is no personality's name and not
+     * {@code PLAIN}, and its resolved template passes the same checks as a type.
      */
     static List<String> problems(NpcTemplates templates, GameData data) {
         List<String> problems = new ArrayList<>();
@@ -46,10 +49,49 @@ class NpcTemplateValidation {
                 problems.add(personality + ": template missing");
                 continue;
             }
-            checkBuild(personality.name(), template, data, problems);
-            checkStages(personality.name(), template, data, problems);
+            check(personality.name(), template, data, problems);
+        }
+        for (var entry : templates.variants().entrySet()) {
+            String key = entry.getKey();
+            NpcPersonality base = entry.getValue().base();
+            if (key.equals(NpcTemplates.PLAIN)
+                    || Arrays.stream(NpcPersonality.values()).anyMatch(p -> p.name().equals(key))) {
+                problems.add(key + ": a variant can't be called like a personality or PLAIN");
+            }
+            if (base == null || templates.of(base) == null) {
+                problems.add(key + ".base: missing or without a template");
+                continue;
+            }
+            check(key, templates.ofVariant(key), data, problems);
         }
         return problems;
+    }
+
+    private static void check(
+            String name, NpcTemplates.Template template, GameData data, List<String> problems) {
+        checkBuild(name, template, data, problems);
+        checkStages(name, template, data, problems);
+        checkVariantFields(name, template, problems);
+    }
+
+    /** The fields of the lord variants (09 §16.4): each within its range. */
+    private static void checkVariantFields(
+            String name, NpcTemplates.Template template, List<String> problems) {
+        if (!(template.grudgeFactor() >= 1 && template.grudgeFactor() <= 3)) {
+            problems.add(name + ".grudge-factor must be in 1..3");
+        }
+        if (template.retaliations() < 1 || template.retaliations() > 3) {
+            problems.add(name + ".retaliations must be in 1..3");
+        }
+        if (!(template.supportHorizonFactor() >= 1 && template.supportHorizonFactor() <= 2)) {
+            problems.add(name + ".support-horizon-factor must be in 1..2");
+        }
+        if (!(template.shipFrom() >= 0.75 && template.shipFrom() <= 0.95)) {
+            problems.add(name + ".ship-from must be in 0.75..0.95");
+        }
+        if (template.targetMinRatio() != null) {
+            checkRatio(name + ".target-min-ratio", template.targetMinRatio(), problems);
+        }
     }
 
     private static void checkBuild(

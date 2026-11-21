@@ -1,6 +1,8 @@
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useCurrentAccount } from '../../api/queries/auth';
+import { useDiplomacy } from '../../api/queries/diplomacy';
+import { useWorld } from '../../api/queries/world';
 import type { MapMovement, MapVillage } from '../../api/queries/map';
 import type { Village } from '../../api/queries/villages';
 import { errorMessage } from '../../api/errors';
@@ -24,6 +26,7 @@ import { bracketTag } from '../../game/guilds';
 import type { Cover, VillageKind } from '../../game/mapView';
 import { tagOfVillage } from '../../game/villageTags';
 import { useI18n } from '../../i18n';
+import { useWorldStill } from '../../layout/worldEnd';
 import { movementMarkers } from '../../game/mapMovements';
 import { gameTime, serverNow } from '../../game/serverTime';
 import { mapActions, rankActions, type MapAction, type MapActionKey } from './mapActions';
@@ -32,6 +35,7 @@ import { FarmLine } from './FarmLine';
 import { KeepRow } from './KeepRow';
 import { MarkerIcon } from './MarkerIcon';
 import { NoteBox, NoteSheet } from './VillageNote';
+import { OrderSheet } from '../diplomacy/OrderSheet';
 import { EnemyPill } from '../guild/EnemyPill';
 import { useEnemyItems } from '../guild/useEnemyItems';
 
@@ -101,6 +105,9 @@ export function VillagePanel({
     (action): action is Required<MapAction> => action.to !== undefined && action.key !== 'farm',
   );
   const later = actions.filter((action) => action.to === undefined);
+  // orders to allies (2.1 S3): any village of a solo world, once the player has an ally
+  const canOrder = useCanOrderAllies();
+  const [ordering, setOrdering] = useState(false);
   // own villages never have one (the server sends null)
   const bannerRollBack = bannerRollBackAt(village.nextBannerRollAt, gameTime(serverNow()));
   // the note sheet (1.4); every opening counts up, so the sheet starts from the saved note
@@ -252,13 +259,30 @@ export function VillagePanel({
       </dl>
       {/* the farm line and the buttons before the hints (1.4): on a phone they stay in view */}
       {kind !== 'own' && <FarmLine key={village.id} village={village} currentVillage={currentVillage} />}
-      {ready.length > 0 && <PanelActions actions={ready} />}
+      {(ready.length > 0 || canOrder) && (
+        <PanelActions
+          actions={ready}
+          extra={
+            canOrder && (
+              <button
+                type="button"
+                className={`${styles.quiet} ${styles.quietButton}`}
+                onClick={() => setOrdering(true)}
+              >
+                <Icon name="banner" />
+                {t.diplomacy.orders.open}
+              </button>
+            )
+          }
+        />
+      )}
       {later.length > 0 && (
         // actions whose screen is not there (a village without an owner id): named, not yet buttons
         <p className={styles.later}>{t.map.comingSoon(later.map((action) => t.map.actions[action.key]).join(' · '))}</p>
       )}
       {village.loyalty === null && <p className={styles.hint}>{t.map.loyaltyUnknownHint}</p>}
       {kind === 'barbarian' && <p className={styles.hint}>{t.map.barbarianHint}</p>}
+      <OrderSheet villageId={ordering ? village.id : null} onClose={() => setOrdering(false)} />
       <NoteSheet
         key={`${village.id}-${noteOpenings}`}
         open={noteOpen}
@@ -273,9 +297,10 @@ export function VillagePanel({
  * The panel's links by weight (1.3): one solid lead (attack in red, or open an own village), an
  * outlined second choice next to it, the rest as a quiet row of icon links.
  */
-function PanelActions({ actions }: { actions: Required<MapAction>[] }) {
+function PanelActions({ actions, extra }: { actions: Required<MapAction>[]; extra?: ReactNode }) {
   const { t } = useI18n();
   const { lead, second, quiet } = rankActions(actions);
+  const hasExtra = extra !== undefined && extra !== false;
   return (
     <div className={styles.actions}>
       {lead !== undefined && (
@@ -292,7 +317,7 @@ function PanelActions({ actions }: { actions: Required<MapAction>[] }) {
           )}
         </div>
       )}
-      {quiet.length > 0 && (
+      {(quiet.length > 0 || hasExtra) && (
         <div className={styles.quietRow}>
           {quiet.map((action) => (
             <Link key={action.key} to={action.to} className={styles.quiet}>
@@ -300,8 +325,20 @@ function PanelActions({ actions }: { actions: Required<MapAction>[] }) {
               {t.map.actions[action.key]}
             </Link>
           ))}
+          {extra}
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * The player can give orders (2.1 S3): a solo world, and at least one lord of his guild; not while the
+ * world is paused or has ended (UI review 2.1, finding 04).
+ */
+function useCanOrderAllies(): boolean {
+  const solo = useWorld().data?.soloMode === true;
+  const diplomacy = useDiplomacy(solo);
+  const still = useWorldStill();
+  return solo && !still && (diplomacy.data?.allies.length ?? 0) > 0;
 }

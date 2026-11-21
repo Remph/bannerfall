@@ -35,7 +35,9 @@ import java.util.List;
     @JsonSubTypes.Type(value = GameNotification.VillageConquered.class, name = "VILLAGE_CONQUERED"),
     @JsonSubTypes.Type(value = GameNotification.WorldOpened.class, name = "WORLD_OPENED"),
     @JsonSubTypes.Type(value = GameNotification.WorldEnded.class, name = "WORLD_ENDED"),
+    @JsonSubTypes.Type(value = GameNotification.WorldTimeMoved.class, name = "WORLD_TIME_MOVED"),
     @JsonSubTypes.Type(value = GameNotification.VictoryClock.class, name = "VICTORY_CLOCK"),
+    @JsonSubTypes.Type(value = GameNotification.CourtChanged.class, name = "COURT_CHANGED"),
     @JsonSubTypes.Type(value = GameNotification.GuildInvited.class, name = "GUILD_INVITED"),
     @JsonSubTypes.Type(value = GameNotification.GuildChanged.class, name = "GUILD_CHANGED"),
     @JsonSubTypes.Type(
@@ -48,7 +50,11 @@ import java.util.List;
     @JsonSubTypes.Type(value = GameNotification.BannerFound.class, name = "BANNER_FOUND"),
     @JsonSubTypes.Type(value = GameNotification.BannerStolen.class, name = "BANNER_STOLEN"),
     @JsonSubTypes.Type(value = GameNotification.AttacksReturned.class, name = "ATTACKS_RETURNED"),
-    @JsonSubTypes.Type(value = GameNotification.StorageFull.class, name = "STORAGE_FULL")
+    @JsonSubTypes.Type(value = GameNotification.StorageFull.class, name = "STORAGE_FULL"),
+    @JsonSubTypes.Type(value = GameNotification.HelpRequested.class, name = "HELP_REQUESTED"),
+    @JsonSubTypes.Type(
+            value = GameNotification.HelpRequestsChanged.class,
+            name = "HELP_REQUESTS_CHANGED")
 })
 // The same names for the OpenAPI description (added by OpenApiConfig: no REST endpoint returns
 // it), so the generated TS types say type: "VILLAGE_UPDATED".
@@ -83,8 +89,14 @@ import java.util.List;
                     value = "WORLD_ENDED",
                     schema = GameNotification.WorldEnded.class),
             @DiscriminatorMapping(
+                    value = "WORLD_TIME_MOVED",
+                    schema = GameNotification.WorldTimeMoved.class),
+            @DiscriminatorMapping(
                     value = "VICTORY_CLOCK",
                     schema = GameNotification.VictoryClock.class),
+            @DiscriminatorMapping(
+                    value = "COURT_CHANGED",
+                    schema = GameNotification.CourtChanged.class),
             @DiscriminatorMapping(
                     value = "GUILD_INVITED",
                     schema = GameNotification.GuildInvited.class),
@@ -111,7 +123,13 @@ import java.util.List;
                     schema = GameNotification.AttacksReturned.class),
             @DiscriminatorMapping(
                     value = "STORAGE_FULL",
-                    schema = GameNotification.StorageFull.class)
+                    schema = GameNotification.StorageFull.class),
+            @DiscriminatorMapping(
+                    value = "HELP_REQUESTED",
+                    schema = GameNotification.HelpRequested.class),
+            @DiscriminatorMapping(
+                    value = "HELP_REQUESTS_CHANGED",
+                    schema = GameNotification.HelpRequestsChanged.class)
         })
 public sealed interface GameNotification {
 
@@ -172,6 +190,13 @@ public sealed interface GameNotification {
     record WorldOpened() implements GameNotification {}
 
     /**
+     * Every game time moved (2.1, 12-solo-and-allies §2): a solo world woke up, the host pressed
+     * pause or play, or a fast-forward step brought every clock closer. The client loads everything
+     * again, without a toast.
+     */
+    record WorldTimeMoved() implements GameNotification {}
+
+    /**
      * The world has ended (v1.3, 02-game-rules §22): a side won or the end date came. The client
      * shows a toast and loads the world and the result.
      *
@@ -198,6 +223,17 @@ public sealed interface GameNotification {
             @Schema(nullable = true) VictorySide previous,
             boolean leaderYours,
             boolean previousYours)
+            implements GameNotification {}
+
+    /**
+     * Another lord guild became the court of a solo world (2.1 S2b, 12-solo-and-allies §6): it has
+     * the most points of the lord guilds now. Sent to every human with the victory check; the
+     * client shows a toast ("The Bear Court is now the strongest") and loads the victory state.
+     *
+     * @param court the new court's side ({@code court} set)
+     * @param previous the court before; null if it owns no village any more
+     */
+    record CourtChanged(VictorySide court, @Schema(nullable = true) VictorySide previous)
             implements GameNotification {}
 
     /** A guild leader invited the player (M15a); the client shows a toast and loads the list. */
@@ -274,4 +310,23 @@ public sealed interface GameNotification {
      * @param full the resources at the limit
      */
     record StorageFull(long villageId, List<ResourceType> full) implements GameNotification {}
+
+    /**
+     * An allied NPC lord asks the player for help (2.1 S4, 12-solo-and-allies §9): its letter is in
+     * Messages, the request strip shows it. The client loads the requests and the inbox and shows a
+     * toast; pushed under "Requests from allies".
+     *
+     * @param requestId the request
+     * @param lordId the lord who asks
+     * @param lordName its name
+     * @param kind {@code SUPPORT} or {@code RESOURCES}
+     */
+    record HelpRequested(long requestId, long lordId, String lordName, String kind)
+            implements GameNotification {}
+
+    /**
+     * One of the player's help requests ended without him (answered in time by the battle or the
+     * delivery, ignored, called off): the client loads the requests again.
+     */
+    record HelpRequestsChanged() implements GameNotification {}
 }

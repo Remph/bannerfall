@@ -68,7 +68,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * world_settings}, separated by semicolons). The run talks to its database by the container's own
  * address instead of Docker's published port (about 1.5x faster; {@code -PsimDirectDatabase=false}
  * turns it off, and where the address cannot be reached, as on Docker Desktop, the published port
- * is used anyway). A world that ends (a lord guild wins by domination) ends the run at that day.
+ * is used anyway). Lord variants (2.1, 09 §16.9): {@code -PsimVariants=HOTHEAD,PLAIN,…} sets the
+ * lords' templates in spawn order (the draw of §16.6 otherwise). A world that ends (a lord guild
+ * wins by domination) ends the run at that day.
  */
 abstract class NpcSimulationTest {
 
@@ -204,6 +206,7 @@ abstract class NpcSimulationTest {
             start = clock.instant();
         }
         initializer.initialize();
+        assignVariants();
         List<Long> humans = new ArrayList<>();
         for (int i = 0; i < sleepers; i++) {
             humans.add(TestPlayer.register(mockMvc).playerId);
@@ -214,6 +217,7 @@ abstract class NpcSimulationTest {
             humans.addAll(bots.register(mockMvc, start));
         }
         Set<Long> lordIds = new HashSet<>(ids("select id from player where npc"));
+        scenarioStart(humans, start);
 
         Instant end = start.plus(Duration.ofDays(days));
         Instant nextSample = start;
@@ -243,6 +247,7 @@ abstract class NpcSimulationTest {
             if (bots != null) {
                 bots.act(clock.instant());
             }
+            scenarioStep(clock.instant());
 
             checkBuildOrders(orders);
             collectSends(humans, lastMovement, sends);
@@ -283,7 +288,8 @@ abstract class NpcSimulationTest {
                         + armyLines()
                         + oneVillageLines()
                         + lordGuildLines()
-                        + learningLines();
+                        + learningLines()
+                        + scenarioLines();
         System.out.println(text);
         Path dir = Path.of("build", "simulation");
         Files.createDirectories(dir);
@@ -291,6 +297,32 @@ abstract class NpcSimulationTest {
         result.assertRules();
         if (bots != null) {
             bots.assertActed(days);
+        }
+        scenarioAssert();
+    }
+
+    /**
+     * {@code -PsimVariants=HOTHEAD,PLAIN,…} (2.1, 09 §16.9): the lords' templates in the order they
+     * spawned, each a variant of the lord's personality or PLAIN; a lord past the list keeps the
+     * one it drew. Without the knob every lord keeps its draw.
+     */
+    private void assignVariants() {
+        String knob = System.getProperty("simulation.variants");
+        if (knob == null || knob.isBlank()) {
+            return;
+        }
+        List<String> wanted = List.of(knob.split(","));
+        List<Map<String, Object>> lords =
+                jdbc.sql("select player_id, personality from npc_brain order by player_id")
+                        .query()
+                        .listOfRows();
+        for (int i = 0; i < Math.min(wanted.size(), lords.size()); i++) {
+            String variant = wanted.get(i).strip().toUpperCase(Locale.ROOT);
+            String personality = (String) lords.get(i).get("personality");
+            jdbc.sql("update npc_brain set template = ? where player_id = ?")
+                    .param(variant.equals(NpcTemplates.PLAIN) ? personality : variant)
+                    .param(((Number) lords.get(i).get("player_id")).longValue())
+                    .update();
         }
     }
 
@@ -434,10 +466,18 @@ abstract class NpcSimulationTest {
 
     // ---- collecting ----
 
+    /** The lord's variant (09 §16), "-" for a plain lord. */
+    private static String variant(LordRow l) {
+        return l.template() == null || l.template().equals(l.personality().name())
+                ? "-"
+                : l.template();
+    }
+
     private record LordRow(
             long id,
             String name,
             NpcPersonality personality,
+            String template,
             int points,
             int villages,
             int armyPop,
@@ -560,8 +600,9 @@ abstract class NpcSimulationTest {
 
         List<LordRow> rows = new ArrayList<>();
         jdbc.sql(
-                        "select p.id, p.name, p.points, p.village_count, b.personality from player"
-                                + " p join npc_brain b on b.player_id = p.id order by p.id")
+                        "select p.id, p.name, p.points, p.village_count, b.personality, b.template"
+                                + " from player p join npc_brain b on b.player_id = p.id"
+                                + " order by p.id")
                 .query(
                         (rs, row) -> {
                             long id = rs.getLong("id");
@@ -572,6 +613,7 @@ abstract class NpcSimulationTest {
                                             id,
                                             rs.getString("name"),
                                             NpcPersonality.valueOf(rs.getString("personality")),
+                                            rs.getString("template"),
                                             rs.getInt("points"),
                                             rs.getInt("village_count"),
                                             army.getOrDefault(id, 0),
@@ -611,8 +653,13 @@ abstract class NpcSimulationTest {
                             .map(Timestamp::toInstant)
                             .toList()) {
                 arrivals.add(at);
-                if (NpcPlanning.inQuietWindow(
-                        at, general.quietFromTime(), general.quietToTime(), general.zone())) {
+                // a solo world (2.1) has no quiet hours: the lords may arrive at any hour there
+                if (balance.difficulty().quietHours()
+                        && NpcPlanning.inQuietWindow(
+                                at,
+                                general.quietFromTime(),
+                                general.quietToTime(),
+                                general.zone())) {
                     quietArrivals++;
                 }
             }
@@ -879,16 +926,17 @@ abstract class NpcSimulationTest {
             StringBuilder out = new StringBuilder();
             out.append("\n==== NPC simulation: ").append(title).append(" ====\n");
             out.append(
-                    "lord                 pers  pts  vill army  atk won lost scout  loot conq lostV"
-                            + " academy 1stConq rounds warn waste%\n");
+                    "lord                 pers variant         pts  vill army  atk won lost scout"
+                            + "  loot conq lostV academy 1stConq rounds warn waste%\n");
             for (LordRow l : lords) {
                 out.append(
                         String.format(
                                 Locale.ROOT,
-                                "%-20s %-4s %5d %4d %5d %4d %3d %4d %5d %5d %4d %5s %7s %7s %6d %4d"
-                                        + " %5.1f%n",
+                                "%-20s %-4s %-13s %5d %4d %5d %4d %3d %4d %5d %5d %4d %5s %7s %7s"
+                                        + " %6d %4d %5.1f%n",
                                 l.name(),
                                 l.personality().name().substring(0, 3),
+                                variant(l),
                                 l.points(),
                                 l.villages(),
                                 l.armyPop(),
@@ -907,7 +955,7 @@ abstract class NpcSimulationTest {
             }
             out.append("(loot in thousands; days at speed 3)\n");
             out.append("points by day (speed 3) and loot as a share of the own production:\n");
-            StringBuilder head = new StringBuilder("lord                 pers");
+            StringBuilder head = new StringBuilder("lord                 pers variant      ");
             for (int d : CHECKPOINTS) {
                 if (d <= DAYS) {
                     head.append(String.format(Locale.ROOT, " %6s", "d" + d));
@@ -919,9 +967,10 @@ abstract class NpcSimulationTest {
                         new StringBuilder(
                                 String.format(
                                         Locale.ROOT,
-                                        "%-20s %-4s",
+                                        "%-20s %-4s %-13s",
                                         l.name(),
-                                        l.personality().name().substring(0, 3)));
+                                        l.personality().name().substring(0, 3),
+                                        variant(l)));
                 for (int i = 0; i < CHECKPOINTS.length; i++) {
                     if (CHECKPOINTS[i] <= DAYS) {
                         line.append(String.format(Locale.ROOT, " %6d", l.pointsByDay()[i]));
@@ -1227,6 +1276,7 @@ abstract class NpcSimulationTest {
                 throw new IllegalStateException(e);
             }
         }
+        scenarioSettings();
         worldService.reload();
         System.out.printf(
                 Locale.ROOT,
@@ -1240,6 +1290,23 @@ abstract class NpcSimulationTest {
                 balance.difficulty().farmRest(),
                 balance.general().farmCooldownMinutes());
     }
+
+    /** The world settings of a scenario (after the variant); none by default. */
+    void scenarioSettings() {}
+
+    /** A scenario's own setup once the humans are registered (2.1 S2b); {@code start} is day 0. */
+    void scenarioStart(List<Long> humans, Instant start) {}
+
+    /** A scenario's own work after each step of the run, at {@code now}. */
+    void scenarioStep(Instant now) {}
+
+    /** A scenario's own lines for the summary. */
+    String scenarioLines() {
+        return "";
+    }
+
+    /** A scenario's own checks, after the rules of 09 §11. */
+    void scenarioAssert() {}
 
     private boolean worldEnded() {
         Instant endedAt = worldService.endedAt();
@@ -1351,10 +1418,10 @@ abstract class NpcSimulationTest {
         StringBuilder out = new StringBuilder();
         List<Map<String, Object>> lords =
                 jdbc.sql(
-                                "select p.id, p.name, b.personality, (select count(*) from village"
-                                    + " v where v.player_id = p.id) as villages from player p join"
-                                    + " npc_brain b on b.player_id = p.id where p.npc order by"
-                                    + " p.id")
+                                "select p.id, p.name, b.personality, b.template, (select count(*)"
+                                    + " from village v where v.player_id = p.id) as villages from"
+                                    + " player p join npc_brain b on b.player_id = p.id where p.npc"
+                                    + " order by p.id")
                         .query()
                         .listOfRows();
         List<String> columns = unitColumns();
@@ -1369,9 +1436,10 @@ abstract class NpcSimulationTest {
             out.append(
                     String.format(
                             Locale.ROOT,
-                            "  %s (%s), %s village(s)%n",
+                            "  %s (%s %s), %s village(s)%n",
                             lord.get("name"),
                             lord.get("personality"),
+                            lord.get("template"),
                             lord.get("villages")));
             for (Map<String, Object> village :
                     jdbc.sql("select * from village where player_id = ?")

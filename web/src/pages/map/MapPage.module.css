@@ -560,6 +560,15 @@
   text-decoration: underline;
 }
 
+/* a quiet action that opens a sheet instead of a page ("Order allies", 2.1 S3) */
+.quietButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .later {
   margin: var(--space-2) var(--space-2) 0 0;
   color: var(--color-text-muted);

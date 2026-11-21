@@ -202,7 +202,16 @@ class NpcTemplatesTest {
                         base.bannerFavourites(),
                         base.standardFavourites(),
                         base.thieves(),
-                        base.paladinRetaliates());
+                        base.paladinRetaliates(),
+                        base.raidFirst(),
+                        base.humansOnlyOnGrudge(),
+                        base.grudgeFactor(),
+                        base.retaliations(),
+                        base.supportHorizonFactor(),
+                        base.shipFrom(),
+                        base.targetMinRatio(),
+                        base.prefersFalling(),
+                        base.spareLastVillage());
 
         assertThat(problems(withThieves))
                 .anyMatch(p -> p.contains("mix.LATE.BANNER_THIEF: banner thieves are never"))
@@ -320,7 +329,16 @@ class NpcTemplatesTest {
                         b.bannerFavourites(),
                         b.standardFavourites(),
                         b.thieves(),
-                        b.paladinRetaliates()));
+                        b.paladinRetaliates(),
+                        b.raidFirst(),
+                        b.humansOnlyOnGrudge(),
+                        b.grudgeFactor(),
+                        b.retaliations(),
+                        b.supportHorizonFactor(),
+                        b.shipFrom(),
+                        b.targetMinRatio(),
+                        b.prefersFalling(),
+                        b.spareLastVillage()));
     }
 
     private static NpcTemplates.Template withStages(
@@ -346,7 +364,16 @@ class NpcTemplatesTest {
                 b.bannerFavourites(),
                 b.standardFavourites(),
                 b.thieves(),
-                b.paladinRetaliates());
+                b.paladinRetaliates(),
+                b.raidFirst(),
+                b.humansOnlyOnGrudge(),
+                b.grudgeFactor(),
+                b.retaliations(),
+                b.supportHorizonFactor(),
+                b.shipFrom(),
+                b.targetMinRatio(),
+                b.prefersFalling(),
+                b.spareLastVillage());
     }
 
     private static NpcTemplates.Template withMix(
@@ -372,7 +399,16 @@ class NpcTemplatesTest {
                 b.bannerFavourites(),
                 b.standardFavourites(),
                 b.thieves(),
-                b.paladinRetaliates());
+                b.paladinRetaliates(),
+                b.raidFirst(),
+                b.humansOnlyOnGrudge(),
+                b.grudgeFactor(),
+                b.retaliations(),
+                b.supportHorizonFactor(),
+                b.shipFrom(),
+                b.targetMinRatio(),
+                b.prefersFalling(),
+                b.spareLastVillage());
     }
 
     private static NpcTemplates.Template withBanners(
@@ -402,7 +438,16 @@ class NpcTemplatesTest {
                 bannerFavourites,
                 standardFavourites,
                 thieves,
-                b.paladinRetaliates());
+                b.paladinRetaliates(),
+                b.raidFirst(),
+                b.humansOnlyOnGrudge(),
+                b.grudgeFactor(),
+                b.retaliations(),
+                b.supportHorizonFactor(),
+                b.shipFrom(),
+                b.targetMinRatio(),
+                b.prefersFalling(),
+                b.spareLastVillage());
     }
 
     /** The problems of a BALANCED template replaced by {@code template}. */

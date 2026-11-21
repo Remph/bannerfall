@@ -17,6 +17,8 @@ import de.bannerfall.admin.AdminTokenLimiter;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.event.StartupGate;
 import de.bannerfall.event.StartupGateFilter;
+import de.bannerfall.solo.WorldSleep;
+import de.bannerfall.solo.WorldSleepFilter;
 import de.bannerfall.world.PregameGateFilter;
 import de.bannerfall.world.WorldService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -96,6 +98,7 @@ class SecurityConfig {
             AbuseService abuse,
             WorldService worldService,
             StartupGate startupGate,
+            WorldSleep worldSleep,
             CorsConfigurationSource corsConfigurationSource,
             Clock clock,
             AccountServerSettings accountServer,
@@ -158,6 +161,10 @@ class SecurityConfig {
                 // After a restart, game requests wait until the worker has caught up (code
                 // review 1.2, D3).
                 .addFilterAfter(new StartupGateFilter(startupGate), PregameGateFilter.class)
+                // A human's game request wakes a sleeping solo world before it reads the game
+                // (2.1); a paused one refuses writes.
+                .addFilterAfter(
+                        new WorldSleepFilter(worldSleep, worldService), StartupGateFilter.class)
                 .exceptionHandling(
                         ex ->
                                 ex.authenticationEntryPoint(

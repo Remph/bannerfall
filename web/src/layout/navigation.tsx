@@ -32,7 +32,8 @@ import {
 /**
  * Which optional sections are in the navigation. The guild: while the host has guilds switched on,
  * and for the members of an existing guild even when it is off, so they keep their way to it
- * (M15a). The Banner Hall: while it can be built, i.e. paladins or banners are on (1.4).
+ * (M15a). The Banner Hall: while it can be built, i.e. paladins or banners are on (1.4). Diplomacy:
+ * while guilds and lord guilds are on (2.1).
  */
 function useOptionalSections(): OptionalSections {
   const world = useWorld().data;
@@ -40,6 +41,7 @@ function useOptionalSections(): OptionalSections {
   return {
     guild: guildSectionVisible(world?.guildsEnabled === true, guild !== null && guild !== undefined),
     bannerHall: world !== undefined && bannerHallAvailable(world),
+    diplomacy: world?.guildsEnabled === true && world.npcGuildsEnabled,
   };
 }
 
@@ -222,7 +224,7 @@ export function DesktopNav({ villageId, chatOpen, onToggleChat, chatEntryRef }: 
         <Icon name={sections[key].icon} className={styles.railIcon} />
         <span className={styles.railLabel}>{t.nav[key]}</span>
         {key === 'reports' && <UnreadBadge className={styles.railBadge} />}
-        {key === 'messages' && <MessagesBadge className={styles.railBadge} />}
+        {key === 'messages' && <MessagesBadge className={`${styles.railBadge} ${styles.badgeQuiet}`} />}
       </SectionLink>
     </li>
   );
@@ -255,7 +257,7 @@ export function DesktopNav({ villageId, chatOpen, onToggleChat, chatEntryRef }: 
                     >
                       <Icon name="chat" className={styles.railIcon} />
                       <span className={styles.railLabel}>{t.nav.chat}</span>
-                      <ChatBadge className={styles.railBadge} />
+                      <ChatBadge className={`${styles.railBadge} ${styles.badgeQuiet}`} />
                     </button>
                   </li>,
                 ]
@@ -301,7 +303,7 @@ export function TabBar({ villageId, onMore, inFlow = false }: TabBarProps) {
       >
         <span className={styles.tabIcon}>
           <Icon name="more" />
-          <MoreBadge className={styles.tabBadge} />
+          <MoreBadge className={`${styles.tabBadge} ${styles.badgeAction}`} />
         </span>
         <span>{t.nav.more}</span>
       </button>
@@ -334,7 +336,7 @@ export function MoreLinks({ villageId, onNavigate, onOpenChat, onOpenNow }: More
       <SectionLink sectionKey={key} villageId={villageId} className={styles.moreItem} onNavigate={onNavigate} showSoon>
         <span className={styles.moreIcon}>
           <Icon name={sections[key].icon} />
-          {key === 'messages' && <MessagesBadge className={styles.moreBadge} />}
+          {key === 'messages' && <MessagesBadge className={`${styles.moreBadge} ${styles.badgeAction}`} />}
         </span>
         <span className={styles.moreLabel}>{t.nav[key]}</span>
       </SectionLink>
@@ -384,7 +386,7 @@ export function MoreLinks({ villageId, onNavigate, onOpenChat, onOpenNow }: More
                   <button type="button" className={styles.moreItem} onClick={onOpenChat} aria-haspopup="dialog">
                     <span className={styles.moreIcon}>
                       <Icon name="chat" />
-                      <ChatBadge className={styles.moreBadge} />
+                      <ChatBadge className={`${styles.moreBadge} ${styles.badgeAction}`} />
                     </span>
                     <span className={styles.moreLabel}>{t.nav.chat}</span>
                   </button>

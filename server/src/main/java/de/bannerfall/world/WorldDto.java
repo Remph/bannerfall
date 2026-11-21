@@ -54,6 +54,13 @@ import java.time.Instant;
  * @param noblePriceStep how much dearer each village and noble beyond the free rank makes the next
  *     noble, as a share of the base price; 0 = the flat price (1.6, 02-game-rules §5.7)
  * @param mapSpread how far apart the sides start (1.6, 02-game-rules §2)
+ * @param soloMode a world for one human and the NPC lords that sleeps while nobody plays (2.1,
+ *     12-solo-and-allies §1)
+ * @param pausedAt when the host paused the world, null unless paused (2.1): the client's game time
+ *     stands still there like at {@code endedAt}
+ * @param clockSpeed the host's fast forward: 1 (normal), 2 or 4 (2.1)
+ * @param npcGuildsEnabled whether NPC lords form guilds (09-npc-lords §13); with guilds on it shows
+ *     the diplomacy page (2.1 S2b, 12-solo-and-allies §7)
  */
 public record WorldDto(
         String name,
@@ -104,7 +111,11 @@ public record WorldDto(
         @Schema(nullable = true) NightBonusDto nightBonus,
         boolean archersEnabled,
         @Schema(nullable = true) Integer moraleFloor,
-        double noblePriceStep) {
+        double noblePriceStep,
+        boolean soloMode,
+        @Schema(nullable = true) Instant pausedAt,
+        int clockSpeed,
+        boolean npcGuildsEnabled) {
 
     /**
      * The night bonus of a world that has it on: owned villages defend {@code factor} times as

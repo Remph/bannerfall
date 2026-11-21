@@ -133,7 +133,7 @@ describe('LinePanel', () => {
   it('shows an own attack with its troops and the way to the outgoing list of its rally point', () => {
     const onShow = open(ownAttack);
 
-    expect(screen.getByRole('heading', { name: 'Attack on Barbarian village (50|61)' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Attack on Barbarian village (50\u2060|\u206061)' })).toBeTruthy();
     expect(screen.getByTitle('Spearman')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Rally point' }).getAttribute('href')).toBe(`/v/${HOME.id}/rally#outgoing`);
     fireEvent.click(screen.getByRole('button', { name: 'Show target' }));
@@ -152,7 +152,7 @@ describe('LinePanel', () => {
   it("keeps the troops and the way of another player's attack hidden and leads to its attacker", () => {
     const onShow = open(attackOnMe);
 
-    expect(screen.getByRole('heading', { name: 'Attack from Hilltop (52|60)' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Attack from Hilltop (52\u2060|\u206060)' })).toBeTruthy();
     expect(screen.getAllByText('hidden')).toHaveLength(HIDDEN_FACTS);
     expect(screen.queryByRole('button', { name: CANCEL })).toBeNull();
     expect(screen.getByRole('link', { name: 'Rally point' }).getAttribute('href')).toBe(`/v/${HOME.id}/rally#incoming`);

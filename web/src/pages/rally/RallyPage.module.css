@@ -510,23 +510,35 @@
   font-size: var(--font-size-sm);
 }
 
-/* how far an own command has come (1.3): the action colour on the track, like the build queue's bar */
+/* how far an own command has come (1.3): the track, filled in the map's march colour of its kind
+   (2.1: red attack, green support, blue return, like the lines on the map; tokens.css --march-*) */
 .moveBar {
   display: block;
   height: 4px;
   margin: 3px 0 1px;
   border-radius: var(--radius-pill);
-  background: var(--color-track);
+  background: var(--march-track);
   overflow: hidden;
 }
 
 .moveFill {
   display: block;
   height: 100%;
-  background: var(--color-action);
   transform-origin: left;
   /* glides between the seconds instead of jumping, like the build queue's bar */
   transition: transform 1s linear;
+}
+
+.fillAttack {
+  background: var(--march-attack);
+}
+
+.fillSupport {
+  background: var(--march-support);
+}
+
+.fillReturn {
+  background: var(--march-return);
 }
 
 .moveActions {

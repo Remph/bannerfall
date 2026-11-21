@@ -8,6 +8,7 @@ import { ListDetail } from '../../components/ListDetail';
 import { formatRecent } from '../../game/format';
 import { serverNow } from '../../game/serverTime';
 import { bracketTag } from '../../game/guilds';
+import { letterText } from '../../game/letters';
 import { useI18n } from '../../i18n';
 import { DESKTOP_QUERY, useMediaQuery } from '../../layout/useMediaQuery';
 import { playerPath } from '../ranking/rankingPaths';
@@ -104,7 +105,7 @@ function ConversationLine({ conversation, open }: { conversation: Conversation; 
       <span className={styles.preview}>
         <span className={styles.previewText}>
           {conversation.lastMine && `${t.messages.you}: `}
-          {conversation.lastText}
+          {conversation.lastLetter != null ? letterText(t, conversation.lastLetter, language) : conversation.lastText}
         </span>
         {unread > 0 && <span className={styles.unread}>{t.messages.unreadFrom(unread)}</span>}
       </span>

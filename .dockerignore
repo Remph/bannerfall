@@ -10,5 +10,7 @@
 docs
 backups
 .env
+# .env.solo and the like: secrets, never part of the build context
+.env.*
 *.log
 server/logs

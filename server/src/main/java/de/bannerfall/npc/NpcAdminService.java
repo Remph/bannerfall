@@ -115,15 +115,30 @@ public class NpcAdminService {
     /**
      * Spawns a lord like at world start (09 §2) and returns its row.
      *
+     * @param variant one of the personality's variants, {@code PLAIN}, or null to draw one (09
+     *     §16.8)
      * @throws GameRuleException {@code WORLD_FULL} if the map has no room
-     * @throws de.bannerfall.common.ApiException {@code WORLD_NOT_OPEN} in the pre-game
+     * @throws de.bannerfall.common.ApiException {@code WORLD_NOT_OPEN} in the pre-game, {@code
+     *     VALIDATION} for a variant the personality doesn't have
      */
     @Transactional
-    public NpcLordDto spawn(NpcPersonality personality) {
+    public NpcLordDto spawn(NpcPersonality personality, String variant) {
         worldService.requireOpen();
+        if (variant != null
+                && !variant.equals(NpcTemplates.PLAIN)
+                && !templates.variantsOf(personality).contains(variant)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.VALIDATION,
+                    personality
+                            + " has the variants "
+                            + templates.variantsOf(personality)
+                            + " and PLAIN, not "
+                            + variant);
+        }
         Player lord =
                 lordService
-                        .spawn(personality)
+                        .spawn(personality, variant)
                         .orElseThrow(
                                 () ->
                                         new GameRuleException(
@@ -307,7 +322,7 @@ public class NpcAdminService {
         List<NpcLordDto.MixChange> changes = List.of();
         if (lesson.active() && !own.isEmpty()) {
             Village biggest = own.stream().max(Comparator.comparingInt(Village::getPoints)).get();
-            NpcTemplates.Template template = templates.of(brain.getPersonality());
+            NpcTemplates.Template template = templates.of(brain);
             Map<UnitType, Integer> mix = template.mixOf(template.stageFor(biggest.getPoints()));
             changes = NpcLearning.changes(mix, NpcLearning.learnedMix(mix, lesson));
         }

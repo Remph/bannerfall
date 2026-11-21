@@ -3,6 +3,8 @@ import {
   initialRallyPart,
   mapFocusFromSearch,
   mapPath,
+  rallySupportPath,
+  unitsFromSearch,
   rallyPath,
   simulatorPath,
   targetFromSearch,
@@ -81,5 +83,19 @@ describe('initialRallyPart', () => {
 
   it('opens on the form when the address names a target, attacks or not', () => {
     expect(initialRallyPart([attack], new URLSearchParams('x=48&y=52'), '')).toBe('send');
+  });
+});
+
+describe('rallySupportPath (2.1 S4)', () => {
+  it('fills in the target and the defenders', () => {
+    const path = rallySupportPath(7, { x: 48, y: 52 }, { SWORDSMAN: 80, SPEARMAN: 120, AXEMAN: 0 });
+    expect(path).toBe('/v/7/rally?x=48&y=52&units=SPEARMAN.120,SWORDSMAN.80');
+    expect(unitsFromSearch(new URL(path, 'http://x').searchParams)).toEqual({ SPEARMAN: 120, SWORDSMAN: 80 });
+  });
+
+  it('ignores unknown units and bad counts', () => {
+    expect(unitsFromSearch(new URLSearchParams('units=DRAGON.5,SPEARMAN.-1,ARCHER.2.5,AXEMAN.3'))).toEqual({
+      AXEMAN: 3,
+    });
   });
 });

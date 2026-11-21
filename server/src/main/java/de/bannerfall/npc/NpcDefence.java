@@ -75,11 +75,22 @@ class NpcDefence {
      * could fly, {@link #maxHaste}).
      */
     static boolean isThreat(NpcTurn turn, Incoming attack, double maxHaste) {
+        return isThreat(turn, attack, maxHaste, 1);
+    }
+
+    /**
+     * {@link #isThreat(NpcTurn, Incoming, double)} with the horizon times {@code horizonFactor}:
+     * the help step looks {@code support-horizon-factor} times as far ahead (09 §16.4).
+     */
+    static boolean isThreat(NpcTurn turn, Incoming attack, double maxHaste, double horizonFactor) {
         Instant now = turn.now;
         Duration horizon =
                 NpcTargeting.scaled(
                         Duration.ofSeconds(
-                                Math.round(turn.view.general().supportHorizonHours() * 3600)),
+                                Math.round(
+                                        turn.view.general().supportHorizonHours()
+                                                * horizonFactor
+                                                * 3600)),
                         turn.speed());
         return attack.arriveAt().isAfter(now)
                 && !attack.arriveAt().isAfter(now.plus(horizon))
@@ -104,11 +115,12 @@ class NpcDefence {
     }
 
     /**
-     * Each threat against another village of the lord gets {@code support-share} of each {@code
-     * support-units} type at home here, once per attack and helping village, if it arrives before
-     * the attack. The village never has more than {@code support-share} of its units out in support
-     * (standing elsewhere or on the way): a human who sends a string of cheap fake attacks can't
-     * pull a lord's army around (M12c review, 09 §6.8).
+     * Each threat against another village of the lord (within the support horizon times the
+     * template's {@code support-horizon-factor}, 09 §16.4) gets {@code support-share} of each
+     * {@code support-units} type at home here, once per attack and helping village, if it arrives
+     * before the attack. The village never has more than {@code support-share} of its units out in
+     * support (standing elsewhere or on the way): a human who sends a string of cheap fake attacks
+     * can't pull a lord's army around (M12c review, 09 §6.8).
      */
     private void help(NpcTurn turn) {
         double share = turn.template().supportShare();
@@ -118,7 +130,7 @@ class NpcDefence {
         double maxHaste = maxHaste(turn);
         for (Incoming attack : turn.view.incoming()) {
             if (attack.targetVillageId() == turn.villageId()
-                    || !isThreat(turn, attack, maxHaste)
+                    || !isThreat(turn, attack, maxHaste, turn.template().supportHorizonFactor())
                     || turn.memory.supported.contains(
                             new NpcMemory.Supported(attack.id(), turn.villageId()))) {
                 continue;
@@ -127,7 +139,11 @@ class NpcDefence {
             if (target == null || !turn.ownOrMate(target.playerId())) {
                 continue; // the lord's own villages and its guild mates' (09 §13.3)
             }
-            Map<UnitType, Integer> home = unitService.homeUnits(turn.villageId()).toMap();
+            // the units a planned "land together" march waits for stay out of it (2.1 S3)
+            Map<UnitType, Integer> home =
+                    NpcTargeting.minus(
+                            unitService.homeUnits(turn.villageId()).toMap(),
+                            turn.view.orders().reservedAt(turn.villageId()));
             Map<UnitType, Integer> units =
                     withinBudget(
                             NpcTargeting.shareOf(home, turn.template().supportUnits(), share),
@@ -211,8 +227,9 @@ class NpcDefence {
                     || stack.getUnits().isEmpty()
                     || !turn.locked.contains(location.getId())
                     || (location.getPlayer() != null
-                            && location.getPlayer().getId() == turn.lordId())) {
-                continue;
+                            && location.getPlayer().getId() == turn.lordId())
+                    || turn.view.orders().ordered(turn.villageId(), location.getId())) {
+                continue; // a support on a human's order stays while it is the order (2.1 S3)
             }
             Long owner = location.getPlayer() == null ? null : location.getPlayer().getId();
             if (owner != null && turn.view.guildMates().contains(owner)) {
@@ -255,7 +272,8 @@ class NpcDefence {
                     || !turn.locked.contains(homeId)
                     || stack.getUnits().isEmpty()
                     || stack.getHomeVillage().getPlayer() == null
-                    || stack.getHomeVillage().getPlayer().getId() != turn.lordId()) {
+                    || stack.getHomeVillage().getPlayer().getId() != turn.lordId()
+                    || turn.view.orders().ordered(homeId, turn.villageId())) {
                 continue;
             }
             commands.returnStack(stack.getId(), turn.lordId(), stack.getUnits().toMap());

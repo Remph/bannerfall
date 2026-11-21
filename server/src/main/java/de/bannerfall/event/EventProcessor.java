@@ -1,5 +1,6 @@
 package de.bannerfall.event;
 
+import de.bannerfall.solo.WorldSleep;
 import de.bannerfall.world.WorldService;
 import java.time.Clock;
 import java.time.Duration;
@@ -26,7 +27,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * #MAX_ATTEMPTS} attempts the event is FAILED. A failing event never blocks the others.
  *
  * <p>A world that has ended is frozen (v1.3, 02-game-rules §22): only events due at the end or
- * before still run, everything later stays pending (and runs if the host takes the end back).
+ * before still run, everything later stays pending (and runs if the host takes the end back). A
+ * solo world that sleeps (2.1, 12-solo-and-allies §2) is cut off the same way at the moment it fell
+ * asleep; the wake moves the pending events on by the time asleep.
  */
 @Component
 public class EventProcessor {
@@ -71,6 +74,7 @@ public class EventProcessor {
     private final Clock clock;
     private final StartupGate startupGate;
     private final WorldService worldService;
+    private final WorldSleep worldSleep;
 
     /** REQUIRES_NEW: every event gets its own transaction, even if the caller has one open. */
     private final TransactionTemplate transaction;
@@ -81,8 +85,10 @@ public class EventProcessor {
             Clock clock,
             PlatformTransactionManager transactionManager,
             StartupGate startupGate,
-            WorldService worldService) {
+            WorldService worldService,
+            WorldSleep worldSleep) {
         this.events = events;
+        this.worldSleep = worldSleep;
         this.worldService = worldService;
         this.handlers = handlers;
         this.clock = clock;
@@ -101,6 +107,8 @@ public class EventProcessor {
     @Scheduled(fixedDelay = 200)
     public void tick() {
         try {
+            // a solo world falls asleep at its heartbeat after a stop or suspend first (2.1)
+            worldSleep.beforeEvents();
             Instant now = clock.instant();
             long started = System.nanoTime();
             Run run = new Run();
@@ -147,9 +155,10 @@ public class EventProcessor {
     }
 
     private int processDue(Instant until, Run run) {
-        Instant endedAt = worldService.endedAt();
-        if (endedAt != null && endedAt.isBefore(until)) {
-            until = endedAt;
+        // ended (§22) or asleep (2.1, 12-solo-and-allies §2): nothing after that moment runs
+        Instant frozenAt = worldService.frozenAt();
+        if (frozenAt != null && frozenAt.isBefore(until)) {
+            until = frozenAt;
         }
         int processed = 0;
         // Failed in this call but still PENDING (attempts left): they would be fetched again and
@@ -204,9 +213,10 @@ public class EventProcessor {
                 || event.getDueAt().isAfter(until)) {
             return false;
         }
-        // An earlier event of this call may have ended the world (§22): later ones wait.
-        Instant endedAt = worldService.endedAt();
-        if (endedAt != null && event.getDueAt().isAfter(endedAt)) {
+        // An earlier event of this call may have ended the world (§22), or it fell asleep
+        // meanwhile (2.1): later ones wait.
+        Instant frozenAt = worldService.frozenAt();
+        if (frozenAt != null && event.getDueAt().isAfter(frozenAt)) {
             return false;
         }
         long started = System.nanoTime();

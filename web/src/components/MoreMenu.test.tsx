@@ -128,4 +128,37 @@ describe('MoreMenu', () => {
     expect(item('Edit')!.parentElement!.style.left).toBe('8px');
     rect.mockRestore();
   });
+
+  it('slides a list that opens to the left of a "…" near the left edge back into the window', () => {
+    const { button } = setup();
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(800);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(320);
+    // the "…" of a wrapped button row, right of the middle: the list opens to the left of it
+    button.getBoundingClientRect = () => ({ top: 100, bottom: 144, left: 215, right: 259 }) as DOMRect;
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    rect.mockImplementation(() => ({ left: 0, right: 290, width: 290, top: 0, bottom: 0 }) as DOMRect);
+
+    fireEvent.click(button);
+
+    // right 61 would start the 290 px list at -31: 320 - 8 - 290 = 22
+    expect(item('Edit')!.parentElement!.style.right).toBe('22px');
+    rect.mockRestore();
+  });
+
+  it('gives a list taller than the room on both sides the larger side, scrolling, and keeps it open', () => {
+    const { button } = setup();
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(100);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(400);
+    // two items need 104 px; 60 px above the button, 0 below
+    button.getBoundingClientRect = () => ({ top: 60, bottom: 100, left: 300, right: 344 }) as DOMRect;
+
+    fireEvent.click(button);
+
+    const list = item('Edit')!.parentElement!;
+    expect(list.style).toMatchObject({ bottom: '44px', maxHeight: '56px', overflowY: 'auto' });
+    fireEvent.scroll(list);
+    expect(item('Edit')).not.toBeNull();
+    fireEvent.scroll(window);
+    expect(item('Edit')).toBeNull();
+  });
 });

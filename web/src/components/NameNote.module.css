@@ -1,0 +1,5 @@
+/* one space widened to about --space-2 (a space is about 0.25em); a space at the end of a line is
+   dropped with its word spacing, so a note that wraps starts flush */
+.gap {
+  word-spacing: calc(var(--space-2) - 0.25em);
+}

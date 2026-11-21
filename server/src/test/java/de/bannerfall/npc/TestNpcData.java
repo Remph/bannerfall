@@ -20,6 +20,7 @@ public final class TestNpcData {
                     "gamedata/npc/offensive.yml",
                     "gamedata/npc/balanced.yml",
                     "gamedata/npc/defensive.yml",
+                    "gamedata/npc/variants.yml",
                     "gamedata/npc/balance.yml");
 
     private TestNpcData() {}

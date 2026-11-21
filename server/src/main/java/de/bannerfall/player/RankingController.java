@@ -1,7 +1,9 @@
 package de.bannerfall.player;
 
+import de.bannerfall.account.AccountPrincipal;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,7 +28,7 @@ class RankingController {
     }
 
     @GetMapping("/api/players/{id}")
-    PlayerProfileDto profile(@PathVariable long id) {
-        return ranking.profile(id);
+    PlayerProfileDto profile(@PathVariable long id, @AuthenticationPrincipal AccountPrincipal me) {
+        return ranking.profile(id, me == null ? null : me.accountId());
     }
 }

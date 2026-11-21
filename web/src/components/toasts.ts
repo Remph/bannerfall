@@ -6,7 +6,7 @@ export type ToastTone = 'info' | 'success' | 'danger';
 export interface ToastContent {
   text: string;
   tone: ToastTone;
-  to?: { pathname: string; hash?: string };
+  to?: { pathname: string; hash?: string; search?: string };
 }
 
 /** Shows a toast for a few seconds (05-frontend §7); filled by <ToastProvider>. */

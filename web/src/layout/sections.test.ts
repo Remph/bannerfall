@@ -11,7 +11,7 @@ import {
 
 describe('visibleSections', () => {
   it('hides the guild and the Banner Hall while the host has them off', () => {
-    expect(visibleSections(desktopSections, { guild: false, bannerHall: false })).toEqual([
+    expect(visibleSections(desktopSections, { guild: false, bannerHall: false, diplomacy: false })).toEqual([
       'village',
       'townHall',
       'recruit',
@@ -27,9 +27,15 @@ describe('visibleSections', () => {
   });
 
   it('puts the Banner Hall after Recruit when it is on', () => {
-    const keys = visibleSections(desktopSections, { guild: true, bannerHall: true });
+    const keys = visibleSections(desktopSections, { guild: true, bannerHall: true, diplomacy: false });
     expect(keys.indexOf('bannerHall')).toBe(keys.indexOf('recruit') + 1);
     expect(keys.at(-1)).toBe('guild');
+  });
+
+  it('puts Diplomacy after the guild while lord guilds are on (2.1)', () => {
+    const keys = visibleSections(desktopSections, { guild: true, bannerHall: true, diplomacy: true });
+    expect(keys.slice(-2)).toEqual(['guild', 'diplomacy']);
+    expect(moreGroups.player.at(-1)).toBe('diplomacy');
   });
 });
 
@@ -87,6 +93,7 @@ describe('navEntry: what a page lights in the navigation (1.5.1)', () => {
     expect(entry('/statistics')).toBe('ranking');
     expect(entry('/players/8')).toBe('ranking');
     expect(entry('/guilds/2')).toBe('guild');
+    expect(entry('/diplomacy')).toBe('diplomacy');
   });
 
   it('lights the own profile entry on the own profile, not the ranking', () => {

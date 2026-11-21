@@ -38,7 +38,7 @@ public class ReportService {
      * One report per recipient, all with the same payload. Barbarians ({@code null}) get nothing, a
      * player named twice gets one report. Runs in the caller's transaction, so the reports exist
      * exactly if what they tell about happened. Each recipient is notified (REPORT_CREATED) after
-     * commit.
+     * commit; {@link ReportsCreated} goes out at once, in the transaction.
      *
      * @param happenedAt the game time (an event's due time, or now in a request)
      * @param recipients player ids; nulls are skipped
@@ -59,6 +59,10 @@ public class ReportService {
                     new PlayerNotification(
                             playerId,
                             new GameNotification.ReportCreated(report.getId(), kind, null)));
+        }
+        if (!playerIds.isEmpty()) {
+            events.publishEvent(
+                    new ReportsCreated(kind, happenedAt, payload, Set.copyOf(playerIds)));
         }
     }
 

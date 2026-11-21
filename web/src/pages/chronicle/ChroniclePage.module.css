@@ -1,0 +1,149 @@
+/* The chronicle (2.1 I1). Phone first: the replay, then the turning points; PC: side by side, the
+   replay staying in view while the timeline scrolls. Rows lie on the land, split by thin lines. */
+.page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+  --card-inset: 0;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.meta,
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-2);
+}
+
+.columns {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.mapColumn {
+  min-width: 0;
+  /* picking a moment on a phone scrolls the map back into view, below the sticky top bar */
+  scroll-margin-top: calc(var(--app-header-height, 0px) + var(--space-2));
+}
+
+.days,
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day + .day {
+  margin-top: var(--space-3);
+}
+
+.dayTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.entries li + li .entry {
+  border-top: 1.5px solid var(--color-divider);
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry:hover {
+  background: var(--color-well);
+}
+
+.picked,
+.picked:hover {
+  background: var(--color-current);
+}
+
+.sign {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-badge);
+  color: var(--color-on-badge);
+  font-size: 1.05rem;
+}
+
+/* the player's own moments: his sign in the action colour, the line a little bolder */
+.mine .sign {
+  background: var(--color-action);
+  color: var(--color-on-action);
+}
+
+.mine .line {
+  font-weight: 600;
+}
+
+.text {
+  display: grid;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.big .line {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.time {
+  flex: none;
+  padding-top: 0.15rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: 76rem;
+  }
+
+  .columns {
+    grid-template-columns: minmax(20rem, 34rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  /* below the sticky top bar, and small enough that the controls stay in view with it on a short
+     laptop (1366x768, 1280x600): the card title, the controls and the slider need about 12rem */
+  .mapColumn {
+    position: sticky;
+    top: calc(var(--app-header-height, 0px) + var(--space-3));
+    --replay-max: max(14rem, min(34rem, calc(100dvh - var(--app-header-height, 0px) - 12rem)));
+  }
+}

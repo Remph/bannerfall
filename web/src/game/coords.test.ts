@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { distance, isOnMap, parseCoords } from './coords';
+import { formatCoords, WORD_JOINER } from './format';
 
 describe('parseCoords', () => {
   it.each([
@@ -35,5 +36,13 @@ describe('distance', () => {
     expect(distance({ x: 50, y: 50 }, { x: 53, y: 54 })).toBe(5);
     expect(distance({ x: 10, y: 10 }, { x: 10, y: 10 })).toBe(0);
     expect(distance({ x: 0, y: 0 }, { x: 1, y: 1 })).toBeCloseTo(Math.SQRT2);
+  });
+});
+
+describe('coordinates copied from the game (UI review 2.1, finding 12)', () => {
+  it('keep the bar between word joiners and paste back into a search', () => {
+    expect(formatCoords(55, 45)).toBe('(55⁠|⁠45)');
+    expect(parseCoords(formatCoords(55, 45))).toEqual({ x: 55, y: 45 });
+    expect(parseCoords(`55${WORD_JOINER}|${WORD_JOINER}45`)).toEqual({ x: 55, y: 45 });
   });
 });

@@ -98,6 +98,11 @@ export const router = createBrowserRouter([
                 path: '/statistics',
                 lazy: page(() => import('./pages/statistics/WorldStatisticsPage'), 'WorldStatisticsPage'),
               },
+              // the story of an ended world (2.1 I1), linked from the end screen, the ended strip and the result
+              {
+                path: '/chronicle',
+                lazy: page(() => import('./pages/chronicle/ChroniclePage'), 'ChroniclePage'),
+              },
               // honours (M16): the player's own list with his progress
               {
                 path: '/achievements',
@@ -105,6 +110,8 @@ export const router = createBrowserRouter([
               },
               // guilds (M15a): the player's own, and any guild's page
               { path: '/guild', lazy: page(() => import('./pages/guild/GuildPage'), 'GuildPage') },
+              // trust of the NPC lords and the court (2.1)
+              { path: '/diplomacy', lazy: page(() => import('./pages/diplomacy/DiplomacyPage'), 'DiplomacyPage') },
               {
                 path: '/guilds/:guildId',
                 lazy: page(() => import('./pages/guild/GuildProfilePage'), 'GuildProfilePage'),

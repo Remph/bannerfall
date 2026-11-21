@@ -3,6 +3,7 @@ import themeInit from '../../public/theme-init.js?raw';
 import looksCss from '../styles/looks.css?raw';
 import palettesCss from '../styles/palettes.css?raw';
 import tokensCss from '../styles/tokens.css?raw';
+import diplomacyCss from '../pages/diplomacy/DiplomacyPage.module.css?raw';
 import { legacyPalettes, palettes } from './theme';
 
 /** The custom properties of every rule whose selector contains `selector`, merged ("--color-bar" → "#2f4a3c"). */
@@ -333,6 +334,45 @@ describe('every theme stays readable (2.0 review)', () => {
     const low = ratios
       .filter(([, ratio, least]) => ratio < least)
       .map(([name, ratio]) => `${name}: ${ratio.toFixed(2)}`);
+    expect(low).toEqual([]);
+  });
+
+  // the march bars (2.1): attack, support and return fill on their own track (--march-track, see-through: the
+  // track or a dark groove over whatever is under it). Each kind must stand out from it, and the track from its
+  // ground, on both grounds the bars lie on: the land (rally point, Now column and sheet) and the Now drawer's
+  // sheet (the review found the attack bar at 2.4:1 in the drawer at night, where only the land was checked)
+  it.each(cases)('$name: each march colour stands out from its track, on the land and in the drawer', ({ all }) => {
+    const get = (name: string) => colour(all.get(`--${name}`) ?? '', all);
+    const see = /^color-mix\(in srgb, (var\(--color-track\)|#000000) (\d+)%, transparent\)$/.exec(
+      all.get('--march-track') ?? '',
+    );
+    expect(see).not.toBeNull();
+    const [ink, share] = [colour(see?.[1] ?? '', all), Number(see?.[2]) / 100];
+    const low = ['bg', 'surface'].flatMap((ground) => {
+      const under = get(`color-${ground}`);
+      const track = ink.map((part, at) => part * share + (under[at] ?? 0) * (1 - share)) as Rgb;
+      return [
+        ...['attack', 'support', 'return']
+          .map((kind) => [`${kind} on ${ground}`, contrast(get(`march-${kind}`), track), 2.6] as const)
+          .filter(([, ratio, least]) => ratio < least),
+        ...([[`track on ${ground}`, contrast(track, under), 1.1]] as const).filter(([, ratio, least]) => ratio < least),
+      ].map(([what, ratio]) => `${what}: ${ratio.toFixed(2)}`);
+    });
+    expect(low).toEqual([]);
+  });
+
+  // the court race on the Diplomacy page (UI review 2.1, finding 08: the court's fill was 1.14 : 1 on its
+  // track in Frost by day): both fills stand out from the race's track at least 3 : 1, read from its CSS
+  it.each(cases)('$name: both race bars stand out from their track', ({ all }) => {
+    const rule = (name: string) =>
+      new RegExp(`\\.${name} \\{[^}]*background: var\\(--color-([\\w-]+)\\)`).exec(diplomacyCss)?.[1] ?? '';
+    const get = (name: string) => colour(all.get(`--color-${name}`) ?? '', all);
+    const track = get(rule('track'));
+    const low = ['fill', 'fillMine']
+      .map((fill) => [fill, contrast(get(rule(fill)), track)] as const)
+      .filter(([, ratio]) => ratio < 3)
+      .map(([fill, ratio]) => `${fill}: ${ratio.toFixed(2)}`);
+    expect(rule('track')).not.toBe('');
     expect(low).toEqual([]);
   });
 });

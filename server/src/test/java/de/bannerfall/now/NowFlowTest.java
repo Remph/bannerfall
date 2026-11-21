@@ -88,7 +88,8 @@ class NowFlowTest {
                 .andExpect(jsonPath("$.villages[0].research", hasSize(0)))
                 .andExpect(jsonPath("$.villages[0].outgoing", hasSize(0)))
                 .andExpect(jsonPath("$.villages[0].incoming", hasSize(0)))
-                .andExpect(jsonPath("$.villages[0].merchants", hasSize(0)));
+                .andExpect(jsonPath("$.villages[0].merchants", hasSize(0)))
+                .andExpect(jsonPath("$.villages[0].incomingMerchants", hasSize(0)));
     }
 
     @Test
@@ -248,11 +249,26 @@ class NowFlowTest {
                 .get("/api/now")
                 .andExpect(jsonPath("$.villages[0].merchants", hasSize(1)))
                 .andExpect(jsonPath("$.villages[0].merchants[0].arrived").value(false));
-        // bob's own list has only what he sends: the merchants are alice's
-        bob.browser.get("/api/now").andExpect(jsonPath("$.villages[0].merchants", hasSize(0)));
+        // bob's own merchants list has only what he sends; alice's come in as incoming (2.1)
+        bob.browser
+                .get("/api/now")
+                .andExpect(jsonPath("$.villages[0].merchants", hasSize(0)))
+                .andExpect(jsonPath("$.villages[0].incomingMerchants", hasSize(1)))
+                .andExpect(
+                        jsonPath("$.villages[0].incomingMerchants[0].sourceVillage.id")
+                                .value((int) alice.villageId))
+                .andExpect(
+                        jsonPath("$.villages[0].incomingMerchants[0].resources.wood").value(300));
+        alice.browser
+                .get("/api/now")
+                .andExpect(jsonPath("$.villages[0].incomingMerchants", hasSize(0)));
 
         clock.set(arriveAt);
         processor.processDue(clock.instant());
+        // delivered: the merchants walking home are no longer bob's business
+        bob.browser
+                .get("/api/now")
+                .andExpect(jsonPath("$.villages[0].incomingMerchants", hasSize(0)));
         alice.browser
                 .get("/api/now")
                 .andExpect(jsonPath("$.villages[0].merchants", hasSize(1)))
@@ -289,6 +305,27 @@ class NowFlowTest {
         jdbc.sql("delete from build_order where village_id = ?").param(second).update();
         jdbc.sql("delete from unit_stack where home_village_id = ?").param(second).update();
         jdbc.sql("delete from village where id = ?").param(second).update();
+    }
+
+    @Test
+    void ownMerchantsBetweenOwnVillagesAreOneLineTheSenders() throws Exception {
+        long second = secondVillageOf(alice);
+        jdbc.sql("update player set village_count = 2 where id = ?").param(alice.playerId).update();
+        alice.browser
+                .post(
+                        alice.villagePath() + "/transports",
+                        "{\"target\":{\"x\":%d,\"y\":3},\"wood\":100,\"clay\":0,\"iron\":0}"
+                                .formatted(3 + (int) (alice.villageId % 7)))
+                .andExpect(status().isCreated());
+
+        String now = body(alice.browser.get("/api/now").andExpect(status().isOk()));
+
+        assertThat(JsonPath.<List<?>>read(now, "$.villages[0].merchants")).hasSize(1);
+        assertThat(JsonPath.<List<?>>read(now, "$.villages[1].incomingMerchants")).isEmpty();
+        jdbc.sql("delete from trade_transport").update();
+        jdbc.sql("delete from unit_stack where home_village_id = ?").param(second).update();
+        jdbc.sql("delete from village where id = ?").param(second).update();
+        jdbc.sql("update player set village_count = 1 where id = ?").param(alice.playerId).update();
     }
 
     // ---- helpers ----

@@ -60,11 +60,11 @@ describe('OwnVillagePicker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Own villages' }));
     const rows = screen.getAllByRole('button', { pressed: false });
     expect(rows.map((row) => row.textContent)).toEqual([
-      'Eschenau(64|62) · 5.0 fields · 0:30:00',
-      'Tomburg(70|58) · 9.0 fields · 0:54:00',
+      'Eschenau(64\u2060|\u206062) · 5.0 fields · 0:30:00',
+      'Tomburg(70\u2060|\u206058) · 9.0 fields · 0:54:00',
     ]);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tomburg(70|58) · 9.0 fields · 0:54:00' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tomburg(70\u2060|\u206058) · 9.0 fields · 0:54:00' }));
     expect(onPick).toHaveBeenCalledWith(tomburg);
   });
 
@@ -73,7 +73,7 @@ describe('OwnVillagePicker', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Own villages' }));
     const pressed = screen.getAllByRole('button', { pressed: true });
-    expect(pressed.map((row) => row.textContent)).toEqual(['Tomburg(70|58) · 9.0 fields · 0:54:00']);
+    expect(pressed.map((row) => row.textContent)).toEqual(['Tomburg(70\u2060|\u206058) · 9.0 fields · 0:54:00']);
   });
 
   it('is not there while the player has only this village', () => {

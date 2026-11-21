@@ -71,6 +71,10 @@ const world: World = {
   nightBonus: null,
   archersEnabled: false,
   moraleFloor: null,
+  soloMode: false,
+  pausedAt: null,
+  clockSpeed: 1,
+  npcGuildsEnabled: false,
 };
 
 const wolves: VictorySide = {
@@ -82,6 +86,7 @@ const wolves: VictorySide = {
   villages: 75,
   points: 41_000,
   keeps: 3,
+  court: null,
 };
 const ada: VictorySide = {
   kind: 'PLAYER',
@@ -92,6 +97,7 @@ const ada: VictorySide = {
   villages: 20,
   points: 9_000,
   keeps: 1,
+  court: null,
 };
 
 const running: Victory = {
@@ -202,7 +208,7 @@ describe('VictoryCard', () => {
     open({
       ...running,
       mode: 'KEEPS',
-      sides: [wolves, { ...ada, keeps: 0 }],
+      sides: [wolves, { ...ada, keeps: 0, court: null }],
       keepCount: 5,
       leader: null,
       leaderSince: null,

@@ -285,4 +285,25 @@ class NpcBalanceTest {
     private static Instant berlin(int hour, int minute) {
         return LocalDateTime.of(2026, 10, 7, hour, minute).atZone(BERLIN).toInstant();
     }
+
+    @Test
+    void aSoloWorldKeepsNoQuietHours() {
+        // 2.1, 12-solo-and-allies §3: a solo world sleeps while its human does
+        Difficulty solo = NpcBalance.withoutQuietHours(NORMAL);
+        assertThat(NORMAL.quietHours()).isTrue();
+        assertThat(solo.quietHours()).isFalse();
+        assertThat(solo.farmRest()).isFalse();
+        Instant night =
+                LocalDateTime.of(2026, 11, 19, 2, 0).atZone(ZoneId.of("Europe/Berlin")).toInstant();
+        assertThat(
+                        NpcPlanning.inQuietWindow(
+                                night,
+                                solo.buildQuietFromTime(),
+                                solo.buildQuietToTime(),
+                                ZoneId.of("Europe/Berlin")))
+                .isFalse();
+        assertThat(NpcBalance.farmHours(solo)).isEqualTo(24);
+        assertThat(solo.attacksPerHumanPerDay()).isEqualTo(NORMAL.attacksPerHumanPerDay());
+        assertThat(solo.productionFactor()).isEqualTo(NORMAL.productionFactor());
+    }
 }

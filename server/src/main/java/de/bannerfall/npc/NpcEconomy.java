@@ -156,15 +156,45 @@ class NpcEconomy {
             boolean wantsNobles,
             NpcLearning.Lesson lesson,
             Integer wallGoal) {
+        return nextGoal(village, playerId, now, template, wantsNobles, lesson, wallGoal).cost();
+    }
+
+    /**
+     * The village's next step (2.1 S4): its key ({@code NOBLE}, {@code WALL:<level>}, the other
+     * buildings as {@code <BUILDING>:<level>}; null when fully built or waiting) and its cost.
+     *
+     * @see #nextCost
+     */
+    record Goal(String key, ResourceAmounts cost) {
+        static final Goal NONE = new Goal(null, ResourceAmounts.ZERO);
+
+        /** A noble or the wall: the steps a shortage may become a help request for (12 §9). */
+        boolean asksForHelp() {
+            return key != null && (key.equals("NOBLE") || key.startsWith("WALL:"));
+        }
+    }
+
+    /** {@link #nextCost}, with what the step is. */
+    Goal nextGoal(
+            Village village,
+            long playerId,
+            Instant now,
+            NpcTemplates.Template template,
+            boolean wantsNobles,
+            NpcLearning.Lesson lesson,
+            Integer wallGoal) {
         Turn turn = new Turn(village, playerId, now, template, wantsNobles, 0, lesson, wallGoal);
         Snap s = turn.snap();
         Next next = turn.next(s);
         return switch (next.kind()) {
-            case BUILD ->
-                    turn.buildCost(
-                            s, gameData.building(next.type()), s.levels.get(next.type()) + 1);
-            case NOBLE -> turn.noblePrice();
-            case WAIT, DONE -> ResourceAmounts.ZERO;
+            case BUILD -> {
+                int level = s.levels.get(next.type()) + 1;
+                yield new Goal(
+                        next.type().name() + ":" + level,
+                        turn.buildCost(s, gameData.building(next.type()), level));
+            }
+            case NOBLE -> new Goal("NOBLE", turn.noblePrice());
+            case WAIT, DONE -> Goal.NONE;
         };
     }
 
@@ -232,9 +262,34 @@ class NpcEconomy {
             this.nobles =
                     wantsNobles
                             && village.getBuildings().get(BuildingType.ACADEMY) >= 1
-                            && nobleCount() < template.nobles();
+                            && nobleCount() < template.nobles()
+                            && builtThroughAcademy();
             double base = nobles ? balance.general().nobleTroopShare() : stage.troopShare();
             this.share = Math.min(MAX_TROOP_SHARE, base + troopShareBonus);
+        }
+
+        /**
+         * Every step of the template up to the academy's stands, queued levels included (§5.1, 5,
+         * 2.1): until then the village rebuilds what it lost (catapults) instead of saving for
+         * nobles. The learned wall goal is left out: it still waits until the noble is ordered
+         * (§15.4).
+         */
+        boolean builtThroughAcademy() {
+            Snap s = snap();
+            List<Map<BuildingType, Integer>> templateSteps =
+                    this.template.buildSteps(world.bannerHallAvailable());
+            return NpcPlanning.stepCandidate(
+                            NpcPlanning.stepsThroughAcademy(templateSteps), s.levels)
+                    == null;
+        }
+
+        /** The template's build steps, with the wall goal in front (§15.4). */
+        List<Map<BuildingType, Integer>> steps(Snap s) {
+            return NpcLearning.withWallGoal(
+                    template.buildSteps(world.bannerHallAvailable()),
+                    wallGoal,
+                    s.levels,
+                    gameData.building(BuildingType.WALL));
         }
 
         /** The nobles the village owns: home, elsewhere, on the way, in orders. */
@@ -284,16 +339,7 @@ class NpcEconomy {
                 return NpcPlanning.nextNoble(
                         s.levels, s.current, gameData, s.freePop, noblePrice());
             }
-            return NpcPlanning.nextBuild(
-                    NpcLearning.withWallGoal(
-                            template.buildSteps(world.bannerHallAvailable()),
-                            wallGoal,
-                            s.levels,
-                            gameData.building(BuildingType.WALL)),
-                    s.levels,
-                    s.current,
-                    gameData,
-                    s.freePop);
+            return NpcPlanning.nextBuild(steps(s), s.levels, s.current, gameData, s.freePop);
         }
 
         /**

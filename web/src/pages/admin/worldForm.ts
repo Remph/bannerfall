@@ -60,6 +60,8 @@ export interface WorldForm {
   guildBannersEnabled: boolean;
   /** The tutorial card, its menu row and its refunds (1.7, 02-game-rules §27). */
   tutorialEnabled: boolean;
+  /** 2.1 (12-solo-and-allies §1): a world for one human and the lords that sleeps while nobody plays. */
+  soloMode: boolean;
   /** Lord guilds (09-npc-lords §13): NPC lords form guilds; the most lords one may have. */
   npcGuildsEnabled: boolean;
   npcGuildMaxMembers: string;
@@ -127,6 +129,7 @@ export function worldToForm(settings: AdminWorldSettings): WorldForm {
     guildStartTogether: settings.guildStartTogether,
     guildBannersEnabled: settings.guildBannersEnabled,
     tutorialEnabled: settings.tutorialEnabled,
+    soloMode: settings.soloMode,
     npcGuildsEnabled: settings.npcGuildsEnabled,
     npcGuildMaxMembers: String(settings.npcGuildMaxMembers),
     unitLevelsEnabled: settings.unitLevelsEnabled,
@@ -270,6 +273,7 @@ export function worldFromForm(form: WorldForm, pregame = false): WorldSettingsUp
     guildStartTogether: form.guildStartTogether,
     guildBannersEnabled: form.guildBannersEnabled,
     tutorialEnabled: form.tutorialEnabled,
+    soloMode: form.soloMode,
     npcGuildsEnabled: form.npcGuildsEnabled,
     npcGuildMaxMembers,
     unitLevelsEnabled: form.unitLevelsEnabled,

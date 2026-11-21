@@ -39,6 +39,22 @@ public interface TradeTransportRepository extends JpaRepository<TradeTransport, 
             """)
     List<TradeTransport> findOutgoingOf(Collection<Long> villageIds, Instant now);
 
+    /**
+     * Merchants of other players on their way to some of these villages, the next arrival first
+     * (Now list, 2.1): what the player's own merchants bring home between his villages is already
+     * in {@link #findOutgoingOf}.
+     */
+    @Query(
+            """
+            select t from TradeTransport t
+              join fetch t.sourceVillage sv left join fetch sv.player sp
+              join fetch t.targetVillage tv left join fetch tv.player
+            where t.targetVillage.id in :villageIds and t.arrived = false
+              and (sp is null or sp.id <> :playerId)
+            order by t.arriveAt, t.id
+            """)
+    List<TradeTransport> findIncomingFromOthers(Collection<Long> villageIds, long playerId);
+
     /** The village's merchants still away after {@code at} (a change of owner). */
     List<TradeTransport> findBySourceVillageIdAndReturnAtAfter(long villageId, Instant at);
 

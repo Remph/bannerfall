@@ -62,6 +62,22 @@ class AdminCliTest {
     }
 
     @Test
+    void npcListShowsTheVariantNextToThePersonality() {
+        JsonMapper json = JsonMapper.builder().build();
+        assertThat(
+                        AdminCli.NpcCommand.personality(
+                                json.readTree(
+                                        "{\"personality\":\"OFFENSIVE\",\"template\":\"HOTHEAD\"}")))
+                .isEqualTo("OFFENSIVE / HOTHEAD");
+        // a lord from before the variants, or spawned as plain
+        assertThat(
+                        AdminCli.NpcCommand.personality(
+                                json.readTree(
+                                        "{\"personality\":\"OFFENSIVE\",\"template\":\"OFFENSIVE\"}")))
+                .isEqualTo("OFFENSIVE");
+    }
+
+    @Test
     void wrongUsageIsExitCode2() {
         assertThat(run("fly")).isEqualTo(AdminCli.EXIT_USAGE);
         assertThat(run("events", "retry")).isEqualTo(AdminCli.EXIT_USAGE);

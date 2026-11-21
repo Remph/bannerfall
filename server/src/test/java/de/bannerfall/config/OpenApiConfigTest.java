@@ -114,7 +114,11 @@ class OpenApiConfigTest {
                 .containsEntry("VICTORY_CLOCK", "#/components/schemas/VictoryClock")
                 .containsEntry("ATTACKS_RETURNED", "#/components/schemas/AttacksReturned")
                 .containsEntry("STORAGE_FULL", "#/components/schemas/StorageFull")
-                .hasSize(19);
+                .containsEntry("WORLD_TIME_MOVED", "#/components/schemas/WorldTimeMoved")
+                .containsEntry("COURT_CHANGED", "#/components/schemas/CourtChanged")
+                .containsEntry("HELP_REQUESTED", "#/components/schemas/HelpRequested")
+                .containsEntry("HELP_REQUESTS_CHANGED", "#/components/schemas/HelpRequestsChanged")
+                .hasSize(23);
         // treated like every other DTO: required properties, nullable where it can be null
         assertThat(
                         JsonPath.<List<String>>read(

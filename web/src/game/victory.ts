@@ -6,8 +6,22 @@ import { bracketTag } from './guilds';
  * say how the standings read.
  */
 
-/** "[KN] Knights of the North" for a guild, the name alone for a player. */
-export function sideName(side: VictorySide): string {
+/** What {@link sideName} needs of the texts: the court's name (push texts and the dictionary have it). */
+interface CourtTexts {
+  realtime: { courtName: (key: string | null, numeral: string | null, guild: string) => string };
+}
+
+/**
+ * "[KN] Knights of the North" for a guild, the name alone for a player; the court of a solo world
+ * (2.1 S2b) by its court name, "The Raven Court".
+ */
+export function sideName(
+  side: Pick<VictorySide, 'name' | 'tag'> & { court?: VictorySide['court'] },
+  t: CourtTexts,
+): string {
+  if (side.court !== null && side.court !== undefined) {
+    return t.realtime.courtName(side.court.key, side.court.numeral, side.name);
+  }
   return side.tag === null ? side.name : `${bracketTag(side.tag)} ${side.name}`;
 }
 

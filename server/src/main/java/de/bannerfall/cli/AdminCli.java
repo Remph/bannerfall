@@ -127,7 +127,8 @@ public class AdminCli implements Callable<Integer> {
                     "moraleFloor",
                     "noblePriceStep",
                     "automationVillages",
-                    "tutorialEnabled");
+                    "tutorialEnabled",
+                    "soloMode");
 
     /** Only in the pre-game (M14g): fixed once the world's content exists. */
     static final List<String> PREGAME_SETTINGS =
@@ -442,7 +443,10 @@ public class AdminCli implements Callable<Integer> {
         out.println(
                 domain.isEmpty()
                         ? "  " + path + "  (after your world's address)"
-                        : "  https://" + domain + path);
+                        // with a scheme: the solo world on your own PC (http://localhost:8461)
+                        : domain.startsWith("http://") || domain.startsWith("https://")
+                                ? "  " + domain + path
+                                : "  https://" + domain + path);
         out.println(
                 "Your account becomes the admin and the setup wizard starts. The link works once,"
                         + " until "
@@ -907,7 +911,8 @@ public class AdminCli implements Callable<Integer> {
                 WorldCommand.Set.class,
                 WorldCommand.Open.class,
                 WorldCommand.End.class,
-                WorldCommand.Reopen.class
+                WorldCommand.Reopen.class,
+                WorldCommand.ClockCommand.class
             })
     static class WorldCommand implements Callable<Integer> {
 
@@ -1102,6 +1107,65 @@ public class AdminCli implements Callable<Integer> {
                     cli.out().println("The world runs again.");
                 }
                 return EXIT_OK;
+            }
+        }
+
+        enum ClockAction {
+            PAUSE,
+            PLAY,
+            NORMAL,
+            FAST2,
+            FAST4
+        }
+
+        @Command(
+                name = "clock",
+                description =
+                        "A solo world's clock: show it, or pause, play, normal, fast2, fast4"
+                                + " (2.1)")
+        static class ClockCommand implements Callable<Integer> {
+
+            @ParentCommand WorldCommand world;
+
+            @Parameters(index = "0", arity = "0..1", paramLabel = "pause|play|normal|fast2|fast4")
+            ClockAction action;
+
+            @Override
+            public Integer call() {
+                AdminCli cli = world.cli;
+                JsonNode answer =
+                        action == null
+                                ? cli.client().get("/api/admin/world-clock")
+                                : cli.client().put("/api/admin/world-clock", body(action));
+                if (!cli.printedJson(answer)) {
+                    cli.out().println(describe(answer));
+                }
+                return EXIT_OK;
+            }
+
+            static Map<String, Object> body(ClockAction action) {
+                return switch (action) {
+                    case PAUSE -> Map.of("paused", true);
+                    case PLAY -> Map.of("paused", false);
+                    case NORMAL -> Map.of("speed", 1);
+                    case FAST2 -> Map.of("speed", 2);
+                    case FAST4 -> Map.of("speed", 4);
+                };
+            }
+
+            static String describe(JsonNode clock) {
+                if (!clock.path("soloMode").asBoolean()) {
+                    return "Not a solo world: it never sleeps (world set solo-mode true).";
+                }
+                String state =
+                        clock.path("paused").asBoolean()
+                                ? "paused (until `world clock play`)"
+                                : clock.path("asleepSince").isNull()
+                                                || clock.path("asleepSince").isMissingNode()
+                                        ? "running"
+                                        : "asleep (nobody plays)";
+                int speed = clock.path("speed").asInt(1);
+                return "The world is " + state + ", speed x" + speed + ".";
             }
         }
 
@@ -1349,7 +1413,7 @@ public class AdminCli implements Callable<Integer> {
                                     : lord.path("guildByAdmin").asBoolean() ? "- (placed)" : "-";
                     table.row(
                             Json.show(lord, "name"),
-                            Json.show(lord, "personality"),
+                            personality(lord),
                             lord.path("points").asInt(),
                             lord.path("villageCount").asInt(),
                             guild,
@@ -1360,6 +1424,20 @@ public class AdminCli implements Callable<Integer> {
                 table.print(cli.out());
                 return EXIT_OK;
             }
+        }
+
+        /**
+         * The personality and, for a lord with a variant (09-npc-lords §16.8), the variant: e.g.
+         * "OFFENSIVE / HOTHEAD"; a lord spawned before the variants or as PLAIN shows only the
+         * personality.
+         */
+        static String personality(JsonNode lord) {
+            String personality = Json.show(lord, "personality");
+            String template =
+                    lord.path("template").isString() ? lord.path("template").asString() : "";
+            return template.isEmpty() || template.equals(personality)
+                    ? personality
+                    : personality + " / " + template;
         }
 
         /**
@@ -1412,18 +1490,30 @@ public class AdminCli implements Callable<Integer> {
             @Parameters(index = "0", paramLabel = "balanced|offensive|defensive")
             Personality personality;
 
+            @Parameters(
+                    index = "1",
+                    arity = "0..1",
+                    paramLabel = "variant",
+                    description =
+                            "One of the personality's variants (e.g. hothead), plain for the"
+                                    + " classic lord; drawn if left out")
+            String variant;
+
             @Override
             public Integer call() {
                 AdminCli cli = npc.cli;
-                JsonNode lord =
-                        cli.client()
-                                .post("/api/admin/npc-lords", Map.of("personality", personality));
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("personality", personality);
+                if (variant != null) {
+                    body.put("variant", variant.strip().toUpperCase(Locale.ROOT).replace('-', '_'));
+                }
+                JsonNode lord = cli.client().post("/api/admin/npc-lords", body);
                 if (!cli.printedJson(lord)) {
                     cli.out()
                             .println(
                                     Json.show(lord, "name")
                                             + " ("
-                                            + Json.show(lord, "personality")
+                                            + personality(lord)
                                             + ") has joined the world.");
                 }
                 return EXIT_OK;

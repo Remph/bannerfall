@@ -6,6 +6,7 @@ import { useNow } from '../../api/queries/now';
 import { useCancelMovement, useSetReturnPush, type Movement } from '../../api/queries/troops';
 import { useWorld } from '../../api/queries/world';
 import { Button } from '../../components/Button';
+import { CostList } from '../../components/CostList';
 import { Countdown } from '../../components/Countdown';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Icon, type IconName } from '../../components/Icon';
@@ -186,6 +187,12 @@ function Section({ title, rows, war = false, tagged, tagOthers = false, currentV
   );
 }
 
+const marchFill: Record<MovementKind, string | undefined> = {
+  ATTACK: styles.attack,
+  SUPPORT: styles.support,
+  RETURN: styles.return,
+};
+
 interface LineProps {
   icon: IconName;
   title: ReactNode;
@@ -195,12 +202,14 @@ interface LineProps {
   time?: ReactNode;
   /** 0 to 1: the bar under the line. */
   bar?: number;
+  /** Troops on the way: the bar fills in their march colour (2.1). */
+  march?: MovementKind;
   war?: boolean;
   children?: ReactNode;
   actions?: ReactNode;
 }
 
-function Line({ icon, title, sub, tag, time, bar, war = false, children, actions }: LineProps) {
+function Line({ icon, title, sub, tag, time, bar, march, war = false, children, actions }: LineProps) {
   return (
     <li className={war ? `${styles.row} ${styles.war}` : styles.row}>
       <span className={styles.icon}>
@@ -217,8 +226,11 @@ function Line({ icon, title, sub, tag, time, bar, war = false, children, actions
       </span>
       {time !== undefined && <span className={styles.time}>{time}</span>}
       {bar !== undefined && (
-        <span className={styles.bar} aria-hidden="true">
-          <span className={styles.fill} style={{ transform: `scaleX(${bar})` }} />
+        <span className={march === undefined ? styles.bar : `${styles.bar} ${styles.march}`} aria-hidden="true">
+          <span
+            className={march === undefined ? styles.fill : `${styles.fill} ${marchFill[march]}`}
+            style={{ transform: `scaleX(${bar})` }}
+          />
         </span>
       )}
       {children !== undefined && <span className={styles.extra}>{children}</span>}
@@ -361,6 +373,7 @@ function RowItem({
           title={`${t.rally.incoming[movement.kind]} ${villageLabel(t, movement.sourceVillage)}`}
           sub={t.rally.arrivesAt(formatWhenExact(Date.parse(movement.arriveAt), now, language))}
           time={<Countdown until={movement.arriveAt} />}
+          march={movement.kind}
           bar={
             movement.departAt === null
               ? undefined
@@ -381,6 +394,7 @@ function RowItem({
           sub={t.rally.arrivesAt(formatWhenExact(Date.parse(movement.arriveAt), now, language))}
           time={<Countdown until={movement.arriveAt} />}
           bar={travelProgress(movement, now)}
+          march={movement.kind}
           actions={<OutgoingActions movement={movement} />}
         >
           <UnitSummary units={movement.units} />
@@ -406,6 +420,27 @@ function RowItem({
             now,
           )}
         />
+      );
+    }
+    case 'merchantsIn': {
+      const transport = row.transport;
+      const sender = transport.sourceVillage.playerName;
+      return (
+        <Line
+          icon="MARKET"
+          tag={tag}
+          title={t.now.merchantsFrom(villageLabel(t, transport.sourceVillage))}
+          sub={
+            <>
+              {sender !== null && <>{sender} · </>}
+              {t.rally.arrivesAt(formatWhenExact(Date.parse(transport.arriveAt), now, language))}
+            </>
+          }
+          time={<Countdown until={transport.arriveAt} />}
+          bar={travelProgress(transport, now)}
+        >
+          <CostList label={t.market.goods} cost={transport.resources} hideZero />
+        </Line>
       );
     }
   }

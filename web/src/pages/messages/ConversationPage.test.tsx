@@ -28,6 +28,8 @@ describe('ConversationPage', () => {
     HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
       this.open = true;
     };
+    // jsdom does not scroll
+    Element.prototype.scrollIntoView = () => {};
   });
 
   afterEach(cleanup);
@@ -48,5 +50,35 @@ describe('ConversationPage', () => {
 
     expect(screen.queryByRole('button', { name: 'More for Brita' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Unblock' })).toBeTruthy();
+  });
+
+  it('shows the letters of a lord in the language of the reader, with no field to answer (2.1 S2b)', () => {
+    const LORD = 9;
+    renderPage({
+      path: '/messages/:playerId',
+      url: `/messages/${LORD}`,
+      element: <ConversationPage />,
+      data: [
+        [[...playerQueryKey, LORD], { id: LORD, name: 'Adalbert', npc: true }],
+        [
+          conversationQueryKey(LORD),
+          [
+            {
+              id: 1,
+              mine: false,
+              text: '',
+              createdAt: '2026-11-19T10:00:00Z',
+              letter: { kind: 'JOINED', guild: '[IW] Iron Wolves' },
+            },
+          ],
+        ],
+        [blocksQueryKey, []],
+      ],
+      language: 'de',
+    });
+
+    expect(screen.getByText(/Von heute an weht mein Banner für \[IW\] Iron Wolves/)).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Diplomatie' }).getAttribute('href')).toBe('/diplomacy');
   });
 });

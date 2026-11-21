@@ -1,5 +1,8 @@
 package de.bannerfall.guild;
 
+import de.bannerfall.chronicle.Chronicle;
+import de.bannerfall.chronicle.ChronicleFacts;
+import de.bannerfall.chronicle.ChronicleKind;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.GameRuleException;
@@ -37,6 +40,7 @@ public class GuildEnemyService {
     private final GuildMemberRepository members;
     private final WorldService worldService;
     private final ApplicationEventPublisher events;
+    private final Chronicle chronicle;
     private final Clock clock;
 
     GuildEnemyService(
@@ -45,7 +49,9 @@ public class GuildEnemyService {
             GuildMemberRepository members,
             WorldService worldService,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            Chronicle chronicle) {
+        this.chronicle = chronicle;
         this.jdbc = jdbc;
         this.guilds = guilds;
         this.members = members;
@@ -86,17 +92,26 @@ public class GuildEnemyService {
             throw new GameRuleException(
                     ErrorCode.ENEMY_LIMIT, "A guild can mark " + ENEMY_MAX + " enemies at most");
         }
-        jdbc.sql(
-                        """
-                        insert into guild_enemy (guild_id, kind, target_id, created_at)
-                        values (:guild, :kind, :target, :now)
-                        on conflict do nothing
-                        """)
-                .param("guild", guildId)
-                .param("kind", kind.name())
-                .param("target", targetId)
-                .param("now", java.sql.Timestamp.from(clock.instant()))
-                .update();
+        int added =
+                jdbc.sql(
+                                """
+                                insert into guild_enemy (guild_id, kind, target_id, created_at)
+                                values (:guild, :kind, :target, :now)
+                                on conflict do nothing
+                                """)
+                        .param("guild", guildId)
+                        .param("kind", kind.name())
+                        .param("target", targetId)
+                        .param("now", java.sql.Timestamp.from(clock.instant()))
+                        .update();
+        if (added > 0 && kind == EnemyKind.GUILD) {
+            // a guild marking another guild is the chronicle's war (2.1 I1)
+            chronicle.recordNow(
+                    ChronicleKind.WAR,
+                    ChronicleFacts.empty()
+                            .withSide(chronicle.guild(guildId))
+                            .withOther(chronicle.guild(targetId)));
+        }
         notifyMembers(guildId);
         return listOf(guildId);
     }

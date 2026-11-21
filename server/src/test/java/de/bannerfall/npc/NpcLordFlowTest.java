@@ -38,6 +38,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -561,14 +562,7 @@ class NpcLordFlowTest {
         for (int i = 0; i < 5; i++) {
             addVillage(lordId);
         }
-        jdbc.sql("delete from build_order where village_id = ?").param(villageId).update();
-        jdbc.sql(
-                        "update village set b_headquarters = 20, b_smithy = 20, b_market = 10,"
-                                + " b_academy = 1, b_warehouse = 30, b_farm = 30, wood = 300000,"
-                                + " clay = 300000, iron = 300000, resources_updated_at = ?"
-                                + " where id = ?")
-                .params(java.sql.Timestamp.from(clock.instant()), villageId)
-                .update();
+        builtThroughAcademy(villageId, NpcPersonality.BALANCED);
 
         transaction.executeWithoutResult(
                 status -> {
@@ -594,6 +588,118 @@ class NpcLordFlowTest {
                                 .query(Integer.class)
                                 .single())
                 .isEqualTo(75_000);
+    }
+
+    @Test
+    void aVillageRebuildsWhatItLostBeforeItSavesForNobles() {
+        // S2a (2.1): catapults took the barracks of a lord's academy village; saving for nobles
+        // skipped the build list, so the barracks never came back and the lord froze
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+        builtThroughAcademy(villageId, NpcPersonality.BALANCED);
+        jdbc.sql("update village set b_barracks = 0 where id = ?").param(villageId).update();
+
+        transaction.executeWithoutResult(
+                status -> {
+                    Village village = locker.lock(villageId).getFirst();
+                    economy.run(
+                            village,
+                            lordId,
+                            clock.instant(),
+                            templates.of(NpcPersonality.BALANCED),
+                            NpcMemory.Ledger.ZERO,
+                            true,
+                            0,
+                            NpcLearning.Lesson.NONE,
+                            null);
+                });
+
+        assertThat(
+                        jdbc.sql("select building from build_order where village_id = ?")
+                                .param(villageId)
+                                .query(String.class)
+                                .list())
+                .first()
+                .isEqualTo("BARRACKS");
+        assertThat(
+                        jdbc.sql(
+                                        "select count(*) from recruit_order where village_id = ?"
+                                                + " and unit = 'NOBLE'")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single())
+                .isZero();
+    }
+
+    @Test
+    void aLearnedWallGoalStillWaitsUntilTheNobleIsOrdered() {
+        // S2a review (2.1): the repair covers the template's steps, not the wall goal (09 §15.4)
+        spawnAtWorldStart(1);
+        long lordId = lords().getFirst().getId();
+        long villageId = villages.findIdsByPlayerId(lordId).getFirst();
+        builtThroughAcademy(villageId, NpcPersonality.BALANCED);
+
+        transaction.executeWithoutResult(
+                status -> {
+                    Village village = locker.lock(villageId).getFirst();
+                    assertThat(village.getBuildings().get(BuildingType.WALL)).isLessThan(20);
+                    economy.run(
+                            village,
+                            lordId,
+                            clock.instant(),
+                            templates.of(NpcPersonality.BALANCED),
+                            NpcMemory.Ledger.ZERO,
+                            true,
+                            0,
+                            NpcLearning.Lesson.NONE,
+                            20);
+                });
+
+        assertThat(
+                        jdbc.sql(
+                                        "select count(*) from recruit_order where village_id = ?"
+                                                + " and unit = 'NOBLE'")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single())
+                .isOne();
+        assertThat(
+                        jdbc.sql("select count(*) from build_order where village_id = ?")
+                                .param(villageId)
+                                .query(Integer.class)
+                                .single())
+                .isZero();
+    }
+
+    /**
+     * Raises the village to every level its template has up to and including the academy step (09
+     * §5.1, 5), empties its build queue and fills its stock: it may save for nobles.
+     */
+    private void builtThroughAcademy(long villageId, NpcPersonality personality) {
+        jdbc.sql("delete from build_order where village_id = ?").param(villageId).update();
+        Map<BuildingType, Integer> levels = new EnumMap<>(BuildingType.class);
+        for (Map<BuildingType, Integer> step :
+                NpcPlanning.stepsThroughAcademy(templates.of(personality).buildSteps(true))) {
+            step.forEach((type, level) -> levels.merge(type, level, Math::max));
+        }
+        levels.merge(BuildingType.WAREHOUSE, 30, Math::max);
+        levels.merge(BuildingType.FARM, 30, Math::max);
+        StringBuilder set = new StringBuilder();
+        levels.forEach(
+                (type, level) ->
+                        set.append("b_")
+                                .append(type.name().toLowerCase(java.util.Locale.ROOT))
+                                .append(" = ")
+                                .append(level)
+                                .append(", "));
+        jdbc.sql(
+                        "update village set "
+                                + set
+                                + "wood = 300000, clay = 300000, iron = 300000,"
+                                + " resources_updated_at = ? where id = ?")
+                .params(java.sql.Timestamp.from(clock.instant()), villageId)
+                .update();
     }
 
     // ---- build quiet hours (09 §5.1) ----

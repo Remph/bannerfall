@@ -1,6 +1,9 @@
 package de.bannerfall.npc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.bannerfall.FixedRandomSource;
 import de.bannerfall.IntegrationTest;
@@ -665,6 +668,27 @@ class NpcWarfareFlowTest {
                                 .query(Integer.class)
                                 .single())
                 .isEqualTo(1);
+    }
+
+    @Test
+    void anAcademyWithoutAnArmyToEscortATrainDoesNotSaveForNobles() {
+        // S2a (2.1): a lord farmed down to a few units saved for nobles it could never escort
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        long village = villageOf(lord);
+        buildings(village, Map.of(BuildingType.ACADEMY, 1, BuildingType.STABLE, 1));
+        units(village, Map.of(UnitType.SCOUT, 10, UnitType.SPEARMAN, 200));
+        barbarian(3, 0, 0);
+
+        round(lord);
+
+        // spearmen and scouts don't clear a village: no target, the village builds on
+        assertThat(memory(lord).conquest()).doesNotContainKey(village);
+
+        units(village, Map.of(UnitType.AXEMAN, 100, UnitType.SCOUT, 10));
+        clock.advance(Duration.ofHours(1));
+        round(lord);
+
+        assertThat(memory(lord).conquest()).containsKey(village);
     }
 
     @Test
@@ -1751,7 +1775,208 @@ class NpcWarfareFlowTest {
                 .single();
     }
 
+    // ---- lord variants (2.1, 09-npc-lords §16) ----
+
+    @Test
+    void aHotheadLeavesAHumanAloneUntilAttackedThenRetaliatesTwice() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        variant(lord, "HOTHEAD");
+        long village = villageOf(lord);
+        units(village, Map.of(UnitType.AXEMAN, 100));
+        TestPlayer human = human(3, 0, true);
+        knows(lord, human.villageId, emptyIntel(clock.instant(), human.playerId));
+
+        round(lord);
+        assertThat(movementsTo(lord, human.villageId)).isEmpty();
+
+        // the human attacks: a grudge of 2 × 48 hours, and two retaliations
+        Instant now = clock.instant();
+        remember(
+                lord,
+                m ->
+                        m.grudges.put(
+                                human.playerId,
+                                new NpcMemory.Grudge(
+                                        now.plus(Duration.ofHours(96)),
+                                        human.villageId,
+                                        false,
+                                        0)));
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+        NpcMemory.Grudge grudge = memory(lord).grudges().get(human.playerId);
+        assertThat(grudge.retaliations()).isEqualTo(1);
+        assertThat(grudge.retaliated()).isFalse();
+
+        // the first is back, the intel fresh: the second
+        deleteMovementsOf(lord);
+        units(village, Map.of(UnitType.AXEMAN, 100));
+        clock.advance(Duration.ofMinutes(1));
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
+                });
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+        grudge = memory(lord).grudges().get(human.playerId);
+        assertThat(grudge.retaliations()).isEqualTo(2);
+        assertThat(grudge.retaliated()).isTrue();
+    }
+
+    @Test
+    void aKnightOfHonourSendsNothingToASmallHumanAndChallengesABigOne() {
+        long lord = lord(NpcPersonality.BALANCED);
+        variant(lord, "KNIGHT");
+        units(villageOf(lord), Map.of(UnitType.AXEMAN, 100, UnitType.SCOUT, 10));
+        playerPoints(lord, 1000);
+        TestPlayer human = human(3, 0, true);
+        playerPoints(human.playerId, 500);
+        points(human.villageId, 100);
+        knows(lord, human.villageId, emptyIntel(clock.instant(), human.playerId));
+        // even a grudge doesn't open a small player
+        Instant now = clock.instant();
+        remember(
+                lord,
+                m ->
+                        m.grudges.put(
+                                human.playerId,
+                                new NpcMemory.Grudge(
+                                        now.plus(Duration.ofHours(10)),
+                                        human.villageId,
+                                        false,
+                                        0)));
+
+        round(lord);
+        assertThat(movementsTo(lord, human.villageId)).isEmpty();
+        assertThat(memory(lord).grudges().get(human.playerId).retaliated()).isTrue();
+
+        // at 95 % of its points: a fair rival (the type's 75 % rule would refuse him)
+        playerPoints(human.playerId, 950);
+        clock.advance(Duration.ofMinutes(1));
+        remember(lord, m -> m.grudges.clear());
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+    }
+
+    @Test
+    void aRobberKnightRaidsAnEmptyPlayerVillageBeforeABarbarianOne() {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        variant(lord, "ROBBER_KNIGHT");
+        long village = villageOf(lord);
+        // enough light cavalry for one farm only
+        units(village, Map.of(UnitType.LIGHT_CAVALRY, 2));
+        long barbarian = barbarian(2, 0, 0);
+        TestPlayer human = human(6, 0, true);
+        remember(
+                lord,
+                m -> {
+                    m.intel.put(barbarian, barbarianIntel(clock.instant()));
+                    m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
+                });
+
+        round(lord);
+        assertThat(attacksTo(lord, human.villageId)).hasSize(1);
+        assertThat(attacksTo(lord, barbarian)).isEmpty();
+
+        // the plain type: the nearer barbarian first
+        deleteMovementsOf(lord);
+        variant(lord, "OFFENSIVE");
+        units(village, Map.of(UnitType.LIGHT_CAVALRY, 2));
+        clock.advance(Duration.ofMinutes(1));
+        remember(
+                lord,
+                m -> {
+                    m.attacksSent.clear();
+                    m.farmed.clear();
+                    m.intel.put(barbarian, barbarianIntel(clock.instant()));
+                    m.intel.put(human.villageId, emptyIntel(clock.instant(), human.playerId));
+                });
+        round(lord);
+        assertThat(attacksTo(lord, barbarian)).hasSize(1);
+        assertThat(attacksTo(lord, human.villageId)).isEmpty();
+    }
+
+    @Test
+    void aProtectorAnswersAnAttackFurtherAheadThanAPlainDefensiveLord() {
+        long lord = lord(NpcPersonality.DEFENSIVE);
+        long helper = villageOf(lord);
+        long attacked = addVillage(lord, 3, 0);
+        units(helper, Map.of(UnitType.SPEARMAN, 100));
+        TestPlayer human = human(3, 10, false);
+        Instant now = clock.instant();
+        // 4 hours away at 36 min/field: beyond the 3-hour horizon, within 1.5 × 3 hours
+        incomingAttack(human, attacked, now.minusSeconds(120 * 60), now.plusSeconds(240 * 60));
+
+        round(lord);
+        assertThat(supportsFrom(helper)).isEmpty();
+
+        variant(lord, "PROTECTOR");
+        clock.advance(Duration.ofMinutes(1));
+        round(lord);
+        assertThat(supportsFrom(helper))
+                .singleElement()
+                .satisfies(s -> assertThat(s).containsEntry("target_village_id", attacked));
+    }
+
+    @Test
+    void aFirstScoutingWritesTheContactAndOnlyThatHumanSeesTheVariant() throws Exception {
+        long lord = lord(NpcPersonality.OFFENSIVE);
+        variant(lord, "ROBBER_KNIGHT");
+        units(villageOf(lord), Map.of(UnitType.SCOUT, 10));
+        TestPlayer human = human(3, 0, true);
+        TestPlayer stranger = human(40, 40, true);
+        String page = "/api/players/" + lord;
+
+        human.browser
+                .get(page)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lordVariant").value(nullValue()));
+
+        round(lord); // the scouts go
+        assertThat(movementsTo(lord, human.villageId)).hasSize(1);
+        clock.advance(Duration.ofHours(1));
+        processor.processDue(clock.instant());
+
+        Instant since =
+                jdbc.sql("select since from npc_contact where player_id = ? and lord_id = ?")
+                        .param(human.playerId)
+                        .param(lord)
+                        .query(Timestamp.class)
+                        .single()
+                        .toInstant();
+        assertThat(since).isBefore(clock.instant());
+        human.browser
+                .get(page)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lordVariant.key").value("ROBBER_KNIGHT"));
+        stranger.browser
+                .get(page)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lordVariant").value(nullValue()));
+        // the human's own page shows nothing of the kind
+        stranger.browser
+                .get("/api/players/" + human.playerId)
+                .andExpect(jsonPath("$.lordVariant").value(nullValue()));
+    }
+
     // ---- helpers: memory ----
+
+    /** Plays {@code template}: a variant's key or a personality's name (09 §16.5). */
+    private void variant(long lord, String template) {
+        jdbc.sql("update npc_brain set template = ? where player_id = ?")
+                .param(template)
+                .param(lord)
+                .update();
+    }
+
+    private void playerPoints(long playerId, int points) {
+        jdbc.sql("update player set points = ? where id = ?")
+                .param(points)
+                .param(playerId)
+                .update();
+    }
 
     private NpcMemory memory(long lord) {
         return brains.findById(lord).orElseThrow().getMemory();

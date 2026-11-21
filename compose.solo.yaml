@@ -1,0 +1,63 @@
+# Play Bannerfall on your own PC (2.1): one world for you and the NPC lords, without a domain and
+# without Caddy. The world sleeps while you don't play (a solo world, set in the setup wizard).
+#
+#   ops/bannerfall-solo          first start: writes .env.solo with fresh secrets, builds the
+#                                image from this repository, starts it and prints the setup link
+#
+# By hand: docker compose --env-file .env.solo -f compose.solo.yaml up -d
+# A released image instead of building: check the signed release tag first and pin the image by
+# the digest it names (README, *Signed releases*); a bare tag can be moved, a digest can't:
+#   git fetch --tags origin && ops/bannerfall-verify-tag v2.1.0     prints image=…@sha256:…
+#   BANNERFALL_IMAGE=ghcr.io/your-name/bannerfall:2.1.0@sha256:<that digest>   in .env.solo
+# then `docker compose --env-file .env.solo -f compose.solo.yaml pull` once.
+name: bannerfall-solo
+
+services:
+  app:
+    image: ${BANNERFALL_IMAGE:-bannerfall:solo}
+    build:
+      context: .
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/bannerfall
+      DB_USER: bannerfall
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.solo}
+      BANNERFALL_ADMIN_TOKEN: ${BANNERFALL_ADMIN_TOKEN:?set BANNERFALL_ADMIN_TOKEN in .env.solo}
+      # Plain http on this PC: the session cookie must not require HTTPS.
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: "false"
+      # `bannerfall-admin setup` prints the setup link with this address. With its scheme it also
+      # switches on the Host check: the game answers only localhost / 127.0.0.1, so no website can
+      # reach it through DNS rebinding.
+      BANNERFALL_DOMAIN: http://localhost:${APP_PORT:-8461}
+      BANNERFALL_STATUS_ORIGINS: ""
+      TZ: ${TZ:-Europe/Berlin}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - logs:/app/logs
+    ports:
+      # Only on this PC: nobody else on your network reaches the game. APP_PORT in .env.solo.
+      - "127.0.0.1:${APP_PORT:-8461}:8080"
+
+  db:
+    image: postgres:18.6
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: bannerfall
+      POSTGRES_USER: bannerfall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.solo}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bannerfall -d bannerfall"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  logs:

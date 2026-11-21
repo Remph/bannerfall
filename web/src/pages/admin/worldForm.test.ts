@@ -30,6 +30,7 @@ describe('worldFromForm', () => {
       guildStartTogether: true,
       guildBannersEnabled: false,
       tutorialEnabled: true,
+      soloMode: false,
       npcGuildsEnabled: false,
       npcGuildMaxMembers: 3,
       unitLevelsEnabled: false,

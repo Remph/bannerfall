@@ -5,6 +5,7 @@ import de.bannerfall.common.ErrorCode;
 import de.bannerfall.npc.NpcBalanceSettings;
 import de.bannerfall.npc.NpcDifficulty;
 import de.bannerfall.village.VillageRepository;
+import java.time.Duration;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -70,14 +71,43 @@ public class WorldService {
         return snapshot().endedAt();
     }
 
+    /** When the world fell asleep or was paused (2.1, 12-solo-and-allies §3); null while awake. */
+    public Instant asleepSince() {
+        return snapshot().asleepSince();
+    }
+
+    /** Whether the host paused the world (2.1): it stays asleep until he presses play. */
+    public boolean paused() {
+        return snapshot().paused();
+    }
+
+    /** The host's fast forward (2.1): 1 (normal), 2 or 4. */
+    public int clockSpeed() {
+        return snapshot().clockSpeed();
+    }
+
     /**
-     * {@code now} in game time: the moment the world ended once it has (§22), so nothing that is
-     * worked out from the time (resources, loyalty, recruiting, dismissing) moves on in a frozen
-     * world; otherwise {@code now} itself.
+     * Where the game time stands still: when the world ended (§22) or fell asleep (2.1), the
+     * earlier of the two; null while it runs.
+     */
+    public Instant frozenAt() {
+        Snapshot s = snapshot();
+        if (s.endedAt() == null) {
+            return s.asleepSince();
+        }
+        return s.asleepSince() != null && s.asleepSince().isBefore(s.endedAt())
+                ? s.asleepSince()
+                : s.endedAt();
+    }
+
+    /**
+     * {@code now} in game time: the moment the world ended once it has (§22) or fell asleep (2.1),
+     * so nothing that is worked out from the time (resources, loyalty, recruiting, dismissing)
+     * moves on in a frozen or sleeping world; otherwise {@code now} itself.
      */
     public Instant gameTime(Instant now) {
-        Instant endedAt = endedAt();
-        return endedAt != null && endedAt.isBefore(now) ? endedAt : now;
+        Instant frozenAt = frozenAt();
+        return frozenAt != null && frozenAt.isBefore(now) ? frozenAt : now;
     }
 
     /** Reads the row again. Call after changing it. */
@@ -227,6 +257,56 @@ public class WorldService {
             Instant endedAt,
             String leader,
             Instant leaderSince) {}
+
+    /**
+     * The sleep state as stored, read under the row lock (2.1): every change of it (falling asleep,
+     * the wake, pause, play, a fast-forward step) holds this lock, so they never overlap.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ClockState lockedClockState() {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        return new ClockState(
+                phaseOf(row),
+                row.toSettings().soloMode(),
+                row.getAsleepSince(),
+                row.isPaused(),
+                row.getClockSpeed());
+    }
+
+    /** The sleep state (2.1): asleep since (null = awake), paused, the fast-forward speed. */
+    public record ClockState(
+            WorldPhase phase, boolean soloMode, Instant asleepSince, boolean paused, int speed) {}
+
+    /** Asleep since {@code since} (null = awake), paused or not; under the row lock. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void setAsleep(Instant since, boolean paused) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        row.setAsleep(since, paused);
+        reloadAfterCommit();
+    }
+
+    /** The fast-forward speed: 1, 2 or 4. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void setClockSpeed(int speed) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        row.setClockSpeed(speed);
+        reloadAfterCommit();
+    }
+
+    /**
+     * Moves the game clocks of the settings row on by {@code by}: when the world opened, the end
+     * date and the victory hold time ({@code FrozenTime} moves the other tables).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void shiftClocks(Duration by) {
+        WorldSettingsEntity row =
+                repository.findWithLockById(ROW_ID).orElseThrow(WorldService::missingRow);
+        row.shiftClocks(by);
+        reloadAfterCommit();
+    }
 
     /** Stores the side that meets the victory condition and since when; nulls = nobody. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -467,7 +547,10 @@ public class WorldService {
                 phaseOf(row),
                 phaseOf(row) == WorldPhase.PREGAME ? row.getOpensAt() : null,
                 row.getEndsAt(),
-                row.getEndedAt());
+                row.getEndedAt(),
+                row.getAsleepSince(),
+                row.isPaused(),
+                row.getClockSpeed());
     }
 
     private static IllegalStateException missingRow() {
@@ -481,5 +564,8 @@ public class WorldService {
             WorldPhase phase,
             Instant opensAt,
             Instant endsAt,
-            Instant endedAt) {}
+            Instant endedAt,
+            Instant asleepSince,
+            boolean paused,
+            int clockSpeed) {}
 }

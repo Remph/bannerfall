@@ -73,6 +73,11 @@ public class PlayerConnections implements HttpSessionListener {
                         .count();
     }
 
+    /** Whether any player has a game connection open (2.1: a solo world sleeps without one). */
+    public boolean anyOpen() {
+        return open.values().stream().anyMatch(session -> session.getPrincipal() != null);
+    }
+
     /** After the commit of a ban, deletion or password change: the player's connections close. */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     void on(SessionsEnded event) {

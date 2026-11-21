@@ -1,6 +1,10 @@
 package de.bannerfall.victory;
 
 import de.bannerfall.barbarian.BarbarianService;
+import de.bannerfall.chronicle.Chronicle;
+import de.bannerfall.chronicle.ChronicleFacts;
+import de.bannerfall.chronicle.ChronicleKind;
+import de.bannerfall.chronicle.ChronicleSide;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.event.EventScheduler;
@@ -58,6 +62,8 @@ public class VictoryService {
     private final JdbcClient jdbc;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final Chronicle chronicle;
+    private final Court court;
 
     VictoryService(
             WorldService worldService,
@@ -68,7 +74,10 @@ public class VictoryService {
             EventScheduler scheduler,
             JdbcClient jdbc,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            Court court,
+            Chronicle chronicle) {
+        this.chronicle = chronicle;
         this.worldService = worldService;
         this.standingsQuery = standingsQuery;
         this.results = results;
@@ -78,6 +87,7 @@ public class VictoryService {
         this.jdbc = jdbc;
         this.events = events;
         this.clock = clock;
+        this.court = court;
     }
 
     /**
@@ -121,7 +131,7 @@ public class VictoryService {
         if (world.victoryMode() == VictoryMode.KEEPS) {
             barbarians.ensureKeeps(world.keepCount());
         }
-        Standings standings = standingsQuery.read(world.guildsEnabled());
+        Standings standings = court.marked(standingsQuery.read(world.guildsEnabled()));
         Optional<VictorySide> candidate = meetsCondition(world, standings);
         Victory.Clock next =
                 Victory.next(
@@ -149,6 +159,7 @@ public class VictoryService {
                             : Victory.winsAt(next.since(), world.victoryHoldHours()),
                     side(standings, state.leader()));
         }
+        court.update(standings, humanIds());
     }
 
     /**
@@ -165,6 +176,16 @@ public class VictoryService {
                     new GameNotification.VictoryClock(
                             leader, winsAt, previous, human.owns(leader), human.owns(previous));
             events.publishEvent(new PlayerNotification(human.id(), notification));
+        }
+        if (leader != null) {
+            chronicle.recordNow(
+                    ChronicleKind.VICTORY_CLOCK,
+                    ChronicleFacts.empty().withSide(ChronicleSide.of(leader)).withWinsAt(winsAt));
+            // the clock started or changed hands (2.1 S4): a court taunts the humans it races
+            court.taunt(
+                    leader,
+                    winsAt,
+                    humans().stream().filter(h -> !h.owns(leader)).map(Human::id).toList());
         }
     }
 
@@ -228,6 +249,13 @@ public class VictoryService {
         List<VictorySide> sides =
                 standings.sides().stream().limit(WorldResultStore.MAX_SIDES).toList();
         results.save(new WorldResultDto(reason, at, winner, sides));
+        chronicle.record(
+                ChronicleKind.WORLD_ENDED,
+                at,
+                ChronicleFacts.empty()
+                        .withSide(ChronicleSide.of(winner))
+                        .withReason(reason.name()));
+        chronicle.endFrame(at);
         log.info(
                 "The world has ended ({}): {} won",
                 reason,
@@ -301,7 +329,7 @@ public class VictoryService {
                 phase == WorldPhase.ENDED ? results.load() : Optional.empty();
         Standings standings =
                 phase == WorldPhase.OPEN
-                        ? standingsQuery.read(world.guildsEnabled())
+                        ? court.marked(standingsQuery.read(world.guildsEnabled()))
                         : new Standings(List.of(), 0, 0);
         VictoryState state = phase == WorldPhase.OPEN ? worldService.victoryState() : null;
         VictorySide leader =

@@ -44,6 +44,7 @@ export const enPushTexts = {
       BUILDS_DONE: 'Build queue empty',
       ATTACK_RETURNED: 'Returning attacks',
       STORAGE_FULL: 'Warehouse full',
+      HELP_REQUEST: 'Requests from allies',
     } satisfies Record<PushKind, string>,
     kindHints: {
       ATTACK: 'As soon as an attack on one of your villages is sent, with its arrival.',
@@ -55,6 +56,7 @@ export const enPushTexts = {
       ATTACK_RETURNED:
         'When attacks you asked about are home again: one attack, a train or a farm list run. You choose when you send them, or with the bell.',
       STORAGE_FULL: 'When wood, clay or iron reaches the warehouse limit in a village. Once, until it drops again.',
+      HELP_REQUEST: 'When an allied lord asks you for defenders or resources, with how long you have.',
     } satisfies Record<PushKind, string>,
     /** The notifications themselves. */
     testBody: 'Notifications work on this device.',
@@ -99,6 +101,34 @@ export const enPushTexts = {
       `${side} no longer meets the victory condition. The victory clock has stopped.`,
     victoryClockStoppedYours: 'Your guild no longer meets the victory condition. The victory clock has stopped.',
     victoryClockStoppedYou: 'You no longer meet the victory condition. The victory clock has stopped.',
+    /**
+     * 2.1 S2b (12-solo-and-allies §6): the court of a solo world, named after its lord guild ("Ordo
+     * Corvi II" is "The Raven Court II"); a guild the host named is "the court of" its name.
+     */
+    courtName: (key: string | null, numeral: string | null, guild: string) => {
+      const names: Record<string, string> = {
+        RAVEN: 'The Raven Court',
+        LION: 'The Lion Court',
+        EAGLE: 'The Eagle Court',
+        BEAR: 'The Bear Court',
+        WOLF: 'The Wolf Court',
+        DRAGON: 'The Dragon Court',
+        STAG: 'The Stag Court',
+        FALCON: 'The Falcon Court',
+        BULL: 'The Bull Court',
+        FOX: 'The Fox Court',
+      };
+      const name = key === null ? undefined : names[key];
+      if (name === undefined) {
+        return `The court of ${guild}`;
+      }
+      return numeral === null ? name : `${name} ${numeral}`;
+    },
+    /** Another lord guild became the court (the victory check). */
+    courtChanged: (court: string) => `${court} is now the strongest court of the lords.`,
+    /** 2.1 S4: an allied lord asks for help (toast and push). */
+    helpRequested: (lord: string, kind: string) =>
+      kind === 'RESOURCES' ? `${lord} asks you for resources.` : `${lord} asks you for defenders.`,
     guildInvited: (guild: string) => `${guild} invited you to join their guild`,
     guildBannerRaised: (level: number) => `Your guild raised its banner to level ${level}`,
     messageReceived: (player: string) => `New message from ${player}`,

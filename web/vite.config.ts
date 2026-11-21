@@ -70,7 +70,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    // Vitest hands tests empty CSS; these are read as text by src/theme/palettes.test.ts (1.6)
-    css: { include: [/styles\/(tokens|palettes|looks)\.css/] },
+    // Vitest hands tests empty CSS; these are read as text by src/theme/palettes.test.ts (1.6; the
+    // Diplomacy page's race bars since the 2.1 UI review)
+    css: { include: [/styles\/(tokens|palettes|looks)\.css/, /DiplomacyPage\.module\.css/] },
   },
 });

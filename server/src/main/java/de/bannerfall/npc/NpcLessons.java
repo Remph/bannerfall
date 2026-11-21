@@ -53,7 +53,7 @@ class NpcLessons {
                 brain.getMemory().lessons().seen(),
                 mateTallies,
                 wins,
-                Set.copyOf(templates.of(brain.getPersonality()).attackUnits()),
+                Set.copyOf(templates.of(brain).attackUnits()),
                 now,
                 balance.general().learning());
     }

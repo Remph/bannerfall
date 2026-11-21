@@ -74,9 +74,10 @@ class PushFlowTest {
                         "GUILD_INVITE",
                         "WORLD_END",
                         "BUILDS_DONE",
-                        "STORAGE_FULL");
+                        "STORAGE_FULL",
+                        "HELP_REQUEST");
         assertThat(JsonPath.<List<Boolean>>read(settings, "$.kinds[*].enabled"))
-                .containsExactly(true, true, true, true, true, true, false, false);
+                .containsExactly(true, true, true, true, true, true, false, false, true);
     }
 
     @Test

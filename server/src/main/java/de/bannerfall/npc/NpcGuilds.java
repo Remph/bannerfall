@@ -29,7 +29,12 @@ class NpcGuilds {
     private static final String LORDS =
             """
             select p.id, p.points, m.guild_id, b.guild_by_admin, b.personality,
-                   (select count(*) from guild_member g where g.guild_id = m.guild_id) as size
+                   -- a human's guild with allied lords in it (2.1 S2b) is never one to join
+                   case when exists (select 1 from guild_member h join player hp on hp.id = h.player_id
+                                     where h.guild_id = m.guild_id and not hp.npc)
+                        then 2147483647
+                        else (select count(*) from guild_member g where g.guild_id = m.guild_id)
+                   end as size
             from player p
             join npc_brain b on b.player_id = p.id
             left join guild_member m on m.player_id = p.id

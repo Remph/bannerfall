@@ -2,6 +2,7 @@ import type { BuildingEffect } from '../api/queries/buildings';
 import type { EndReason, VictoryMode } from '../api/queries/world';
 import { tierName } from '../game/banners';
 import type { BannerType, UnitType } from '../game/gameData';
+import type { LordVariantKey } from '../game/lordVariants';
 import type { MarkerKind } from '../game/mapMovements';
 import type { VillageKind } from '../game/mapView';
 import type { ReportKind, TheftResult } from '../game/reports';
@@ -9,8 +10,10 @@ import type { CommandKind, MovementKind } from '../game/troops';
 import type { WorldRow, WorldSection } from '../pages/admin/worldTabForm';
 import type { MapActionKey } from '../pages/map/mapActions';
 import type { RankingKind } from '../api/queries/ranking';
+import type { OrderKind } from '../api/queries/diplomacy';
 import type { Palette } from '../theme/theme';
 import { enPushTexts } from './push-en';
+import { enLetters } from './letters-en';
 
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st (the automation's "from your 3rd village"). */
 function ordinal(n: number): string {
@@ -127,6 +130,8 @@ export const en = {
     ranking: 'Ranking',
     achievements: 'Achievements',
     guild: 'Guild',
+    /** 2.1 S2b: the court, allies and trust of the NPC lords. */
+    diplomacy: 'Diplomacy',
     more: 'More',
     settings: 'Settings',
     chat: 'Chat',
@@ -190,10 +195,78 @@ export const en = {
     lookAround: 'Look around',
     stays: 'Reports, messages and the chat stay open.',
   },
+  /** 2.1 I1: the world chronicle, the story of an ended world (02-game-rules §32). */
+  chronicle: {
+    title: 'Chronicle',
+    intro: (days: number, when: string) =>
+      `The story of this world: ${days} ${days === 1 ? 'day' : 'days'}, ended on ${when}.`,
+    read: 'Read the chronicle',
+    endScreenTitle: 'How it went',
+    replay: 'Who held what',
+    replayLabel: 'Replay of who owned which village, day by day',
+    play: 'Play',
+    pause: 'Pause',
+    previous: 'Day before',
+    next: 'Day after',
+    slider: 'Day',
+    dayName: (day: number) => (day === 0 ? 'The opening' : `Day ${day}`),
+    dayOf: (day: number, last: number) => (day === 0 ? 'The opening' : `Day ${day} of ${last}`),
+    beforeOpening: 'Before the opening',
+    barbarians: 'Barbarians',
+    villages: (count: number) => `${count} ${count === 1 ? 'village' : 'villages'}`,
+    yours: 'yours',
+    timeline: 'Turning points',
+    timelineHint: 'Tap a moment to see the map on that day.',
+    showDay: (day: string) => `Show ${day} on the map`,
+    empty: 'Nothing was written down in this world.',
+    someone: 'Someone',
+    aVillage: 'a village',
+    barbarianVillage: 'Barbarian village',
+    entry: {
+      conquest: (to: string, village: string, from: string) => `${to} took ${village} from ${from}.`,
+      conquestBarbarian: (to: string, village: string) => `${to} took ${village} from the barbarians.`,
+      firstConquest: 'The first conquest of the world.',
+      keep: 'A banner keep changed hands.',
+      lastVillage: (who: string) => `It was the last village of ${who}.`,
+      conquests: (count: number) =>
+        count === 1 ? 'One more village changed hands.' : `${count} more villages changed hands.`,
+      conquestsBusiest: (count: number, who: string, taken: number) =>
+        `${count} more villages changed hands, ${taken} of them to ${who}.`,
+      guildFounded: (guild: string, founder: string) => `${founder} founded ${guild}.`,
+      guildDisbanded: (guild: string) => `${guild} came to an end.`,
+      war: (guild: string, enemy: string) => `${guild} named ${enemy} its enemy.`,
+      allyJoined: (lord: string, guild: string) => `${lord} joined ${guild} as an ally.`,
+      allyLeft: (lord: string, guild: string) => `${lord} lost faith and left ${guild}.`,
+      allyLeftAttacked: (lord: string, guild: string) => `${lord} left ${guild} after being attacked by a member.`,
+      orderAttack: (lord: string, player: string, village: string) =>
+        `On the order of ${player}, ${lord} marched on ${village}.`,
+      helpAnswered: (lord: string, player: string, village: string) =>
+        `${player} answered the call of ${lord} for help at ${village} in time.`,
+      helpIgnored: (lord: string, player: string, village: string) =>
+        `${lord} asked ${player} for help at ${village} and got no answer.`,
+      courtRose: (court: string) => `${court} rose as the strongest guild of the lords.`,
+      courtPassed: (court: string, before: string) => `${court} took the place of ${before} as the court.`,
+      lead: (side: string) => `${side} took the lead in points.`,
+      victoryClock: (side: string) => `${side} met the victory condition, and the clock to its win started.`,
+      ended: (winner: string) => `The world ended. ${winner} won.`,
+      endedNobody: 'The world ended without a winner.',
+    },
+  },
   /** v1.3: the strip under the top bar once the world has ended (02-game-rules §22). */
   endedBanner: {
     label: 'World ended',
     link: 'See the result',
+  },
+  /** 2.1: the host paused a solo world (12-solo-and-allies §3). */
+  pausedBanner: {
+    label: 'World paused',
+    title: 'The world is paused',
+    text: 'Nothing grows and nothing marches until the host presses play.',
+    hostText: 'Nothing grows and nothing marches until you press play.',
+    play: 'Play',
+    frozen: 'The world is paused',
+    /** The same for the host, who starts it again. */
+    frozenHost: 'The world is paused: press play to go on',
   },
   /** The pre-game (M14g): the world exists but has not opened; players can chat and read the settings. */
   pregame: {
@@ -260,6 +333,10 @@ export const en = {
         name: 'Together against the lords',
         text: 'Two to four friends in one guild against about 20 hard lords in one or two lord guilds.',
       },
+      solo: {
+        name: 'Solo',
+        text: 'You alone against eight lords in lord guilds. The world sleeps while you are away and goes on where it stopped.',
+      },
       custom: {
         name: 'Custom',
         text: 'Start from the default settings and set everything yourself.',
@@ -297,6 +374,23 @@ export const en = {
     npcLordCount: 'Lords at the start',
     difficulty: 'Difficulty',
     difficulties: { EASY: 'Easy', NORMAL: 'Normal', HARD: 'Hard', CUSTOM: 'Custom' },
+    /** I3 (2.1): a name and one sentence per difficulty (09-npc-lords §8). */
+    difficultyNames: {
+      EASY: 'Gentle neighbours',
+      NORMAL: 'Fair rivals',
+      HARD: 'Hungry warlords',
+      CUSTOM: 'Your own rules',
+    },
+    difficultyTexts: {
+      EASY: 'The lords grow slower than a player, attack you at most three times a day and never take your last village.',
+      NORMAL:
+        'The lords grow about as fast as a player and catch up when they fall behind; they attack you up to eight times a day and never take your last village.',
+      HARD: 'The lords grow faster than a player, attack you up to sixteen times a day at any hour and take your last village too.',
+      CUSTOM: 'The values set on the admin page, for hosts who want to tune every number.',
+    },
+    solo: 'Solo world',
+    soloHint:
+      'For you and the NPC lords: the world sleeps while nobody plays and picks up where it stopped. The lords keep no quiet hours.',
     npcGuilds: 'Lords form guilds',
     npcGuildsHint: 'Lords near each other team up, defend and avenge each other.',
     npcGuildMaxMembers: 'Most lords per lord guild',
@@ -1197,6 +1291,7 @@ export const en = {
     merchantsTo: (target: string) => `Merchants to ${target}`,
     merchantsHome: (target: string) => `Merchants back from ${target}`,
     merchantsCount: (count: number) => (count === 1 ? '1 merchant' : `${count} merchants`),
+    merchantsFrom: (source: string) => `Merchants from ${source}`,
     close: 'Close the Now list',
     /** The phone's first-time hint, a strip under the sky, and its close button. */
     hint: 'Pull the sky down to see everything that is running.',
@@ -2105,6 +2200,15 @@ export const en = {
     moreFor: (name: string) => `More for ${name}`,
     blockPlayer: 'Block this player',
     write: 'Write a message',
+    /** 2.1 S2b: a conversation with an NPC lord holds only its letters. */
+    lordLetters: 'Lords answer by letter only. Invite them on the Diplomacy page.',
+    toDiplomacy: 'Diplomacy',
+    /** The letters of NPC lords (12-solo-and-allies §5), written in the reader's language. */
+    letters: enLetters,
+    /** A letter's guild when the server had none (the guild was gone). */
+    yourGuild: 'your guild',
+    /** An order letter's village when the server had none (the village was gone). */
+    letterVillage: 'the village',
   },
   chat: {
     hide: 'Hide message',
@@ -2264,6 +2368,166 @@ export const en = {
     },
   },
   /** The host's page (04-api, "Admin"). */
+  /** 2.1 S2b (12-solo-and-allies §5 to §7): the court, allies and trust of the NPC lords. */
+  diplomacy: {
+    title: 'Diplomacy',
+    explainer:
+      'The NPC lords remember what you do to them. Win their trust and invite them into your guild: an ally fights on your side.',
+    explainerWorld:
+      'The NPC lords of this world and their guilds. Lords become a player’s allies only in a solo world.',
+    courtHeading: 'The court',
+    /** "[CORVI] Ordo Corvi · 3 lords" */
+    courtGuild: (guild: string, members: number) => `${guild} · ${members === 1 ? '1 lord' : `${members} lords`}`,
+    goalDomination: (court: string, percent: number) => `${court} wants ${percent} % of the land.`,
+    goalKeeps: (court: string, needed: number, count: number) =>
+      `${court} wants ${needed} of the ${count} banner keeps.`,
+    goalEndDate: (court: string, date: string) => `${court} wants the most points by ${date}.`,
+    noCourt: 'No lord guild has formed yet. The strongest one becomes the court.',
+    race: 'The race',
+    you: 'You',
+    yourGuild: 'Your guild',
+    ahead: 'Ahead',
+    /** The bars' figures: the share of the land, the keeps, the points. */
+    share: (share: string, target: number) => `${share} of ${target} %`,
+    keeps: (keeps: number, needed: number) => `${keeps} of ${needed} keeps`,
+    points: (points: string) => `${points} points`,
+    allies: 'Your allies',
+    alliesEmpty: 'No lord has sworn to your banner yet.',
+    allyTag: 'Ally',
+    lords: 'Other lords',
+    /** The list's heading outside a solo world, where there are no allies above it. */
+    lordsWorld: 'Lords',
+    lordsEmpty: 'There are no other lords in this world.',
+    /** Screen-reader text of the trust figure. */
+    trustLabel: (value: number) => `Trust ${value}`,
+    trust: 'Trust',
+    joinsAt: (bar: number) => `joins at ${bar}`,
+    /** In place of "joins at" before the first contact: the bar would give the lord's nature away. */
+    notMet: 'not met yet',
+    /** The last change of a lord's trust: "+10 your support at Wulfsburg". */
+    change: (delta: number, what: string) => `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${what}`,
+    reasons: {
+      SUPPORT: (village: string) => `your support at ${village}`,
+      SHIPPED: (village: string) => `resources to ${village}`,
+      GRUDGE_WIN: (village: string) => `you beat a sworn enemy at ${village}`,
+      ATTACKED: (village: string) => `you attacked ${village}`,
+      SCOUTED: (village: string) => `you scouted ${village}`,
+      MATE_ATTACKED: (village: string) => `you attacked a guild mate at ${village}`,
+      CONQUERED: (village: string) => `you took ${village}`,
+      HELP_ANSWERED: (village: string) => `you came when asked, to ${village}`,
+      HELP_DECLINED: (village: string) => `you said no to the request for ${village}`,
+      HELP_IGNORED: (village: string) => `you left the request for ${village} unanswered`,
+    },
+    noChange: 'Nothing between you yet',
+    invite: 'Invite',
+    inviteFor: (name: string) => `Invite ${name} into your guild`,
+    invited: 'Invited: an answer by letter in the next round',
+    askAgain: (when: string) => `Said no: ask again ${when}`,
+    needGuild: 'Found a guild to invite lords into it.',
+    toGuild: 'To the guild',
+    notLeader: 'Only the leader of your guild can invite lords.',
+    guildFull: 'Your guild is full: make room to invite another lord.',
+    notSolo: 'In this world lords keep to their own guilds: they join a player only in a solo world.',
+    /**
+     * Help requests of allies (2.1 S4, 12-solo-and-allies §9): the strip under the sky, the request
+     * sheet and the buttons under the letter.
+     */
+    help: {
+      /** The strip: "Aldric · 300 defenders at Wulfsburg". */
+      needSupport: (count: string, village: string) => `${count} defenders at ${village}`,
+      needResources: (goal: string, village: string) =>
+        goal === 'WALL' ? `resources for the wall at ${village}` : `resources for a noble at ${village}`,
+      /** The strip's region, for a screen reader. */
+      stripRegion: 'Help request',
+      /** Screen-reader text of the strip's link. */
+      stripLabel: (lord: string, need: string, left: string) =>
+        `${lord} asks for ${need}. ${left} left. Open the request`,
+      /** "+1": another request is open. */
+      more: (count: number) => `+${count}`,
+      moreLabel: (count: number) => (count === 1 ? 'and 1 more request' : `and ${count} more requests`),
+      title: (lord: string) => `${lord} asks for help`,
+      /** Above the countdown. */
+      landsIn: 'The attack lands in',
+      endsIn: 'Time left',
+      at: (time: string) => `at ${time}`,
+      letterHeading: 'The letter',
+      stillNeeded: (goods: string) => `Still needed: ${goods}.`,
+      arrivesSupport: (village: string, duration: string) => `From ${village} your support arrives in ${duration}.`,
+      arrivesResources: (village: string, duration: string) => `From ${village} your merchants arrive in ${duration}.`,
+      tooLate: 'That is after the deadline: it would come too late.',
+      /** No village can send (UI review 2.1): instead of the travel time. */
+      noDefenders: 'None of your villages has defenders at home.',
+      noMerchants: 'None of your villages has a market with a free merchant.',
+      /** "In time: +15 trust. Not this time: −5. No answer: −10." */
+      worth: (answered: number, declined: number, ignored: number) =>
+        declined === 0 && ignored === 0
+          ? `In time: +${answered} trust. Your troops can't get there in time, so saying no costs nothing.`
+          : `In time: +${answered} trust. Not this time: −${Math.abs(declined)}. No answer: −${Math.abs(ignored)}.`,
+      decline: 'Not this time',
+      sendSupport: 'Send support',
+      sendResources: 'Send resources',
+      /** Under a letter in Messages once its request is no longer open. */
+      closed: 'This request is no longer open.',
+    },
+    /** Orders to allies (2.1 S3, 12-solo-and-allies §8): the order sheet and the order on an ally's row. */
+    orders: {
+      title: 'Order your allies',
+      /** The map panel's button that opens the sheet. */
+      open: 'Order allies',
+      kindsLabel: 'Kind of order',
+      kinds: { ATTACK: 'Attack', SUPPORT: 'Support', SEND: 'Send', HOLD: 'Hold' } satisfies Record<OrderKind, string>,
+      barbarian: 'Barbarian village',
+      who: 'Who',
+      /** The row's small line before the travel time: "arrives in · 13.4 fields · trust 64". */
+      arrivesIn: 'arrives in',
+      fields: (fields: string) => `${fields}\u00a0fields`,
+      trust: (value: number) => `trust\u00a0${value}`,
+      /** Instead of a travel time: the lord has nothing at home for this kind of order. */
+      nothingHome: {
+        ATTACK: 'no attackers at home',
+        SUPPORT: 'no defenders at home',
+        SEND: 'no merchants',
+        HOLD: '',
+      } satisfies Record<OrderKind, string>,
+      /** The ally's open order, on its row in the sheet: "Now: attack Wulframsfeste (61|52)". */
+      now: (what: string) => `Now: ${what}`,
+      landTogether: 'Land together with my attack',
+      landTogetherHint: (time: string) => `They time their march to land within a minute after yours (${time}).`,
+      landTogetherNone: 'Send your own attack on this village first: they time their march to it.',
+      holdHint: 'They leave this village alone: no farming, no attacks, no scouts.',
+      decides: 'A lord weighs every order against the troops at home and answers by letter.',
+      send: (count: number) => (count === 1 ? 'Send order to 1 ally' : `Send order to ${count} allies`),
+      sendNone: 'Tick an ally to send the order',
+      sent: (count: number): string =>
+        count === 1 ? 'Order sent: the lord answers by letter.' : 'Order sent: the lords answer by letter.',
+      noAllies: 'No ally can take an order here. Win a lord’s trust and invite it into your guild.',
+      /** What an order is about, for the ally's row: "attack Wulframsfeste (61|52)". */
+      what: {
+        ATTACK: (village: string) => `attack ${village}`,
+        SUPPORT: (village: string) => `support ${village}`,
+        SEND: (village: string) => `resources to ${village}`,
+        HOLD: (village: string) => `leave ${village} alone`,
+      } satisfies Record<OrderKind, (village: string) => string>,
+      /** Where the order stands, after "Order: attack …". */
+      state: {
+        OPEN: 'answer in the next round',
+        SCOUTING: 'scouts are on the way first',
+        PLANNED: (time: string) => `marches at ${time}`,
+        ACTIVE: 'carried out',
+        REFUSED: 'refused',
+      },
+      line: (what: string, state: string) => `Order: ${what}, ${state}.`,
+      takeBack: 'Take back',
+      takeBackFor: (name: string) => `Take back the order to ${name}`,
+      marked: 'Marked enemy villages',
+      markedHint: 'Your guild’s marks come first. For any other village, tap it on the map and choose “Order allies”.',
+      markedEmpty: 'Your guild has marked no village. Tap any village on the map and choose “Order allies”.',
+      orderFor: (village: string) => `Order allies against ${village}`,
+      order: 'Order',
+    },
+    howTrust:
+      'Trust grows when your support stands in a lord’s village as an attack arrives, when you send it resources and when you beat its enemies. Attacking or scouting it, or attacking its guild mates, costs trust. It drifts back towards 0 by 2 a day. An ally whose trust in your guild’s leader falls below 0 leaves, and one your guild attacks leaves at once.',
+  },
   ranking: {
     title: 'Ranking',
     count: (total: number) => (total === 1 ? '1 player' : `${total} players`),
@@ -2406,6 +2670,55 @@ export const en = {
     villages: 'Villages',
     noVillages: 'This player has no villages.',
     npcHint: 'An NPC lord plays by the same rules as everyone else.',
+    /**
+     * 2.1 (09-npc-lords §16.7): a lord's variant, shown once the player has met the lord. `titleFemale`
+     * is the title after a female lord's name (Gräfin, Lady, Dame, Baronin; German has its own forms).
+     */
+    lordTitle: (name: string, title: string) => `${name}, ${title}`,
+    lordNotMet: "You haven't met this lord yet.",
+    lordVariants: {
+      ROBBER_KNIGHT: {
+        title: 'the Robber Knight',
+        titleFemale: 'the Robber Knight',
+        line: 'Lives off raids: fast light cavalry, rarely nobles.',
+      },
+      CONQUEROR: {
+        title: 'the Conqueror',
+        titleFemale: 'the Conqueror',
+        line: 'Wants your villages: an academy early, then noble trains.',
+      },
+      HOTHEAD: {
+        title: 'the Hothead',
+        titleFemale: 'the Hothead',
+        line: 'Leaves you alone until you strike first, then hits back twice.',
+      },
+      CASTELLAN: {
+        title: 'the Castellan',
+        titleFemale: 'the Castellan',
+        line: 'The highest walls in the world; almost never attacks.',
+      },
+      PROTECTOR: {
+        title: 'the Protector',
+        titleFemale: 'the Protector',
+        line: 'Sends help to everyone it stands with; the best ally.',
+      },
+      MERCHANT: {
+        title: 'the Merchant Lord',
+        titleFemale: 'the Merchant Lord',
+        line: 'Economy first: climbs the ranking, ships and trades, a thin army.',
+      },
+      SETTLER: {
+        title: 'the Settler',
+        titleFemale: 'the Settler',
+        line: 'Expands over the barbarian land around it.',
+      },
+      KNIGHT: {
+        title: 'the Knight of Honour',
+        titleFemale: 'the Knight of Honour',
+        line: 'Leaves small players alone and challenges the strong.',
+      },
+      VULTURE: { title: 'the Vulture', titleFemale: 'the Vulture', line: 'Strikes whoever was just weakened.' },
+    } satisfies Record<LordVariantKey, { readonly title: string; readonly titleFemale: string; readonly line: string }>,
     guild: 'Guild',
     career: 'Career on every realm',
     onMap: 'On the map',
@@ -2673,6 +2986,17 @@ export const en = {
       keepsNeeded: (needed: number, count: number) => `A side has to hold ${needed} of ${count} keeps.`,
     },
     /** v1.3: the end date, ending the world now, and taking an end back. */
+    /** 2.1: the host's speed control of a solo world (12-solo-and-allies §3). */
+    worldClock: {
+      running: 'The world is running.',
+      asleep: 'The world sleeps: nobody has the game open.',
+      paused: 'The world is paused.',
+      pause: 'Pause',
+      play: 'Play',
+      speed: 'Speed',
+      speeds: { 1: 'Normal', 2: 'Fast ×2', 4: 'Fast ×4' } as Record<1 | 2 | 4, string>,
+      hint: 'Paused, the world stays still until you press play, even when you open the game again. Fast moves every time in the game on by another 10 or 30 seconds every 10 seconds: counters jump a little, and the screen reloads each time.',
+    },
     worldEnd: {
       title: 'End of the world',
       hint: 'An end date ends the world at that moment, whatever the mode: the side with the most points wins. An ended world is frozen: nothing moves any more, but everything stays readable and the chat stays open.',
@@ -2808,6 +3132,8 @@ export const en = {
         'The attack counts with 30% + 3 × the defender’s points / the attacker’s points, at most 100% and at least the lowest morale. Only the attack changes, never the defence. Players and NPC lords alike; barbarian villages and scouts are not affected.',
       villageNameLanguageHint:
         "New villages are called “Ben's village” or “Dorf von Ben”. Saving another language renames every village that still has its default name; names players gave stay.",
+      soloHint:
+        'For one player and the NPC lords: the world sleeps two minutes after nobody has the game open and picks up where it stopped, and the lords keep no quiet hours. You can pause it and speed it up here.',
       tutorialHint:
         'New players get a short tutorial on the village page, one step at a time, and some steps give back what they cost, once per player. Off: no card, no menu row, no refunds.',
       guildBannersHint:
@@ -2874,6 +3200,7 @@ export const en = {
         inviteCode: 'Invite code',
         villageNameLanguage: 'Village names',
         tutorial: 'Tutorial',
+        solo: 'Solo world',
         speed: 'World speed',
         unitSpeed: 'Unit speed',
         beginnerProtectionHours: 'Beginner protection',
@@ -3015,6 +3342,21 @@ export const en = {
         'BALANCED' | 'OFFENSIVE' | 'DEFENSIVE',
         string
       >,
+      /** 2.1: the nine lord variants (09-npc-lords §16.8). */
+      variants: {
+        ROBBER_KNIGHT: 'Robber Knight',
+        CONQUEROR: 'Conqueror',
+        HOTHEAD: 'Hothead',
+        CASTELLAN: 'Castellan',
+        PROTECTOR: 'Protector',
+        MERCHANT: 'Merchant Lord',
+        SETTLER: 'Settler',
+        KNIGHT: 'Knight of Honour',
+        VULTURE: 'Vulture',
+      } satisfies Record<LordVariantKey, string>,
+      variantOf: (variant: string, personality: string) => `${variant} (${personality})`,
+      plainOf: (personality: string) => `${personality}, classic`,
+      spawnVariant: 'Spawn a chosen variant',
       points: (points: string) => `${points} points`,
       villages: (count: number) => (count === 1 ? '1 village' : `${count} villages`),
       factor: (factor: string) => `production × ${factor}`,
@@ -3175,6 +3517,8 @@ export const en = {
       'This setup link is wrong, used already or older than 30 minutes. Run `bannerfall-admin setup` again for a new one.',
     WORLD_ENDED: 'The world has ended. Nothing can change any more.',
     WORLD_NOT_ENDED: 'The world has not ended.',
+    WORLD_PAUSED: 'The world is paused. Nothing moves until it runs again.',
+    WORLD_NOT_SOLO: 'Only a solo world can be paused or sped up.',
     SERVER_STARTING: 'The server is starting. Try again in a moment.',
     GUILDS_DISABLED: 'The host has not switched guilds on.',
     GUILD_NOT_FOUND: 'This guild does not exist (anymore).',
@@ -3187,6 +3531,10 @@ export const en = {
     LEADER_MUST_TRANSFER: 'Hand the lead to a member before you leave.',
     INVITATION_NOT_FOUND: 'This invitation no longer exists. It may have been withdrawn.',
     ALREADY_INVITED: 'This player has been invited already.',
+    LORD_NOT_READY: 'This lord said no a short while ago. Ask again later.',
+    LORD_ALLIED: 'This lord is sworn to another guild already.',
+    NOT_AN_ALLY: 'This lord is not your ally, or you gave it no order.',
+    ORDER_TARGET_INVALID: 'This village does not take that order.',
     GUILD_MEMBER_NOT_FOUND: 'This player is not a member of your guild.',
     INVITATION_RATE_LIMIT: 'This player was invited a moment ago. Try again in a minute.',
     ENEMY_NOT_ALLOWED: 'Your own guild, its members and barbarian villages cannot be marked as enemies.',
@@ -3283,6 +3631,7 @@ export const en = {
       'Your name at the account server does not fit the name rules of this world (3–24 letters, digits, _ and -).',
     LINK_NOT_ALLOWED: 'Linking is not possible right now.',
     PUSH_UNAVAILABLE: 'This world doesn’t send notifications.',
+    HELP_REQUEST_CLOSED: 'This request is no longer open.',
     ACCOUNT_BANNED: 'This account is banned.',
     TOO_MANY_REQUESTS: 'Too many requests. Please slow down.',
     CANNOT_BAN_ADMIN: 'Admins cannot be banned. Remove the admin role first.',

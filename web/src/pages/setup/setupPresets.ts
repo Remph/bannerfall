@@ -7,7 +7,7 @@ export const setupSteps = ['start', 'basics', 'pace', 'map', 'rules', 'victory',
 export type SetupStep = (typeof setupSteps)[number];
 
 /** The starting points on the wizard's first screen (1.6, guided world setup). */
-export const setupPresets = ['friends', 'long', 'coop', 'custom'] as const;
+export const setupPresets = ['friends', 'long', 'coop', 'solo', 'custom'] as const;
 export type SetupPreset = (typeof setupPresets)[number];
 
 /** Everything the wizard asks: the world form plus the settings that have their own cards on the admin page. */
@@ -115,6 +115,7 @@ const presetValues: Record<SetupPreset, Partial<SetupForm>> = {
     victoryMode: 'DOMINATION',
     dominationPercent: '60',
     victoryHoldHours: '48',
+    soloMode: false,
   },
   long: {
     speed: '3',
@@ -129,6 +130,7 @@ const presetValues: Record<SetupPreset, Partial<SetupForm>> = {
     guildsEnabled: true,
     nightBonusEnabled: true,
     victoryMode: 'NONE',
+    soloMode: false,
   },
   coop: {
     speed: '4',
@@ -148,14 +150,48 @@ const presetValues: Record<SetupPreset, Partial<SetupForm>> = {
     victoryMode: 'DOMINATION',
     dominationPercent: '60',
     victoryHoldHours: '48',
+    soloMode: false,
+  },
+  /**
+   * 2.1 (12-solo-and-allies §1, §3): you alone against the lords. The world sleeps while you are away,
+   * so the lords keep no quiet hours (the server drops them in a solo world) and there is no night
+   * bonus: both protect a real night, and a sleeping world already does.
+   */
+  solo: {
+    speed: '4',
+    unitSpeed: '1',
+    beginnerProtectionHours: '48',
+    mapSpread: 'NORMAL',
+    barbarianInitialCount: '40',
+    npcLordCount: '8',
+    npcDifficulty: 'NORMAL',
+    npcGuildsEnabled: true,
+    npcGuildMaxMembers: '3',
+    guildsEnabled: true,
+    guildStartTogether: true,
+    nightBonusEnabled: false,
+    victoryMode: 'DOMINATION',
+    dominationPercent: '60',
+    victoryHoldHours: '48',
+    soloMode: true,
   },
   custom: {},
 };
 
+/** The invite code a fresh world starts with (`WorldSettings`), known to everybody who read the docs. */
+export const DEFAULT_INVITE_CODE = 'change-me';
+
 export function applyPreset(base: SetupForm, preset: SetupPreset): SetupForm {
   const values = presetValues[preset];
   const map = values.mapSpread === undefined ? base : withSpread(base, values.mapSpread);
-  return { ...map, ...values };
+  const form = { ...map, ...values };
+  // The solo world on a PC has nobody to invite: a fresh code instead of the well-known default, so
+  // nobody else can register there (2.1 security review, finding 2). A code the host chose stays.
+  const stored = base.inviteCode.trim();
+  if (preset === 'solo' && (stored === '' || stored === DEFAULT_INVITE_CODE)) {
+    return { ...form, inviteCode: newInviteCode() };
+  }
+  return form;
 }
 
 /** The three facts a preset card shows: speed, protection, lords. */

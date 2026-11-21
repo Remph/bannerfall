@@ -140,7 +140,7 @@ describe('formatClock', () => {
 
 describe('formatCoords', () => {
   it('writes x|y in brackets', () => {
-    expect(formatCoords(48, 52)).toBe('(48|52)');
+    expect(formatCoords(48, 52)).toBe('(48\u2060|\u206052)');
   });
 });
 

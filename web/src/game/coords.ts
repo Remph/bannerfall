@@ -16,7 +16,8 @@ const COORDS_PATTERN = /^\(?\s*(\d{1,4})(?:\s*[|,.;:/]\s*|\s+)(\d{1,4})\s*\)?$/;
  * check the map size, see `isOnMap`.
  */
 export function parseCoords(text: string): Coords | undefined {
-  const match = COORDS_PATTERN.exec(text.trim());
+  // copied from the game's text: formatCoords puts word joiners around the bar
+  const match = COORDS_PATTERN.exec(text.replace(/\u2060/g, '').trim());
   // With noUncheckedIndexedAccess, match[1] is `string | undefined`, although the pattern guarantees it.
   const x = match?.[1];
   const y = match?.[2];

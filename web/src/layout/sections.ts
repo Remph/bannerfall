@@ -15,7 +15,8 @@ export type SectionKey =
   | 'messages'
   | 'ranking'
   | 'achievements'
-  | 'guild';
+  | 'guild'
+  | 'diplomacy';
 
 export interface Section {
   key: SectionKey;
@@ -51,6 +52,8 @@ export const sections: Record<SectionKey, Section> = {
   achievements: { key: 'achievements', icon: 'medal', path: () => '/achievements', global: true },
   // only shown while guilds are on, or to a member of one (M15a), see `visibleSections`
   guild: { key: 'guild', icon: 'guild', path: () => '/guild', global: true },
+  // trust of the NPC lords and the court (2.1): only while lord guilds are on, see `visibleSections`
+  diplomacy: { key: 'diplomacy', icon: 'banner', path: () => '/diplomacy', global: true },
 };
 
 /**
@@ -71,6 +74,7 @@ export const desktopSections: readonly SectionKey[] = [
   'ranking',
   'achievements',
   'guild',
+  'diplomacy',
 ];
 
 /** Phone: four tabs plus "More"; the rest is in the More sheet. */
@@ -82,18 +86,24 @@ export const phoneTabs: readonly SectionKey[] = ['village', 'map', 'rallyPoint',
  */
 export const moreGroups: Readonly<Record<'village' | 'player', readonly SectionKey[]>> = {
   village: ['townHall', 'recruit', 'bannerHall', 'market', 'farm'],
-  player: ['messages', 'ranking', 'achievements', 'guild'],
+  player: ['messages', 'ranking', 'achievements', 'guild', 'diplomacy'],
 };
 
 /** Which of the sections that exist only if the host switched them on are in the navigation. */
 export interface OptionalSections {
   guild: boolean;
   bannerHall: boolean;
+  diplomacy: boolean;
 }
 
 /** The sections without the ones the host didn't switch on. */
 export function visibleSections(keys: readonly SectionKey[], shown: OptionalSections): SectionKey[] {
-  return keys.filter((key) => (key !== 'guild' || shown.guild) && (key !== 'bannerHall' || shown.bannerHall));
+  return keys.filter(
+    (key) =>
+      (key !== 'guild' || shown.guild) &&
+      (key !== 'bannerHall' || shown.bannerHall) &&
+      (key !== 'diplomacy' || shown.diplomacy),
+  );
 }
 
 /**
@@ -163,6 +173,8 @@ export function navEntry(pathname: string, ownPlayerId: number, bannersOn: boole
     case 'guild':
     case 'guilds':
       return 'guild';
+    case 'diplomacy':
+      return 'diplomacy';
     case 'notifications':
     case 'password':
     case 'about':

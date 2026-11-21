@@ -35,6 +35,7 @@ function village(id: number, name: string) {
     outgoing: [],
     incoming: [],
     merchants: [],
+    incomingMerchants: [],
   };
 }
 
@@ -229,6 +230,46 @@ describe('NowList', () => {
     show();
     const button = screen.getByRole('button', { name: /Cancel/ });
     expect(button.textContent).toMatch(/\d+:\d\d/);
+  });
+
+  it('shows another player’s merchants on their way here, with what they bring (2.1)', () => {
+    renderPage({
+      path: '/v/:villageId',
+      url: '/v/9',
+      element: <NowList currentVillageId={9} />,
+      data: [
+        [
+          nowQueryKey,
+          {
+            villages: [
+              {
+                ...village(9, 'Wulfsfeld'),
+                incomingMerchants: [
+                  {
+                    id: 30,
+                    sourceVillage: { id: 70, name: 'Marastein', x: 30, y: 31, playerId: 8, playerName: 'Mara' },
+                    targetVillage: ref(9, 'Wulfsfeld'),
+                    resources: { wood: 1200, clay: 0, iron: 300 },
+                    merchants: 2,
+                    departAt: iso(-600),
+                    arriveAt: iso(600),
+                    returnAt: iso(1800),
+                    arrived: false,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        [meQueryKey, me],
+      ],
+    });
+    const way = screen.getByRole('region', { name: 'On the way' });
+    expect(within(way).getByText(/^Merchants from Marastein/)).toBeTruthy();
+    expect(within(way).getByText(/^Mara ·/)).toBeTruthy();
+    // what they bring, without the empty clay
+    expect(within(way).getByText('1,200')).toBeTruthy();
+    expect(within(way).getByText('300')).toBeTruthy();
   });
 
   it('says so when nothing is running', () => {

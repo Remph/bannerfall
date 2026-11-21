@@ -13,8 +13,10 @@ import de.bannerfall.world.WorldSettings;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -33,7 +35,12 @@ public class NpcLordService {
 
     private static final Logger log = LoggerFactory.getLogger(NpcLordService.class);
 
-    /** EN/DE-neutral own names; every one has a space, so it can't collide with a username. */
+    /**
+     * EN/DE-neutral own names; every one has a space, so it can't collide with a username. The web
+     * gives the women (Gräfin, Lady, Dame, Baronin) the female German title of their variant
+     * ({@code isFemaleLordName} in {@code web/src/game/lordVariants.ts}): a new rank goes there
+     * too.
+     */
     static final List<String> NAMES =
             List.of(
                     "Lord Aldric",
@@ -76,6 +83,7 @@ public class NpcLordService {
     private final NpcBalance balance;
     private final RandomSource random;
     private final Clock clock;
+    private final NpcTemplates templates;
 
     NpcLordService(
             PlayerRepository players,
@@ -86,7 +94,8 @@ public class NpcLordService {
             WorldService worldService,
             NpcBalance balance,
             RandomSource random,
-            Clock clock) {
+            Clock clock,
+            NpcTemplates templates) {
         this.players = players;
         this.brains = brains;
         this.spawnService = spawnService;
@@ -96,6 +105,7 @@ public class NpcLordService {
         this.balance = balance;
         this.random = random;
         this.clock = clock;
+        this.templates = templates;
     }
 
     /**
@@ -131,6 +141,24 @@ public class NpcLordService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<Player> spawn(NpcPersonality personality) {
+        return spawn(personality, null);
+    }
+
+    /**
+     * {@link #spawn(NpcPersonality)} as {@code variant} (2.1, 09 §16.6, §16.8): one of the
+     * personality's variants, {@code PLAIN} for its classic template, or null to draw one among its
+     * least-used variants. The caller checks that the variant belongs to the personality.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<Player> spawn(NpcPersonality personality, String variant) {
+        String template =
+                variant == null
+                        ? drawVariant(
+                                personality,
+                                templates.variantsOf(personality),
+                                brains.findAllTemplates(),
+                                random)
+                        : NpcTemplates.PLAIN.equals(variant) ? personality.name() : variant;
         WorldSettings world = worldService.settings();
         Instant now = clock.instant();
         double factor = NpcBalance.productionFactor(balance.difficulty(), NpcMemory.Stance.NONE);
@@ -141,14 +169,38 @@ public class NpcLordService {
             return Optional.empty();
         }
         barbarians.spawnAround(village.get().coordinates(), world.barbariansPerNewPlayer());
-        brains.save(new NpcBrain(lord.getId(), personality));
+        brains.save(new NpcBrain(lord.getId(), personality, template));
         scheduleFirstRound(lord.getId(), now);
         log.info(
-                "NPC lord {} spawned ({}) at {}",
+                "NPC lord {} spawned ({}, {}) at {}",
                 lord.getName(),
                 personality,
+                template,
                 village.get().coordinates());
         return Optional.of(lord);
+    }
+
+    /**
+     * The variant of a new lord (09 §16.6): drawn among the personality's {@code variants} that the
+     * fewest lords of the world play ({@code taken}: every lord's template, lords out of the game
+     * included), so none repeats before all were used. The personality's own name if it has none.
+     */
+    static String drawVariant(
+            NpcPersonality personality,
+            List<String> variants,
+            List<String> taken,
+            RandomSource random) {
+        if (variants.isEmpty()) {
+            return personality.name();
+        }
+        Map<String, Long> counts = new HashMap<>();
+        for (String key : taken) {
+            counts.merge(key, 1L, Long::sum);
+        }
+        long fewest = variants.stream().mapToLong(v -> counts.getOrDefault(v, 0L)).min().orElse(0);
+        List<String> least =
+                variants.stream().filter(v -> counts.getOrDefault(v, 0L) == fewest).toList();
+        return least.get(random.nextInt(0, least.size() - 1));
     }
 
     /**

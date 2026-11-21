@@ -34,4 +34,8 @@ public interface NpcBrainRepository extends JpaRepository<NpcBrain, Long> {
                     group by 1
                     """)
     List<AttacksOnPlayer> attacksSentByOthersSince(long lord, Instant since);
+
+    /** The template of every lord (the variant draw counts them, 09 §16.6). */
+    @Query("select b.template from NpcBrain b")
+    List<String> findAllTemplates();
 }

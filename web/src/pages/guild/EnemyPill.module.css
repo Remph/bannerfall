@@ -6,3 +6,8 @@
   white-space: nowrap;
   font-weight: 700;
 }
+
+/* in running text the gap is NoteGap's space, not a margin (2.1) */
+.inText {
+  margin-left: 0;
+}

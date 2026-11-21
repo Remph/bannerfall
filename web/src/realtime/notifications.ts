@@ -1,3 +1,4 @@
+import { chronicleQueryKey } from '../api/queries/chronicle';
 import type { QueryKey } from '@tanstack/react-query';
 import { meQueryKey, type Me } from '../api/queries/auth';
 import { worldSettingsKey } from '../api/queries/admin';
@@ -19,6 +20,7 @@ import { myGuildQueryKey, guildsQueryKey } from '../api/queries/guilds';
 import { troopsQueryKey } from '../api/queries/troops';
 import { villageQueryKey } from '../api/queries/villages';
 import { victoryQueryKey, worldQueryKey } from '../api/queries/world';
+import { diplomacyQueryKey, helpRequestsQueryKey } from '../api/queries/diplomacy';
 import type { components } from '../api/schema';
 import type { ToastContent } from '../components/toasts';
 import { formatCoords, formatDateTime, formatWhenExact } from '../game/format';
@@ -26,6 +28,7 @@ import { sideName } from '../game/victory';
 import type { Dictionary } from '../i18n/en';
 import { achievementName, levelName } from '../pages/achievements/achievementText';
 import { bannersPath } from '../pages/banners/bannerPaths';
+import { helpRequestLink } from '../pages/diplomacy/helpPaths';
 import { conversationPath } from '../pages/messages/messagePaths';
 import { rankingPath } from '../pages/ranking/rankingPaths';
 import type { Language } from '../i18n/language';
@@ -48,6 +51,7 @@ export type GameNotification =
   | Schemas['VillageConquered']
   | Schemas['WorldOpened']
   | Schemas['WorldEnded']
+  | Schemas['WorldTimeMoved']
   | Schemas['VictoryClock']
   | Schemas['GuildInvited']
   | Schemas['GuildChanged']
@@ -57,7 +61,10 @@ export type GameNotification =
   | Schemas['BannerFound']
   | Schemas['BannerStolen']
   | Schemas['AttacksReturned']
-  | Schemas['StorageFull'];
+  | Schemas['StorageFull']
+  | Schemas['CourtChanged']
+  | Schemas['HelpRequested']
+  | Schemas['HelpRequestsChanged'];
 
 const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'VILLAGE_UPDATED',
@@ -69,7 +76,9 @@ const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'VILLAGE_CONQUERED',
   'WORLD_OPENED',
   'WORLD_ENDED',
+  'WORLD_TIME_MOVED',
   'VICTORY_CLOCK',
+  'COURT_CHANGED',
   'GUILD_INVITED',
   'GUILD_CHANGED',
   'GUILD_BANNER_RAISED',
@@ -79,6 +88,8 @@ const knownTypes: ReadonlySet<string> = new Set<GameNotification['type']>([
   'BANNER_STOLEN',
   'ATTACKS_RETURNED',
   'STORAGE_FULL',
+  'HELP_REQUESTED',
+  'HELP_REQUESTS_CHANGED',
 ]);
 
 /**
@@ -170,13 +181,26 @@ export function staleQueries(notification: GameNotification): QueryKey[] {
       // the pre-game is over (the phase, the player's first village or the respawn screen), or the
       // host took the end of the world back (v1.3) and every time in the game moved on: everything
       return [allQueries];
+    case 'WORLD_TIME_MOVED':
+      // 2.1: a solo world woke up, was paused or played, or fast forward moved every game time: everything
+      return [allQueries];
     case 'WORLD_ENDED':
       // v1.3: the phase and the result (['world', 'victory'] is under ['world']), and the host's
-      // admin cards
-      return [worldQueryKey, meQueryKey, worldSettingsKey];
+      // admin cards; 2.1 I1: the chronicle opens
+      return [worldQueryKey, meQueryKey, worldSettingsKey, chronicleQueryKey];
     case 'VICTORY_CLOCK':
-      // v1.3: the leader and the clock on the victory card and the strip under the top bar
-      return [victoryQueryKey];
+      // v1.3: the leader and the clock on the victory card and the strip under the top bar; in a
+      // solo world the court's taunt is in the inbox (2.1 S4)
+      return [victoryQueryKey, messagesQueryKey];
+    case 'HELP_REQUESTED':
+      // 2.1 S4: the strip and the lord's letter, which comes without its own MESSAGE_RECEIVED
+      return [helpRequestsQueryKey, messagesQueryKey];
+    case 'HELP_REQUESTS_CHANGED':
+      // a request ended (answered, declined, ignored, called off): the strip, and the trust it moved
+      return [diplomacyQueryKey];
+    case 'COURT_CHANGED':
+      // 2.1 S2b: another lord guild is now the court: its name on the victory card and on Diplomacy
+      return [victoryQueryKey, diplomacyQueryKey];
     case 'GUILD_INVITED':
       // a new invitation shows on the guild page
       return [myGuildQueryKey];
@@ -282,6 +306,18 @@ export function notificationToast(
       return { text: t.realtime.worldEnded(notification.winnerName), tone: 'info', to: { pathname: rankingPath(0) } };
     case 'VICTORY_CLOCK':
       return victoryClockToast(notification, t, language);
+    case 'HELP_REQUESTED':
+      return {
+        text: t.realtime.helpRequested(notification.lordName, notification.kind),
+        tone: 'danger',
+        to: helpRequestLink(notification.requestId),
+      };
+    case 'COURT_CHANGED':
+      return {
+        text: t.realtime.courtChanged(sideName(notification.court, t)),
+        tone: 'info',
+        to: { pathname: '/diplomacy' },
+      };
     case 'GUILD_INVITED':
       return { text: t.realtime.guildInvited(notification.guildName), tone: 'info', to: { pathname: '/guild' } };
     case 'GUILD_BANNER_RAISED':
@@ -333,6 +369,8 @@ export function notificationToast(
     // nothing to say: a conquest's CONQUEST / VILLAGE_LOST report brings its own toast, a change in
     // the guild only refreshes its page
     case 'GUILD_CHANGED':
+    case 'HELP_REQUESTS_CHANGED':
+    case 'WORLD_TIME_MOVED':
     case 'VILLAGE_UPDATED':
     case 'SUPPORT_ARRIVED':
     case 'VILLAGE_LOST':
@@ -355,7 +393,7 @@ function victoryClockToast(
   if (leader !== null && winsAt !== null) {
     const when = formatDateTime(Date.parse(winsAt), language);
     if (!notification.leaderYours) {
-      return { text: t.realtime.victoryClock(sideName(leader), when), tone: 'info', to };
+      return { text: t.realtime.victoryClock(sideName(leader, t), when), tone: 'info', to };
     }
     const text = leader.kind === 'GUILD' ? t.realtime.victoryClockYours(when) : t.realtime.victoryClockYou(when);
     return { text, tone: 'success', to };
@@ -364,7 +402,7 @@ function victoryClockToast(
     return undefined;
   }
   if (!notification.previousYours) {
-    return { text: t.realtime.victoryClockStopped(sideName(previous)), tone: 'info', to };
+    return { text: t.realtime.victoryClockStopped(sideName(previous, t)), tone: 'info', to };
   }
   const text = previous.kind === 'GUILD' ? t.realtime.victoryClockStoppedYours : t.realtime.victoryClockStoppedYou;
   return { text, tone: 'info', to };

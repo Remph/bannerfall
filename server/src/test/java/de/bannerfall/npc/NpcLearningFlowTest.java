@@ -84,6 +84,12 @@ class NpcLearningFlowTest {
     void setUp() {
         transaction = new TransactionTemplate(transactionManager);
         jdbc.sql("delete from game_event").update();
+        // the human wins of the world (09 §15.2) are read from every attack report: wins other test
+        // classes left in the shared database (the help flow's human attacks) would move the lesson
+        jdbc.sql(
+                        "delete from report where kind = 'ATTACK' and player_id in (select id from"
+                                + " player where not npc)")
+                .update();
         jdbc.sql(
                         "update world_settings set barbarians_per_new_player = 0,"
                                 + " npc_difficulty = 'NORMAL', speed = 1.0,"

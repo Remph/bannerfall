@@ -53,12 +53,16 @@ export function useSetNpcLordGuild() {
   });
 }
 
-/** POST /api/admin/npc-lords: spawns one lord of this personality (WORLD_FULL if there's no room). */
+/**
+ * POST /api/admin/npc-lords: spawns one lord of this personality (WORLD_FULL if there's no room). The
+ * variant (2.1, 09-npc-lords §16.8) is one of the personality's, PLAIN for the classic lord, or left
+ * out to draw one.
+ */
 export function useSpawnNpcLord() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (personality: NpcPersonality) =>
-      expectData(api.POST('/api/admin/npc-lords', { body: { personality } })),
+    mutationFn: ({ personality, variant }: { personality: NpcPersonality; variant?: string }) =>
+      expectData(api.POST('/api/admin/npc-lords', { body: { personality, variant: variant ?? null } })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: npcLordsKey }),
   });
 }
@@ -188,6 +192,39 @@ export function useReopenWorld() {
     mutationFn: () => expectData(api.POST('/api/admin/world-end/reopen')),
     onSuccess: (settings) => {
       queryClient.setQueryData(worldSettingsKey, settings);
+      return queryClient.invalidateQueries({ queryKey: ['world'] });
+    },
+  });
+}
+
+/** The host's speed control of a solo world (2.1): asleep, paused, the fast-forward speed. */
+export type WorldClock = components['schemas']['WorldClockDto'];
+
+export const worldClockKey = ['admin', 'world-clock'] as const;
+
+/** GET /api/admin/world-clock (2.1, 12-solo-and-allies §3). */
+export function useWorldClock(enabled = true) {
+  return useQuery({
+    queryKey: worldClockKey,
+    queryFn: () => expectData(api.GET('/api/admin/world-clock')),
+    enabled,
+    // falling asleep sends no message: the card looks again every 15 seconds while it is open
+    refetchInterval: 15_000,
+  });
+}
+
+/**
+ * PUT /api/admin/world-clock: pause (`paused: true`), play (`false`) or the fast forward (`speed` 1, 2
+ * or 4); 409 WORLD_NOT_SOLO outside a solo world. The world's clock changes, so everything is loaded
+ * again (the server also sends WORLD_TIME_MOVED).
+ */
+export function useSetWorldClock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paused, speed }: { paused?: boolean; speed?: number }) =>
+      expectData(api.PUT('/api/admin/world-clock', { body: { paused: paused ?? null, speed: speed ?? null } })),
+    onSuccess: (clock) => {
+      queryClient.setQueryData(worldClockKey, clock);
       return queryClient.invalidateQueries({ queryKey: ['world'] });
     },
   });

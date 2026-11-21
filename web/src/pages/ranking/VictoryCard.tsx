@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useCurrentAccount } from '../../api/queries/auth';
 import { useVictory, useWorld, type Victory, type VictorySide } from '../../api/queries/world';
+import { NameNote } from '../../components/NameNote';
 import { Card } from '../../components/Card';
 import { Icon } from '../../components/Icon';
 import { formatDateTime, formatNumber, formatShare } from '../../game/format';
@@ -143,7 +145,7 @@ function Running({ victory }: { victory: Victory }) {
               {victory.mode === 'KEEPS'
                 ? level > 1
                   ? labels.levelKeeps(level, closest.keeps, victory.keepsNeeded)
-                  : labels.closestKeeps(sideName(closest), closest.keeps, victory.keepsNeeded)
+                  : labels.closestKeeps(sideName(closest, t), closest.keeps, victory.keepsNeeded)
                 : level > 1
                   ? labels.levelShare(
                       level,
@@ -151,7 +153,7 @@ function Running({ victory }: { victory: Victory }) {
                       victory.dominationPercent,
                     )
                   : labels.closestShare(
-                      sideName(closest),
+                      sideName(closest, t),
                       formatShare(villageShare(closest, victory.allVillages), language),
                       victory.dominationPercent,
                     )}
@@ -236,6 +238,12 @@ function Ended({ victory }: { victory: Victory }) {
       </div>
       {place !== null && <p className={styles.victoryText}>{place}</p>}
       <p className={styles.meta}>{labels.frozen}</p>
+      <p>
+        <Link to="/chronicle" className={styles.pageLink}>
+          {t.chronicle.read}
+          <Icon name="chevronRight" />
+        </Link>
+      </p>
       {result.sides.length > 0 && (
         <Sides
           title={labels.finalStandings}
@@ -279,12 +287,14 @@ function Sides({
         {sides.map((side) => (
           <li key={`${side.kind}:${side.id}`} className={mine(side) ? `${styles.side} ${styles.mine}` : styles.side}>
             <span className={styles.name}>
-              {sideName(side)}
-              {isPlayer(side, me.playerId) && <span className={styles.tag}>{t.map.youTag}</span>}
-              {side.kind === 'GUILD' && mine(side) && <span className={styles.tag}>{labels.guildTag}</span>}
-              {side.npc && <span className={styles.tag}>{t.map.npcTag}</span>}
+              {sideName(side, t)}
+              {isPlayer(side, me.playerId) && <NameNote className={styles.tag}>{t.map.youTag}</NameNote>}
+              {side.kind === 'GUILD' && mine(side) && <NameNote className={styles.tag}>{labels.guildTag}</NameNote>}
+              {side.npc && <NameNote className={styles.tag}>{t.map.npcTag}</NameNote>}
               {sameSide(side, marked) && (
-                <span className={`${styles.tag} ${styles.leadTag}`}>{ended ? labels.winnerTag : labels.leaderTag}</span>
+                <NameNote className={`${styles.tag} ${styles.leadTag}`}>
+                  {ended ? labels.winnerTag : labels.leaderTag}
+                </NameNote>
               )}
             </span>
             <span className={styles.sideValue}>{value(side)}</span>

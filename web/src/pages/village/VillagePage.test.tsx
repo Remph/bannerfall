@@ -42,7 +42,7 @@ describe('VillagePage', () => {
     open();
 
     expect(screen.getByRole('heading', { level: 1, name: village.name })).toBeTruthy();
-    expect(screen.getByText(/61\|58/)).toBeTruthy();
+    expect(screen.getByText(/61\u2060\|\u206058/)).toBeTruthy();
     for (const title of ['Buildings', 'Village', 'Troops at home']) {
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     }

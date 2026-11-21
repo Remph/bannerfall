@@ -24,7 +24,9 @@ public enum PushKind {
     /** A village's build queue ran empty. */
     BUILDS_DONE(false),
     /** A resource reached the warehouse limit in one of the player's villages (1.6). */
-    STORAGE_FULL(false);
+    STORAGE_FULL(false),
+    /** An allied NPC lord asks for help (2.1 S4, 12-solo-and-allies §9). */
+    HELP_REQUEST(true);
 
     private final boolean defaultEnabled;
 

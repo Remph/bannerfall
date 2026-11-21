@@ -26,6 +26,16 @@ describe('setup presets', () => {
     }
   });
 
+  it('the solo preset replaces the default invite code with a fresh one, and keeps a chosen one', () => {
+    const fresh = applyPreset({ ...base, inviteCode: 'change-me' }, 'solo');
+    expect(fresh.inviteCode).toMatch(/^[a-z2-9]{10}$/);
+    expect(fresh.inviteCode).not.toBe('change-me');
+    expect(applyPreset({ ...base, inviteCode: '' }, 'solo').inviteCode).toMatch(/^[a-z2-9]{10}$/);
+    expect(applyPreset({ ...base, inviteCode: 'our-secret' }, 'solo').inviteCode).toBe('our-secret');
+    // the other presets leave the code alone
+    expect(applyPreset({ ...base, inviteCode: 'change-me' }, 'friends').inviteCode).toBe('change-me');
+  });
+
   it('custom keeps what is stored', () => {
     expect(applyPreset(base, 'custom')).toEqual(base);
   });
@@ -46,6 +56,22 @@ describe('setup presets', () => {
       mapSize: 130,
       nobleMaxDistance: 91,
     });
+  });
+
+  it('the solo preset makes a sleeping world for one player against lord guilds (2.1)', () => {
+    const solo = applyPreset({ ...base, nightBonusEnabled: true }, 'solo');
+    expect(solo).toMatchObject({
+      soloMode: true,
+      guildsEnabled: true,
+      npcGuildsEnabled: true,
+      nightBonusEnabled: false,
+      npcDifficulty: 'NORMAL',
+    });
+    expect(setupToRequest(solo)).toMatchObject({ soloMode: true, nightBonusEnabled: false });
+    // another preset after it is no solo world again; custom keeps what is stored
+    expect(applyPreset(solo, 'friends').soloMode).toBe(false);
+    expect(applyPreset(solo, 'coop').soloMode).toBe(false);
+    expect(applyPreset(solo, 'custom').soloMode).toBe(true);
   });
 
   it('the rounds with friends let guild mates start together', () => {

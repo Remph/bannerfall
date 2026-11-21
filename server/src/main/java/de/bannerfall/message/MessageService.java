@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Private messages and the block list (02-game-rules §17). A conversation is the messages between
@@ -36,6 +37,8 @@ public class MessageService {
     static final int MAX_UNREAD_FROM_ONE = 30;
     static final int MAX_BLOCKS = 100;
     static final Duration MIN_INTERVAL = Duration.ofSeconds(1);
+
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final JdbcClient jdbc;
     private final PlayerRepository players;
@@ -119,6 +122,95 @@ public class MessageService {
     }
 
     /**
+     * A letter of the NPC lord {@code lordId} to the human {@code playerId} (2.1 S2b,
+     * 12-solo-and-allies §5): stored as a private message from the lord with an empty text, the
+     * client writes it from {@code letter}. No rate limit and no inbox limit (a lord writes a
+     * handful a day at most); a human who blocked the lord gets it as read, without a notice, like
+     * any message. Nothing happens if either is no such player.
+     */
+    @Transactional
+    public void sendLetter(long lordId, long playerId, LordLetter letter) {
+        sendLetter(lordId, playerId, letter, true);
+    }
+
+    /**
+     * {@link #sendLetter(long, long, LordLetter)}; with {@code notify} false no {@code
+     * MESSAGE_RECEIVED} goes out (a help request and the court's taunt come with a notice of their
+     * own, which also pushes). The letter is written in the lord's voice (S4, 12 §9): its
+     * personality's, looked up here so the personality itself stays off the letter (09 §2).
+     *
+     * @return the new message's id; null if nothing was sent
+     */
+    @Transactional
+    public Long sendLetter(long lordId, long playerId, LordLetter letter, boolean notify) {
+        Player lord = players.findById(lordId).filter(Player::isNpc).orElse(null);
+        Player recipient = players.findById(playerId).filter(p -> !p.isNpc()).orElse(null);
+        if (lord == null || recipient == null) {
+            return null;
+        }
+        LordLetter voiced =
+                letter.voice() == null ? letter.withVoice(voiceOf(lordId, playerId)) : letter;
+        Instant now = clock.instant();
+        boolean blocked = isBlocked(playerId, lordId);
+        Long id =
+                jdbc.sql(
+                                """
+                                insert into private_message
+                                    (sender_id, recipient_id, text, created_at, read_at, letter)
+                                values (:sender, :recipient, '', :now, :readAt,
+                                        cast(:letter as jsonb))
+                                returning id
+                                """)
+                        .param("sender", lordId)
+                        .param("recipient", playerId)
+                        .param("now", Timestamp.from(now))
+                        .param("readAt", blocked ? Timestamp.from(now) : null)
+                        .param("letter", JSON.writeValueAsString(voiced))
+                        .query(Long.class)
+                        .single();
+        if (!blocked && notify) {
+            events.publishEvent(
+                    new PlayerNotification(
+                            playerId,
+                            new GameNotification.MessageReceived(lordId, lord.getName())));
+        }
+        return id;
+    }
+
+    /**
+     * The voice of a lord's letters: its personality's (S4); null for a lord without a brain. A
+     * human it has had no first contact with (09 §16.7) reads the neutral, steady voice, so a
+     * letter (the court's taunt) gives the personality away no sooner than the profile does (2.1
+     * feature review, finding 03).
+     */
+    private LordLetter.Voice voiceOf(long lordId, long playerId) {
+        return jdbc.sql(
+                        """
+                        select case when exists (select 1 from npc_contact c
+                                                 where c.lord_id = :lord and c.player_id = :player)
+                                    then b.personality else 'BALANCED' end
+                        from npc_brain b where b.player_id = :lord
+                        """)
+                .param("lord", lordId)
+                .param("player", playerId)
+                .query(String.class)
+                .optional()
+                .map(
+                        personality ->
+                                switch (personality) {
+                                    case "DEFENSIVE" -> LordLetter.Voice.CAREFUL;
+                                    case "OFFENSIVE" -> LordLetter.Voice.BOLD;
+                                    default -> LordLetter.Voice.STEADY;
+                                })
+                .orElse(null);
+    }
+
+    /** A letter read back from its JSON; null for a message a player wrote. */
+    private static LordLetter letter(String json) {
+        return json == null ? null : JSON.readValue(json, LordLetter.class);
+    }
+
+    /**
      * The newest 100 messages between the caller and another player, oldest first; {@code before}
      * pages back. Empty while the caller has the other player blocked, and once the other player is
      * deleted (he takes his messages with him, 02-game-rules §17).
@@ -136,7 +228,8 @@ public class MessageService {
         List<MessageDto> page =
                 jdbc.sql(
                                 """
-                                select id, sender_id = :me as mine, text, created_at
+                                select id, sender_id = :me as mine, text, created_at,
+                                       letter::text as letter
                                 from private_message
                                 where ((sender_id = :me and recipient_id = :other)
                                     or (sender_id = :other and recipient_id = :me))
@@ -154,7 +247,8 @@ public class MessageService {
                                                 rs.getLong("id"),
                                                 rs.getBoolean("mine"),
                                                 rs.getString("text"),
-                                                rs.getTimestamp("created_at").toInstant()))
+                                                rs.getTimestamp("created_at").toInstant(),
+                                                letter(rs.getString("letter"))))
                         .list();
         return page.reversed();
     }
@@ -167,14 +261,17 @@ public class MessageService {
     public List<ConversationDto> conversations(long me) {
         return jdbc.sql(
                         """
-                        select c.partner, p.name, t.tag, c.text, c.created_at, c.mine,
+                        select c.partner, p.name, p.npc, t.tag, c.text, c.letter, c.created_at,
+                               c.mine,
                                (select count(*) from private_message u
                                  where u.recipient_id = :me and u.sender_id = c.partner
                                    and u.read_at is null) as unread
-                        from (select distinct on (partner) partner, id, text, created_at, mine
+                        from (select distinct on (partner) partner, id, text, letter, created_at,
+                                     mine
                               from (select case when sender_id = :me then recipient_id
                                                 else sender_id end as partner,
-                                           id, text, created_at, sender_id = :me as mine
+                                           id, text, letter::text as letter, created_at,
+                                           sender_id = :me as mine
                                     from private_message
                                     where sender_id = :me or recipient_id = :me) m
                               order by partner, id desc) c
@@ -199,7 +296,9 @@ public class MessageService {
                                         rs.getString("text"),
                                         rs.getTimestamp("created_at").toInstant(),
                                         rs.getBoolean("mine"),
-                                        rs.getInt("unread")))
+                                        rs.getInt("unread"),
+                                        rs.getBoolean("npc"),
+                                        letter(rs.getString("letter"))))
                 .list();
     }
 

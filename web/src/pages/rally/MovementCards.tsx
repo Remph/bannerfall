@@ -29,6 +29,12 @@ import { villageLabel } from './villageLabel';
 import { VillageRefText } from './VillageRefText';
 
 const movementIcons: Record<MovementKind, IconName> = { ATTACK: 'troops', SUPPORT: 'shield', RETURN: 'returning' };
+/** The bar fills in the map's march colour of its kind (2.1). */
+const fillClass: Record<MovementKind, string | undefined> = {
+  ATTACK: styles.fillAttack,
+  SUPPORT: styles.fillSupport,
+  RETURN: styles.fillReturn,
+};
 
 /**
  * Attacks and supports this village has sent that are still on the way, next first. A command can
@@ -353,7 +359,7 @@ function MovementLine(props: MovementLineProps) {
         {departAt !== undefined && (
           <span className={styles.moveBar} aria-hidden="true">
             <span
-              className={styles.moveFill}
+              className={`${styles.moveFill} ${fillClass[kind]}`}
               style={{ transform: `scaleX(${travelProgress({ departAt, arriveAt }, now)})` }}
             />
           </span>

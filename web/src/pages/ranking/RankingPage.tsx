@@ -4,6 +4,7 @@ import { useCurrentAccount } from '../../api/queries/auth';
 import { useEnemies } from '../../api/queries/guilds';
 import { RANKING_PAGE_SIZE, useRanking, type RankingEntry, type RankingKind } from '../../api/queries/ranking';
 import { ActionsStayOn } from '../../layout/ActionsStayOn';
+import { NameNote } from '../../components/NameNote';
 import { Button } from '../../components/Button';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { Pagination } from '../../components/Pagination';
@@ -144,9 +145,9 @@ function Line({
           <span className={styles.name}>
             {entry.guildTag != null && <span className={styles.guildTag}>{bracketTag(entry.guildTag)}</span>}
             {entry.name}
-            {mine && <span className={styles.tag}>{t.map.youTag}</span>}
-            {entry.npc && <span className={styles.tag}>{t.map.npcTag}</span>}
-            {isEnemyPlayer(enemies, { id: entry.playerId, guildId: entry.guildId }) && <EnemyPill />}
+            {mine && <NameNote className={styles.tag}>{t.map.youTag}</NameNote>}
+            {entry.npc && <NameNote className={styles.tag}>{t.map.npcTag}</NameNote>}
+            {isEnemyPlayer(enemies, { id: entry.playerId, guildId: entry.guildId }) && <EnemyPill inText />}
           </span>
           <span className={styles.sub}>{t.ranking.villageCount(entry.villageCount)}</span>
         </span>

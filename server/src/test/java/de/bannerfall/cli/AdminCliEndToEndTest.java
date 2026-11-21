@@ -485,6 +485,7 @@ class AdminCliEndToEndTest {
                 s.noblePriceStep(),
                 s.automationVillages(),
                 s.tutorialEnabled(),
+                s.soloMode(),
                 null);
     }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -142,6 +143,9 @@ public class WorldSettingsEntity {
     /** The tutorial card, its menu row and its refunds (1.7, 02-game-rules §27). */
     private boolean tutorialEnabled;
 
+    /** A world for one human and the lords that sleeps while nobody plays (2.1, 12 §1). */
+    private boolean soloMode;
+
     /** The CUSTOM difficulty's values; null until the admin first picks CUSTOM. */
     @Convert(converter = NpcDifficultyConverter.class)
     @JdbcTypeCode(SqlTypes.JSON)
@@ -174,6 +178,18 @@ public class WorldSettingsEntity {
     private String victoryLeader;
 
     private Instant victoryLeaderSince;
+
+    /**
+     * When the world fell asleep or was paused (2.1, 12-solo-and-allies §3), null while it runs:
+     * its game time stands still here until the wake.
+     */
+    private Instant asleepSince;
+
+    /** The host's pause (2.1): stays asleep until the host presses play. */
+    private boolean paused;
+
+    /** The host's fast forward (2.1): 1, 2 or 4. */
+    private short clockSpeed = 1;
 
     protected WorldSettingsEntity() {}
 
@@ -238,6 +254,7 @@ public class WorldSettingsEntity {
                 .noblePriceStep(noblePriceStep)
                 .automationVillages(automationVillages)
                 .tutorialEnabled(tutorialEnabled)
+                .soloMode(soloMode)
                 .build();
     }
 
@@ -308,6 +325,39 @@ public class WorldSettingsEntity {
     public void setVictoryLeader(String leader, Instant since) {
         this.victoryLeader = leader;
         this.victoryLeaderSince = since;
+    }
+
+    public Instant getAsleepSince() {
+        return asleepSince;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public int getClockSpeed() {
+        return clockSpeed;
+    }
+
+    /** Asleep since {@code since} (null = awake), paused or not. */
+    void setAsleep(Instant since, boolean paused) {
+        this.asleepSince = since;
+        this.paused = since != null && paused;
+    }
+
+    void setClockSpeed(int speed) {
+        this.clockSpeed = (short) speed;
+    }
+
+    /**
+     * Moves the game clocks of this row on by {@code by} (a wake, a reopen or a fast-forward step,
+     * {@code FrozenTime}): when the world opened (the barbarian walls count from it), the end date
+     * and since when the victory leader holds. Null stays null.
+     */
+    void shiftClocks(Duration by) {
+        initializedAt = initializedAt == null ? null : initializedAt.plus(by);
+        endsAt = endsAt == null ? null : endsAt.plus(by);
+        victoryLeaderSince = victoryLeaderSince == null ? null : victoryLeaderSince.plus(by);
     }
 
     /** Pre-game only: what is fixed once the content is created (M14g; the spread since 1.6). */
@@ -459,6 +509,9 @@ public class WorldSettingsEntity {
         }
         if (u.tutorialEnabled() != null) {
             tutorialEnabled = u.tutorialEnabled();
+        }
+        if (u.soloMode() != null) {
+            soloMode = u.soloMode();
         }
     }
 

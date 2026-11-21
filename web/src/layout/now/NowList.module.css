@@ -123,6 +123,23 @@
   transform-origin: left;
 }
 
+/* troops on the way fill in their march colour, like the rally point (2.1, tokens.css --march-*) */
+.march {
+  background: var(--march-track);
+}
+
+.march .attack {
+  background: var(--march-attack);
+}
+
+.march .support {
+  background: var(--march-support);
+}
+
+.march .return {
+  background: var(--march-return);
+}
+
 .extra {
   grid-column: 2 / -1;
   min-width: 0;

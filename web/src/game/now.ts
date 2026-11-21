@@ -26,7 +26,9 @@ export type NowRow =
   | { kind: 'research'; key: string; village: VillageRef; at: number; order: Research }
   | { kind: 'incoming'; key: string; village: VillageRef; at: number; movement: IncomingMovement }
   | { kind: 'outgoing'; key: string; village: VillageRef; at: number; movement: Movement }
-  | { kind: 'merchants'; key: string; village: VillageRef; at: number; transport: Transport };
+  | { kind: 'merchants'; key: string; village: VillageRef; at: number; transport: Transport }
+  /** Another player's merchants on their way to the village (2.1). */
+  | { kind: 'merchantsIn'; key: string; village: VillageRef; at: number; transport: Transport };
 
 export interface NowSections {
   /** Hostile attacks on any village (a hidden attack would be worse than a long list). */
@@ -34,7 +36,7 @@ export interface NowSections {
   building: NowRow[];
   /** Recruiting, dismissing and researching. */
   training: NowRow[];
-  /** Commands, supports, returning troops and merchants, next first. */
+  /** Commands, supports, returning troops and merchants (own ones and others' coming here), next first. */
   way: NowRow[];
   /** All lines: what the tab and the "More" row count. */
   count: number;
@@ -147,6 +149,15 @@ export function nowSections(now: Now, scope: NowScope, currentVillageId: number 
         transport,
       });
     }
+    for (const transport of entry.incomingMerchants) {
+      way.push({
+        kind: 'merchantsIn',
+        key: `merchants-in-${transport.id}`,
+        village,
+        at: Date.parse(transport.arriveAt),
+        transport,
+      });
+    }
   }
   const byTime = (a: NowRow, b: NowRow) => a.at - b.at;
   attacks.sort(byTime);
@@ -188,6 +199,7 @@ export function nextNowEndMs(now: Now): number | undefined {
     entry.outgoing.forEach((movement) => see(movement.arriveAt));
     entry.incoming.forEach((movement) => see(movement.arriveAt));
     entry.merchants.forEach((transport) => see(transport.arrived ? transport.returnAt : transport.arriveAt));
+    entry.incomingMerchants.forEach((transport) => see(transport.arriveAt));
   }
   return next;
 }

@@ -79,10 +79,30 @@ describe('SendResourcesCard', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Own villages' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tomburg(70|58) · 9.0 fields · 0:54:00' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tomburg(70\u2060|\u206058) · 9.0 fields · 0:54:00' }));
 
     expect((screen.getByRole('textbox', { name: 'Target' }) as HTMLInputElement).value).toBe('70|58');
     expect(screen.getByText('Tomburg · aldric · 9.0 fields')).toBeTruthy();
     expect(screen.getByText('Travel time').nextElementSibling?.textContent).toBe('0:54:00');
+  });
+
+  it('fills in the target and what an ally asks for, at most what is in stock (2.1 S4)', () => {
+    renderPage({
+      path: '/v/:villageId/market',
+      url: '/v/59/market?x=70&y=58&wood=400&iron=90000',
+      element: <SendResourcesCard village={village} market={market} />,
+      data: [
+        [meQueryKey, me],
+        [worldQueryKey, { speed: 1, unitSpeed: 1, mapSize: 100 }],
+        [mapChunkQueryKey({ cx: 3, cy: 2 }), [tomburg]],
+      ],
+    });
+    expect((screen.getByRole('textbox', { name: 'Target' }) as HTMLInputElement).value).toBe('70|58');
+    const value = (name: string) =>
+      (screen.getByRole('textbox', { name: `Amount to send: ${name}` }) as HTMLInputElement).value;
+    expect(value('Wood')).toBe('400');
+    expect(value('Clay')).toBe('');
+    expect(Number(value('Iron'))).toBeLessThanOrEqual(6397);
+    expect(Number(value('Iron'))).toBeGreaterThan(4000);
   });
 });

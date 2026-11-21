@@ -96,7 +96,11 @@ class NpcShipments {
                         turn.view.lesson(),
                         wallGoal);
         ResourceAmounts spare =
-                spare(donor.floorResources(), villageBanners.warehouseCapacity(donor), reserve);
+                spare(
+                        donor.floorResources(),
+                        villageBanners.warehouseCapacity(donor),
+                        reserve,
+                        turn.template().shipFrom());
         if (spare.total() < Merchants.CAPACITY) {
             return;
         }
@@ -162,8 +166,7 @@ class NpcShipments {
      * arrive (with its Harvest banner, like {@code VillageStateService}), plus what is already on
      * the way to it.
      */
-    private ResourceAmounts roomIn(
-            Village receiver, Coordinates from, WorldSettings world, Instant now) {
+    ResourceAmounts roomIn(Village receiver, Coordinates from, WorldSettings world, Instant now) {
         int capacity = villageBanners.warehouseCapacity(receiver);
         double factor = receiver.getPlayer().getProductionFactor();
         double harvest = villageBanners.effectOf(receiver).production();
@@ -198,14 +201,23 @@ class NpcShipments {
      * others.
      */
     static ResourceAmounts spare(ResourceAmounts stock, int capacity, ResourceAmounts reserve) {
-        return new ResourceAmounts(
-                spareOf(stock.wood(), capacity, reserve.wood()),
-                spareOf(stock.clay(), capacity, reserve.clay()),
-                spareOf(stock.iron(), capacity, reserve.iron()));
+        return spare(stock, capacity, reserve, OVERFLOW);
     }
 
-    private static int spareOf(int stock, int capacity, int reserve) {
-        if (stock < OVERFLOW * capacity) {
+    /**
+     * {@link #spare(ResourceAmounts, int, ResourceAmounts)} from the template's {@code ship-from}
+     * share of the warehouse instead of {@link #OVERFLOW} (09 §16.4).
+     */
+    static ResourceAmounts spare(
+            ResourceAmounts stock, int capacity, ResourceAmounts reserve, double shipFrom) {
+        return new ResourceAmounts(
+                spareOf(stock.wood(), capacity, reserve.wood(), shipFrom),
+                spareOf(stock.clay(), capacity, reserve.clay(), shipFrom),
+                spareOf(stock.iron(), capacity, reserve.iron(), shipFrom));
+    }
+
+    private static int spareOf(int stock, int capacity, int reserve, double shipFrom) {
+        if (stock < shipFrom * capacity) {
             return 0;
         }
         int keep = Math.max((int) Math.ceil(KEEP * capacity), reserve);

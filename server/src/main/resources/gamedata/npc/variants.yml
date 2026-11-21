@@ -1,0 +1,372 @@
+# The nine NPC lord variants (2.1, docs/plan/09-npc-lords.md §16): each is its base personality's
+# template (offensive.yml, defensive.yml, balanced.yml) with only the fields named here changed. A
+# mix stage given replaces that stage; a list given (stages, unit lists, build) replaces the whole
+# list. The key goes into npc_brain.template; lords spawned before 2.1 keep the plain template.
+npc:
+  variants:
+    # ---- OFFENSIVE ----
+    ROBBER_KNIGHT:             # lives off raids: fast light cavalry, rarely nobles
+      base: OFFENSIVE
+      mix:
+        MID: { SPEARMAN: 5, AXEMAN: 30, SCOUT: 5, LIGHT_CAVALRY: 55, RAM: 5, MOUNTED_ARCHER: 10 }
+        LATE: { SPEARMAN: 5, AXEMAN: 25, SCOUT: 5, LIGHT_CAVALRY: 50, HEAVY_CAVALRY: 5, RAM: 5, CATAPULT: 5, MOUNTED_ARCHER: 12 }
+      farm-units: [LIGHT_CAVALRY, MOUNTED_ARCHER]
+      raid-first: true
+      farm-radius: 25
+      home-guard: 0.25
+      conquers-players: false
+      nobles: 2
+      build:                   # the type's list with Stable 10 before the workshop (type: Stable 8 after it)
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { BARRACKS: 2, SMITHY: 2 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { HEADQUARTERS: 10 }
+      - { BANNER_HALL: 1 }
+      - { STABLE: 3 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { WALL: 3 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { STABLE: 10 }
+      - { WORKSHOP: 2 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { MARKET: 5, WALL: 5 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { SMITHY: 20 }
+      - { MARKET: 10 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { BARRACKS: 15, STABLE: 12, WORKSHOP: 5, WALL: 10 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+    CONQUEROR:                 # wants your villages: academy early, then noble trains
+      base: OFFENSIVE
+      stages:
+        - { name: EARLY, below-points: 850, troop-share: 0.25 }
+        - { name: MID, below-points: 4500, troop-share: 0.40 }
+        - { name: LATE, troop-share: 0.55 }
+      mix:
+        LATE: { SPEARMAN: 5, AXEMAN: 35, SCOUT: 3, LIGHT_CAVALRY: 35, HEAVY_CAVALRY: 7, RAM: 12, CATAPULT: 5, MOUNTED_ARCHER: 12 }
+      nobles: 6
+      conquest-radius: 30
+      margin: 1.4
+      build:                   # the type's list with the academy right after Farm/Warehouse 15
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { BARRACKS: 2, SMITHY: 2 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { HEADQUARTERS: 10 }
+      - { BANNER_HALL: 1 }
+      - { STABLE: 3 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { WALL: 3 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { WORKSHOP: 2 }
+      - { STABLE: 8 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { SMITHY: 20 }
+      - { MARKET: 10 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { WALL: 5 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { BARRACKS: 15, STABLE: 12, WORKSHOP: 5, WALL: 10 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+    HOTHEAD:                   # leaves humans alone until they touch him, then comes back twice
+      base: OFFENSIVE
+      humans-only-on-grudge: true
+      grudge-factor: 2.0
+      retaliations: 2
+      thieves: 15
+
+    # ---- DEFENSIVE ----
+    CASTELLAN:                 # the highest walls in the world, almost never attacks
+      base: DEFENSIVE
+      stages:
+        - { name: EARLY, below-points: 850, troop-share: 0.25 }
+        - { name: MID, below-points: 4500, troop-share: 0.35 }
+        - { name: LATE, troop-share: 0.40 }
+      home-guard: 0.75
+      support-share: 0.3
+      village-ratio: 0.3
+      build:                   # walls 10, 15 and 20 before Headquarters 10, 15 and 20
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { WALL: 3 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { HIDING_PLACE: 5 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { WALL: 10 }
+      - { HEADQUARTERS: 10 }
+      - { BANNER_HALL: 1 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { STABLE: 3 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { WALL: 15, HIDING_PLACE: 10 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { SMITHY: 15, STABLE: 10 }
+      - { WALL: 20 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { SMITHY: 20 }
+      - { MARKET: 10 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { BARRACKS: 15, STABLE: 12, WORKSHOP: 3 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+    PROTECTOR:                 # sends help everywhere it is tied to
+      base: DEFENSIVE
+      support-share: 0.7
+      support-horizon-factor: 1.5
+      home-guard: 0.5
+      mix:                     # heavy cavalry up, spearmen and swordsmen give way evenly
+        MID: { SPEARMAN: 40, SWORDSMAN: 30, SCOUT: 5, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 20, ARCHER: 25 }
+        LATE: { SPEARMAN: 30, SWORDSMAN: 20, SCOUT: 3, LIGHT_CAVALRY: 5, HEAVY_CAVALRY: 35, RAM: 4, CATAPULT: 3, ARCHER: 20 }
+      build:                   # the type's list with Stable 3 right after Headquarters 10
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { WALL: 3 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { HIDING_PLACE: 5 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { WALL: 6 }
+      - { HEADQUARTERS: 10 }
+      - { STABLE: 3 }
+      - { BANNER_HALL: 1 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { WALL: 10 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { SMITHY: 15, STABLE: 10 }
+      - { WALL: 15, MARKET: 5 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { SMITHY: 20 }
+      - { MARKET: 10 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { WALL: 20, BARRACKS: 15, STABLE: 12, WORKSHOP: 3 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+    MERCHANT:                  # economy first: climbs the ranking, ships and trades, thin army
+      base: DEFENSIVE
+      stages:
+        - { name: EARLY, below-points: 850, troop-share: 0.20 }
+        - { name: MID, below-points: 4500, troop-share: 0.25 }
+        - { name: LATE, troop-share: 0.30 }
+      ship-from: 0.8
+      build:                   # the type's list with Market 10 before Headquarters 15
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { WALL: 3 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { HIDING_PLACE: 5 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { WALL: 6 }
+      - { HEADQUARTERS: 10 }
+      - { BANNER_HALL: 1 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { STABLE: 3 }
+      - { WALL: 10 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { MARKET: 10 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { SMITHY: 15, STABLE: 10 }
+      - { WALL: 15, MARKET: 5 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { SMITHY: 20 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { WALL: 20, BARRACKS: 15, STABLE: 12, WORKSHOP: 3 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+
+    # ---- BALANCED ----
+    SETTLER:                   # expands over the barbarian land around it
+      base: BALANCED
+      conquers-players: false
+      nobles: 6
+      conquest-radius: 25
+      build:                   # the type's list with the academy right after Farm/Warehouse 15
+      - { WOODCUTTER: 2, CLAY_PIT: 2, IRON_MINE: 2 }
+      - { HEADQUARTERS: 2 }
+      - { WOODCUTTER: 3, CLAY_PIT: 3, IRON_MINE: 3 }
+      - { FARM: 2, WAREHOUSE: 2 }
+      - { HEADQUARTERS: 3 }
+      - { BARRACKS: 1 }
+      - { WOODCUTTER: 6, CLAY_PIT: 5, IRON_MINE: 5 }
+      - { HIDING_PLACE: 2 }
+      - { FARM: 4, WAREHOUSE: 4 }
+      - { HEADQUARTERS: 5 }
+      - { MARKET: 2 }
+      - { SMITHY: 1 }
+      - { BARRACKS: 2, SMITHY: 2 }
+      - { WOODCUTTER: 8, CLAY_PIT: 7, IRON_MINE: 7 }
+      - { FARM: 6, WAREHOUSE: 6 }
+      - { WALL: 3 }
+      - { BARRACKS: 5, SMITHY: 5 }
+      - { HEADQUARTERS: 10 }
+      - { BANNER_HALL: 1 }
+      - { WOODCUTTER: 11, CLAY_PIT: 10, IRON_MINE: 10 }
+      - { STABLE: 3 }
+      - { FARM: 10, WAREHOUSE: 10 }
+      - { MARKET: 5 }
+      - { WALL: 6 }
+      - { BARRACKS: 10, SMITHY: 10 }
+      - { WORKSHOP: 1 }
+      - { WOODCUTTER: 16, CLAY_PIT: 15, IRON_MINE: 15 }
+      - { HEADQUARTERS: 15, BANNER_HALL: 2 }
+      - { FARM: 15, WAREHOUSE: 15 }
+      - { HEADQUARTERS: 20, BANNER_HALL: 3 }
+      - { SMITHY: 20 }
+      - { MARKET: 10 }
+      - { WAREHOUSE: 20 }
+      - { ACADEMY: 1 }
+      - { STABLE: 10 }
+      - { WALL: 10 }
+      - { WOODCUTTER: 21, CLAY_PIT: 20, IRON_MINE: 20 }
+      - { FARM: 20, WAREHOUSE: 20 }
+      - { BARRACKS: 15, STABLE: 12, WORKSHOP: 5, WALL: 15 }
+      - { HEADQUARTERS: 25 }
+      - { WOODCUTTER: 25, CLAY_PIT: 25, IRON_MINE: 25 }
+      - { FARM: 25, WAREHOUSE: 25 }
+      - { MARKET: 15, HIDING_PLACE: 10 }
+      - { BARRACKS: 20, STABLE: 20, WORKSHOP: 15, WALL: 20 }
+      - { HEADQUARTERS: 30 }
+      - { WOODCUTTER: 30, CLAY_PIT: 30, IRON_MINE: 30 }
+      - { FARM: 30, WAREHOUSE: 30 }
+      - { BARRACKS: 25, MARKET: 25 }
+    KNIGHT:                    # leaves small players alone, challenges the strong
+      base: BALANCED
+      target-min-ratio: 0.9
+      spare-last-village: true
+      paladin-retaliates: true
+      mix:                     # heavy cavalry 25 (type 12), the rest scaled down
+        LATE: { SPEARMAN: 21, SWORDSMAN: 9, AXEMAN: 17, SCOUT: 3, LIGHT_CAVALRY: 17, HEAVY_CAVALRY: 25, RAM: 5, CATAPULT: 3, ARCHER: 10, MOUNTED_ARCHER: 8 }
+    VULTURE:                   # strikes whoever was just weakened
+      base: BALANCED
+      prefers-falling: true
+      margin: 1.4
+      farm-radius: 18

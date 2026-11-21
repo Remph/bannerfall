@@ -2,6 +2,7 @@ import { formatCoords, formatDateTime, formatWhenExact } from '../game/format';
 import { sideName } from '../game/victory';
 import type { PushTexts } from '../i18n/push-en';
 import type { Language } from '../i18n/language';
+import { helpRequestPath } from '../pages/diplomacy/helpPaths';
 import { conversationPath } from '../pages/messages/messagePaths';
 import { rankingPath } from '../pages/ranking/rankingPaths';
 import { attacksReturnedText, storageFullText } from '../realtime/returnTexts';
@@ -96,6 +97,14 @@ export function pushNotificationContent(
         url: `/v/${event.villageId}/warehouse`,
         tag: `storage-${event.villageId}`,
       };
+    case 'HELP_REQUESTED':
+      // 2.1 S4: the strip on every page opens the request; `?help=` opens its sheet at once
+      return {
+        title,
+        body: t.realtime.helpRequested(event.lordName, event.kind),
+        url: helpRequestPath(event.requestId),
+        tag: `help-${event.lordId}`,
+      };
     case undefined:
       return undefined;
   }
@@ -116,7 +125,7 @@ function victoryClockText(
   if (leader !== null && winsAt !== null) {
     const when = formatDateTime(Date.parse(winsAt), language);
     if (!event.leaderYours) {
-      return t.realtime.victoryClock(sideName(leader), when);
+      return t.realtime.victoryClock(sideName(leader, t), when);
     }
     return leader.kind === 'GUILD' ? t.realtime.victoryClockYours(when) : t.realtime.victoryClockYou(when);
   }
@@ -124,7 +133,7 @@ function victoryClockText(
     return undefined;
   }
   if (!event.previousYours) {
-    return t.realtime.victoryClockStopped(sideName(previous));
+    return t.realtime.victoryClockStopped(sideName(previous, t));
   }
   return previous.kind === 'GUILD' ? t.realtime.victoryClockStoppedYours : t.realtime.victoryClockStoppedYou;
 }

@@ -26,7 +26,7 @@ export function stateText(
 ): string {
   const labels = t.victory;
   const you = mine && side.kind === 'PLAYER';
-  const who = mine ? labels.yourGuild : sideName(side);
+  const who = mine ? labels.yourGuild : sideName(side, t);
   if (victory.mode === 'DOMINATION') {
     const share = formatShare(villageShare(side, victory.allVillages), language);
     return you ? labels.shareStateYou(share) : labels.shareState(who, share);
@@ -42,7 +42,7 @@ export function endHeadline(t: Dictionary, winner: VictorySide | null, mine: boo
     return t.victory.noWinner;
   }
   if (!mine) {
-    return t.victory.sideWon(sideName(winner));
+    return t.victory.sideWon(sideName(winner, t));
   }
   return winner.kind === 'GUILD' ? t.victory.guildWon : t.victory.youWon;
 }

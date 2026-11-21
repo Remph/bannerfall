@@ -12,7 +12,9 @@ import { BackLink } from '../../components/BackLink';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { useWorld } from '../../api/queries/world';
 import { useI18n } from '../../i18n';
+import { kindsInWorld } from '../../push/worldKinds';
 import { devicePushOn, pushSupport, PushBlockedError, turnOffPush, turnOnPush } from '../../push/pushClient';
 import styles from './NotificationsPage.module.css';
 import { Switch } from '../../components/Switch';
@@ -137,10 +139,11 @@ function Device({ publicKey, devices }: { publicKey: string; devices: number }) 
 function Kinds({ kinds }: { kinds: PushSettings['kinds'] }) {
   const { t } = useI18n();
   const setKind = useSetPushKind();
+  const world = useWorld().data;
   return (
     <Card title={t.push.kindsTitle}>
       <ul className={styles.kinds}>
-        {kinds.map(({ kind, enabled }) => {
+        {kindsInWorld(kinds, world).map(({ kind, enabled }) => {
           const pending = setKind.isPending && setKind.variables.kind === kind;
           const checked = pending ? setKind.variables.enabled : enabled;
           return (

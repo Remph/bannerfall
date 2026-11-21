@@ -3,6 +3,10 @@ package de.bannerfall.guild;
 import de.bannerfall.account.AccountRepository;
 import de.bannerfall.achievement.Achievement;
 import de.bannerfall.achievement.AchievementService;
+import de.bannerfall.chronicle.Chronicle;
+import de.bannerfall.chronicle.ChronicleFacts;
+import de.bannerfall.chronicle.ChronicleKind;
+import de.bannerfall.chronicle.ChronicleSide;
 import de.bannerfall.common.ApiException;
 import de.bannerfall.common.ErrorCode;
 import de.bannerfall.common.GameRuleException;
@@ -47,6 +51,7 @@ public class GuildService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final AchievementService achievements;
+    private final Chronicle chronicle;
     private final GuildBannerService banner;
 
     /**
@@ -68,7 +73,9 @@ public class GuildService {
             ApplicationEventPublisher events,
             Clock clock,
             AchievementService achievements,
-            GuildBannerService banner) {
+            GuildBannerService banner,
+            Chronicle chronicle) {
+        this.chronicle = chronicle;
         this.guilds = guilds;
         this.members = members;
         this.invitations = invitations;
@@ -142,6 +149,12 @@ public class GuildService {
             throw conflictOf(e);
         }
         achievements.grant(playerId, Achievement.GUILD_FOUNDER);
+        chronicle.recordNow(
+                ChronicleKind.GUILD_FOUNDED,
+                ChronicleFacts.empty()
+                        .withSide(
+                                ChronicleSide.guild(guild.getId(), guild.getName(), guild.getTag()))
+                        .withPlayer(chronicle.player(playerId)));
         achievements.grant(playerId, Achievement.GUILD_MEMBER);
         notifyAll(dropInvitationsOf(playerId));
         return myGuild(playerId);
@@ -263,7 +276,9 @@ public class GuildService {
 
     /**
      * Leaves the guild. A guild's last member takes it down with him; the leader of a guild with
-     * other members hands the lead over first.
+     * other human members hands the lead over first. The last human takes it down too: its NPC
+     * allies go back to being lone lords (2.1 feature review, finding 07; a lord never leads a
+     * guild of humans).
      *
      * @throws GameRuleException {@code NOT_IN_GUILD}, {@code LEADER_MUST_TRANSFER}
      */
@@ -271,9 +286,13 @@ public class GuildService {
     public MyGuildDto leave(long playerId) {
         Locked locked = lock(playerId);
         long guildId = locked.guild.getId();
-        if (locked.me.getRole() == GuildRole.LEADER && members.countByGuildId(guildId) > 1) {
+        if (locked.me.getRole() == GuildRole.LEADER && members.countHumansOf(guildId) > 1) {
             throw new GameRuleException(
                     ErrorCode.LEADER_MUST_TRANSFER, "Hand the lead over before you leave");
+        }
+        if (members.countHumansOf(guildId) <= 1) {
+            deleteGuild(locked.guild);
+            return myGuild(playerId);
         }
         drop(locked);
         return myGuild(playerId);
@@ -316,6 +335,13 @@ public class GuildService {
                     HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, "You lead the guild already");
         }
         GuildMember successor = otherMemberOf(locked, newLeaderId);
+        if (players.findById(newLeaderId).filter(Player::isNpc).isPresent()) {
+            // an allied lord (2.1 S2b) follows a human's guild, it doesn't lead one
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.VALIDATION,
+                    "An NPC lord can't lead the guild");
+        }
         // The database allows one leader per guild: demote first, then promote.
         locked.me.setRole(GuildRole.MEMBER);
         members.saveAndFlush(locked.me);
@@ -356,7 +382,9 @@ public class GuildService {
     /**
      * The player stops being a member because the host deleted or banned him for good (M14a, M14e):
      * his invitations are dropped, and a leader's guild goes to its longest member, or ends with
-     * its last. Nothing happens for a player in no guild.
+     * its last. In a guild of humans the lead goes to the longest human; without one the guild ends
+     * and its NPC allies are lone lords again (2.1 feature review, finding 07). Nothing happens for
+     * a player in no guild.
      */
     @Transactional
     public void removeBecauseGone(long playerId) {
@@ -367,6 +395,14 @@ public class GuildService {
         Locked locked = lock(playerId);
         if (locked.me.getRole() == GuildRole.LEADER) {
             List<GuildMember> others = members.othersOldestFirst(locked.guild.getId(), playerId);
+            if (members.countHumansOf(locked.guild.getId()) > 0) {
+                // a guild of humans: only a human leads (a lord never leads a guild of humans)
+                others = others.stream().filter(m -> isHuman(m.getPlayerId())).toList();
+                if (others.isEmpty()) {
+                    deleteGuild(locked.guild);
+                    return;
+                }
+            }
             if (!others.isEmpty()) {
                 // The old leader goes first, the one-leader index would refuse two.
                 members.delete(locked.me);
@@ -456,6 +492,140 @@ public class GuildService {
     public void removeLord(long lordId) {
         requireLord(lordId);
         removeBecauseGone(lordId);
+    }
+
+    // ---- NPC lords as allies in a solo world (2.1 S2b, 12-solo-and-allies §4, §5) ----
+
+    /**
+     * Invites an NPC lord into the leader's guild (a solo world only). The lord answers in its next
+     * round ({@link #acceptForLord}, {@link #declineForLord}); it may be in a lord guild meanwhile.
+     * The wait after a refusal is checked by the caller (the lord's trust).
+     *
+     * @return the invitation's id
+     * @throws ApiException 409 {@code WORLD_NOT_SOLO}; 403 {@code NOT_GUILD_LEADER}
+     * @throws GameRuleException {@code GUILDS_DISABLED}, {@code NOT_IN_GUILD}, {@code GUILD_FULL},
+     *     {@code ALREADY_IN_GUILD} (the lord is in this guild already), {@code LORD_ALLIED} (it is
+     *     in another guild with a human), {@code ALREADY_INVITED}
+     * @throws NotFoundException {@code PLAYER_NOT_FOUND} for a player who is no lord or owns no
+     *     village
+     */
+    @Transactional
+    public long inviteLord(long leaderId, long lordId) {
+        requireEnabled();
+        if (!worldService.settings().soloMode()) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.WORLD_NOT_SOLO,
+                    "Lords join a player's guild only in a solo world");
+        }
+        Locked locked = lockLeader(leaderId);
+        Player lord =
+                players.findById(lordId)
+                        .filter(p -> p.isNpc() && p.getVillageCount() > 0)
+                        .orElseThrow(() -> new NotFoundException(ErrorCode.PLAYER_NOT_FOUND));
+        long guildId = locked.guild.getId();
+        Optional<Long> lordsGuild = members.findGuildIdOf(lord.getId());
+        if (lordsGuild.filter(id -> id == guildId).isPresent()) {
+            throw new GameRuleException(ErrorCode.ALREADY_IN_GUILD, "The lord is in your guild");
+        }
+        if (lordsGuild.filter(id -> members.countHumansOf(id) > 0).isPresent()) {
+            // another human's ally: it would never answer (finding 08)
+            throw new GameRuleException(
+                    ErrorCode.LORD_ALLIED, "The lord is sworn to another guild");
+        }
+        if (isFull(guildId)) {
+            throw new GameRuleException(ErrorCode.GUILD_FULL, "The guild is full");
+        }
+        if (invitations.findByGuildIdAndPlayerId(guildId, lord.getId()).isPresent()) {
+            throw new GameRuleException(ErrorCode.ALREADY_INVITED, "Already invited");
+        }
+        GuildInvitation invitation =
+                invitations.saveAndFlush(
+                        new GuildInvitation(guildId, lord.getId(), leaderId, clock.instant()));
+        notify(leaderId);
+        return invitation.getId();
+    }
+
+    /**
+     * An NPC lord says yes to an invitation (its round, 12 §5): it leaves the guild it is in (a
+     * lord guild) and joins the inviting one; its other invitations are dropped. Lords earn no
+     * achievements.
+     *
+     * @return false, changing nothing, if the invitation is gone or the guild has no room
+     */
+    @Transactional
+    public boolean acceptForLord(long lordId, long invitationId) {
+        requireLord(lordId);
+        GuildInvitation invitation =
+                invitations
+                        .findById(invitationId)
+                        .filter(i -> i.getPlayerId().equals(lordId))
+                        .orElse(null);
+        if (invitation == null) {
+            return false;
+        }
+        Guild guild = lockGuild(invitation.getGuildId());
+        if (!invitations.existsByIdAndPlayerId(invitationId, lordId) || isFull(guild.getId())) {
+            return false;
+        }
+        Optional<Long> current = members.findGuildIdOf(lordId);
+        if (current.filter(id -> id.equals(guild.getId())).isPresent()) {
+            invitations.delete(invitation);
+            return true;
+        }
+        if (current.isPresent()) {
+            leaveKeepingInvitations(lordId);
+        }
+        List<Long> toTell = new ArrayList<>(members.playerIdsOf(guild.getId()));
+        members.saveAndFlush(
+                new GuildMember(lordId, guild.getId(), GuildRole.MEMBER, clock.instant()));
+        toTell.addAll(dropInvitationsOf(lordId));
+        notifyAll(toTell);
+        return true;
+    }
+
+    /** An NPC lord says no to an invitation (its round); its leader hears of it. */
+    @Transactional
+    public void declineForLord(long lordId, long invitationId) {
+        invitations
+                .findById(invitationId)
+                .filter(i -> i.getPlayerId().equals(lordId))
+                .ifPresent(
+                        invitation -> {
+                            invitations.delete(invitation);
+                            members.leaderIdOf(invitation.getGuildId()).ifPresent(this::notify);
+                        });
+    }
+
+    /**
+     * Whether the guild has a human member: an NPC lord in it is a human's ally (12 §4), not in a
+     * lord guild.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasHumans(long guildId) {
+        return members.countHumansOf(guildId) > 0;
+    }
+
+    /**
+     * Takes a lord out of its guild without touching its invitations (it is about to join another
+     * one): a leader's guild passes to its longest member, the last one ends it.
+     */
+    private void leaveKeepingInvitations(long lordId) {
+        Locked locked = lock(lordId);
+        if (locked.me.getRole() == GuildRole.LEADER) {
+            List<GuildMember> others = members.othersOldestFirst(locked.guild.getId(), lordId);
+            if (!others.isEmpty()) {
+                members.delete(locked.me);
+                members.flush();
+                banner.memberLeft(locked.guild.getId());
+                GuildMember successor = others.getFirst();
+                successor.setRole(GuildRole.LEADER);
+                members.saveAndFlush(successor);
+                notifyAll(members.playerIdsOf(locked.guild.getId()));
+                return;
+            }
+        }
+        drop(locked);
     }
 
     /** Ends every guild of NPC lords (the host switched lord guilds off, 09 §13). */
@@ -563,6 +733,10 @@ public class GuildService {
                 .orElseThrow(() -> new NotFoundException(ErrorCode.INVITATION_NOT_FOUND));
     }
 
+    private boolean isHuman(long playerId) {
+        return players.findById(playerId).map(p -> !p.isNpc()).orElse(false);
+    }
+
     /** Removes the membership; the last member takes the guild down. */
     private void drop(Locked locked) {
         long guildId = locked.guild.getId();
@@ -580,6 +754,15 @@ public class GuildService {
     private void deleteGuild(Guild guild) {
         // The invitations go with the guild (on delete cascade); the players it invited hear of it.
         List<Long> invited = invitations.invitedPlayerIds(guild.getId());
+        if (members.countHumansOf(guild.getId()) > 0) {
+            // the chronicle tells the humans' guilds (a lord guild ends quietly)
+            chronicle.recordNow(
+                    ChronicleKind.GUILD_DISBANDED,
+                    ChronicleFacts.empty()
+                            .withSide(
+                                    ChronicleSide.guild(
+                                            guild.getId(), guild.getName(), guild.getTag())));
+        }
         // Through the repository, so the persistence context holds no member of a guild that is
         // gone.
         members.deleteAll(members.findAllById(members.playerIdsOf(guild.getId())));

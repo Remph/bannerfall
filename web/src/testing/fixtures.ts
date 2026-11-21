@@ -145,6 +145,10 @@ export const world: World = {
   archersEnabled: false,
   moraleFloor: 30,
   noblePriceStep: 0.25,
+  soloMode: false,
+  pausedAt: null,
+  clockSpeed: 1,
+  npcGuildsEnabled: false,
 };
 
 export const banners: Banners = {
@@ -763,6 +767,7 @@ const pregameDefaults: AdminWorldSettings = {
   guildStartTogether: true,
   guildBannersEnabled: false,
   tutorialEnabled: true,
+  soloMode: false,
   npcGuildsEnabled: false,
   npcGuildMaxMembers: 3,
   unitLevelsEnabled: false,

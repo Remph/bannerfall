@@ -15,7 +15,8 @@ export type PushEvent =
   | Schemas['VictoryClock']
   | Schemas['BuildComplete']
   | Schemas['AttacksReturned']
-  | Schemas['StorageFull'];
+  | Schemas['StorageFull']
+  | Schemas['HelpRequested'];
 
 /**
  * What one push carries (the server's `PushMessage`, 01-architecture §4.8b): the live notification

@@ -57,6 +57,7 @@ function nowWith(attack: boolean): Now {
             ]
           : [],
         merchants: [],
+        incomingMerchants: [],
       },
     ],
   };

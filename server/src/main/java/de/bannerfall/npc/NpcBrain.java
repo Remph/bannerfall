@@ -25,7 +25,10 @@ public class NpcBrain {
     @Enumerated(EnumType.STRING)
     private NpcPersonality personality;
 
-    /** Key of the template in {@code gamedata/npc/}; the personality's name for now. */
+    /**
+     * Key of the template in {@code gamedata/npc/}: a variant's key (2.1, 09 §16.5), or the
+     * personality's name for a lord spawned before the variants or as {@code PLAIN}.
+     */
     private String template;
 
     private Instant lastThinkAt;
@@ -42,9 +45,14 @@ public class NpcBrain {
     protected NpcBrain() {}
 
     public NpcBrain(long playerId, NpcPersonality personality) {
+        this(playerId, personality, personality.name());
+    }
+
+    /** A lord playing {@code template}: a variant's key or the personality's name (09 §16.5). */
+    public NpcBrain(long playerId, NpcPersonality personality, String template) {
         this.playerId = playerId;
         this.personality = personality;
-        this.template = personality.name();
+        this.template = template;
         this.memory = NpcMemory.empty();
     }
 

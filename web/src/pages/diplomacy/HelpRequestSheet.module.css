@@ -1,0 +1,96 @@
+/* An ally's help request (2.1 S4, 12-solo-and-allies §9): the time left is the biggest thing on the
+   sheet, in the war colour; the letter lies on the sheet with a thin line at its side. */
+.body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.deadline {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.deadlineLabel,
+.deadlineAt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.countdown {
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.need {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.still {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.letter {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 1.5px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+}
+
+.letter p {
+  margin: 0 0 var(--space-1);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.signed {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.signed::before {
+  content: '— ';
+}
+
+.actionsPart {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.where,
+.worth {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.worth {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.late {
+  color: var(--color-danger);
+}
+
+.frozen {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* the quiet choice first, the main action at the right; on a phone the two stack, the main one at the
+   bottom, so a long German label stays on one line */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.actions > button {
+  flex: 1 1 14rem;
+}

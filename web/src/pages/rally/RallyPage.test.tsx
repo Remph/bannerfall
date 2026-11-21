@@ -149,7 +149,7 @@ describe('RallyPage', () => {
     });
 
     expect(screen.getAllByText('Troops and start of other players’ attacks stay hidden.')).toHaveLength(1);
-    const links = screen.getAllByRole('link', { name: 'On the map (Hilltop (52|60))' });
+    const links = screen.getAllByRole('link', { name: 'On the map (Hilltop (52\u2060|\u206060))' });
     expect(links).toHaveLength(2);
     expect(links[0]?.getAttribute('href')).toBe(`/v/${village.id}/map?x=52&y=60&focus=1`);
     // what comes at the village before the own movements, on every screen width

@@ -42,12 +42,18 @@ class NpcAdminController {
     NpcLordDto spawn(@Valid @RequestBody SpawnNpcLordRequest body) {
         return audit.inTransaction(
                 () -> {
-                    NpcLordDto lord = admin.spawn(body.personality());
+                    NpcLordDto lord = admin.spawn(body.personality(), body.variant());
                     audit.record(
                             "SPAWN_NPC_LORD",
                             "player",
                             lord.playerId(),
-                            Map.of("name", lord.name(), "personality", lord.personality()));
+                            Map.of(
+                                    "name",
+                                    lord.name(),
+                                    "personality",
+                                    lord.personality(),
+                                    "template",
+                                    lord.template()));
                     return lord;
                 });
     }

@@ -43,7 +43,8 @@ import java.time.ZoneId;
  * to each other at the opening and on a respawn. {@code guildBannersEnabled} (1.7, 02-game-rules
  * §16.4) lets guilds raise a banner whose levels give their members small bonuses. {@code
  * tutorialEnabled} (1.7, 02-game-rules §27) shows the new players the tutorial and pays its
- * refunds.
+ * refunds. {@code soloMode} (2.1, 12-solo-and-allies §1) makes a world for one human and the NPC
+ * lords: it sleeps while nobody plays ({@code WorldSleep}) and the lords keep no quiet hours.
  *
  * <p>Built by name through {@link Builder} (1.3); the canonical constructor is called only by
  * {@link Builder#build()}. {@code WorldSettingsTest} checks by reflection that every setting has
@@ -109,7 +110,8 @@ public record WorldSettings(
         int moraleFloor,
         double noblePriceStep,
         int automationVillages,
-        boolean tutorialEnabled) {
+        boolean tutorialEnabled,
+        boolean soloMode) {
 
     /**
      * The defaults of the table in 02-game-rules §1 (speed 1; the invite code is a placeholder):
@@ -185,7 +187,8 @@ public record WorldSettings(
                 .moraleFloor(moraleFloor)
                 .noblePriceStep(noblePriceStep)
                 .automationVillages(automationVillages)
-                .tutorialEnabled(tutorialEnabled);
+                .tutorialEnabled(tutorialEnabled)
+                .soloMode(soloMode);
     }
 
     /** The night bonus of this world (1.4, 02-game-rules §8.1), its hours read in {@code zone}. */
@@ -325,6 +328,7 @@ public record WorldSettings(
         private double noblePriceStep = 0.25;
         private int automationVillages = 3;
         private boolean tutorialEnabled = true;
+        private boolean soloMode = false;
 
         private Builder() {}
 
@@ -623,6 +627,11 @@ public record WorldSettings(
             return this;
         }
 
+        public Builder soloMode(boolean value) {
+            this.soloMode = value;
+            return this;
+        }
+
         public WorldSettings build() {
             return new WorldSettings(
                     name,
@@ -683,7 +692,8 @@ public record WorldSettings(
                     moraleFloor,
                     noblePriceStep,
                     automationVillages,
-                    tutorialEnabled);
+                    tutorialEnabled,
+                    soloMode);
         }
     }
 }

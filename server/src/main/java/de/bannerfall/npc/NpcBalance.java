@@ -55,7 +55,29 @@ public class NpcBalance {
                 custom = null;
             }
         }
-        return settings.balance().difficulty(world.npcDifficulty(), custom);
+        Difficulty d = settings.balance().difficulty(world.npcDifficulty(), custom);
+        return world.soloMode() ? withoutQuietHours(d) : d;
+    }
+
+    /**
+     * A solo world keeps no quiet hours (2.1, 12-solo-and-allies §3): they protect a human's real
+     * night, and a solo world sleeps while he does. No arrival quiet hours, no build quiet hours
+     * (an empty window) and no farm rest.
+     */
+    static Difficulty withoutQuietHours(Difficulty d) {
+        return new Difficulty(
+                d.productionFactor(),
+                d.boostBelow(),
+                d.boostFactor(),
+                d.leadMargin(),
+                d.attacksPerPlayerPerDay(),
+                d.attacksPerHumanPerDay(),
+                false,
+                d.spareLastVillage(),
+                "00:00",
+                "00:00",
+                d.farmLootShare(),
+                false);
     }
 
     /** Whether the lords may not queue new buildings at {@code now} (09 §5.1). */
@@ -234,9 +256,23 @@ public class NpcBalance {
      * no lord is wiped out by the others).
      */
     public static boolean spared(Difficulty d, NpcWorld.MapVillage target) {
+        return spared(d, null, target);
+    }
+
+    /**
+     * {@link #spared(Difficulty, NpcWorld.MapVillage)} for a lord with this template: its {@code
+     * spare-last-village} (09 §16.4), if set, decides for a human's last village instead of the
+     * difficulty.
+     */
+    public static boolean spared(
+            Difficulty d, NpcTemplates.Template template, NpcWorld.MapVillage target) {
         if (target.npc()) {
             return target.ownerVillages() <= 1;
         }
-        return d.spareLastVillage() && target.human() && target.ownerVillages() <= 1;
+        boolean spare =
+                template != null && template.spareLastVillage() != null
+                        ? template.spareLastVillage()
+                        : d.spareLastVillage();
+        return spare && target.human() && target.ownerVillages() <= 1;
     }
 }

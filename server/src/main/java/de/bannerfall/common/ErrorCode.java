@@ -184,6 +184,15 @@ public enum ErrorCode {
     /** Taking an end back while the world has not ended (409). */
     WORLD_NOT_ENDED,
 
+    // Solo world (2.1, 12-solo-and-allies §3)
+    /**
+     * A request that would change the game while the host has paused the world (409): like an ended
+     * world, only reading, the chat and the account stay open until he presses play.
+     */
+    WORLD_PAUSED,
+    /** Pause, play or fast forward in a world that is not a solo world (409). */
+    WORLD_NOT_SOLO,
+
     // Start-up (code review 1.2, D3)
     /**
      * A game request right after a restart, while the event worker still catches up with what came
@@ -214,6 +223,31 @@ public enum ErrorCode {
     INVITATION_NOT_FOUND,
     /** Inviting somebody the guild has invited already (409). */
     ALREADY_INVITED,
+    /**
+     * Inviting an NPC lord that said no less than a day (÷ speed) ago (409; 2.1 S2b,
+     * 12-solo-and-allies §5).
+     */
+    LORD_NOT_READY,
+    /**
+     * Inviting an NPC lord that is another player's ally, a member of a guild with a human (409;
+     * 2.1 feature review, finding 08).
+     */
+    LORD_ALLIED,
+    /**
+     * An order to a lord that is not an ally: not an NPC lord of the player's guild, or the owner
+     * of the order's target (409; 2.1 S3, 12-solo-and-allies §8).
+     */
+    NOT_AN_ALLY,
+    /**
+     * An order the target doesn't take: an attack or hold on the player's own or a guild mate's
+     * village, a support outside the guild, resources to a village that isn't the player's (409).
+     */
+    ORDER_TARGET_INVALID,
+    /**
+     * "Not this time" on a help request that is no open request of the player's any more: answered,
+     * ended at its deadline or called off meanwhile (409; 2.1 S4, 12-solo-and-allies §9).
+     */
+    HELP_REQUEST_CLOSED,
     /** Kicking or handing the lead to somebody who is not a member of the leader's guild (404). */
     GUILD_MEMBER_NOT_FOUND,
     /** The invited player got another invitation less than a minute ago (429). */

@@ -37,6 +37,7 @@ export const dePushTexts: PushTexts = {
       BUILDS_DONE: 'Bauschleife leer',
       ATTACK_RETURNED: 'Rückkehr deiner Angriffe',
       STORAGE_FULL: 'Speicher voll',
+      HELP_REQUEST: 'Bitten von Verbündeten',
     },
     kindHints: {
       ATTACK: 'Sobald ein Angriff auf eines deiner Dörfer losgeschickt wird, mit seiner Ankunft.',
@@ -49,6 +50,8 @@ export const dePushTexts: PushTexts = {
         'Wenn Angriffe, nach denen du gefragt hast, wieder zu Hause sind: ein Angriff, ein Angriffszug oder eine Farmlisten-Runde. Du wählst es beim Schicken oder mit der Glocke.',
       STORAGE_FULL:
         'Wenn Holz, Lehm oder Eisen in einem Dorf die Grenze des Speichers erreicht. Einmal, bis es wieder weniger wird.',
+      HELP_REQUEST:
+        'Wenn ein verbündeter Fürst dich um Verteidiger oder Rohstoffe bittet, mit der Zeit, die dir bleibt.',
     },
     testBody: 'Benachrichtigungen funktionieren auf diesem Gerät.',
     attacks: (count: number, target: string, first: string) =>
@@ -85,6 +88,28 @@ export const dePushTexts: PushTexts = {
     victoryClockStopped: (side: string) => `${side} erfüllt die Siegbedingung nicht mehr. Die Siegesuhr steht.`,
     victoryClockStoppedYours: 'Deine Gilde erfüllt die Siegbedingung nicht mehr. Die Siegesuhr steht.',
     victoryClockStoppedYou: 'Du erfüllst die Siegbedingung nicht mehr. Die Siegesuhr steht.',
+    courtName: (key: string | null, numeral: string | null, guild: string) => {
+      const names: Record<string, string> = {
+        RAVEN: 'Der Rabenhof',
+        LION: 'Der Löwenhof',
+        EAGLE: 'Der Adlerhof',
+        BEAR: 'Der Bärenhof',
+        WOLF: 'Der Wolfshof',
+        DRAGON: 'Der Drachenhof',
+        STAG: 'Der Hirschhof',
+        FALCON: 'Der Falkenhof',
+        BULL: 'Der Stierhof',
+        FOX: 'Der Fuchshof',
+      };
+      const name = key === null ? undefined : names[key];
+      if (name === undefined) {
+        return `Der Hof von ${guild}`;
+      }
+      return numeral === null ? name : `${name} ${numeral}`;
+    },
+    courtChanged: (court: string) => `${court} ist jetzt der stärkste Hof der Fürsten.`,
+    helpRequested: (lord: string, kind: string) =>
+      kind === 'RESOURCES' ? `${lord} bittet dich um Rohstoffe.` : `${lord} bittet dich um Verteidiger.`,
     guildInvited: (guild: string) => `${guild} hat dich in ihre Gilde eingeladen`,
     guildBannerRaised: (level: number) => `Deine Gilde hat ihr Banner auf Stufe ${level} angehoben`,
     messageReceived: (player: string) => `Neue Nachricht von ${player}`,

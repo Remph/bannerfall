@@ -344,6 +344,22 @@
     color: var(--color-accent);
   }
 
+  /* the narrow desktop windows (2.1): the village's name needs the room more than the game's name
+     does. A 22-letter name next to the attack alarm and full six-digit stocks was cut at 1024 px, and
+     with the wordmark back at 1280 to 1343 px (2.1 review); up to 1365 px a classic scroll bar
+     (1366 minus 17 = 1349 px) still leaves the name its room. The empty column goes too, so its gap
+     doesn't take the name's room. The sidebar's Village link goes where the wordmark goes. */
+  @media (max-width: 1365.98px) {
+    .topBar {
+      grid-template-areas: 'switcher attacks orb resources settings';
+      grid-template-columns: minmax(8rem, max-content) auto minmax(0, 1fr) auto auto;
+    }
+
+    .brand {
+      display: none;
+    }
+  }
+
   .brand:focus-visible {
     outline-offset: 4px;
     border-radius: 2px;
@@ -444,6 +460,11 @@
 .app:has([data-chat-column], [data-now-column]) .column > aside {
   width: auto;
   margin-left: calc(max(0px, (100% - var(--content-width) - var(--chat-column-width)) / 2) + var(--space-3));
+  /* and as wide as the page beside the column, like below 1600 px (UI review 2.1, finding 02: an auto
+     margin shrank the notices to their text) */
+  margin-right: calc(
+    max(0px, (100% - var(--content-width) - var(--chat-column-width)) / 2) + var(--chat-column-width) + var(--space-3)
+  );
 }
 
 .app:has([data-chat-column], [data-now-column]) .footer {

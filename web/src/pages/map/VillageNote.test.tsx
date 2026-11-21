@@ -65,7 +65,7 @@ describe('NoteSheet', () => {
     const put = mockPut('Wall 3, spears only');
     const { queryClient, onClose } = open(barbarian);
 
-    expect(screen.getByRole('heading', { name: 'Note · Barbarian village (63|57)' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Note · Barbarian village (63\u2060|\u206057)' })).toBeTruthy();
     expect(screen.getByText('Only you can see this note.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
     const save = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;

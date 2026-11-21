@@ -20,6 +20,7 @@ import { languageNames } from '../../i18n/language';
 import styles from './WorldTab.module.css';
 import { BarbarianCard } from './BarbarianCard';
 import { EndedForm, EndNow } from './WorldEnd';
+import { WorldClock } from './WorldClock';
 import { VICTORY_MODES, victoryRequest } from './victoryForm';
 import { mapSpreads, villageNameLanguages, withSpread } from './worldForm';
 import {
@@ -502,6 +503,10 @@ function BasicsSection({ editor }: { editor: Editor }) {
         </div>
       </Plain>
       <Toggle editor={editor} row="tutorial" name="tutorialEnabled" hint={t.admin.world.tutorialHint} />
+      <Toggle editor={editor} row="solo" name="soloMode" hint={t.admin.world.soloHint}>
+        {/* the speed control works at once, for the stored solo world (2.1) */}
+        {editor.settings.soloMode && editor.settings.phase === 'OPEN' && <WorldClock />}
+      </Toggle>
     </Group>
   );
 }

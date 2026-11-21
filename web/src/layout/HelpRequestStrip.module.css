@@ -1,0 +1,97 @@
+/* An ally's help request under the sky (2.1 S4): a shade of the land like the victory clock, the time
+   left in the war colour and the biggest thing in it, a dot in the action colour */
+.wrap {
+  width: calc(100% - 2 * var(--space-3));
+  max-width: var(--content-width);
+  margin: var(--space-2) auto 0;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-well);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.strip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.dot {
+  flex: none;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--color-action);
+  box-shadow: 0 0 0 1.5px var(--color-action-edge);
+}
+
+.text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.lord {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.need {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* a phone keeps one line, the lord and the time: the need is in the sheet (and the strip's label) */
+@media (max-width: 639.98px) {
+  .need {
+    display: none;
+  }
+}
+
+.time {
+  flex: none;
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.more {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--color-badge);
+  color: var(--color-on-badge);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* on a PC the lord and the need share one line */
+@media (min-width: 640px) {
+  .text {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  .need {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

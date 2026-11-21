@@ -417,3 +417,28 @@ button.moreItem {
 .tabBar {
   view-transition-name: tab-bar;
 }
+
+/* Unread messages and chat are no war (UI review 2.1, finding 14; principles 4 and 5): in the rail the
+   dark green of the badges, on the phone's tab bar and in "More" the action colour. Red stays for
+   unread reports and attacks. */
+.railBadge.badgeQuiet {
+  background: var(--color-badge);
+  color: var(--color-on-badge);
+}
+
+.tabBadge.badgeAction,
+.moreBadge.badgeAction {
+  background: var(--color-action);
+  color: var(--color-on-action);
+}
+
+/* on the open entry (the bar colour, or the badge colour in Black) the green count turns round */
+.railItem[aria-current='page'] .railBadge.badgeQuiet {
+  background: var(--color-on-bar);
+  color: var(--color-bar);
+}
+
+:global(:root[data-black]) .railItem[aria-current='page'] .railBadge.badgeQuiet {
+  background: var(--color-on-badge);
+  color: var(--color-badge);
+}

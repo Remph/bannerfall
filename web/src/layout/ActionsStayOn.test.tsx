@@ -76,3 +76,55 @@ describe('the frozen buttons of an ended world', () => {
     expect(button('Cancel').disabled).toBe(false);
   });
 });
+
+describe('a paused solo world (2.1)', () => {
+  afterEach(cleanup);
+
+  it('turns the game actions off like an ended world and says it is paused', async () => {
+    await render(
+      <WorldEndContext value={{ ended: false, frozen: true, paused: true }}>
+        {buttons()}
+        <ActionsStayOn>
+          <Button type="button">Play</Button>
+        </ActionsStayOn>
+      </WorldEndContext>,
+    );
+
+    expect(button('Recruit').disabled).toBe(true);
+    expect(button('Recruit').title).toBe('The world is paused');
+    expect(button('Details').disabled).toBe(false);
+    // the host's play button stays on, and the part that stays open still knows it is paused
+    expect(button('Play').disabled).toBe(false);
+  });
+});
+
+describe('the paused world (UI review 2.1, finding 04)', () => {
+  afterEach(cleanup);
+
+  it('tells the host to press play and a guest that the world is paused', async () => {
+    await render(
+      <WorldEndContext value={{ ended: false, frozen: true, paused: true, host: true }}>
+        <Button type="button">Recruit</Button>
+      </WorldEndContext>,
+    );
+    expect(button('Recruit').title).toMatch(/press play/);
+    cleanup();
+    await render(
+      <WorldEndContext value={{ ended: false, frozen: true, paused: true, host: false }}>
+        <Button type="button">Recruit</Button>
+      </WorldEndContext>,
+    );
+    expect(button('Recruit').title).toBe('The world is paused');
+  });
+
+  it('keeps the host flag inside a part that stays open', async () => {
+    await render(
+      <WorldEndContext value={{ ended: false, frozen: true, paused: true, host: true }}>
+        <ActionsStayOn open={false}>
+          <Button type="button">Recruit</Button>
+        </ActionsStayOn>
+      </WorldEndContext>,
+    );
+    expect(button('Recruit').title).toMatch(/press play/);
+  });
+});

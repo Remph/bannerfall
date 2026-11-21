@@ -47,13 +47,15 @@ class NpcIntel {
 
     /**
      * Reads the lord's new reports in id order into {@code memory} and marks them read: nobody else
-     * reads them (§4).
+     * reads them (§4). The grudges last {@code grudge-hours × grudgeFactor} (the template's, 09
+     * §16.4).
      */
     void read(
             long playerId,
             NpcMemory.Draft memory,
             double speed,
-            NpcBalanceSettings.Balance general) {
+            NpcBalanceSettings.Balance general,
+            double grudgeFactor) {
         long newest = reports.maxIdOfPlayer(playerId);
         if (newest <= memory.lastReportId) {
             return;
@@ -68,7 +70,7 @@ class NpcIntel {
                     report.getPayload() instanceof BattleReport b ? b : null,
                     gameData,
                     speed,
-                    general.grudgeHours(),
+                    general.grudgeHours() * grudgeFactor,
                     general.learning());
             memory.lastReportId = Math.max(memory.lastReportId, report.getId());
         }
@@ -172,6 +174,32 @@ class NpcIntel {
             Map<Long, MapVillage> villages,
             double radius,
             Instant now) {
+        shareGrudges(
+                memory,
+                lordId,
+                mates,
+                mateGrudges,
+                ownVillages,
+                villages,
+                radius,
+                now,
+                Duration.ZERO);
+    }
+
+    /**
+     * {@link #shareGrudges} for a lord whose grudges last longer than its mates' (09 §16.4, {@code
+     * grudge-factor}): a copy lasts {@code longer} past the mate's.
+     */
+    static void shareGrudges(
+            NpcMemory.Draft memory,
+            long lordId,
+            Set<Long> mates,
+            Collection<Map<Long, Grudge>> mateGrudges,
+            Collection<Coordinates> ownVillages,
+            Map<Long, MapVillage> villages,
+            double radius,
+            Instant now,
+            Duration longer) {
         memory.grudges.keySet().removeAll(mates);
         for (Map<Long, Grudge> grudges : mateGrudges) {
             grudges.entrySet().stream()
@@ -201,7 +229,7 @@ class NpcIntel {
                                 memory.grudges.put(
                                         attacker,
                                         new Grudge(
-                                                grudge.until(),
+                                                grudge.until().plus(longer),
                                                 grudge.sourceVillageId(),
                                                 false,
                                                 grudge.scouts(),

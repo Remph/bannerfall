@@ -30,7 +30,7 @@ import { useI18n, useT } from '../../i18n';
 import { CommandConfirm } from './CommandConfirm';
 import { TrainConfirm } from './TrainConfirm';
 import styles from './RallyPage.module.css';
-import { targetFromSearch } from './rallyPaths';
+import { targetFromSearch, unitsFromSearch } from './rallyPaths';
 import { UnitPicker } from './UnitPicker';
 import { useFarmTemplates } from '../../api/queries/farmTemplates';
 import { TemplateButtons } from '../farm/TemplateButtons';
@@ -70,7 +70,8 @@ export function SendCard({ village, home }: SendCardProps) {
   // useState with a function: the URL is only read for the first render
   const [target, setTarget] = useState(() => targetFromSearch(searchParams));
   const [targetError, setTargetError] = useState<string | undefined>();
-  const [counts, setCounts] = useState<UnitMap>({});
+  // "Send support" on an ally's help request (2.1 S4) fills in the units, at most what is at home
+  const [counts, setCounts] = useState<UnitMap>(() => capCounts(unitsFromSearch(searchParams), home));
   const templates = useFarmTemplates().data ?? [];
   const [unitsError, setUnitsError] = useState(false);
   // the confirmation sheet is open while there is a command to confirm

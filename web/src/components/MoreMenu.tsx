@@ -31,6 +31,11 @@ const GAP_PX = 4;
 /** The least room the list keeps to the window's edge. */
 const EDGE_PX = 8;
 
+/** The height and scrolling of a list that has only `room` px (gap included) on its side. */
+function fitTo(room: number): CSSProperties {
+  return { maxHeight: Math.max(ITEM_PX + FRAME_PX, room - GAP_PX - EDGE_PX), overflowY: 'auto' };
+}
+
 /**
  * A "…" button with the rarer actions of a list row (1.3), so the row keeps one visible button.
  * The list sits at a fixed place on the screen under the button (above it when there is no room
@@ -50,6 +55,12 @@ export function MoreMenu({ label, items, align }: MoreMenuProps) {
       return;
     }
     const close = () => setPlace(null);
+    // a list taller than the window scrolls on its own: that scroll keeps it open
+    const onScroll = (event: Event) => {
+      if (!(event.target instanceof Node) || menuRef.current?.contains(event.target) !== true) {
+        close();
+      }
+    };
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Node) || ref.current?.contains(event.target) !== true) {
         close();
@@ -61,12 +72,12 @@ export function MoreMenu({ label, items, align }: MoreMenuProps) {
         ref.current?.querySelector('button')?.focus();
       }
     };
-    window.addEventListener('scroll', close, { capture: true, passive: true });
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true });
     window.addEventListener('resize', close);
     window.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onPointerDown);
     return () => {
-      window.removeEventListener('scroll', close, { capture: true });
+      window.removeEventListener('scroll', onScroll, { capture: true });
       window.removeEventListener('resize', close);
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onPointerDown);
@@ -75,19 +86,23 @@ export function MoreMenu({ label, items, align }: MoreMenuProps) {
 
   // A list that opens to the right of a "…" near the right edge (a long German label on a 320 px phone) ends
   // past the window: slide it back, so its rounded corners show (2.0 UI review follow-up)
+  // and one that opens to the left of a "…" near the left edge (a "…" in a wrapped button row, 2.1) starts
+  // before it: slide that one back by its `right`
   useLayoutEffect(() => {
     const menu = menuRef.current;
-    if (menu === null || place === null || typeof place.left !== 'number') {
+    if (menu === null || place === null) {
       return;
     }
-    // from the list's width and the state's `left`, not from where it is drawn: the global reduced-motion
-    // rule gives every property a transition, so for a moment the list is still at the old place
+    // from the list's width and the state's `left`/`right`, not from where it is drawn: the global
+    // reduced-motion rule gives every property a transition, so for a moment the list is still at the old place
     const fits = Math.max(
       EDGE_PX,
       Math.floor(document.documentElement.clientWidth - EDGE_PX - menu.getBoundingClientRect().width),
     );
-    if (fits < place.left - 0.5) {
+    if (typeof place.left === 'number' && fits < place.left - 0.5) {
       setPlace({ ...place, left: fits });
+    } else if (typeof place.right === 'number' && fits < place.right - 0.5) {
+      setPlace({ ...place, right: fits });
     }
   }, [place]);
 
@@ -104,11 +119,19 @@ export function MoreMenu({ label, items, align }: MoreMenuProps) {
     const opensLeft = align === undefined ? (rect.left + rect.right) / 2 > viewport.clientWidth / 2 : align === 'right';
     const side: CSSProperties = opensLeft ? { right: viewport.clientWidth - rect.right } : { left: rect.left };
     const room = items.length * ITEM_PX + FRAME_PX + GAP_PX;
-    setPlace(
-      viewport.clientHeight - rect.bottom >= room
-        ? { top: rect.bottom + GAP_PX, ...side }
-        : { bottom: viewport.clientHeight - rect.top + GAP_PX, ...side },
-    );
+    const below = viewport.clientHeight - rect.bottom;
+    const above = rect.top;
+    if (below >= room || above < room) {
+      // a list taller than the room on either side (a dozen items on a phone, 2.1) gets the larger side
+      // and scrolls there
+      if (below >= room || below >= above) {
+        setPlace({ top: rect.bottom + GAP_PX, ...side, ...(below >= room ? {} : fitTo(below)) });
+        return;
+      }
+      setPlace({ bottom: viewport.clientHeight - rect.top + GAP_PX, ...side, ...fitTo(above) });
+      return;
+    }
+    setPlace({ bottom: viewport.clientHeight - rect.top + GAP_PX, ...side });
   }
 
   return (

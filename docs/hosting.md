@@ -1,8 +1,8 @@
 # Host your own Bannerfall realm
 
-A step-by-step guide for running one Bannerfall world (a "realm") on a small Linux server of your own. It assumes Ubuntu 24.04 LTS on a rented virtual server, but any Linux host with Docker works the same way from step 4 on. The README has the reference for everything mentioned here (*Operating the server*, *Deploying*, *Backups*).
+A step-by-step guide for running one Bannerfall world (a "realm") on a small Linux server of your own. It assumes Ubuntu 24.04 LTS on a rented virtual server, but any Linux host with Docker works the same way from step 4 on. The README has the reference for everything mentioned here (*Hosting a world*, *Operating the server*, *Backups*). To play alone on your own PC you need none of this: the README's *Play* section starts a solo world with one command (`ops/bannerfall-solo`).
 
-Plan about two hours the first time, most of it waiting for DNS. The commands use `2.0.0` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
+Plan about two hours the first time, most of it waiting for DNS. The commands use `2.1.0` as the release; put in the newest one from the [releases page](https://github.com/Remph/bannerfall/releases) wherever it appears.
 
 ## 0. What you need
 
@@ -89,13 +89,13 @@ alias bfa='docker compose -f /opt/bannerfall/compose.prod.yaml exec app bannerfa
 
 ## 4. Get the code
 
-Each release is a tag (`v2.0.0`, …). Check out the newest one:
+Each release is a tag (`v2.1.0`, …). Check out the newest one:
 ```
 sudo mkdir -p /opt/bannerfall && sudo chown deploy:deploy /opt/bannerfall
 git clone https://github.com/Remph/bannerfall.git /opt/bannerfall
 cd /opt/bannerfall
 git tag --sort=-v:refname | head -3
-git checkout v2.0.0                        # the newest tag from the list
+git checkout v2.1.0                        # the newest tag from the list
 ```
 (`git checkout` of a tag says `You are in 'detached HEAD' state`: that is expected, the folder stays exactly on that release.)
 
@@ -108,7 +108,7 @@ chmod 600 .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_ADMIN_TOKEN=.*/BANNERFALL_ADMIN_TOKEN=$(openssl rand -hex 24)/" .env
 sed -i "s/^BANNERFALL_DOMAIN=.*/BANNERFALL_DOMAIN=play.example.com/" .env
-sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:2.0.0|" .env
+sed -i "s|^BANNERFALL_IMAGE=.*|BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:2.1.0|" .env
 nano .env
 ```
 Check in `nano` that these are filled:
@@ -119,7 +119,7 @@ Check in `nano` that these are filled:
 | `BANNERFALL_ADMIN_TOKEN` | the random value (at least 32 characters; compose and the server refuse to start without it) |
 | `COMPOSE_PROFILES` | `caddy` (the template's default) |
 | `BANNERFALL_DOMAIN` | your realm's name |
-| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:2.0.0`); `bannerfall:2.0.0` if you build it yourself in step 6 |
+| `BANNERFALL_IMAGE` | the release's published image, same version as the tag (`ghcr.io/remph/bannerfall:2.1.0`); `bannerfall:2.1.0` if you build it yourself in step 6 |
 | `TZ` | your time zone (for log times; the command line's dates are always Berlin time, see step 9) |
 | `BANNERFALL_OPERATOR_NAME`, `BANNERFALL_OPERATOR_CONTACT` | who runs the realm and how players reach you (usually an email address); shown on the privacy page (`/privacy`), linked under the login and register forms. Empty, the page only explains what the game stores |
 
@@ -131,12 +131,12 @@ Leave the port lines commented out unless you need them (README, *Ports*), and d
 
 Every release is published as a ready image, built from exactly the tagged code (x86-64 only). Pull it:
 ```
-docker pull ghcr.io/remph/bannerfall:2.0.0
+docker pull ghcr.io/remph/bannerfall:2.1.0
 ```
-**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:2.0.0` in `.env` for it:
+**On an ARM server, or to run code you changed,** build the image on the server instead. The first build downloads Node, pnpm, Gradle and all dependencies and takes 5 to 15 minutes (run it in `tmux` if your connection is shaky); set `BANNERFALL_IMAGE=bannerfall:2.1.0` in `.env` for it:
 ```
 cd /opt/bannerfall
-docker build -t bannerfall:2.0.0 --build-arg VERSION=2.0.0 .
+docker build -t bannerfall:2.1.0 --build-arg VERSION=2.1.0 .
 ```
 If it dies with `Killed`, check `free -h` (swap, step 2) and run it again; finished layers are cached.
 
@@ -186,7 +186,7 @@ A new world waits in the **pre-game**: players can register and chat, nobody has
 
 1. Register yourself in the browser with the invite code from step 7.
 2. `bfa setup` prints a one-time link (`https://play.example.com/setup?code=…`, valid for 30 minutes). Open it in the browser where you are logged in: it makes your account the admin and starts the guided setup.
-3. Pick a starting point (*Friends' round*, *Long-running world*, *Together against the lords* or *Custom*) and go through the steps: basics (name, invite code), pace, map and opponents, rules, victory. Every value can be changed; the summary at the end shows them all. Map spread, map size, barbarians and NPC lords are fixed once the world is open, the rest can be changed later on the `/admin` page (tab World).
+3. Pick a starting point (*Friends' round*, *Long-running world*, *Together against the lords*, *Solo* or *Custom*; Solo is one player against the lords in a world that sleeps while nobody plays) and go through the steps: basics (name, invite code), pace, map and opponents, rules, victory. Every value can be changed; the summary at the end shows them all. Map spread, map size, barbarians and NPC lords are fixed once the world is open, the rest can be changed later on the `/admin` page (tab World).
 4. Set the opening time (in your browser's time zone) and press *Finish setup*. The start page then shows a countdown; at that moment everybody registered gets a village. Left empty, you set the time later.
 
 Then give your players the address and the invite code. Everything in the setup can also be done on the `/admin` page or on the command line: `bfa world set …`, `bfa player <you> role admin --yes` and `bfa world open --at "2026-11-07 18:00"`. The command line reads such dates as **Berlin time**, whatever `TZ` says; for another zone write the offset, e.g. `--at 2026-11-07T18:00:00+00:00`.
@@ -200,9 +200,9 @@ Reboot once before the players arrive (`sudo reboot`): after two minutes `bf ps`
 Read the release notes first (below), then one command does the whole update:
 ```
 cd /opt/bannerfall
-ops/bannerfall-update 2.0.0                # the new version
+ops/bannerfall-update 2.1.0                # the new version
 ```
-It shows its plan and asks once, pulls the new image, checks the new tag out, takes a backup, warns the players with a popup and waits a minute, restarts the app and runs `bfa check`, stopping at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Deploying*, `--help` for the options). With an image you build on the server, add `--build`.
+It shows its plan and asks once, pulls the new image, checks the new tag out, takes a backup, warns the players with a popup and waits a minute, restarts the app and runs `bfa check`, stopping at the first step that fails. If the new version doesn't come up, it goes back to the old image by itself when no migration ran, or prints how to restore the backup it just took (README *Hosting a world*, `--help` for the options). With an image you build on the server, add `--build`.
 
 The same by hand:
 ```
@@ -210,9 +210,9 @@ cd /opt/bannerfall
 ops/bannerfall-backup                      # always first; it must print "backup ok"
 git status --short                         # must print nothing
 git fetch --tags origin
-git checkout v2.0.0                        # the new release tag
-docker pull ghcr.io/remph/bannerfall:2.0.0 # or build it as in step 6
-nano .env                                  # BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:2.0.0
+git checkout v2.1.0                        # the new release tag
+docker pull ghcr.io/remph/bannerfall:2.1.0 # or build it as in step 6
+nano .env                                  # BANNERFALL_IMAGE=ghcr.io/remph/bannerfall:2.1.0
 bfa broadcast "Update in 5 minutes"        # wait, then:
 bf up -d
 bfa status                                 # shows the new version
@@ -277,7 +277,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-edge && sudo chown deploy:deploy /opt/bannerfall-edge
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-edge
-   cd /opt/bannerfall-edge && git checkout v2.0.0          # the tag your world runs
+   cd /opt/bannerfall-edge && git checkout v2.1.0          # the tag your world runs
    cd edge && cp sites.caddy.example sites.caddy && nano sites.caddy
    ```
    Keep one block, your first world's: its domain and its `APP_PORT` (8461 unless you changed it). Delete the second example block. `sites.caddy` is this server's list and stays out of git, like `.env`.
@@ -311,7 +311,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
    ```
    sudo mkdir -p /opt/bannerfall-two && sudo chown deploy:deploy /opt/bannerfall-two
    git clone https://github.com/Remph/bannerfall.git /opt/bannerfall-two
-   cd /opt/bannerfall-two && git checkout v2.0.0
+   cd /opt/bannerfall-two && git checkout v2.1.0
    ```
 3. `.env` as in step 5, with new secrets, and these differences:
 
@@ -335,7 +335,7 @@ The first world's app and database keep running; only the proxy is swapped, so t
 
 Update every world to the same release in one go, the newest world first and the first world last, so a problem shows up before it reaches your oldest world. In each world's folder it is step 10 as usual, with that world's aliases; build or pull the image only once. Then bring the shared Caddy to the same tag:
 ```
-cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v2.0.0
+cd /opt/bannerfall-edge && git fetch --tags origin && git checkout v2.1.0
 bfe up -d && bfe-reload                    # picks up a changed Caddy image or Caddyfile
 ```
 

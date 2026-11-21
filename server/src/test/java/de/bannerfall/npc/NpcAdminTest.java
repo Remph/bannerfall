@@ -100,7 +100,12 @@ class NpcAdminTest {
         admin.post("/api/admin/npc-lords", "{\"personality\":\"DEFENSIVE\"}")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.personality").value("DEFENSIVE"))
-                .andExpect(jsonPath("$.template").value("DEFENSIVE"))
+                // drawn among the type's variants (09 §16.6)
+                .andExpect(
+                        jsonPath("$.template")
+                                .value(
+                                        org.hamcrest.Matchers.oneOf(
+                                                "CASTELLAN", "PROTECTOR", "MERCHANT")))
                 .andExpect(jsonPath("$.villageCount").value(1))
                 .andExpect(jsonPath("$.lastThinkAt").doesNotExist())
                 .andExpect(jsonPath("$.nextThinkAt").isNotEmpty())
@@ -175,6 +180,36 @@ class NpcAdminTest {
         admin.get("/api/admin/players/" + lord + "/banners")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void aSpawnTakesAVariantOrPlainAndDrawsNoVariantTwiceBeforeAllWereUsed() throws Exception {
+        admin.post(
+                        "/api/admin/npc-lords",
+                        "{\"personality\":\"OFFENSIVE\",\"variant\":\"HOTHEAD\"}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.template").value("HOTHEAD"));
+        admin.post("/api/admin/npc-lords", "{\"personality\":\"OFFENSIVE\",\"variant\":\"PLAIN\"}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.template").value("OFFENSIVE"));
+        // the Hothead counts for the draw: the next two are the other two
+        admin.post("/api/admin/npc-lords", "{\"personality\":\"OFFENSIVE\"}")
+                .andExpect(status().isCreated());
+        admin.post("/api/admin/npc-lords", "{\"personality\":\"OFFENSIVE\"}")
+                .andExpect(status().isCreated());
+
+        assertThat(brains.findAll().stream().map(NpcBrain::getTemplate).toList())
+                .containsExactlyInAnyOrder("HOTHEAD", "OFFENSIVE", "ROBBER_KNIGHT", "CONQUEROR");
+    }
+
+    @Test
+    void aVariantOfAnotherPersonalityIsRefused() throws Exception {
+        admin.post(
+                        "/api/admin/npc-lords",
+                        "{\"personality\":\"DEFENSIVE\",\"variant\":\"HOTHEAD\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION"));
+        assertThat(players.findNpcLords()).isEmpty();
     }
 
     @Test

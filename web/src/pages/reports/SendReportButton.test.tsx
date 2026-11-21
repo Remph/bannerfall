@@ -16,6 +16,8 @@ function conversation(playerId: number, playerName: string): Conversation {
     lastAt: '2026-10-17T09:00:00Z',
     lastMine: true,
     unread: 0,
+    npc: false,
+    lastLetter: null,
   };
 }
 

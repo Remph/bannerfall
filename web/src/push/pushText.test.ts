@@ -30,8 +30,8 @@ describe('pushNotificationContent', () => {
     expect(content).toEqual({
       title: 'Realm Two',
       body: en.realtime.incomingAttack(
-        'Hilltop (48|52)',
-        'Ironhold (50|50)',
+        'Hilltop (48\u2060|\u206052)',
+        'Ironhold (50\u2060|\u206050)',
         'Bram',
         formatWhenExact(Date.parse(attack.arriveAt), now, 'en'),
       ),
@@ -47,7 +47,7 @@ describe('pushNotificationContent', () => {
       'de',
       now,
     );
-    expect(content?.body).toContain('3 Angriffe auf dem Weg nach Hilltop (48|52)');
+    expect(content?.body).toContain('3 Angriffe auf dem Weg nach Hilltop (48\u2060|\u206052)');
     expect(content?.tag).toBe('attack-7');
   });
 
@@ -58,7 +58,11 @@ describe('pushNotificationContent', () => {
       'en',
       now,
     );
-    expect(content).toMatchObject({ body: 'Bram conquered Hilltop (48|52)', url: '/reports', tag: 'lost-7' });
+    expect(content).toMatchObject({
+      body: 'Bram conquered Hilltop (48\u2060|\u206052)',
+      url: '/reports',
+      tag: 'lost-7',
+    });
   });
 
   it('names the sender of a message, not its text', () => {
@@ -82,7 +86,7 @@ describe('pushNotificationContent', () => {
       now,
     );
     expect(content).toMatchObject({
-      body: `Hilltop (48|52): Die Bauschleife ist leer. ${de.buildings.CLAY_PIT} hat Stufe 5 erreicht.`,
+      body: `Hilltop (48\u2060|\u206052): Die Bauschleife ist leer. ${de.buildings.CLAY_PIT} hat Stufe 5 erreicht.`,
       url: '/v/7/hq',
       tag: 'builds-7',
     });
@@ -98,6 +102,7 @@ describe('pushNotificationContent', () => {
       villages: 9,
       points: 900,
       keeps: 0,
+      court: null,
     };
     const started = pushNotificationContent(
       message({
@@ -165,7 +170,7 @@ describe('pushNotificationContent (1.6)', () => {
     );
     expect(content).toEqual({
       title: 'Realm Two',
-      body: 'Farm run back in Hilltop (48|52): 4 attacks, 300 resources, 1 lost.',
+      body: 'Farm run back in Hilltop (48\u2060|\u206052): 4 attacks, 300 resources, 1 lost.',
       url: '/reports',
       tag: 'returned-7-run',
     });
@@ -185,15 +190,17 @@ describe('pushNotificationContent (1.6)', () => {
         },
         village: hilltop,
       });
-    expect(pushNotificationContent(run(0), en, 'en', now)?.body).toBe('Farm run back in Hilltop (48|52): 1 attack.');
+    expect(pushNotificationContent(run(0), en, 'en', now)?.body).toBe(
+      'Farm run back in Hilltop (48\u2060|\u206052): 1 attack.',
+    );
     expect(pushNotificationContent(run(0), de, 'de', now)?.body).toBe(
-      'Farmlisten-Runde zurück in Hilltop (48|52): 1 Angriff.',
+      'Farmlisten-Runde zurück in Hilltop (48\u2060|\u206052): 1 Angriff.',
     );
     expect(pushNotificationContent(run(1), en, 'en', now)?.body).toBe(
-      'Farm run from Hilltop (48|52): nobody came back from the attack.',
+      'Farm run from Hilltop (48\u2060|\u206052): nobody came back from the attack.',
     );
     expect(pushNotificationContent(run(1), de, 'de', now)?.body).toBe(
-      'Farmlisten-Runde aus Hilltop (48|52): Von dem Angriff ist niemand zurückgekehrt.',
+      'Farmlisten-Runde aus Hilltop (48\u2060|\u206052): Von dem Angriff ist niemand zurückgekehrt.',
     );
   });
 
@@ -206,9 +213,21 @@ describe('pushNotificationContent (1.6)', () => {
     );
     expect(content).toEqual({
       title: 'Realm Two',
-      body: 'Speicher voll in Hilltop (48|52): Lehm.',
+      body: 'Speicher voll in Hilltop (48\u2060|\u206052): Lehm.',
       url: '/v/7/warehouse',
       tag: 'storage-7',
+    });
+  });
+});
+
+describe('pushNotificationContent (2.1 S4)', () => {
+  it('says which ally asks for what and opens its request', () => {
+    const event = { type: 'HELP_REQUESTED' as const, requestId: 12, lordId: 4, lordName: 'Aldric', kind: 'RESOURCES' };
+    expect(pushNotificationContent(message({ event }), de, 'de', now)).toEqual({
+      title: 'Realm Two',
+      body: 'Aldric bittet dich um Rohstoffe.',
+      url: '/diplomacy?help=12',
+      tag: 'help-4',
     });
   });
 });

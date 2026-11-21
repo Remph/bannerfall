@@ -127,8 +127,7 @@
 }
 
 .tag {
-  /* 2.0: a quiet note beside the name, no pill */
-  margin-left: var(--space-2);
+  /* 2.0: a quiet note beside the name, no pill; the gap before it is NameNote's space (2.1) */
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 400;
@@ -388,6 +387,17 @@
   display: grid;
   gap: var(--space-1);
   min-width: 0;
+}
+
+/* a link to another page (2.0 pattern): 44 px to tap, the arrow, no underline (UI review 2.1, 09) */
+.pageLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .statisticsLink {

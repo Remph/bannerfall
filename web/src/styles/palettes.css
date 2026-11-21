@@ -500,4 +500,6 @@
   --map-outside: #000000;
   /* the mound's shade is the ground's own black here: hilly fields far out take the theme's outline grey */
   --map-hill-far: var(--color-border);
+  /* a dark groove would vanish in the black: the march bars' track is the theme's track, see-through */
+  --march-track: color-mix(in srgb, var(--color-track) 35%, transparent);
 }

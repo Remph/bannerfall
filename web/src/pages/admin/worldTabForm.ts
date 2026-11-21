@@ -39,6 +39,7 @@ export const worldRows = {
   inviteCode: { section: 'basics', keys: ['inviteCode'] },
   villageNameLanguage: { section: 'basics', keys: ['villageNameLanguage'] },
   tutorial: { section: 'basics', keys: ['tutorialEnabled'] },
+  solo: { section: 'basics', keys: ['soloMode'] },
   speed: { section: 'pace', keys: ['speed'] },
   unitSpeed: { section: 'pace', keys: ['unitSpeed'] },
   beginnerProtectionHours: { section: 'pace', keys: ['beginnerProtectionHours'] },

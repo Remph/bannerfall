@@ -16,6 +16,7 @@ import { Icon, type IconName } from '../../components/Icon';
 import { MoreMenu } from '../../components/MoreMenu';
 import { Sheet } from '../../components/Sheet';
 import { tierName } from '../../game/banners';
+import { lordVariantKey, lordVariantsOf } from '../../game/lordVariants';
 import { formatDateTime, formatDecimal, formatNumber } from '../../game/format';
 import { useI18n } from '../../i18n';
 import styles from './AdminPage.module.css';
@@ -77,6 +78,12 @@ export function NpcLordsCard() {
     );
   }
 
+  /** The lord's variant (2.1, 09-npc-lords §16.8); null for a classic lord. */
+  function variantName(lord: NpcLord): string | null {
+    const key = lordVariantKey(lord.template);
+    return key == null ? null : labels.variants[key];
+  }
+
   function choiceLabel(choice: GuildChoice): string {
     switch (choice.action) {
       case 'JOIN':
@@ -103,11 +110,29 @@ export function NpcLordsCard() {
               variant="secondary"
               size="small"
               disabled={spawn.isPending}
-              onClick={() => spawn.mutate(personality)}
+              onClick={() => spawn.mutate({ personality })}
             >
               {labels.personalities[personality]}
             </Button>
           ))}
+          {/* 2.1: a chosen variant, or the classic lord, behind "…" (09-npc-lords §16.8) */}
+          <MoreMenu
+            label={labels.spawnVariant}
+            items={npcPersonalities.flatMap((personality: NpcPersonality) => [
+              ...lordVariantsOf[personality].map((variant) => ({
+                label: labels.variantOf(labels.variants[variant], labels.personalities[personality]),
+                icon: 'plus' as const,
+                disabled: spawn.isPending,
+                onSelect: () => spawn.mutate({ personality, variant }),
+              })),
+              {
+                label: labels.plainOf(labels.personalities[personality]),
+                icon: 'plus' as const,
+                disabled: spawn.isPending,
+                onSelect: () => spawn.mutate({ personality, variant: 'PLAIN' }),
+              },
+            ])}
+          />
         </div>
         {spawn.isError && <ErrorMessage>{errorMessage(t, spawn.error)}</ErrorMessage>}
         {lords.isError && <ErrorMessage>{errorMessage(t, lords.error)}</ErrorMessage>}
@@ -149,7 +174,9 @@ export function NpcLordsCard() {
                 <div className={styles.lordHead}>
                   <strong>{lord.name}</strong>
                   <span className={styles.lordSide}>
-                    {labels.personalities[lord.personality]}
+                    {variantName(lord) == null
+                      ? labels.personalities[lord.personality]
+                      : labels.variantOf(variantName(lord) ?? '', labels.personalities[lord.personality])}
                     {choices.length > 0 && (
                       <MoreMenu
                         label={labels.more(lord.name)}

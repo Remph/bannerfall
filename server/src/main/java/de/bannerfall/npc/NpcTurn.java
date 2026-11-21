@@ -33,6 +33,10 @@ final class NpcTurn {
      *     guild or while lord guilds are off
      * @param mateTrainTargets the villages the guild mates' nobles are on the way to: no conquest
      *     target for the lord, so two mates don't send trains at the same village (09 §13.2)
+     * @param falling the players whose points fell at least 3 % since their last daily snapshot (09
+     *     §16.4); only loaded for a lord with {@code prefers-falling}, else empty
+     * @param orders what the lord's current order from a human means for its turns (2.1 S3): the
+     *     village it holds off, its ordered support, the units a planned march waits for
      */
     record View(
             long lordId,
@@ -49,7 +53,32 @@ final class NpcTurn {
             boolean farmBudgetSpent,
             Set<Long> guildMates,
             Set<Long> mateTrainTargets,
-            NpcLearning.Lesson lesson) {}
+            NpcLearning.Lesson lesson,
+            Set<Long> falling,
+            NpcOrders.Standing orders) {
+
+        /** The same view with the lord's order as the orders step left it. */
+        View withOrders(NpcOrders.Standing standing) {
+            return new View(
+                    lordId,
+                    personality,
+                    template,
+                    difficulty,
+                    general,
+                    world,
+                    villages,
+                    incoming,
+                    otherLordsToHuman,
+                    lordPoints,
+                    braked,
+                    farmBudgetSpent,
+                    guildMates,
+                    mateTrainTargets,
+                    lesson,
+                    falling,
+                    standing);
+        }
+    }
 
     final View view;
     final Village village;
@@ -124,6 +153,11 @@ final class NpcTurn {
         }
         NpcMemory.Grudge grudge = memory.grudges.get(playerId);
         return grudge != null && grudge.until().isAfter(now);
+    }
+
+    /** The lord holds off this village on a human's order (2.1 S3): no farm, attack or scouting. */
+    boolean held(MapVillage target) {
+        return view.orders().held().contains(target.id());
     }
 
     /** The distance from this village to {@code target}, in fields. */

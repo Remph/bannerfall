@@ -1,6 +1,7 @@
 import { tierName } from '../game/banners';
 import type { Dictionary } from './en';
 import { dePushTexts } from './push-de';
+import { deLetters } from './letters-de';
 
 /** German texts. Typed as Dictionary, so a missing or extra key is a compile error. */
 export const de: Dictionary = {
@@ -104,6 +105,7 @@ export const de: Dictionary = {
     ranking: 'Rangliste',
     achievements: 'Erfolge',
     guild: 'Gilde',
+    diplomacy: 'Diplomatie',
     more: 'Mehr',
     settings: 'Einstellungen',
     chat: 'Chat',
@@ -165,9 +167,78 @@ export const de: Dictionary = {
     lookAround: 'Weiter umsehen',
     stays: 'Berichte, Nachrichten und der Chat bleiben offen.',
   },
+  /** 2.1 I1: die Chronik, die Geschichte einer beendeten Welt (02-game-rules §32). */
+  chronicle: {
+    title: 'Chronik',
+    intro: (days: number, when: string) =>
+      `Die Geschichte dieser Welt: ${days} ${days === 1 ? 'Tag' : 'Tage'}, beendet am ${when}.`,
+    read: 'Chronik lesen',
+    endScreenTitle: 'Wie es kam',
+    replay: 'Wer hielt was',
+    replayLabel: 'Wiedergabe, wem welches Dorf gehörte, Tag für Tag',
+    play: 'Abspielen',
+    pause: 'Anhalten',
+    previous: 'Tag davor',
+    next: 'Tag danach',
+    slider: 'Tag',
+    dayName: (day: number) => (day === 0 ? 'Die Eröffnung' : `Tag ${day}`),
+    dayOf: (day: number, last: number) => (day === 0 ? 'Die Eröffnung' : `Tag ${day} von ${last}`),
+    beforeOpening: 'Vor der Eröffnung',
+    barbarians: 'Barbaren',
+    villages: (count: number) => `${count} ${count === 1 ? 'Dorf' : 'Dörfer'}`,
+    yours: 'deins',
+    timeline: 'Wendepunkte',
+    timelineHint: 'Tippe auf einen Moment, um die Karte an diesem Tag zu sehen.',
+    showDay: (day: string) => `${day} auf der Karte zeigen`,
+    empty: 'In dieser Welt wurde nichts aufgeschrieben.',
+    someone: 'Jemand',
+    aVillage: 'ein Dorf',
+    barbarianVillage: 'Barbarendorf',
+    entry: {
+      conquest: (to: string, village: string, from: string) => `${to} nahm ${from} ${village} ab.`,
+      conquestBarbarian: (to: string, village: string) => `${to} nahm den Barbaren ${village} ab.`,
+      firstConquest: 'Die erste Eroberung der Welt.',
+      keep: 'Eine Bannerfeste wechselte den Besitzer.',
+      lastVillage: (who: string) => `Es war das letzte Dorf von ${who}.`,
+      conquests: (count: number) =>
+        count === 1 ? 'Ein weiteres Dorf wechselte den Besitzer.' : `${count} weitere Dörfer wechselten den Besitzer.`,
+      conquestsBusiest: (count: number, who: string, taken: number) =>
+        `${count} weitere Dörfer wechselten den Besitzer, ${taken} davon an ${who}.`,
+      guildFounded: (guild: string, founder: string) => `${founder} gründete ${guild}.`,
+      guildDisbanded: (guild: string) => `${guild} fand ein Ende.`,
+      war: (guild: string, enemy: string) => `${guild} erklärte ${enemy} zum Feind.`,
+      allyJoined: (lord: string, guild: string) => `${lord} schloss sich ${guild} an.`,
+      allyLeft: (lord: string, guild: string) => `${lord} verlor das Vertrauen und verließ ${guild}.`,
+      allyLeftAttacked: (lord: string, guild: string) =>
+        `${lord} verließ ${guild} nach einem Angriff aus den eigenen Reihen.`,
+      orderAttack: (lord: string, player: string, village: string) =>
+        `Auf Befehl von ${player} zog ${lord} gegen ${village}.`,
+      helpAnswered: (lord: string, player: string, village: string) =>
+        `${player} folgte rechtzeitig dem Hilferuf von ${lord} bei ${village}.`,
+      helpIgnored: (lord: string, player: string, village: string) =>
+        `${lord} bat ${player} um Hilfe bei ${village} und bekam keine Antwort.`,
+      courtRose: (court: string) => `${court} stieg zur stärksten Gilde der Fürsten auf.`,
+      courtPassed: (court: string, before: string) => `${court} trat als Hof an die Stelle von ${before}.`,
+      lead: (side: string) => `${side} übernahm die Führung nach Punkten.`,
+      victoryClock: (side: string) => `${side} erfüllte die Siegbedingung, und die Uhr bis zum Sieg lief an.`,
+      ended: (winner: string) => `Die Welt endete. ${winner} siegte.`,
+      endedNobody: 'Die Welt endete ohne Sieger.',
+    },
+  },
   endedBanner: {
     label: 'Welt beendet',
     link: 'Zum Ergebnis',
+  },
+  /** 2.1: Der Host hat eine Solo-Welt angehalten (12-solo-and-allies §3). */
+  pausedBanner: {
+    label: 'Welt angehalten',
+    title: 'Die Welt ist angehalten',
+    text: 'Nichts wächst und nichts marschiert, bis der Host sie weiterlaufen lässt.',
+    hostText: 'Nichts wächst und nichts marschiert, bis du sie weiterlaufen lässt.',
+    play: 'Weiter',
+    frozen: 'Die Welt ist angehalten',
+    /** Dasselbe für den Host, der sie weiterlaufen lässt. */
+    frozenHost: 'Die Welt ist angehalten: Drück auf „Weiter“, damit es weitergeht',
   },
   /** Die Vorrunde (M14g): Die Welt steht, ist aber noch nicht eröffnet; Chat und Welteinstellungen sind schon da. */
   pregame: {
@@ -233,6 +304,10 @@ export const de: Dictionary = {
         name: 'Gemeinsam gegen die Fürsten',
         text: 'Zwei bis vier Freunde in einer Gilde gegen etwa 20 starke Fürsten in ein oder zwei Fürstengilden.',
       },
+      solo: {
+        name: 'Solo',
+        text: 'Du allein gegen acht Fürsten in Fürstengilden. Die Welt schläft, solange du weg bist, und macht dort weiter, wo sie stand.',
+      },
       custom: {
         name: 'Eigene Einstellungen',
         text: 'Von den Standardwerten aus starten und alles selbst einstellen.',
@@ -269,6 +344,23 @@ export const de: Dictionary = {
     lords: 'NPC-Fürsten',
     npcLordCount: 'Fürsten zum Start',
     difficulty: 'Schwierigkeit',
+    /** I3 (2.1): ein Name und ein Satz je Schwierigkeit (09-npc-lords §8). */
+    difficultyNames: {
+      EASY: 'Sanfte Nachbarn',
+      NORMAL: 'Ebenbürtige Rivalen',
+      HARD: 'Hungrige Kriegsherren',
+      CUSTOM: 'Eigene Regeln',
+    },
+    difficultyTexts: {
+      EASY: 'Die Fürsten wachsen langsamer als ein Spieler, greifen dich höchstens dreimal am Tag an und nehmen dir nie dein letztes Dorf.',
+      NORMAL:
+        'Die Fürsten wachsen etwa so schnell wie ein Spieler und holen auf, wenn sie zurückfallen; sie greifen dich bis zu achtmal am Tag an und nehmen dir nie dein letztes Dorf.',
+      HARD: 'Die Fürsten wachsen schneller als ein Spieler, greifen dich bis zu sechzehnmal am Tag zu jeder Stunde an und nehmen dir auch dein letztes Dorf.',
+      CUSTOM: 'Die Werte von der Admin-Seite, für Hosts, die jede Zahl selbst einstellen wollen.',
+    },
+    solo: 'Solo-Welt',
+    soloHint:
+      'Für dich und die NPC-Fürsten: Die Welt schläft, solange niemand spielt, und macht dort weiter, wo sie stand. Die Fürsten halten keine Ruhezeiten.',
     difficulties: { EASY: 'Leicht', NORMAL: 'Normal', HARD: 'Schwer', CUSTOM: 'Eigene' },
     npcGuilds: 'Fürsten bilden Gilden',
     npcGuildsHint: 'Benachbarte Fürsten verbünden sich, verteidigen und rächen einander.',
@@ -1104,6 +1196,7 @@ export const de: Dictionary = {
     merchantsTo: (target: string) => `Händler nach ${target}`,
     merchantsHome: (target: string) => `Händler zurück von ${target}`,
     merchantsCount: (count: number) => (count === 1 ? '1 Händler' : `${count} Händler`),
+    merchantsFrom: (source: string) => `Händler von ${source}`,
     close: 'Jetzt-Liste schließen',
     hint: 'Zieh den Himmel herunter, dann siehst du alles, was gerade läuft.',
     hintOk: 'Verstanden',
@@ -1897,6 +1990,11 @@ export const de: Dictionary = {
     moreFor: (name: string) => `Mehr zu ${name}`,
     blockPlayer: 'Diesen Spieler sperren',
     write: 'Nachricht schreiben',
+    lordLetters: 'Fürsten antworten nur per Brief. Einladen kannst du sie auf der Seite Diplomatie.',
+    toDiplomacy: 'Diplomatie',
+    letters: deLetters,
+    yourGuild: 'deine Gilde',
+    letterVillage: 'das Dorf',
   },
   chat: {
     hide: 'Nachricht verbergen',
@@ -2051,6 +2149,147 @@ export const de: Dictionary = {
     },
   },
   /** Die Seite des Hosts (04-api, „Admin“). */
+  diplomacy: {
+    title: 'Diplomatie',
+    explainer:
+      'Die Fürsten merken sich, was du ihnen tust. Gewinne ihr Vertrauen und lade sie in deine Gilde ein: Ein Verbündeter kämpft auf deiner Seite.',
+    explainerWorld:
+      'Die NPC-Fürsten dieser Welt und ihre Gilden. Verbündete eines Spielers werden Fürsten nur in einer Solo-Welt.',
+    courtHeading: 'Der Hof',
+    courtGuild: (guild: string, members: number) => `${guild} · ${members === 1 ? '1 Fürst' : `${members} Fürsten`}`,
+    goalDomination: (court: string, percent: number) => `${court} will ${percent} % des Landes.`,
+    goalKeeps: (court: string, needed: number, count: number) => `${court} will ${needed} der ${count} Festen.`,
+    goalEndDate: (court: string, date: string) => `${court} will bis ${date} die meisten Punkte.`,
+    noCourt: 'Noch hat sich keine Fürstengilde gebildet. Die stärkste wird der Hof.',
+    race: 'Das Rennen',
+    you: 'Du',
+    yourGuild: 'Deine Gilde',
+    ahead: 'Vorn',
+    share: (share: string, target: number) => `${share} von ${target} %`,
+    keeps: (keeps: number, needed: number) => `${keeps} von ${needed} Festen`,
+    points: (points: string) => `${points} Punkte`,
+    allies: 'Deine Verbündeten',
+    alliesEmpty: 'Noch hat dir kein Fürst die Treue geschworen.',
+    allyTag: 'Verbündet',
+    lords: 'Andere Fürsten',
+    lordsWorld: 'Fürsten',
+    lordsEmpty: 'In dieser Welt gibt es keine anderen Fürsten.',
+    trustLabel: (value: number) => `Vertrauen ${value}`,
+    trust: 'Vertrauen',
+    joinsAt: (bar: number) => `kommt ab ${bar}`,
+    notMet: 'noch nicht begegnet',
+    change: (delta: number, what: string) => `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${what}`,
+    reasons: {
+      SUPPORT: (village: string) => `deine Unterstützung in ${village}`,
+      SHIPPED: (village: string) => `Rohstoffe nach ${village}`,
+      GRUDGE_WIN: (village: string) => `Sieg über einen Erzfeind in ${village}`,
+      ATTACKED: (village: string) => `du hast ${village} angegriffen`,
+      SCOUTED: (village: string) => `du hast ${village} ausgespäht`,
+      MATE_ATTACKED: (village: string) => `Angriff auf die Gilde in ${village}`,
+      CONQUERED: (village: string) => `du hast ${village} erobert`,
+      HELP_ANSWERED: (village: string) => `du kamst auf die Bitte hin nach ${village}`,
+      HELP_DECLINED: (village: string) => `du hast die Bitte für ${village} abgelehnt`,
+      HELP_IGNORED: (village: string) => `du hast die Bitte für ${village} nicht beantwortet`,
+    },
+    noChange: 'Noch nichts zwischen euch',
+    invite: 'Einladen',
+    inviteFor: (name: string) => `${name} in deine Gilde einladen`,
+    invited: 'Eingeladen: Antwort per Brief in der nächsten Runde',
+    askAgain: (when: string) => `Hat abgelehnt: frag wieder ${when}`,
+    needGuild: 'Gründe eine Gilde, um Fürsten in sie einzuladen.',
+    toGuild: 'Zur Gilde',
+    notLeader: 'Nur die Leitung deiner Gilde kann Fürsten einladen.',
+    guildFull: 'Deine Gilde ist voll: Mach Platz, um einen weiteren Fürsten einzuladen.',
+    notSolo:
+      'In dieser Welt bleiben die Fürsten unter sich: Einem Spieler schließen sie sich nur in einer Solo-Welt an.',
+    help: {
+      needSupport: (count: string, village: string) => `${count} Verteidiger in ${village}`,
+      needResources: (goal: string, village: string) =>
+        goal === 'WALL' ? `Rohstoffe für den Wall in ${village}` : `Rohstoffe für einen Adligen in ${village}`,
+      stripRegion: 'Bitte um Hilfe',
+      stripLabel: (lord: string, need: string, left: string) => `${lord} bittet um ${need}. Noch ${left}. Bitte öffnen`,
+      more: (count: number) => `+${count}`,
+      moreLabel: (count: number) => (count === 1 ? 'und 1 weitere Bitte' : `und ${count} weitere Bitten`),
+      title: (lord: string) => `${lord} bittet um Hilfe`,
+      landsIn: 'Der Angriff schlägt ein in',
+      endsIn: 'Zeit bleibt noch',
+      at: (time: string) => `um ${time}`,
+      letterHeading: 'Der Brief',
+      stillNeeded: (goods: string) => `Es fehlen noch: ${goods}.`,
+      arrivesSupport: (village: string, duration: string) =>
+        `Von ${village} aus ist deine Unterstützung in ${duration} dort.`,
+      arrivesResources: (village: string, duration: string) =>
+        `Von ${village} aus sind deine Händler in ${duration} dort.`,
+      tooLate: 'Das ist nach der Frist: Es käme zu spät.',
+      noDefenders: 'In keinem deiner Dörfer sind Verteidiger zu Hause.',
+      noMerchants: 'Keines deiner Dörfer hat einen Marktplatz mit einem freien Händler.',
+      worth: (answered: number, declined: number, ignored: number) =>
+        declined === 0 && ignored === 0
+          ? `Rechtzeitig: +${answered} Vertrauen. Deine Truppen kämen nicht rechtzeitig hin, ein Nein kostet dich also nichts.`
+          : `Rechtzeitig: +${answered} Vertrauen. Diesmal nicht: −${Math.abs(declined)}. Keine Antwort: −${Math.abs(ignored)}.`,
+      decline: 'Diesmal nicht',
+      sendSupport: 'Unterstützung schicken',
+      sendResources: 'Rohstoffe schicken',
+      closed: 'Diese Bitte ist nicht mehr offen.',
+    },
+    orders: {
+      title: 'Befehl an Verbündete',
+      open: 'Verbündeten befehlen',
+      kindsLabel: 'Art des Befehls',
+      kinds: { ATTACK: 'Angriff', SUPPORT: 'Unterstützen', SEND: 'Schicken', HOLD: 'Verschonen' },
+      barbarian: 'Barbarendorf',
+      who: 'Wer',
+      arrivesIn: 'kommt an in',
+      fields: (fields: string) => `${fields}\u00a0Felder`,
+      trust: (value: number) => `Vertrauen\u00a0${value}`,
+      nothingHome: {
+        ATTACK: 'keine Angreifer daheim',
+        SUPPORT: 'keine Verteidiger daheim',
+        SEND: 'keine Händler',
+        HOLD: '',
+      },
+      now: (what: string) => `Jetzt: ${what}`,
+      landTogether: 'Gemeinsam mit meinem Angriff einschlagen',
+      landTogetherHint: (time: string) =>
+        `Sie planen ihren Marsch so, dass sie bis zu einer Minute nach deinem Angriff einschlagen (${time}).`,
+      landTogetherNone: 'Schick erst deinen eigenen Angriff auf dieses Dorf: Danach richten sie ihren Marsch.',
+      holdHint: 'Sie lassen dieses Dorf in Ruhe: kein Farmen, keine Angriffe, keine Späher.',
+      decides: 'Ein Fürst wägt jeden Befehl gegen die Truppen zu Hause ab und antwortet mit einem Brief.',
+      send: (count: number) => (count === 1 ? 'Befehl an 1 Verbündeten' : `Befehl an ${count} Verbündete`),
+      sendNone: 'Wähle einen Verbündeten für den Befehl',
+      sent: (count: number) =>
+        count === 1
+          ? 'Befehl gesendet: Der Fürst antwortet mit einem Brief.'
+          : 'Befehl gesendet: Die Fürsten antworten mit einem Brief.',
+      noAllies:
+        'Hier kann kein Verbündeter einen Befehl annehmen. Gewinne das Vertrauen eines Fürsten und lade ihn in deine Gilde ein.',
+      what: {
+        ATTACK: (village: string) => `${village} angreifen`,
+        SUPPORT: (village: string) => `${village} unterstützen`,
+        SEND: (village: string) => `Rohstoffe nach ${village}`,
+        HOLD: (village: string) => `${village} verschonen`,
+      },
+      state: {
+        OPEN: 'Antwort in der nächsten Runde',
+        SCOUTING: 'erst sind Späher unterwegs',
+        PLANNED: (time: string) => `Abmarsch um ${time}`,
+        ACTIVE: 'ausgeführt',
+        REFUSED: 'abgelehnt',
+      },
+      line: (what: string, state: string) => `Befehl: ${what}, ${state}.`,
+      takeBack: 'Zurücknehmen',
+      takeBackFor: (name: string) => `Den Befehl an ${name} zurücknehmen`,
+      marked: 'Markierte Feinddörfer',
+      markedHint:
+        'Die Markierungen deiner Gilde zuerst. Für jedes andere Dorf: Tippe es auf der Karte an und wähle „Verbündeten befehlen“.',
+      markedEmpty:
+        'Deine Gilde hat kein Dorf markiert. Tippe ein Dorf auf der Karte an und wähle „Verbündeten befehlen“.',
+      orderFor: (village: string) => `Verbündeten gegen ${village} befehlen`,
+      order: 'Befehlen',
+    },
+    howTrust:
+      'Vertrauen wächst, wenn deine Unterstützung in einem Fürstendorf steht, während dort ein Angriff ankommt, wenn du Rohstoffe schickst und wenn du Erzfeinde schlägst. Angriffe, Späher und Angriffe auf die Gilde kosten Vertrauen. Es geht um 2 am Tag zurück auf 0. Ein Verbündeter, dessen Vertrauen in den Anführer deiner Gilde unter 0 fällt, geht, und einer, den deine Gilde angreift, sofort.',
+  },
   ranking: {
     title: 'Rangliste',
     count: (total: number) => (total === 1 ? '1 Spieler' : `${total} Spieler`),
@@ -2192,6 +2431,55 @@ export const de: Dictionary = {
     villages: 'Dörfer',
     noVillages: 'Dieser Spieler hat keine Dörfer.',
     npcHint: 'Ein NPC-Fürst spielt nach denselben Regeln wie alle anderen.',
+    lordTitle: (name: string, title: string) => `${name}, ${title}`,
+    lordNotMet: 'Du bist diesem Fürsten noch nicht begegnet.',
+    lordVariants: {
+      ROBBER_KNIGHT: {
+        title: 'der Raubritter',
+        titleFemale: 'die Raubritterin',
+        line: 'Lebt von Raubzügen: schnelle leichte Kavallerie, selten Adlige.',
+      },
+      CONQUEROR: {
+        title: 'der Eroberer',
+        titleFemale: 'die Eroberin',
+        line: 'Will deine Dörfer: früh eine Akademie, dann Züge mit Adligen.',
+      },
+      HOTHEAD: {
+        title: 'der Hitzkopf',
+        titleFemale: 'die Hitzköpfin',
+        line: 'Lässt dich in Ruhe, bis du zuerst zuschlägst; dann kommt die Antwort zweimal.',
+      },
+      CASTELLAN: {
+        title: 'der Burgherr',
+        titleFemale: 'die Burgherrin',
+        line: 'Die höchsten Mauern der Welt; greift kaum je an.',
+      },
+      PROTECTOR: {
+        title: 'der Schutzherr',
+        titleFemale: 'die Schutzherrin',
+        line: 'Schickt allen Verbündeten Unterstützung; auf diese Hilfe ist Verlass.',
+      },
+      MERCHANT: {
+        title: 'der Kaufherr',
+        titleFemale: 'die Kaufherrin',
+        line: 'Wirtschaft zuerst: steigt in der Rangliste, liefert und handelt, dünnes Heer.',
+      },
+      SETTLER: {
+        title: 'der Siedler',
+        titleFemale: 'die Siedlerin',
+        line: 'Breitet sich über das Barbarenland ringsum aus.',
+      },
+      KNIGHT: {
+        title: 'der Ritter von Ehre',
+        titleFemale: 'die Ritterin von Ehre',
+        line: 'Lässt kleine Spieler in Ruhe und fordert die Starken heraus.',
+      },
+      VULTURE: {
+        title: 'der Aasgeier',
+        titleFemale: 'die Aasgeierin',
+        line: 'Schlägt zu, wo gerade jemand geschwächt wurde.',
+      },
+    },
     guild: 'Gilde',
     career: 'Laufbahn auf allen Welten',
     onMap: 'Auf der Karte',
@@ -2471,6 +2759,17 @@ export const de: Dictionary = {
       keepPercent: 'Anteil der Festen (%)',
       keepsNeeded: (needed: number, count: number) => `Eine Seite muss ${needed} von ${count} Festen halten.`,
     },
+    /** 2.1: Die Zeitsteuerung des Hosts in einer Solo-Welt (12-solo-and-allies §3). */
+    worldClock: {
+      running: 'Die Welt läuft.',
+      asleep: 'Die Welt schläft: Niemand hat das Spiel offen.',
+      paused: 'Die Welt ist angehalten.',
+      pause: 'Anhalten',
+      play: 'Weiter',
+      speed: 'Tempo',
+      speeds: { 1: 'Normal', 2: 'Schnell ×2', 4: 'Schnell ×4' } as Record<1 | 2 | 4, string>,
+      hint: 'Angehalten bleibt die Welt stehen, bis du auf Weiter drückst, auch wenn du das Spiel wieder öffnest. Schnell rückt alle 10 Sekunden jede Zeit im Spiel um weitere 10 oder 30 Sekunden vor: Zähler springen ein wenig, und die Anzeige lädt jedes Mal neu.',
+    },
     worldEnd: {
       title: 'Weltende',
       hint: 'Ein Enddatum beendet die Welt zu diesem Zeitpunkt, in jedem Modus: Dann gewinnt die Seite mit den meisten Punkten. Eine beendete Welt ist eingefroren: Nichts bewegt sich mehr, aber alles bleibt lesbar und der Chat bleibt offen.',
@@ -2596,6 +2895,8 @@ export const de: Dictionary = {
       archersHint:
         'Sie greifen als eigene Klasse an, gegen die die Verteidigung gegen Bogenschützen jeder Einheit zählt. Auch NPC-Fürsten setzen sie ein.',
       archersOff: 'Vorhandene Bogenschützen bleiben und kämpfen weiter; neue kann niemand ausbilden oder erforschen.',
+      soloHint:
+        'Für einen Spieler und die NPC-Fürsten: Die Welt schläft zwei Minuten, nachdem niemand mehr das Spiel offen hat, und macht dort weiter, wo sie stand; die Fürsten halten keine Ruhezeiten. Hier kannst du sie anhalten und vorspulen.',
       tutorialHint:
         'Neue Spieler bekommen auf der Dorfseite ein kurzes Tutorial, Schritt für Schritt; manche Schritte erstatten, was sie gekostet haben, einmal pro Spieler. Aus: keine Karte, keine Menüzeile, keine Erstattung.',
       guildBannersHint:
@@ -2669,6 +2970,7 @@ export const de: Dictionary = {
         inviteCode: 'Einladungscode',
         villageNameLanguage: 'Dorfnamen',
         tutorial: 'Tutorial',
+        solo: 'Solo-Welt',
         speed: 'Weltgeschwindigkeit',
         unitSpeed: 'Einheitengeschwindigkeit',
         beginnerProtectionHours: 'Anfängerschutz',
@@ -2810,6 +3112,20 @@ export const de: Dictionary = {
         'BALANCED' | 'OFFENSIVE' | 'DEFENSIVE',
         string
       >,
+      variants: {
+        ROBBER_KNIGHT: 'Raubritter',
+        CONQUEROR: 'Eroberer',
+        HOTHEAD: 'Hitzkopf',
+        CASTELLAN: 'Burgherr',
+        PROTECTOR: 'Schutzherr',
+        MERCHANT: 'Kaufherr',
+        SETTLER: 'Siedler',
+        KNIGHT: 'Ritter von Ehre',
+        VULTURE: 'Aasgeier',
+      },
+      variantOf: (variant: string, personality: string) => `${variant} (${personality})`,
+      plainOf: (personality: string) => `${personality}, klassisch`,
+      spawnVariant: 'Eine bestimmte Variante erzeugen',
       points: (points: string) => `${points} Punkte`,
       villages: (count: number) => (count === 1 ? '1 Dorf' : `${count} Dörfer`),
       factor: (factor: string) => `Produktion × ${factor}`,
@@ -2968,6 +3284,8 @@ export const de: Dictionary = {
       'Dieser Einrichtungslink ist falsch, schon benutzt oder älter als 30 Minuten. `bannerfall-admin setup` erzeugt einen neuen.',
     WORLD_ENDED: 'Die Welt ist beendet. Es lässt sich nichts mehr ändern.',
     WORLD_NOT_ENDED: 'Die Welt ist nicht beendet.',
+    WORLD_PAUSED: 'Die Welt ist angehalten. Bis sie weiterläuft, bewegt sich nichts.',
+    WORLD_NOT_SOLO: 'Nur eine Solo-Welt lässt sich anhalten und vorspulen.',
     SERVER_STARTING: 'Der Server startet gerade. Versuche es gleich noch einmal.',
     GUILDS_DISABLED: 'Der Host hat Gilden nicht eingeschaltet.',
     GUILD_NOT_FOUND: 'Diese Gilde gibt es nicht (mehr).',
@@ -2980,6 +3298,10 @@ export const de: Dictionary = {
     LEADER_MUST_TRANSFER: 'Gib die Führung an ein Mitglied ab, bevor du gehst.',
     INVITATION_NOT_FOUND: 'Diese Einladung gibt es nicht mehr. Sie wurde vielleicht zurückgezogen.',
     ALREADY_INVITED: 'Dieser Spieler wurde schon eingeladen.',
+    LORD_NOT_READY: 'Dieser Fürst hat gerade erst abgelehnt. Frag später wieder.',
+    LORD_ALLIED: 'Dieser Fürst hat schon einer anderen Gilde die Treue geschworen.',
+    NOT_AN_ALLY: 'Dieser Fürst ist nicht dein Verbündeter, oder du hast ihm keinen Befehl gegeben.',
+    ORDER_TARGET_INVALID: 'Dieses Dorf nimmt diesen Befehl nicht an.',
     GUILD_MEMBER_NOT_FOUND: 'Dieser Spieler gehört nicht zu deiner Gilde.',
     INVITATION_RATE_LIMIT: 'Dieser Spieler wurde gerade erst eingeladen. Versuche es in einer Minute wieder.',
     ENEMY_NOT_ALLOWED: 'Die eigene Gilde, ihre Mitglieder und Barbarendörfer können nicht als Feinde markiert werden.',
@@ -3078,6 +3400,7 @@ export const de: Dictionary = {
       'Dein Name beim Kontoserver passt nicht zu den Namensregeln dieser Welt (3–24 Buchstaben, Ziffern, _ und -).',
     LINK_NOT_ALLOWED: 'Verknüpfen ist gerade nicht möglich.',
     PUSH_UNAVAILABLE: 'Diese Welt sendet keine Benachrichtigungen.',
+    HELP_REQUEST_CLOSED: 'Diese Bitte ist nicht mehr offen.',
     ACCOUNT_BANNED: 'Dieses Konto ist gesperrt.',
     TOO_MANY_REQUESTS: 'Zu viele Anfragen. Bitte langsamer.',
     CANNOT_BAN_ADMIN: 'Admins können nicht gesperrt werden. Nimm zuerst die Admin-Rolle weg.',

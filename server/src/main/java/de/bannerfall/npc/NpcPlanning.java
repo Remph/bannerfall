@@ -123,6 +123,42 @@ public final class NpcPlanning {
     }
 
     /**
+     * The template's steps up to and including the first one that builds the academy (§5.1, 5,
+     * 2.1): what a village rebuilds before it saves for nobles, so a barracks or wall knocked down
+     * by catapults comes back first. All steps if none builds the academy.
+     */
+    static List<Map<BuildingType, Integer>> stepsThroughAcademy(
+            List<Map<BuildingType, Integer>> steps) {
+        for (int i = 0; i < steps.size(); i++) {
+            if (steps.get(i).containsKey(BuildingType.ACADEMY)) {
+                return steps.subList(0, i + 1);
+            }
+        }
+        return steps;
+    }
+
+    /**
+     * Whether the village has the army to escort its conquest trains (§6.6, 2.1): the population of
+     * its {@code clearing} units (home, elsewhere and on the way) is at least {@code share} of its
+     * farm's capacity. A village without one doesn't save for nobles: it builds and recruits on.
+     *
+     * @param units the units the village owns (recruit orders not counted)
+     * @param farmLevel the farm's current level
+     */
+    static boolean armyForNobles(
+            Map<UnitType, Integer> units,
+            List<UnitType> clearing,
+            GameData data,
+            int farmLevel,
+            double share) {
+        long population = 0;
+        for (UnitType type : clearing) {
+            population += (long) units.getOrDefault(type, 0) * data.unit(type).pop();
+        }
+        return population >= share * Population.farmCapacity(Math.max(1, farmLevel));
+    }
+
+    /**
      * The nobles rule (§5.1, 5): while the village wants nobles, the candidate is one NOBLE, and
      * the warehouse and farm rules apply to it (its price must fit the warehouse: 50,000 clay at
      * rank 0 need level 20, a lord with many villages pays more, 02-game-rules §5.7; its 100

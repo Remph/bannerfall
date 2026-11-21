@@ -40,6 +40,7 @@ const profile: PlayerProfile = {
     since: '2026-10-20T08:00:00Z',
   },
   careerUrl: null,
+  lordVariant: null,
 };
 const history: PlayerHistory = {
   since: '2026-10-20T08:00:00Z',
@@ -122,6 +123,34 @@ describe('PlayerPage', () => {
     expect(screen.getByText('An NPC lord plays by the same rules as everyone else.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Write a message' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Achievements' })).toBeNull();
+  });
+
+  it('names a met lord’s variant with its line, and says when the player has not met it yet', () => {
+    // 2.1 (09-npc-lords §16.7): the server sends the variant only after the first contact
+    const lord = { ...profile, id: 9, name: 'Baron Wulfram', npc: true, achievements: [] };
+    open({ ...lord, lordVariant: { key: 'ROBBER_KNIGHT', since: '2026-11-19T08:00:00Z' } });
+    expect(screen.getByText('Baron Wulfram, the Robber Knight')).toBeTruthy();
+    expect(screen.getByText('Lives off raids: fast light cavalry, rarely nobles.')).toBeTruthy();
+    expect(screen.queryByText("You haven't met this lord yet.")).toBeNull();
+    cleanup();
+
+    open({ ...lord, lordVariant: null });
+    expect(screen.getByText("You haven't met this lord yet.")).toBeTruthy();
+    expect(screen.queryByText(/Robber Knight/)).toBeNull();
+    cleanup();
+
+    // a lord spawned before 2.1, met: nothing extra
+    open({ ...lord, lordVariant: { key: null, since: '2026-11-19T08:00:00Z' } });
+    expect(screen.queryByText("You haven't met this lord yet.")).toBeNull();
+    cleanup();
+
+    open({ ...lord, lordVariant: { key: 'KNIGHT', since: '2026-11-19T08:00:00Z' } }, me, 'de');
+    expect(screen.getByText('Baron Wulfram, der Ritter von Ehre')).toBeTruthy();
+    cleanup();
+
+    // a female lord gets the female German title (Gräfin, Lady, Dame, Baronin)
+    open({ ...lord, name: 'Lady Brunhild', lordVariant: { key: 'HOTHEAD', since: '2026-11-19T08:00:00Z' } }, me, 'de');
+    expect(screen.getByText('Lady Brunhild, die Hitzköpfin')).toBeTruthy();
   });
 
   it('shows the delete tool to the admin only, and asks first', () => {

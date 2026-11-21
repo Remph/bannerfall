@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react';
-import { useI18n } from '../i18n';
+import { useFrozenReason } from '../layout/frozenReason';
 import { useActionsFrozen } from '../layout/worldEnd';
 import styles from './Button.module.css';
 
@@ -16,8 +16,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ variant = 'primary', size = 'normal', className, ...rest }: ButtonProps) {
-  const { t } = useI18n();
   const frozen = useActionsFrozen();
+  const reason = useFrozenReason();
   const classes = [styles.button, styles[variant], size === 'small' && styles.small, className]
     .filter(Boolean)
     .join(' ');
@@ -25,9 +25,9 @@ export function Button({ variant = 'primary', size = 'normal', className, ...res
   // (ActionsStayOn). Secondary buttons stay: they open, show or close something. The strip under the
   // top bar says why; the title and the description repeat it for a pointer and a screen reader.
   if (frozen && variant !== 'secondary') {
-    return (
-      <button className={classes} {...rest} disabled title={t.worldEnd.frozen} aria-description={t.worldEnd.frozen} />
-    );
+    // a paused solo world (2.1) is frozen too, until the host presses play
+    const why = reason ?? undefined;
+    return <button className={classes} {...rest} disabled title={why} aria-description={why} />;
   }
   return <button className={classes} {...rest} />;
 }

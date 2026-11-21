@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Link, Navigate, Outlet, useLocation, useMatch } from 'react-router';
-import { useCurrentAccount } from '../api/queries/auth';
+import { useCurrentAccount, useMe } from '../api/queries/auth';
 import { useRefreshWhenBuildsEnd } from '../api/queries/buildings';
 import { useVillage } from '../api/queries/villages';
 import { useWorld } from '../api/queries/world';
@@ -25,8 +25,10 @@ import { ActionsStayOn } from './ActionsStayOn';
 import styles from './AppLayout.module.css';
 import { ChangelogBanner } from './ChangelogBanner';
 import { NewVersionBanner } from './NewVersionBanner';
+import { HelpRequestStrip } from './HelpRequestStrip';
 import { VictoryClockStrip } from './VictoryClockStrip';
 import { WorldEndedBanner } from './WorldEndedBanner';
+import { WorldPausedBanner } from './WorldPausedBanner';
 import { WorldEndScreen } from './WorldEndScreen';
 import { rememberVillage } from './currentVillage';
 import { IncomingAttacksBadge } from './IncomingAttacksBadge';
@@ -74,12 +76,17 @@ export function AppLayout() {
 function PhaseFrame() {
   const t = useT();
   const world = useWorld();
-  // A world that has ended is frozen (v1.3): resources and countdowns stand still at its end.
+  // A world that has ended is frozen (v1.3): resources and countdowns stand still at its end. So does a
+  // solo world the host paused (2.1), at the moment he paused it.
   const endedAt = world.data?.phase === 'ENDED' ? world.data.endedAt : null;
-  useEffect(() => setFrozenAt(endedAt === null ? null : Date.parse(endedAt)), [endedAt]);
+  const pausedAt = world.data?.pausedAt ?? null;
+  const frozenAt = endedAt ?? pausedAt;
+  useEffect(() => setFrozenAt(frozenAt === null ? null : Date.parse(frozenAt)), [frozenAt]);
   // ... and its game buttons are off (Button), except where ActionsStayOn says otherwise
   const ended = endedAt !== null;
-  const worldEnd = useMemo(() => ({ ended, frozen: ended }), [ended]);
+  const paused = !ended && pausedAt !== null;
+  const host = useMe().data?.role === 'ADMIN';
+  const worldEnd = useMemo(() => ({ ended, frozen: ended || paused, paused, host }), [ended, paused, host]);
   if (world.data?.phase === 'PREGAME') {
     return <PregameFrame />;
   }
@@ -264,6 +271,8 @@ function GameFrame() {
         />
         <div className={styles.column}>
           <WorldEndedBanner />
+          <WorldPausedBanner />
+          <HelpRequestStrip />
           <VictoryClockStrip />
           <WorldEndScreen />
           <NewVersionBanner />

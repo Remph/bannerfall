@@ -69,7 +69,16 @@ export function MembersCard({ guild, ownPlayerId, isLeader }: MembersCardProps) 
               <MoreMenu
                 label={labels.more(member.name)}
                 items={[
-                  { label: labels.handOver, icon: 'guild', onSelect: () => setAction({ kind: 'lead', member }) },
+                  // a lord never leads a guild of humans (2.1 S2b): the server refuses it
+                  ...(member.npc
+                    ? []
+                    : [
+                        {
+                          label: labels.handOver,
+                          icon: 'guild' as const,
+                          onSelect: () => setAction({ kind: 'lead', member }),
+                        },
+                      ]),
                   {
                     label: labels.kick,
                     icon: 'close',
